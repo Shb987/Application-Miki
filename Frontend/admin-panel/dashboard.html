@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Admin Panel</h2>
+    <ul>
+      <li><a href="#" onclick="loadStudents()">📚 Student Data</a></li>
+      <li><a href="#" onclick="loadUsers()">👥 Users</a></li>
+      <li><a href="#" onclick="loadLogins()">🔑 Logins</a></li>
+      <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1>Dashboard</h1>
+    <div id="data-section" class="table-container">
+      <p> Select an option from the sidebar to view data.</p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+    const token = localStorage.getItem("token");
+
+    // ✅ Redirect if not logged in
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      window.location.href = "login.html";
+    }
+
+    async function loadStudents() {
+      const res = await fetch(`${API_BASE}/user/get_students`, {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+      displayTable(data.students || [], "Students");
+    }
+
+    async function loadUsers() {
+      const res = await fetch(`${API_BASE}/user/get_users`, {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+      displayTable(data.users || [], "Users");
+    }
+
+    async function loadLogins() {
+      const res = await fetch(`${API_BASE}/user/get_logins`, {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+      displayTable(data.logins || [], "Logins");
+    }
+
+    function displayTable(items, title) {
+      let html = `<h2>${title}</h2>`;
+      if (items.length === 0) {
+        html += "<p>No data available</p>";
+      } else {
+        html += `<table>
+          <thead>
+            <tr>`;
+        Object.keys(items[0]).forEach(key => {
+          html += `<th>${key}</th>`;
+        });
+        html += `</tr>
+          </thead>
+          <tbody>`;
+        items.forEach(item => {
+          html += "<tr>";
+          Object.values(item).forEach(val => {
+            html += `<td>${val}</td>`;
+          });
+          html += "</tr>";
+        });
+        html += "</tbody></table>";
+      }
+      document.getElementById("data-section").innerHTML = html;
+    }
+  </script>
+</body>
+</html>

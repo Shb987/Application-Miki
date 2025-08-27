@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { color: #333; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background-color: #f4f4f4; }
+    .logout { margin-top: 20px; padding: 10px 20px; background: red; color: white; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>Admin Dashboard</h2>
+  <button class="logout" onclick="logout()">Logout</button>
+
+  <h3>Registered Students</h3>
+  <table id="studentsTable">
+    <thead>
+      <tr>
+        <th>Student Name</th>
+        <th>DOB</th>
+        <th>Class</th>
+        <th>Guardians</th>
+        <th>Parent Mobile</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h3>Registered Parents</h3>
+  <table id="parentsTable">
+    <thead>
+      <tr>
+        <th>Parent Name</th>
+        <th>Mobile</th>
+        <th>Address</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Please login first!");
+      window.location.href = "login.html";
+    }
+
+    async function fetchData(endpoint) {
+      const response = await fetch("http://127.0.0.1:8000" + endpoint, {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      return await response.json();
+    }
+
+    async function loadDashboard() {
+      // Load Students
+      const students = await fetchData("/user/students");
+      const studentsTable = document.querySelector("#studentsTable tbody");
+      studentsTable.innerHTML = "";
+      students.forEach(s => {
+        const row = `<tr>
+          <td>${s.student_name}</td>
+          <td>${s.dob}</td>
+          <td>${s.student_class}</td>
+          <td>${s.guardian_name}</td>
+          <td>${s.parent_mobile}</td>
+        </tr>`;
+        studentsTable.innerHTML += row;
+      });
+
+      // Load Parents
+      const parents = await fetchData("/user/parents");
+      const parentsTable = document.querySelector("#parentsTable tbody");
+      parentsTable.innerHTML = "";
+      parents.forEach(p => {
+        const row = `<tr>
+          <td>${p.guardian_name}</td>
+          <td>${p.mobile_number}</td>
+          <td>${p.address}</td>
+        </tr>`;
+        parentsTable.innerHTML += row;
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      window.location.href = "login.html";
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

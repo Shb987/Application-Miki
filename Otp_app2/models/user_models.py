@@ -8,6 +8,7 @@ class Student(BaseModel):
     student_name: str
     dob: str
     student_class: str
+    age:str
     address: str
     guardian_name: str
     parent_mobile: str   # <-- instead of passing student_id, we link with parent number

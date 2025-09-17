@@ -16,10 +16,22 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login_one.html", {"request": request})
 
 
+# @router.get("/dashboard", response_class=HTMLResponse)
+# async def read_dashboard(request: Request):
+#     response = templates.TemplateResponse("index.html", {"request": request})
+#     response.headers["Cache-Control"] = "no-store"  # Prevents back button from showing old page
+#     return response
+
 @router.get("/dashboard", response_class=HTMLResponse)
-async def read_dashboard(request: Request):
-    response = templates.TemplateResponse("index.html", {"request": request})
-    response.headers["Cache-Control"] = "no-store"  # Prevents back button from showing old page
+async def read_dashboard(request: Request, tab: str = None):
+    response = templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "active_tab": tab  # 👈 Now "tab" is defined
+        }
+    )
+    response.headers["Cache-Control"] = "no-store"
     return response
 
 @router.get("/students", response_class=HTMLResponse)

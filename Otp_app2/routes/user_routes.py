@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from models.user_models import UserCreate, Student,UserTypeRequest
+from models.answer_models import AnswerRequest
 from core.database import db
 from datetime import datetime, timedelta, timezone
 from fastapi import Query
@@ -148,7 +149,36 @@ async def get_students():
         "status_code": 200,
         "students": students
     }
+from bson import ObjectId
 
+@router.post("/answers")
+@router.post("/answers")
+async def save_answer(payload: AnswerRequest):
+    """
+    Save a student's answer (rating) for a question.
+    """
+
+    # Validate question
+    question = await db.questions.find_one({"_id": ObjectId(payload.question_id)})
+    if not question:
+        return {"status_code": 404, "message": "Question not found"}
+
+    # Build answer document
+    answer_doc = {
+        "student_id": payload.student_id,
+        "category": question["category"],   # pulled from question
+        "question_id": str(question["_id"]),
+        "answer_value": payload.answer_value,
+        "timestamp": datetime.utcnow()
+    }
+
+    result = await db.answers.insert_one(answer_doc)
+
+    return {
+        "status_code": 200,
+        "message": "Answer saved",
+        "answer_id": str(result.inserted_id)
+    }
 
 # ✅ Get all Users (Parents table)
 @router.get("/get_users")

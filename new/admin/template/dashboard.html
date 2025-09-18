@@ -8,23 +8,37 @@
 </head>
 <body class="d-flex">
 
-  <!-- Sidebar -->
-  <div class="bg-dark text-white p-3" style="width:250px; min-height:100vh;">
-    <h4>Admin Panel</h4>
-    <ul class="list-unstyled">
-      <li><a href="#" class="text-white" onclick="loadStudents()">📘 Student Data</a></li>
-      <li><a href="#" class="text-white" onclick="loadUsers()">👤 User Data</a></li>
-      <li><a href="#" class="text-white" onclick="loadLogins()">🔑 Login Data</a></li>
-      <li><a href="#" class="text-danger" onclick="logout()">🚪 Logout</a></li>
-    </ul>
+  <!-- Sidebar embedded -->
+  <div class="bg-light p-2" style="width:260px; min-height:100vh;">
+    <!-- ✅ fixed links -->
+    <div class="sidebar-wrapper">
+      <h5>Admin Panelss</h5>
+      <ul class="list-unstyled">
+        <li><a href="/admin-panel/dashboard?tab=students">Student Data</a></li>
+        <li><a href="/admin-panel/dashboard?tab=users">User Data</a></li>
+        <li><a href="/admin-panel/dashboard?tab=logins">Login Data</a></li>
+      </ul>
+      <hr>
+      <h6>Questions</h6>
+      <ul class="list-unstyled">
+        <li><a href="/admin-panel/questions/verbal-linguistic">Verbal-Linguistic</a></li>
+        <li><a href="/admin-panel/questions/logical-mathematical">Logical-Mathematical</a></li>
+        <li><a href="/admin-panel/questions/visual-spatial">Visual-Spatial</a></li>
+        <li><a href="/admin-panel/questions/bodily-kinesthetic">Bodily-Kinesthetic</a></li>
+        <li><a href="/admin-panel/questions/musical">Musical</a></li>
+        <li><a href="/admin-panel/questions/interpersonal">Interpersonal</a></li>
+        <li><a href="/admin-panel/questions/intrapersonal">Intrapersonal</a></li>
+        <li><a href="/admin-panel/questions/naturalist">Naturalist</a></li>
+      </ul>
+    </div>
   </div>
 
   <!-- Main Content -->
   <div class="flex-grow-1 p-4">
-    <h2>Welcome, <span id="admin-name">Admin</span></h2>
+    <h2>Welcomes, <span id="admin-name">Admin</span></h2>
     <hr>
     <div id="data-section">
-      <p>Select an option from the menu.</p>
+      <p>Loading...</p>
     </div>
   </div>
 
@@ -32,24 +46,20 @@
     const API_BASE = "http://127.0.0.1:8000";
     const token = localStorage.getItem("access_token");
 
-    // ✅ Redirect if not logged in
     if (!token) {
       window.location.href = "/admin-panel/login";
     }
 
-    // ✅ Load Admin Profile
     async function loadAdminProfile() {
       try {
         const res = await fetch(`${API_BASE}/admin/get_details`, {
           headers: { "Authorization": "Bearer " + token }
         });
-
         if (!res.ok) {
           localStorage.removeItem("access_token");
           window.location.href = "/admin-panel/login";
           return;
         }
-
         const data = await res.json();
         document.getElementById("admin-name").innerText = data.username;
       } catch (err) {
@@ -57,19 +67,14 @@
       }
     }
 
-    // ✅ Generic table renderer
     function displayTable(items, title, columns) {
       let html = `<h3>${title}</h3>`;
       if (items.length === 0) {
         html += "<p>No data available</p>";
       } else {
-        html += `<table class="table table-bordered table-striped">
-          <thead><tr>`;
-        columns.forEach(col => {
-          html += `<th>${col.label}</th>`;
-        });
+        html += `<table class="table table-bordered table-striped"><thead><tr>`;
+        columns.forEach(col => { html += `<th>${col.label}</th>`; });
         html += `</tr></thead><tbody>`;
-
         items.forEach(item => {
           html += "<tr>";
           columns.forEach(col => {
@@ -84,13 +89,11 @@
           });
           html += "</tr>";
         });
-
-        html += "</tbody></table>";
+        html += "</tbody></table>`;
       }
       document.getElementById("data-section").innerHTML = html;
     }
 
-    // ✅ Load Students
     async function loadStudents() {
       const res = await fetch(`${API_BASE}/user/students`, {
         headers: { "Authorization": "Bearer " + token }
@@ -108,7 +111,6 @@
       ]);
     }
 
-    // ✅ Load Users
     async function loadUsers() {
       const res = await fetch(`${API_BASE}/user/users`, {
         headers: { "Authorization": "Bearer " + token }
@@ -122,7 +124,6 @@
       ]);
     }
 
-    // ✅ Load Logins
     async function loadLogins() {
       const res = await fetch(`${API_BASE}/user/logins`, {
         headers: { "Authorization": "Bearer " + token }
@@ -137,14 +138,28 @@
       ]);
     }
 
-    // ✅ Logout
-    function logout() {
-      localStorage.removeItem("access_token");
-      window.location.href = "/admin-panel/login";
+    function loadTabContent() {
+      const params = new URLSearchParams(window.location.search);
+      const tabRaw = params.get("tab")||"students";
+      const tab = tabRaw.trim().toLowerCase();
+      console.log("DEBUG: Tab detected =", tab);
+      switch (tab) {
+        case "students":
+          loadStudents();
+          break;
+        case "users":
+          loadUsers();
+          break;
+        case "logins":
+          loadLogins();
+          break;
+        default:
+          console.warn("Unknown tab:", tab, "falling back to studenrts");
+          loadStudents();
+      }
     }
-
-    // Run profile loader
     loadAdminProfile();
+    loadTabContent();
   </script>
 
 </body>

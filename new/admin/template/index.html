@@ -1026,10 +1026,7 @@
       const res = await fetch(`${API_BASE}/user/get_students`, {
         headers: { "Authorization": "Bearer " + token }
       });
-      console.log("Students Response:", res.status);
-
       const data = await res.json();
-      console.log("Students Data:", data);
       displayTable(data.students || [], "Students", [
         { key: "student_id", label: "Student ID" },
         { key: "student_name", label: "Name" },
@@ -1047,7 +1044,6 @@
         headers: { "Authorization": "Bearer " + token }
       });
       const data = await res.json();
-
       displayTable(data.users || [], "Users", [
         { key: "mobile_number", label: "Mobile" },
         { key: "usertype", label: "User Type" },
@@ -1061,7 +1057,6 @@
         headers: { "Authorization": "Bearer " + token }
       });
       const data = await res.json();
-
       displayTable(data.logins || [], "Logins", [
         { key: "mobile_number", label: "Mobile" },
         { key: "otp", label: "OTP" },
@@ -1069,6 +1064,27 @@
         { key: "created_at", label: "Created At" },
         { key: "expiry", label: "Expiry" }
       ]);
+    }
+
+    function loadTabContent() {
+      const params = new URLSearchParams(window.location.search);
+      const tabRaw = params.get("tab")||"students";
+      const tab = tabRaw.trim().toLowerCase();
+      console.log("DEBUG: Tab detected =", tab);
+      switch (tab) {
+        case "students":
+          loadStudents();
+          break;
+        case "users":
+          loadUsers();
+          break;
+        case "logins":
+          loadLogins();
+          break;
+        default:
+          console.warn("Unknown tab:", tab, "falling back to studenrts");
+          loadStudents();
+      }
     }
 
     // ✅ Display table utility
@@ -1140,7 +1156,7 @@
     // ✅ Run on page load
     loadAdminProfile();
     loadStudents();
-
+    loadTabContent();
   </script>
   </body>
 </html>

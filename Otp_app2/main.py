@@ -27,6 +27,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
 # Mount static assets (CSS, JS, images)
 app.mount("/assets", StaticFiles(directory="../new/admin/assets"), name="assets")
 app.mount("/dist", StaticFiles(directory="../new/admin/dist"), name="dist")

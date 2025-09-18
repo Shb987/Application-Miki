@@ -14,17 +14,13 @@
     </a>
   </div>
   <nav class="sidebar-main">
-    <div class="left-arrow" id="left-arrow"><i data-feather="arrow-left"></i></div>
     <div id="sidebar-menu">
       <ul class="sidebar-links" id="simple-bar">
-        <!-- ✅ Sidebar Title -->
         <li class="sidebar-main-title">
-          <div>
-            <h6>GENERAL</h6>
-          </div>
+          <div><h6>GENERAL</h6></div>
         </li>
         <!-- ✅ Dashboard -->
-        <li class="sidebar-list">
+        <li class="sidebar-list" id="menu-dashboard">
           <a class="sidebar-link sidebar-title" href="#">
             <svg class="stroke-icon">
               <use xlink:href="/assets/svg/icon-sprite.svg#stroke-home"></use>
@@ -41,7 +37,7 @@
           </ul>
         </li>
         <!-- ✅ Questions -->
-        <li class="sidebar-list">
+        <li class="sidebar-list" id="menu-questions">
           <a class="sidebar-link sidebar-title" href="#">
             <svg class="stroke-icon">
               <use xlink:href="/assets/svg/icon-sprite.svg#stroke-widget"></use>
@@ -66,3 +62,21 @@
     </div>
   </nav>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const currentUrl = window.location.href;
+    document.querySelectorAll(".sidebar-submenu a").forEach(link => {
+      if (currentUrl.includes(link.getAttribute("href"))) {
+        link.classList.add("active");
+        const parentMenu = link.closest(".sidebar-list");
+        if (parentMenu) {
+          parentMenu.classList.add("active");
+          const submenu = parentMenu.querySelector(".sidebar-submenu");
+          submenu.classList.add("menu-open");
+          submenu.style.display = "block";
+        }
+      }
+    });
+  });
+</script>

@@ -5,6 +5,9 @@ from core.database import db
 from datetime import datetime, timedelta, timezone
 from fastapi import Query
 from typing import Dict, List
+from models.recommendation_models import Recommendation
+from fastapi import HTTPException
+
 
 
 router = APIRouter(tags=["User"])
@@ -120,19 +123,19 @@ async def get_questions_by_age(
             {"age_max": {"$gte": age}}    # age <= max
         ]
     }
-
     cursor = db.questions.find(query)
     questions = [clean_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
-
     # Group by category
     grouped: Dict[str, List[dict]] = {}
     for q in questions:
         cat = q["category"]
         grouped.setdefault(cat, []).append({
+            "id": str(q["_id"]),  # Include ObjectId as string
             "text": q["text"],
             "options": q.get("options", []),
             "answer": q.get("answer")
         })
+
 
     return {
         "status_code": 200,
@@ -152,7 +155,6 @@ async def get_students():
 from bson import ObjectId
 
 @router.post("/answers")
-@router.post("/answers")
 async def save_answer(payload: AnswerRequest):
     """
     Save a student's answer (rating) for a question.
@@ -169,7 +171,7 @@ async def save_answer(payload: AnswerRequest):
         "category": question["category"],   # pulled from question
         "question_id": str(question["_id"]),
         "answer_value": payload.answer_value,
-        "timestamp": datetime.utcnow()
+        "timestamp": datetime.now(timezone.utc)
     }
 
     result = await db.answers.insert_one(answer_doc)
@@ -201,6 +203,70 @@ async def get_logins():
     }
 
 
+async def determine_career(student_id: str) -> str:
+    student = await db.students.find_one({"student_id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
 
+    career = student.get("career")
+    if not career:
+        raise HTTPException(status_code=404, detail="Career not set for this student")
 
+    return career
+
+# ✅ Add or update recommendations for a career
+@router.post("/recommendations")
+async def add_recommendations(data: Recommendation):
+    await db.recommendations.update_one(
+        {"career": data.career, "student_id": data.student_id},  
+        {
+            "$set": {
+                "tutorials": data.tutorials,
+                "videos": data.videos,
+                "student_id": data.student_id,
+                "career": data.career
+            }
+        },
+        upsert=True
+    )
+    return {
+        "status_code": 200,
+        "message": f"Recommendations updated for student {data.student_id} ({data.career})"
+    }
+# ✅ Get recommendations for a student based on answers → career
+@router.get("/recommend/{student_id}")
+async def get_recommendations(student_id: str):
+    student = await db.students.find_one({"student_id": student_id})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    career = student.get("career", None)
+    if not career:
+        return {
+            "status_code": 200,
+            "student_id": student_id,
+            "career": None,
+            "recommendations": {"tutorials": [], "videos": []},
+            "message": "Career not set for this student"
+        }
+
+    doc = await db.recommendations.find_one({"student_id": student_id, "career": career})
+    
+    if not doc:
+        return {
+            "status_code": 200,
+            "student_id": student_id,
+            "career": career,
+            "recommendations": {"tutorials": [], "videos": []}
+        }
+
+    return {
+        "status_code": 200,
+        "student_id": student_id,
+        "career": career,
+        "recommendations": {
+            "tutorials": doc.get("tutorials", []),
+            "videos": doc.get("videos", [])
+        }
+    }
 

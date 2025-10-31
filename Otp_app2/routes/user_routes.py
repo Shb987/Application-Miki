@@ -96,19 +96,47 @@ async def set_usertype(data: UserTypeRequest):
 # --------------------- Questions by Age -------------------------
 @router.get("/student_questions")
 async def get_questions_by_age(age: int = Query(...)):
-    query = {"$and": [{"age_min": {"$lte": age}}, {"age_max": {"$gte": age}}]}
+    # Find questions where age_min <= age <= age_max
+    query = {
+        "$and": [
+            {"age_min": {"$lte": age}},
+            {"age_max": {"$gte": age}}
+        ]
+    }
+
     cursor = db.questions.find(query)
     questions = [clean_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     grouped: Dict[str, List[dict]] = {}
+
     for q in questions:
-        cat = q["category"]
-        grouped.setdefault(cat, []).append({
-            "id": str(q["_id"]),
-            "text": q["text"],
-            "options": q.get("options", [])
-        })
-    return {"status_code": 200, "age": age, "categories": grouped}
+        cat = q.get("category", "uncategorized")
+
+        # Detect type of question
+        is_image_question = "image_options" in q and q["image_options"]
+
+        # Build question payload
+        question_data = {
+            "id": q["_id"],
+            "text": q.get("text"),
+            "type": "image" if is_image_question else "text",
+        }
+
+        if is_image_question:
+            question_data["options"] = q["image_options"]  # list of image URLs
+            question_data["correct_index"] = q.get("correct_index")
+        else:
+            question_data["options"] = q.get("options", [])
+            question_data["correct_answer"] = q.get("correct_answer")
+
+        # Group by category
+        grouped.setdefault(cat, []).append(question_data)
+
+    return {
+        "status_code": 200,
+        "age": age,
+        "categories": grouped
+    }
 
 # --------------------- Save Answer -------------------------
 @router.post("/answers")

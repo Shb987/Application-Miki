@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Form, File, UploadFile, HTTPException,Depends
 from models.admin_models import AdminLogin
 from core.database import db
 from fastapi.responses import HTMLResponse
@@ -8,8 +8,15 @@ from fastapi.templating import Jinja2Templates
 from utils.auth import verify_password, create_access_token, get_password_hash,get_current_admin
 from models.question_models import Question
 from bson import ObjectId
+import os, json
+from typing import List, Optional
+
+
 
 router = APIRouter(tags=["Admin"])
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 # ✅ Register new admin (for testing, later can restrict)
 @router.post("/register")
@@ -39,22 +46,89 @@ async def login(admin: AdminLogin):
 async def get_admin_me(current_admin: dict = Depends(get_current_admin)):
     return {"username": current_admin["sub"]}
 
-# ✅ Create Question
-@router.post("/create-questions")
-async def create_question(question: Question, current_admin: dict = Depends(get_current_admin)):
-    print("Received Question:", question.dict())  # 👈 debug
-    new_q = question.dict()
-    result = await db.questions.insert_one(new_q)
-    return {"message": "Question added", "id": str(result.inserted_id)}
+# # ✅ Create Question
+# @router.post("/create-questions")
+# async def create_question(question: Question, current_admin: dict = Depends(get_current_admin)):
+#     print("Received Question:", question.dict())  # 👈 debug
+#     new_q = question.dict()
+#     result = await db.questions.insert_one(new_q)
+#     return {"message": "Question added", "id": str(result.inserted_id)}
 
 
 # ✅ Get All Questions
 @router.post("/questions")
-async def create_question(question: Question):  # removed current_admin
-    print("Received Question:", question.dict())
-    new_q = question.dict()
-    result = await db.questions.insert_one(new_q)
-    return {"message": "Question added", "id": str(result.inserted_id)}
+async def create_question(
+    category: str = Form(...),
+    text: str = Form(...),
+    # optional fields for normal MCQs
+    options: Optional[str] = Form(None),   # send as JSON string if using form-data
+    correct_answer: Optional[str] = Form(None),
+    # optional fields for image-based MCQs
+    correct_index: Optional[int] = Form(None),
+    age_min: Optional[int] = Form(None),
+    age_max: Optional[int] = Form(None),
+    option1: UploadFile | None = File(None),
+    option2: UploadFile | None = File(None),
+    option3: UploadFile | None = File(None),
+    option4: UploadFile | None = File(None)
+):
+    image_files = [option1, option2, option3, option4]
+    image_options = []
+
+    # Check if any image is uploaded
+    is_image_question = any(file is not None for file in image_files)
+
+    if is_image_question:
+        # Handle image-based question
+        for file in image_files:
+            if file:
+                filename = f"{ObjectId()}_{file.filename}"
+                file_path = os.path.join(UPLOAD_DIR, filename)
+                with open(file_path, "wb") as buffer:
+                    buffer.write(await file.read())
+                image_options.append(file_path)
+            else:
+                image_options.append(None)
+
+        if correct_index is None:
+            raise HTTPException(status_code=400, detail="Missing correct_index for image question")
+
+        question_data = Question(
+            category=category,
+            text=text,
+            image_options=image_options,
+            correct_index=correct_index,
+            age_min=age_min,
+            age_max=age_max
+        )
+
+    else:
+        # Handle normal text-based question
+        if not options:
+            raise HTTPException(status_code=400, detail="Missing options for text question")
+        try:
+            options_list = json.loads(options)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Options must be valid JSON list")
+
+        question_data = Question(
+            category=category,
+            text=text,
+            options=options_list,
+            correct_answer=correct_answer,
+            age_min=age_min,
+            age_max=age_max
+        )
+
+    # Save to MongoDB
+    result = await db.questions.insert_one(question_data.dict())
+
+    return {
+        "message": "Question added successfully",
+        "id": str(result.inserted_id),
+        "type": "image" if is_image_question else "text"
+    }
+
 
 # ✅ Update Question
 @router.put("/questions/{question_id}")

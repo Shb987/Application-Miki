@@ -40,7 +40,7 @@ async def get_admin_me(current_admin: dict = Depends(get_current_admin)):
     return {"username": current_admin["sub"]}
 
 # ✅ Create Question
-@router.post("/questions")
+@router.post("/create-questions")
 async def create_question(question: Question, current_admin: dict = Depends(get_current_admin)):
     print("Received Question:", question.dict())  # 👈 debug
     new_q = question.dict()

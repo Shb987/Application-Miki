@@ -416,8 +416,19 @@
 
             <!-- Add Question Form -->
             <div class="card mb-3 p-3">
-              <h5>Add New Question</h5>
+              <h5>Add New Questions</h5>
+              <!-- Question type selector -->
+              <div class="mb-3">
+                <label class="form-label">Question Type</label>
+                <select id="question-type" class="form-select" onchange="toggleQuestionType()">
+                  <option value="text">Text-based MCQ</option>
+                  <option value="image">Image-based MCQ</option>
+                </select>
+              </div>
+
+              <!-- Common fields -->
               <input type="text" id="new-question-text" class="form-control mb-2" placeholder="Enter question text" />
+
               <div class="row">
                 <div class="col-md-6 mb-2">
                   <input type="number" id="new-question-age-min" class="form-control" placeholder="Minimum Age" />
@@ -426,8 +437,31 @@
                   <input type="number" id="new-question-age-max" class="form-control" placeholder="Maximum Age" />
                 </div>
               </div>
-              <button class="btn btn-primary" onclick="addQuestion()">➕ Add Question</button>
+
+              <!-- 🔹 Text-based MCQ fields -->
+              <div id="text-options" class="mb-3">
+                <h6>Text Options</h6>
+                <input type="text" class="form-control mb-2" id="option1" placeholder="Option 1" />
+                <input type="text" class="form-control mb-2" id="option2" placeholder="Option 2" />
+                <input type="text" class="form-control mb-2" id="option3" placeholder="Option 3" />
+                <input type="text" class="form-control mb-2" id="option4" placeholder="Option 4" />
+                <input type="text" class="form-control" id="correct-answer" placeholder="Correct Answer (must match one option)" />
+              </div>
+
+              <!-- 🔹 Image-based MCQ fields -->
+              <div id="image-options" class="mb-3" style="display: none;">
+                <h6>Image Options</h6>
+                <input type="file" class="form-control mb-2" id="img1" accept="image/*" />
+                <input type="file" class="form-control mb-2" id="img2" accept="image/*" />
+                <input type="file" class="form-control mb-2" id="img3" accept="image/*" />
+                <input type="file" class="form-control mb-2" id="img4" accept="image/*" />
+                <label>Select correct image (1–4):</label>
+                <input type="number" class="form-control" id="correct-index" min="1" max="4" />
+              </div>
+
+              <button class="btn btn-primary mt-3" onclick="addQuestion()">➕ Add Question</button>
             </div>
+
 
             <!-- Questions List -->
             <ul class="list-group" id="questions-list">
@@ -495,7 +529,12 @@
     const category = "{{ category }}";
     const token = localStorage.getItem("access_token");
 
-
+    // Toggle between text and image question forms
+    function toggleQuestionType() {
+      const type = document.getElementById("question-type").value;
+      document.getElementById("text-options").style.display = type === "text" ? "block" : "none";
+      document.getElementById("image-options").style.display = type === "image" ? "block" : "none";
+    }
     // ✅ Redirect immediately if not logged in
     if (!token) {
       window.location.replace("/admin-panel/login");
@@ -526,60 +565,86 @@
     }
     // Add Question
     async function addQuestion() {
-        const text = document.getElementById("new-question-text").value.trim();
-        const age_min = parseInt(document.getElementById("new-question-age-min").value);
-        const age_max = parseInt(document.getElementById("new-question-age-max").value);
+      const type = document.getElementById("question-type").value;
+      const text = document.getElementById("new-question-text").value.trim();
+      const age_min = parseInt(document.getElementById("new-question-age-min").value);
+      const age_max = parseInt(document.getElementById("new-question-age-max").value);
 
-        if (!text || isNaN(age_min) || isNaN(age_max)) {
-            alert("Please fill all fields correctly.");
-            return;
+      if (!text || isNaN(age_min) || isNaN(age_max)) {
+        alert("Please fill question text and age range.");
+        return;
+      }
+
+      let res;
+
+      if (type === "text") {
+        // 📝 Text-based question
+        const options = [
+          document.getElementById("option1").value.trim(),
+          document.getElementById("option2").value.trim(),
+          document.getElementById("option3").value.trim(),
+          document.getElementById("option4").value.trim()
+        ].filter(Boolean);
+
+        const correct_answer = document.getElementById("correct-answer").value.trim();
+        if (options.length < 2 || !correct_answer) {
+          alert("Please provide at least 2 options and the correct answer.");
+          return;
         }
-        console.log("Sending:", JSON.stringify({ 
-          text, 
-          category, 
-          age_min, 
-          age_max, 
-          options: [], 
-          answer: null 
-        }));
-        const res = await fetch(`${API_BASE}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({ 
-                text, 
-                category, 
-                age_min, 
-                age_max,
-                options: [],
-                answer: null
-            })        
+
+        res = await fetch(API_BASE, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify({
+            text,
+            category,
+            age_min,
+            age_max,
+            options,
+            correct_answer
+          })
         });
 
-        const data = await res.json();
-        if (res.ok) {
-            // Append new question to list
-            const ul = document.getElementById("questions-list");
-            const li = document.createElement("li");
-            li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center");
-            li.dataset.id = data.id;
-            li.innerHTML = `
-                <span class="question-text">${text} (${age_min}-${age_max} yrs)</span>
-                <div>
-                    <button class="btn btn-sm btn-warning" onclick="editQuestion('${data.id}', ${age_min}, ${age_max})">✏️</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteQuestion('${data.id}')">🗑️</button>
-                </div>`;
-            ul.appendChild(li);
+      } else {
+        // 🖼️ Image-based question
+        const formData = new FormData();
+        formData.append("text", text);
+        formData.append("category", category);
+        formData.append("age_min", age_min);
+        formData.append("age_max", age_max);
 
-            // Clear form
-            document.getElementById("new-question-text").value = "";
-            document.getElementById("new-question-age-min").value = "";
-            document.getElementById("new-question-age-max").value = "";
-        } else {
-            alert(data.detail || "Error adding question");
+        const correct_index = parseInt(document.getElementById("correct-index").value);
+        if (isNaN(correct_index) || correct_index < 1 || correct_index > 4) {
+          alert("Please enter a valid correct image number (1–4).");
+          return;
         }
+        formData.append("correct_index", correct_index - 1); // backend expects 0-based index
+
+        // Attach image files
+        ["img1", "img2", "img3", "img4"].forEach((id, i) => {
+          const file = document.getElementById(id).files[0];
+          if (file) formData.append(`option${i + 1}`, file);
+        });
+
+        res = await fetch(API_BASE, {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token
+          },
+          body: formData
+        });
+      }
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("Question added successfully!");
+        location.reload(); // Refresh to show new question
+      } else {
+        alert(data.detail || "Error adding question");
+      }
     }
 
     // Edit Question

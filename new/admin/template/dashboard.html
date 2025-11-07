@@ -89,7 +89,7 @@
           });
           html += "</tr>";
         });
-        html += "</tbody></table>`;
+        html += "</tbody></table>";
       }
       document.getElementById("data-section").innerHTML = html;
     }
@@ -154,7 +154,7 @@
           loadLogins();
           break;
         default:
-          console.warn("Unknown tab:", tab, "falling back to studenrts");
+          console.warn("Unknown tab:", tab, "falling back to students");
           loadStudents();
       }
     }

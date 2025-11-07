@@ -1,16 +1,27 @@
 from fastapi import APIRouter, Form, File, UploadFile, HTTPException, Depends
-from models.admin_models import AdminLogin
-from core.database import db
-from utils.auth import verify_password, create_access_token, get_password_hash, get_current_admin
-from models.question_models import Question
-from bson import ObjectId
-import os, json
 from typing import Optional
+from bson import ObjectId
+import os
+import json
 
+# Local imports
+from core.database import db
+from utils.auth import (
+    verify_password,
+    create_access_token,
+    get_password_hash,
+    get_current_admin,
+)
+from models.admin_models import AdminLogin
+from models.question_models import Question
+
+# Router setup
 router = APIRouter(tags=["Admin"])
 
+# Upload directory
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 
 # ✅ Register new admin
 @router.post("/register")
@@ -23,6 +34,7 @@ async def register_admin(admin: AdminLogin):
     await db.admins.insert_one({"username": admin.username, "password": hashed_pw})
     return {"message": "Admin registered successfully"}
 
+
 # ✅ Login
 @router.post("/login")
 async def login(admin: AdminLogin):
@@ -33,10 +45,12 @@ async def login(admin: AdminLogin):
     token = create_access_token({"sub": record["username"], "role": "admin"})
     return {"access_token": token, "token_type": "bearer"}
 
+
 # ✅ Get admin details
 @router.get("/get_details")
 async def get_admin_me(current_admin: dict = Depends(get_current_admin)):
     return {"username": current_admin["sub"]}
+
 
 # ✅ Create Question (supports text & image-based MCQs)
 @router.post("/questions")
@@ -51,7 +65,7 @@ async def create_question(
     option1: UploadFile | None = File(None),
     option2: UploadFile | None = File(None),
     option3: UploadFile | None = File(None),
-    option4: UploadFile | None = File(None)
+    option4: UploadFile | None = File(None),
 ):
     image_files = [option1, option2, option3, option4]
     image_options = []
@@ -78,7 +92,7 @@ async def create_question(
             image_options=image_options,
             correct_index=correct_index,
             age_min=age_min,
-            age_max=age_max
+            age_max=age_max,
         )
     else:
         # ✅ Handle text-based question
@@ -98,7 +112,7 @@ async def create_question(
             options=options_list,
             correct_answer=correct_answer,
             age_min=age_min,
-            age_max=age_max
+            age_max=age_max,
         )
 
     result = await db.questions.insert_one(question_data.dict())
@@ -106,23 +120,32 @@ async def create_question(
     return {
         "message": "Question added successfully",
         "id": str(result.inserted_id),
-        "type": "image" if is_image_question else "text"
+        "type": "image" if is_image_question else "text",
     }
+
 
 # ✅ Update Question
 @router.put("/questions/{question_id}")
-async def update_question(question_id: str, question: Question, current_admin: dict = Depends(get_current_admin)):
+async def update_question(
+    question_id: str,
+    question: Question,
+    current_admin: dict = Depends(get_current_admin),
+):
     result = await db.questions.update_one(
         {"_id": ObjectId(question_id)},
-        {"$set": question.dict()}
+        {"$set": question.dict()},
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Question not found or no changes made")
     return {"message": "Question updated successfully"}
 
+
 # ✅ Delete Question
 @router.delete("/questions/{question_id}")
-async def delete_question(question_id: str, current_admin: dict = Depends(get_current_admin)):
+async def delete_question(
+    question_id: str,
+    current_admin: dict = Depends(get_current_admin),
+):
     result = await db.questions.delete_one({"_id": ObjectId(question_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Question not found")

@@ -578,36 +578,28 @@
       let res;
 
       if (type === "text") {
-        // 📝 Text-based question
-        const options = [
+        const formData = new FormData();
+        formData.append("category", category);
+        formData.append("text", text);
+        formData.append("age_min", age_min);
+        formData.append("age_max", age_max);
+        formData.append("options", JSON.stringify([
           document.getElementById("option1").value.trim(),
           document.getElementById("option2").value.trim(),
           document.getElementById("option3").value.trim(),
           document.getElementById("option4").value.trim()
-        ].filter(Boolean);
+        ].filter(Boolean)));
 
-        const correct_answer = document.getElementById("correct-answer").value.trim();
-        if (options.length < 2 || !correct_answer) {
-          alert("Please provide at least 2 options and the correct answer.");
-          return;
-        }
+        formData.append("correct_answer", document.getElementById("correct-answer").value.trim());
 
         res = await fetch(API_BASE, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             "Authorization": "Bearer " + token
           },
-          body: JSON.stringify({
-            text,
-            category,
-            age_min,
-            age_max,
-            options,
-            correct_answer
-          })
+          body: formData
         });
-
+      
       } else {
         // 🖼️ Image-based question
         const formData = new FormData();

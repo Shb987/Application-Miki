@@ -4,4 +4,4 @@ class Career_analyzer(BaseModel):
     student_id: str
     recommended_career: List[str]                 
     scores: int        
-    top_category: str  
+    top_category: str

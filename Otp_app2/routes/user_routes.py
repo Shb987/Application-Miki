@@ -150,26 +150,56 @@ async def get_questions_by_age(age: int = Query(...)):
 
 # --------------------- Save Answer -------------------------
 @router.post("/answers")
-async def save_answer(payload: AnswerRequest):
-    question = await db.questions.find_one({"_id": ObjectId(payload.question_id)})
-    if not question:
-        return {"status_code": 404, "message": "Question not found"}
+async def save_answers(payload: AnswerRequest):
 
-    answer_doc = {
+    answers_list = []
+    total_marks = 0
+
+    # Loop through each question + answer
+    for qid, ans in zip(payload.question_ids, payload.answers):
+
+        # Fetch question
+        question = await db.questions.find_one({"_id": ObjectId(qid)})
+        if not question:
+            continue  # skip missing questions
+
+        correct_index = question.get("correct_index")
+
+        # Mark calculation
+        mark = 1 if ans == correct_index else 0
+        total_marks += mark
+
+        # Add to answers list
+        answers_list.append({
+            "question_id": qid,
+            "answer_value": ans,
+            "correct_index": correct_index,
+            "mark": mark
+        })
+
+    # Default attempt = 0
+    attempt = getattr(payload, "attempt", 0)
+
+    # Final combined document
+    document = {
         "student_id": payload.student_id,
-        "category": question["category"],
-        "question_id": str(question["_id"]),
-        "answer_value": payload.answer_value,
+        "category": payload.category,
+        "attempt": attempt,
+        "answers": answers_list,
+        "total_marks": total_marks,
         "timestamp": datetime.now(timezone.utc)
     }
 
-    result = await db.answers.insert_one(answer_doc)
+    # Insert into Mongo
+    result = await db.answers.insert_one(document)
 
     return {
         "status_code": 200,
-        "message": "Answer saved",
-        "answer_id": str(result.inserted_id)
+        "message": "All answers saved",
+        "answer_sheet_id": str(result.inserted_id),
+        "total_marks": total_marks
     }
+
 @router.get("/get_students")
 async def get_students():
     cursor = db.students.find({}, {"_id": 0})  # exclude MongoDB _id

@@ -5,6 +5,8 @@ from typing import Optional,List
 class Question(BaseModel):
     category: str
     text: str
+    type: Optional[str] = None  # ✅ Add this line
+
     options: Optional[List[str]] = None         # for text-based MCQs
     image_options: Optional[List[str]] = None   # for image-based MCQs
     correct_index: Optional[int] = None         # index of correct answer

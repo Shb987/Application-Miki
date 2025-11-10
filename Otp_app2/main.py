@@ -28,6 +28,7 @@ app.add_middleware(
 app.mount("/assets", StaticFiles(directory="../new/admin/assets"), name="assets")
 app.mount("/dist", StaticFiles(directory="../new/admin/dist"), name="dist")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+ 
 
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])

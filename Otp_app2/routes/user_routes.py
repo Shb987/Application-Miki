@@ -1,21 +1,25 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter
 from models.user_models import UserCreate, Student, UserTypeRequest
 from models.answer_models import AnswerRequest
-from models.career_models import Career_analyzer
 from core.database import db
-from bson import ObjectId
 from datetime import datetime, timezone
+from fastapi import Query, HTTPException
 from typing import Dict, List
+from models.career_models import Career_analyzer
+from bson import ObjectId
 
 router = APIRouter(tags=["User"])
 
 # --------------------- Student Registration -------------------------
 async def generate_student_id():
     count = await db.students.count_documents({})
-    return f"STU{str(count + 1).zfill(4)}"
+    return f"STU{str(count+1).zfill(4)}"
 
 @router.post("/register-student")
-async def register_student(data: Student, parent_mobile: str = Query(...)):
+async def register_student(
+    data: Student,
+    parent_mobile: str = Query(..., description="Parent mobile number")
+):
     student_id = await generate_student_id()
 
     student_doc = {
@@ -50,16 +54,15 @@ async def register_student(data: Student, parent_mobile: str = Query(...)):
         "student_id": student_id
     }
 
-# --------------------- Utility -------------------------
 def clean_mongo_doc(doc):
     if not doc:
         return doc
     doc["_id"] = str(doc["_id"])
     return doc
 
-# --------------------- Parent Details -------------------------
+# --------------------- Fetch Parent Details -------------------------
 @router.get("/parent")
-async def get_parent_details(mobile_number: str = Query(...)):
+async def get_parent_details(mobile_number: str = Query(..., description="The mobile number of the parent")):
     user_record = await db.usertable.find_one({"mobile_number": mobile_number})
     if not user_record:
         return {"status_code": 404, "message": "Parent not found"}
@@ -71,8 +74,6 @@ async def get_parent_details(mobile_number: str = Query(...)):
         students = [clean_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
-
-# --------------------- Usertype -------------------------
 @router.post("/set-usertype")
 async def set_usertype(data: UserTypeRequest):
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
@@ -88,11 +89,14 @@ async def set_usertype(data: UserTypeRequest):
         {"$set": {"usertype": data.usertype}}
     )
 
-    return {"status_code": 200, "message": f"Usertype set to {data.usertype}"}
-
+    return {
+        "status_code": 200,
+        "message": f"Usertype set to {data.usertype}"
+    }
 # --------------------- Questions by Age -------------------------
 @router.get("/student_questions")
 async def get_questions_by_age(age: int = Query(...)):
+    # Find questions where age_min <= age <= age_max
     query = {
         "$and": [
             {"age_min": {"$lte": age}},
@@ -102,28 +106,47 @@ async def get_questions_by_age(age: int = Query(...)):
 
     cursor = db.questions.find(query)
     questions = [clean_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
+
     grouped: Dict[str, List[dict]] = {}
 
     for q in questions:
         cat = q.get("category", "uncategorized")
+
+        # Detect type of question
         is_image_question = "image_options" in q and q["image_options"]
 
+        # Build question payload
         question_data = {
-            "id": q["_id"],
-            "text": q.get("text"),
-            "type": "image" if is_image_question else "text",
-        }
+    "id": q["_id"],
+    "text": q.get("text"),
+}
 
-        if is_image_question:
-            question_data["options"] = q["image_options"]
-            question_data["correct_index"] = q.get("correct_index")
+        if q.get("type") == "image":
+           question_data["type"] = "image"
+           question_data["options"] = q.get("image_options", [])  # list of image URLs
+           question_data["correct_index"] = q.get("correct_index")
+
+        elif q.get("type") == "rating":
+    # ⭐ Text-based Rating (no options)
+           question_data["type"] = "rating"
+    # Only text, min_age, max_age (if available)
+           question_data["age_min"] = q.get("age_min")
+           question_data["age_max"] = q.get("age_max")
+
         else:
-            question_data["options"] = q.get("options", [])
-            question_data["correct_answer"] = q.get("correct_answer")
+    # 📝 Text-based MCQ
+           question_data["type"] = "text"
+           question_data["options"] = q.get("options", [])
+           question_data["correct_answer"] = q.get("correct_answer")
 
+        # Group by category
         grouped.setdefault(cat, []).append(question_data)
 
-    return {"status_code": 200, "age": age, "categories": grouped}
+    return {
+        "status_code": 200,
+        "age": age,
+        "categories": grouped
+    }
 
 # --------------------- Save Answer -------------------------
 @router.post("/answers")
@@ -141,30 +164,71 @@ async def save_answer(payload: AnswerRequest):
     }
 
     result = await db.answers.insert_one(answer_doc)
-    return {"status_code": 200, "message": "Answer saved", "answer_id": str(result.inserted_id)}
 
-# --------------------- Get Students -------------------------
+    return {
+        "status_code": 200,
+        "message": "Answer saved",
+        "answer_id": str(result.inserted_id)
+    }
 @router.get("/get_students")
 async def get_students():
-    cursor = db.students.find({}, {"_id": 0})
+    cursor = db.students.find({}, {"_id": 0})  # exclude MongoDB _id
     students = await cursor.to_list(length=None)
-    return {"status_code": 200, "students": students}
+    return {
+        "status_code": 200,
+        "students": students
+    }
+from bson import ObjectId
 
-# --------------------- Get All Users -------------------------
+@router.post("/answers")
+async def save_answer(payload: AnswerRequest):
+    """
+    Save a student's answer (rating) for a question.
+    """
+
+    # Validate question
+    question = await db.questions.find_one({"_id": ObjectId(payload.question_id)})
+    if not question:
+        return {"status_code": 404, "message": "Question not found"}
+
+    # Build answer document
+    answer_doc = {
+        "student_id": payload.student_id,
+        "category": question["category"],   # pulled from question
+        "question_id": str(question["_id"]),
+        "answer_value": payload.answer_value,
+        "timestamp": datetime.now(timezone.utc)
+    }
+
+    result = await db.answers.insert_one(answer_doc)
+
+    return {
+        "status_code": 200,
+        "message": "Answer saved",
+        "answer_id": str(result.inserted_id)
+    }
+
+# ✅ Get all Users (Parents table)
 @router.get("/get_users")
 async def get_users():
     cursor = db.usertable.find({}, {"_id": 0})
     users = await cursor.to_list(length=None)
-    return {"status_code": 200, "users": users}
+    return {
+        "status_code": 200,
+        "users": users
+    }
 
-# --------------------- Get All Logins -------------------------
+# ✅ Get all Login Attempts (OTP table)
 @router.get("/get_logins")
 async def get_logins():
     cursor = db.otps.find({}, {"_id": 0})
     logins = await cursor.to_list(length=None)
-    return {"status_code": 200, "logins": logins}
+    return {
+        "status_code": 200,
+        "logins": logins
+    }
 
-# --------------------- Career Analyzer -------------------------
+# --------------------- Career Analyzer Logic -------------------------
 career_map = {
     "musical": "Musician, Composer, Singer, Sound Engineer",
     "logical-mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
@@ -175,7 +239,6 @@ career_map = {
     "intrapersonal": "Psychologist, Philosopher, Writer",
     "naturalistic": "Biologist, Environmentalist, Farmer, Veterinarian"
 }
-
 @router.post("/analyze-career/{student_id}")
 async def analyze_career(student_id: str):
     answers_cursor = db.answers.find({"student_id": student_id})
@@ -183,7 +246,6 @@ async def analyze_career(student_id: str):
 
     if not answers:
         raise HTTPException(status_code=404, detail="No answers found for this student")
-
     scores, counts = {}, {}
     for ans in answers:
         cat = ans["category"]
@@ -216,7 +278,9 @@ async def analyze_career(student_id: str):
     )
 
     insights = [f"{cat}: Strong inclination towards {cat.lower()} intelligence." for cat, _ in top_3]
+    
     careers = [f"{cat} ➔ {career_map.get(cat.strip().lower(), 'Unknown Career')}" for cat, _ in top_3]
+
 
     return {
         "status_code": 200,

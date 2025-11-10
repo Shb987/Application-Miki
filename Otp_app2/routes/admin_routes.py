@@ -57,6 +57,7 @@ async def get_admin_me(current_admin: dict = Depends(get_current_admin)):
 async def create_question(
     category: str = Form(...),
     text: str = Form(...),
+    type: Optional[str] = Form("text"),  # "text", "image", or "rating"
     options: Optional[str] = Form(None),
     correct_answer: Optional[str] = Form(None),
     correct_index: Optional[int] = Form(None),
@@ -67,19 +68,22 @@ async def create_question(
     option3: UploadFile | None = File(None),
     option4: UploadFile | None = File(None),
 ):
-    image_files = [option1, option2, option3, option4]
-    image_options = []
-    is_image_question = any(file is not None for file in image_files)
+    os.makedirs(UPLOAD_DIR, exist_ok=True)  # ✅ Ensure uploads folder exists
 
+    image_files = [option1, option2, option3, option4]
+    is_image_question = type == "image" or any(file is not None for file in image_files)
+    image_options = []
+
+    # 🖼️ IMAGE-BASED QUESTION
     if is_image_question:
-        # ✅ Handle image-based question
         for file in image_files:
             if file:
                 filename = f"{ObjectId()}_{file.filename}"
                 file_path = os.path.join(UPLOAD_DIR, filename)
                 with open(file_path, "wb") as buffer:
                     buffer.write(await file.read())
-                image_options.append(file_path)
+                # Store relative URL (recommended)
+                image_options.append(f"/uploads/{filename}")
             else:
                 image_options.append(None)
 
@@ -89,13 +93,28 @@ async def create_question(
         question_data = Question(
             category=category,
             text=text,
+            type="image",
             image_options=image_options,
             correct_index=correct_index,
             age_min=age_min,
             age_max=age_max,
         )
+
+    # ⭐ RATING-TYPE QUESTION
+    elif type == "rating":
+        if options or any(file is not None for file in image_files):
+            raise HTTPException(status_code=400, detail="Rating questions should not include options or images")
+
+        question_data = Question(
+            category=category,
+            text=text,
+            type="rating",
+            age_min=age_min,
+            age_max=age_max,
+        )
+
+    # 📝 TEXT-BASED QUESTION
     else:
-        # ✅ Handle text-based question
         if not options:
             raise HTTPException(status_code=400, detail="Missing options for text question")
 
@@ -109,6 +128,7 @@ async def create_question(
         question_data = Question(
             category=category,
             text=text,
+            type="text",
             options=options_list,
             correct_answer=correct_answer,
             age_min=age_min,
@@ -120,33 +140,95 @@ async def create_question(
     return {
         "message": "Question added successfully",
         "id": str(result.inserted_id),
-        "type": "image" if is_image_question else "text",
+        "type": question_data.type,
     }
 
 
+
 # ✅ Update Question
+# ✅ Flexible update endpoint for both text & image MCQs
 @router.put("/questions/{question_id}")
 async def update_question(
     question_id: str,
-    question: Question,
+    category: Optional[str] = Form(None),
+    text: Optional[str] = Form(None),
+    options: Optional[str] = Form(None),
+    correct_answer: Optional[str] = Form(None),
+    correct_index: Optional[int] = Form(None),
+    age_min: Optional[int] = Form(None),
+    age_max: Optional[int] = Form(None),
+    option1: UploadFile | None = File(None),
+    option2: UploadFile | None = File(None),
+    option3: UploadFile | None = File(None),
+    option4: UploadFile | None = File(None),
     current_admin: dict = Depends(get_current_admin),
 ):
-    result = await db.questions.update_one(
-        {"_id": ObjectId(question_id)},
-        {"$set": question.dict()},
-    )
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Question not found or no changes made")
+    """Update a question (text or image-based)"""
+    existing = await db.questions.find_one({"_id": ObjectId(question_id)})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Question not found")
+
+    update_data = {}
+
+    if text:
+        update_data["text"] = text
+    if category:
+        update_data["category"] = category
+    if age_min is not None:
+        update_data["age_min"] = age_min
+    if age_max is not None:
+        update_data["age_max"] = age_max
+
+    # 🧠 If new image files are uploaded, replace old image options
+    image_files = [option1, option2, option3, option4]
+    if any(image_files):
+        image_options = []
+        for file in image_files:
+            if file:
+                filename = f"{ObjectId()}_{file.filename}"
+                file_path = os.path.join(UPLOAD_DIR, filename)
+                with open(file_path, "wb") as buffer:
+                    buffer.write(await file.read())
+                image_options.append(file_path)
+            else:
+                image_options.append(None)
+        update_data["image_options"] = image_options
+        if correct_index is not None:
+            update_data["correct_index"] = correct_index
+
+    # 📝 Otherwise, allow text updates
+    elif options:
+        try:
+            options_list = json.loads(options)
+            update_data["options"] = options_list
+        except:
+            pass
+        if correct_answer:
+            update_data["correct_answer"] = correct_answer
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+
+    await db.questions.update_one({"_id": ObjectId(question_id)}, {"$set": update_data})
     return {"message": "Question updated successfully"}
 
-
 # ✅ Delete Question
+# ✅ Delete Question (also removes uploaded image files)
 @router.delete("/questions/{question_id}")
 async def delete_question(
     question_id: str,
     current_admin: dict = Depends(get_current_admin),
 ):
-    result = await db.questions.delete_one({"_id": ObjectId(question_id)})
-    if result.deleted_count == 0:
+    existing = await db.questions.find_one({"_id": ObjectId(question_id)})
+    if not existing:
         raise HTTPException(status_code=404, detail="Question not found")
+
+    # 🧹 Delete associated image files if exist
+    if "image_options" in existing and existing["image_options"]:
+        for path in existing["image_options"]:
+            if path and os.path.exists(path):
+                os.remove(path)
+
+    await db.questions.delete_one({"_id": ObjectId(question_id)})
     return {"message": "Question deleted successfully"}
+

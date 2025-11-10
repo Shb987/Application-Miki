@@ -423,6 +423,7 @@
                 <select id="question-type" class="form-select" onchange="toggleQuestionType()">
                   <option value="text">Text-based MCQ</option>
                   <option value="image">Image-based MCQ</option>
+                  <option value="rating">Text-based Rating</option>
                 </select>
               </div>
 
@@ -439,28 +440,37 @@
               </div>
 
               <!-- 🔹 Text-based MCQ fields -->
-              <div id="text-options" class="mb-3">
-                <h6>Text Options</h6>
-                <input type="text" class="form-control mb-2" id="option1" placeholder="Option 1" />
-                <input type="text" class="form-control mb-2" id="option2" placeholder="Option 2" />
-                <input type="text" class="form-control mb-2" id="option3" placeholder="Option 3" />
-                <input type="text" class="form-control mb-2" id="option4" placeholder="Option 4" />
-                <input type="text" class="form-control" id="correct-answer" placeholder="Correct Answer (must match one option)" />
-              </div>
+              
+<div id="text-options" class="mb-3">
+  <h6>Text Options</h6>
+  <input type="text" class="form-control mb-2" id="option1" placeholder="Option 1" />
+  <input type="text" class="form-control mb-2" id="option2" placeholder="Option 2" />
+  <input type="text" class="form-control mb-2" id="option3" placeholder="Option 3" />
+  <input type="text" class="form-control mb-2" id="option4" placeholder="Option 4" />
+  <input type="text" class="form-control" id="correct-answer" placeholder="Correct Answer (must match one option)" />
+</div>
 
-              <!-- 🔹 Image-based MCQ fields -->
-              <div id="image-options" class="mb-3" style="display: none;">
-                <h6>Image Options</h6>
-                <input type="file" class="form-control mb-2" id="img1" accept="image/*" />
-                <input type="file" class="form-control mb-2" id="img2" accept="image/*" />
-                <input type="file" class="form-control mb-2" id="img3" accept="image/*" />
-                <input type="file" class="form-control mb-2" id="img4" accept="image/*" />
-                <label>Select correct image (1–4):</label>
-                <input type="number" class="form-control" id="correct-index" min="1" max="4" />
-              </div>
+<!-- 🔹 Image-based MCQ fields -->
+<div id="image-options" class="mb-3" style="display: none;">
+  <h6>Image Options</h6>
+  <input type="file" class="form-control mb-2" id="img1" accept="image/*" />
+  <input type="file" class="form-control mb-2" id="img2" accept="image/*" />
+  <input type="file" class="form-control mb-2" id="img3" accept="image/*" />
+  <input type="file" class="form-control mb-2" id="img4" accept="image/*" />
+  <label>Select correct image (1–4):</label>
+  <input type="number" class="form-control" id="correct-index" min="1" max="4" />
+</div>
 
-              <button class="btn btn-primary mt-3" onclick="addQuestion()">➕ Add Question</button>
-            </div>
+<!-- ⭐ Text-based Rating fields (no options) -->
+<div id="rating-section" class="mb-3" style="display: none;">
+  <h6>Rating Question</h6>
+  <p class="text-muted">
+    This question type has no options — only question text and age range will be saved.
+  </p>
+</div>
+
+<button class="btn btn-primary mt-3" onclick="addQuestion()">➕ Add Question</button>
+
 
 
             <!-- Questions List -->
@@ -534,6 +544,7 @@
       const type = document.getElementById("question-type").value;
       document.getElementById("text-options").style.display = type === "text" ? "block" : "none";
       document.getElementById("image-options").style.display = type === "image" ? "block" : "none";
+      document.getElementById("rating-options").style.display = type === "rating" ? "block" : "none";
     }
     // ✅ Redirect immediately if not logged in
     if (!token) {
@@ -565,79 +576,81 @@
     }
     // Add Question
     async function addQuestion() {
-      const type = document.getElementById("question-type").value;
-      const text = document.getElementById("new-question-text").value.trim();
-      const age_min = parseInt(document.getElementById("new-question-age-min").value);
-      const age_max = parseInt(document.getElementById("new-question-age-max").value);
+  const type = document.getElementById("question-type").value;
+  const text = document.getElementById("new-question-text").value.trim();
+  const age_min = parseInt(document.getElementById("new-question-age-min").value);
+  const age_max = parseInt(document.getElementById("new-question-age-max").value);
 
-      if (!text || isNaN(age_min) || isNaN(age_max)) {
-        alert("Please fill question text and age range.");
-        return;
-      }
+  if (!text || isNaN(age_min) || isNaN(age_max)) {
+    alert("Please fill question text and age range.");
+    return;
+  }
 
-      let res;
+  let res;
+  const formData = new FormData();
 
-      if (type === "text") {
-        const formData = new FormData();
-        formData.append("category", category);
-        formData.append("text", text);
-        formData.append("age_min", age_min);
-        formData.append("age_max", age_max);
-        formData.append("options", JSON.stringify([
-          document.getElementById("option1").value.trim(),
-          document.getElementById("option2").value.trim(),
-          document.getElementById("option3").value.trim(),
-          document.getElementById("option4").value.trim()
-        ].filter(Boolean)));
+  formData.append("category", category);
+  formData.append("text", text);
+  formData.append("age_min", age_min);
+  formData.append("age_max", age_max);
+  formData.append("type", type);
 
-        formData.append("correct_answer", document.getElementById("correct-answer").value.trim());
+  if (type === "text") {
+    // 📝 Text-based MCQ
+    formData.append("options", JSON.stringify([
+      document.getElementById("option1").value.trim(),
+      document.getElementById("option2").value.trim(),
+      document.getElementById("option3").value.trim(),
+      document.getElementById("option4").value.trim()
+    ].filter(Boolean)));
+    formData.append("correct_answer", document.getElementById("correct-answer").value.trim());
 
-        res = await fetch(API_BASE, {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + token
-          },
-          body: formData
-        });
-      
-      } else {
-        // 🖼️ Image-based question
-        const formData = new FormData();
-        formData.append("text", text);
-        formData.append("category", category);
-        formData.append("age_min", age_min);
-        formData.append("age_max", age_max);
+    res = await fetch(API_BASE, {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token },
+      body: formData
+    });
 
-        const correct_index = parseInt(document.getElementById("correct-index").value);
-        if (isNaN(correct_index) || correct_index < 1 || correct_index > 4) {
-          alert("Please enter a valid correct image number (1–4).");
-          return;
-        }
-        formData.append("correct_index", correct_index - 1); // backend expects 0-based index
-
-        // Attach image files
-        ["img1", "img2", "img3", "img4"].forEach((id, i) => {
-          const file = document.getElementById(id).files[0];
-          if (file) formData.append(`option${i + 1}`, file);
-        });
-
-        res = await fetch(API_BASE, {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + token
-          },
-          body: formData
-        }); 
-      }
-
-      const data = await res.json();
-      if (res.ok) {
-        alert("Question added successfully!");
-        location.reload(); // Refresh to show new question
-      } else {
-        alert(data.detail || "Error adding question");
-      }
+  } else if (type === "image") {
+    // 🖼️ Image-based MCQ
+    const correct_index = parseInt(document.getElementById("correct-index").value);
+    if (isNaN(correct_index) || correct_index < 1 || correct_index > 4) {
+      alert("Please enter a valid correct image number (1–4).");
+      return;
     }
+    formData.append("correct_index", correct_index - 1);
+
+    // Attach image files
+    ["img1", "img2", "img3", "img4"].forEach((id, i) => {
+      const file = document.getElementById(id).files[0];
+      if (file) formData.append(`option${i + 1}`, file);
+    });
+
+    res = await fetch(API_BASE, {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token },
+      body: formData
+    });
+
+  } else if (type === "rating") {
+    // ⭐ Text-based Rating (no options)
+    // Only question text, min age, and max age
+    res = await fetch(API_BASE, {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token },
+      body: formData
+    });
+  }
+
+  // ✅ Handle API response
+  const data = await res.json();
+  if (res.ok) {
+    alert("Question added successfully!");
+    location.reload();
+  } else {
+    alert(data.detail || "Error adding question");
+  }
+}
 
     // Edit Question
     async function editQuestion(id, currentAgeMin, currentAgeMax) {

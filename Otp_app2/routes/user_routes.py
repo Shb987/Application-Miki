@@ -231,33 +231,77 @@ async def get_students():
         "students": students
     }
 from bson import ObjectId
-
 @router.post("/answers")
-async def save_answer(payload: AnswerRequest):
-    """
-    Save a student's answer (rating) for a question.
-    """
+async def save_answers(payload: AnswerRequest):
 
-    # Validate question
-    question = await db.questions.find_one({"_id": ObjectId(payload.question_id)})
-    if not question:
-        return {"status_code": 404, "message": "Question not found"}
+    answers_list = []
+    total_marks = 0
+    rating_values = []  # collect rating answers
 
-    # Build answer document
-    answer_doc = {
+    # Loop through each question + answer
+    for qid, ans in zip(payload.question_ids, payload.answers):
+
+        # Fetch question
+        question = await db.questions.find_one({"_id": ObjectId(qid)})
+        if not question:
+            continue
+
+        q_type = question.get("type")
+        correct_index = question.get("correct_index")
+
+        # ============================
+        # 1) HANDLE RATING QUESTIONS
+        # ============================
+        if q_type == "rating":
+            rating_values.append(ans)    # store rating
+            mark = 0                     # rating gives no direct mark
+        else:
+            # ==============================
+            # 2) HANDLE MCQ QUESTIONS (text/image)
+            # ==============================
+            mark = 1 if ans == correct_index else 0
+            total_marks += mark
+
+        # Append answer details
+        answers_list.append({
+            "question_id": qid,
+            "answer_value": ans,
+            "correct_index": correct_index,
+            "type": q_type,
+            "mark": mark
+        })
+
+    # ==============================
+    # 3) CALCULATE RATING AVERAGE
+    # ==============================
+    if rating_values:
+        rating_avg = sum(rating_values) / len(rating_values)
+        total_marks += rating_avg
+    else:
+        rating_avg = 0
+
+    # Default attempt = 0
+    attempt = getattr(payload, "attempt", 0)
+
+    # Final document
+    document = {
         "student_id": payload.student_id,
-        "category": question["category"],   # pulled from question
-        "question_id": str(question["_id"]),
-        "answer_value": payload.answer_value,
+        "category": payload.category,
+        "attempt": attempt,
+        "answers": answers_list,
+        "rating_average": rating_avg,
+        "total_marks": total_marks,
         "timestamp": datetime.now(timezone.utc)
     }
 
-    result = await db.answers.insert_one(answer_doc)
+    result = await db.answers.insert_one(document)
 
     return {
         "status_code": 200,
-        "message": "Answer saved",
-        "answer_id": str(result.inserted_id)
+        "message": "All answers saved",
+        "answer_sheet_id": str(result.inserted_id),
+        "rating_average": rating_avg,
+        "total_marks": total_marks
     }
 
 # ✅ Get all Users (Parents table)

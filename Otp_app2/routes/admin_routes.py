@@ -130,7 +130,7 @@ async def create_question(
             text=text,
             type="text",
             options=options_list,
-            correct_answer=correct_answer,
+            correct_index=correct_answer,
             age_min=age_min,
             age_max=age_max,
         )

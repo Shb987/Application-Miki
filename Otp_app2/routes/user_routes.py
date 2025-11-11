@@ -154,6 +154,7 @@ async def save_answers(payload: AnswerRequest):
 
     answers_list = []
     total_marks = 0
+    rating_values = []  # collect rating answers
 
     # Loop through each question + answer
     for qid, ans in zip(payload.question_ids, payload.answers):
@@ -161,42 +162,63 @@ async def save_answers(payload: AnswerRequest):
         # Fetch question
         question = await db.questions.find_one({"_id": ObjectId(qid)})
         if not question:
-            continue  # skip missing questions
+            continue
 
+        q_type = question.get("type")
         correct_index = question.get("correct_index")
 
-        # Mark calculation
-        mark = 1 if ans == correct_index else 0
-        total_marks += mark
+        # ============================
+        # 1) HANDLE RATING QUESTIONS
+        # ============================
+        if q_type == "rating":
+            rating_values.append(ans)    # store rating
+            mark = 0                     # rating gives no direct mark
+        else:
+            # ==============================
+            # 2) HANDLE MCQ QUESTIONS (text/image)
+            # ==============================
+            mark = 1 if ans == correct_index else 0
+            total_marks += mark
 
-        # Add to answers list
+        # Append answer details
         answers_list.append({
             "question_id": qid,
             "answer_value": ans,
             "correct_index": correct_index,
+            "type": q_type,
             "mark": mark
         })
+
+    # ==============================
+    # 3) CALCULATE RATING AVERAGE
+    # ==============================
+    if rating_values:
+        rating_avg = sum(rating_values) / len(rating_values)
+        total_marks += rating_avg
+    else:
+        rating_avg = 0
 
     # Default attempt = 0
     attempt = getattr(payload, "attempt", 0)
 
-    # Final combined document
+    # Final document
     document = {
         "student_id": payload.student_id,
         "category": payload.category,
         "attempt": attempt,
         "answers": answers_list,
+        "rating_average": rating_avg,
         "total_marks": total_marks,
         "timestamp": datetime.now(timezone.utc)
     }
 
-    # Insert into Mongo
     result = await db.answers.insert_one(document)
 
     return {
         "status_code": 200,
         "message": "All answers saved",
         "answer_sheet_id": str(result.inserted_id),
+        "rating_average": rating_avg,
         "total_marks": total_marks
     }
 

@@ -123,7 +123,7 @@ async def create_question(
             if not isinstance(options_list, list):
                 raise ValueError
         except (json.JSONDecodeError, ValueError):
-            raise HTTPException(status_code=400, detail="Optionsss must be a valid JSON list")
+            raise HTTPException(status_code=400, detail="Optionsssss must be a valid JSON list")
 
 
 

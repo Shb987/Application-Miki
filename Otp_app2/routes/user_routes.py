@@ -149,17 +149,22 @@ async def get_questions_by_age(age: int = Query(...)):
     }
 
 # --------------------- Save Answer -------------------------
+from datetime import datetime, timezone
+from bson import ObjectId
+
+from bson import ObjectId
+from datetime import datetime, timezone
+
 @router.post("/answers")
 async def save_answers(payload: AnswerRequest):
 
     answers_list = []
     total_marks = 0
-    rating_values = []  # collect rating answers
+    rating_values = []
 
-    # Loop through each question + answer
+    # Loop through questions
     for qid, ans in zip(payload.question_ids, payload.answers):
 
-        # Fetch question
         question = await db.questions.find_one({"_id": ObjectId(qid)})
         if not question:
             continue
@@ -167,20 +172,13 @@ async def save_answers(payload: AnswerRequest):
         q_type = question.get("type")
         correct_index = question.get("correct_index")
 
-        # ============================
-        # 1) HANDLE RATING QUESTIONS
-        # ============================
         if q_type == "rating":
-            rating_values.append(ans)    # store rating
-            mark = 0                     # rating gives no direct mark
+            rating_values.append(ans)
+            mark = 0
         else:
-            # ==============================
-            # 2) HANDLE MCQ QUESTIONS (text/image)
-            # ==============================
             mark = 1 if ans == correct_index else 0
             total_marks += mark
 
-        # Append answer details
         answers_list.append({
             "question_id": qid,
             "answer_value": ans,
@@ -189,39 +187,88 @@ async def save_answers(payload: AnswerRequest):
             "mark": mark
         })
 
-    # ==============================
-    # 3) CALCULATE RATING AVERAGE
-    # ==============================
-    if rating_values:
-        rating_avg = sum(rating_values) / len(rating_values)
-        total_marks += rating_avg
-    else:
-        rating_avg = 0
+    # Rating average logic
+    rating_avg = sum(rating_values) / len(rating_values) if rating_values else 0
+    total_marks += rating_avg
 
-    # Default attempt = 0
     attempt = getattr(payload, "attempt", 0)
 
-    # Final document
-    document = {
-        "student_id": payload.student_id,
+    # Category data to insert/update
+    category_entry = {
         "category": payload.category,
-        "attempt": attempt,
-        "answers": answers_list,
-        "rating_average": rating_avg,
         "total_marks": total_marks,
-        "timestamp": datetime.now(timezone.utc)
+        "answers": answers_list
     }
 
-    result = await db.answers.insert_one(document)
+    # ==============================
+    # UPSERT LOGIC
+    # ==============================
+    existing_doc = await db.answers.find_one({"student_id": payload.student_id})
+
+    if not existing_doc:
+        # Create first document for this student
+        new_doc = {
+            "student_id": payload.student_id,
+            "attempts": [
+                {
+                    "attempt": attempt,
+                    "status": "in-progress",
+                    "timestamp_utc": datetime.now(timezone.utc),
+                    "categories": [category_entry]
+                }
+            ]
+        }
+        await db.answers.insert_one(new_doc)
+        print(f"✅ Inserted new student record for {payload.student_id}")
+
+    else:
+        # Check if attempt already exists
+        existing_attempt = next(
+            (a for a in existing_doc.get("attempts", []) if a["attempt"] == attempt),
+            None
+        )
+
+        if existing_attempt:
+            # Update category list
+            updated_categories = [
+                c for c in existing_attempt["categories"]
+                if c["category"] != payload.category
+            ]
+            updated_categories.append(category_entry)
+
+            result = await db.answers.update_one(
+                {"student_id": payload.student_id, "attempts.attempt": attempt},
+                {"$set": {"attempts.$.categories": updated_categories}},
+                upsert=True
+            )
+            print(f"🟢 Updated attempt {attempt} for {payload.student_id}, matched={result.matched_count}, modified={result.modified_count}")
+
+        else:
+            # Push new attempt
+            result = await db.answers.update_one(
+                {"student_id": payload.student_id},
+                {"$push": {
+                    "attempts": {
+                        "attempt": attempt,
+                        "status": "in-progress",
+                        "timestamp_utc": datetime.now(timezone.utc),
+                        "categories": [category_entry]
+                    }
+                }},
+                upsert=True
+            )
+            print(f"🟡 Added new attempt {attempt} for {payload.student_id}, matched={result.matched_count}, modified={result.modified_count}")
+
+    # Debug output
+    updated_doc = await db.answers.find_one({"student_id": payload.student_id})
+    print("🔍 Updated document:\n", updated_doc)
 
     return {
         "status_code": 200,
-        "message": "All answers saved",
-        "answer_sheet_id": str(result.inserted_id),
+        "message": f"Answers saved for category '{payload.category}' (Attempt {attempt})",
         "rating_average": rating_avg,
         "total_marks": total_marks
     }
-
 @router.get("/get_students")
 async def get_students():
     cursor = db.students.find({}, {"_id": 0})  # exclude MongoDB _id
@@ -230,79 +277,81 @@ async def get_students():
         "status_code": 200,
         "students": students
     }
-from bson import ObjectId
-@router.post("/answers")
-async def save_answers(payload: AnswerRequest):
 
-    answers_list = []
-    total_marks = 0
-    rating_values = []  # collect rating answers
 
-    # Loop through each question + answer
-    for qid, ans in zip(payload.question_ids, payload.answers):
+# from bson import ObjectId
+# @router.post("/answers")
+# async def save_answers(payload: AnswerRequest):
 
-        # Fetch question
-        question = await db.questions.find_one({"_id": ObjectId(qid)})
-        if not question:
-            continue
+#     answers_list = []
+#     total_marks = 0
+#     rating_values = []  # collect rating answers
 
-        q_type = question.get("type")
-        correct_index = question.get("correct_index")
+#     # Loop through each question + answer
+#     for qid, ans in zip(payload.question_ids, payload.answers):
 
-        # ============================
-        # 1) HANDLE RATING QUESTIONS
-        # ============================
-        if q_type == "rating":
-            rating_values.append(ans)    # store rating
-            mark = 0                     # rating gives no direct mark
-        else:
-            # ==============================
-            # 2) HANDLE MCQ QUESTIONS (text/image)
-            # ==============================
-            mark = 1 if ans == correct_index else 0
-            total_marks += mark
+#         # Fetch question
+#         question = await db.questions.find_one({"_id": ObjectId(qid)})
+#         if not question:
+#             continue
 
-        # Append answer details
-        answers_list.append({
-            "question_id": qid,
-            "answer_value": ans,
-            "correct_index": correct_index,
-            "type": q_type,
-            "mark": mark
-        })
+#         q_type = question.get("type")
+#         correct_index = question.get("correct_index")
 
-    # ==============================
-    # 3) CALCULATE RATING AVERAGE
-    # ==============================
-    if rating_values:
-        rating_avg = sum(rating_values) / len(rating_values)
-        total_marks += rating_avg
-    else:
-        rating_avg = 0
+#         # ============================
+#         # 1) HANDLE RATING QUESTIONS
+#         # ============================
+#         if q_type == "rating":
+#             rating_values.append(ans)    # store rating
+#             mark = 0                     # rating gives no direct mark
+#         else:
+#             # ==============================
+#             # 2) HANDLE MCQ QUESTIONS (text/image)
+#             # ==============================
+#             mark = 1 if ans == correct_index else 0
+#             total_marks += mark
 
-    # Default attempt = 0
-    attempt = getattr(payload, "attempt", 0)
+#         # Append answer details
+#         answers_list.append({
+#             "question_id": qid,
+#             "answer_value": ans,
+#             "correct_index": correct_index,
+#             "type": q_type,
+#             "mark": mark
+#         })
 
-    # Final document
-    document = {
-        "student_id": payload.student_id,
-        "category": payload.category,
-        "attempt": attempt,
-        "answers": answers_list,
-        "rating_average": rating_avg,
-        "total_marks": total_marks,
-        "timestamp": datetime.now(timezone.utc)
-    }
+#     # ==============================
+#     # 3) CALCULATE RATING AVERAGE
+#     # ==============================
+#     if rating_values:
+#         rating_avg = sum(rating_values) / len(rating_values)
+#         total_marks += rating_avg
+#     else:
+#         rating_avg = 0
 
-    result = await db.answers.insert_one(document)
+#     # Default attempt = 0
+#     attempt = getattr(payload, "attempt", 0)
 
-    return {
-        "status_code": 200,
-        "message": "All answers saved",
-        "answer_sheet_id": str(result.inserted_id),
-        "rating_average": rating_avg,
-        "total_marks": total_marks
-    }
+#     # Final document
+#     document = {
+#         "student_id": payload.student_id,
+#         "category": payload.category,
+#         "attempt": attempt,
+#         "answers": answers_list,
+#         "rating_average": rating_avg,
+#         "total_marks": total_marks,
+#         "timestamp": datetime.now(timezone.utc)
+#     }
+
+#     result = await db.answers.insert_one(document)
+
+#     return {
+#         "status_code": 200,
+#         "message": "All answers saved",
+#         "answer_sheet_id": str(result.inserted_id),
+#         "rating_average": rating_avg,
+#         "total_marks": total_marks
+#     }
 
 # ✅ Get all Users (Parents table)
 @router.get("/get_users")
@@ -325,6 +374,9 @@ async def get_logins():
     }
 
 # --------------------- Career Analyzer Logic -------------------------
+from fastapi import HTTPException
+from datetime import datetime, timezone
+
 career_map = {
     "musical": "Musician, Composer, Singer, Sound Engineer",
     "logical-mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
@@ -335,33 +387,54 @@ career_map = {
     "intrapersonal": "Psychologist, Philosopher, Writer",
     "naturalistic": "Biologist, Environmentalist, Farmer, Veterinarian"
 }
-@router.post("/analyze-career/{student_id}")
-async def analyze_career(student_id: str):
-    answers_cursor = db.answers.find({"student_id": student_id})
-    answers = await answers_cursor.to_list(length=None)
 
-    if not answers:
+
+@router.post("/analyze-career/{student_id}/{attempt}")
+async def analyze_career(student_id: str, attempt: int):
+    """Analyze career based on latest attempt categories and scores"""
+
+    student_doc = await db.answers.find_one({"student_id": student_id})
+    if not student_doc:
         raise HTTPException(status_code=404, detail="No answers found for this student")
-    scores, counts = {}, {}
-    for ans in answers:
-        cat = ans["category"]
-        scores[cat] = scores.get(cat, 0) + ans["answer_value"]
-        counts[cat] = counts.get(cat, 0) + 1
 
-    for cat in scores:
-        scores[cat] = round(scores[cat] / counts[cat], 2)
-
-    top_3 = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
-    top_cat = top_3[0][0]
-    recommended_career = career_map.get(top_cat, "No career mapped")
-
-    await db.students.update_one(
-        {"student_id": student_id},
-        {"$set": {"career": recommended_career}}
+    # Find the attempt
+    attempt_data = next(
+        (a for a in student_doc.get("attempts", []) if a["attempt"] == attempt),
+        None
     )
 
-    await db.career_analysis.update_one(
-        {"student_id": student_id},
+    if not attempt_data or not attempt_data.get("categories"):
+        raise HTTPException(status_code=404, detail=f"No categories found for attempt {attempt}")
+
+    # Calculate total marks per category
+    scores = {}
+    for category in attempt_data["categories"]:
+        cat_name = category["category"]
+        cat_score = category.get("total_marks", 0)
+        scores[cat_name] = cat_score
+
+    if not scores:
+        raise HTTPException(status_code=400, detail="No valid scores found")
+
+    # Identify top 3 and best category
+    top_3 = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_cat = top_3[0][0]
+    recommended_career = career_map.get(top_cat.lower(), "No career mapped")
+
+    # Prepare insights
+    insights = [
+        f"{cat}: Strong inclination towards {cat.lower()} intelligence."
+        for cat, _ in top_3
+    ]
+
+    career_suggestions = [
+        f"{cat} ➔ {career_map.get(cat.strip().lower(), 'Unknown Career')}"
+        for cat, _ in top_3
+    ]
+
+    # Save result in career_analyzer table (with attempt reference)
+    await db.career_analyzer.update_one(
+        {"student_id": student_id, "attempt": attempt},
         {
             "$set": {
                 "scores": scores,
@@ -373,24 +446,36 @@ async def analyze_career(student_id: str):
         upsert=True
     )
 
-    insights = [f"{cat}: Strong inclination towards {cat.lower()} intelligence." for cat, _ in top_3]
-    
-    careers = [f"{cat} ➔ {career_map.get(cat.strip().lower(), 'Unknown Career')}" for cat, _ in top_3]
-
-
     return {
         "status_code": 200,
         "student_id": student_id,
+        "attempt": attempt,
         "scores": scores,
         "top_category": top_cat,
         "recommended_career": recommended_career,
         "personality_insights": insights,
-        "career_suggestions": careers
+        "career_suggestions": career_suggestions
     }
+
+from bson import json_util
+import json
+
+@router.get("/career-history/{student_id}")
+async def get_career_history(student_id: str):
+    records = await db.career_analyzer.find({"student_id": student_id}).to_list(None)
+    if not records:
+        raise HTTPException(status_code=404, detail="No career history found")
+
+    # Serialize BSON (ObjectId, datetime, etc.) properly
+    return json.loads(json_util.dumps({
+        "student_id": student_id,
+        "history": records
+    }))
+
 
 @router.get("/career-results/{student_id}")
 async def get_career_results(student_id: str):
-    record = await db.career_analysis.find_one({"student_id": student_id})
+    record = await db.career_analyzer.find_one({"student_id": student_id})
     if not record:
         raise HTTPException(status_code=404, detail="No analysis found for this student")
     record["_id"] = str(record["_id"])

@@ -149,11 +149,11 @@ async def get_questions_by_age(age: int = Query(...)):
     }
 
 # --------------------- Save Answer -------------------------
-from datetime import datetime, timezone
-from bson import ObjectId
 
-from bson import ObjectId
+
 from datetime import datetime, timezone
+from bson import ObjectId
+from fastapi import HTTPException
 
 @router.post("/answers")
 async def save_answers(payload: AnswerRequest):
@@ -162,9 +162,8 @@ async def save_answers(payload: AnswerRequest):
     total_marks = 0
     rating_values = []
 
-    # Loop through questions
+    # Process each question + answer
     for qid, ans in zip(payload.question_ids, payload.answers):
-
         question = await db.questions.find_one({"_id": ObjectId(qid)})
         if not question:
             continue
@@ -187,26 +186,18 @@ async def save_answers(payload: AnswerRequest):
             "mark": mark
         })
 
-    # Rating average logic
+    # Compute rating avg + add to total marks
     rating_avg = sum(rating_values) / len(rating_values) if rating_values else 0
     total_marks += rating_avg
 
-    attempt = getattr(payload, "attempt", 0)
-
-    # Category data to insert/update
-    category_entry = {
-        "category": payload.category,
-        "total_marks": total_marks,
-        "answers": answers_list
-    }
-
-    # ==============================
-    # UPSERT LOGIC
-    # ==============================
+    # ---------------------------------------
+    # AUTO ATTEMPT & STATUS LOGIC
+    # ---------------------------------------
     existing_doc = await db.answers.find_one({"student_id": payload.student_id})
 
     if not existing_doc:
-        # Create first document for this student
+        # 🟢 First ever record for student
+        attempt = 1
         new_doc = {
             "student_id": payload.student_id,
             "attempts": [
@@ -214,52 +205,81 @@ async def save_answers(payload: AnswerRequest):
                     "attempt": attempt,
                     "status": "in-progress",
                     "timestamp_utc": datetime.now(timezone.utc),
-                    "categories": [category_entry]
+                    "categories": [{
+                        "category": payload.category,
+                        "total_marks": total_marks,
+                        "answers": answers_list
+                    }]
                 }
             ]
         }
         await db.answers.insert_one(new_doc)
-        print(f"✅ Inserted new student record for {payload.student_id}")
+        print(f"✅ Created first attempt (1) for {payload.student_id}")
 
     else:
-        # Check if attempt already exists
-        existing_attempt = next(
-            (a for a in existing_doc.get("attempts", []) if a["attempt"] == attempt),
+        # 🟡 Student already exists
+        attempts = existing_doc.get("attempts", [])
+        if not attempts:
+            attempt = 1
+        else:
+            last_attempt = attempts[-1]
+            attempt = last_attempt["attempt"]
+
+            # If last attempt is completed → new attempt
+            if last_attempt["status"] == "completed":
+                attempt += 1
+                await db.answers.update_one(
+                    {"student_id": payload.student_id},
+                    {"$push": {
+                        "attempts": {
+                            "attempt": attempt,
+                            "status": "in-progress",
+                            "timestamp_utc": datetime.now(timezone.utc),
+                            "categories": []
+                        }
+                    }}
+                )
+                print(f"🟢 Created new attempt {attempt} for {payload.student_id}")
+
+        # Fetch latest document again after potential new attempt creation
+        student_doc = await db.answers.find_one({"student_id": payload.student_id})
+        active_attempt = next(
+            (a for a in student_doc["attempts"] if a["attempt"] == attempt),
             None
         )
 
-        if existing_attempt:
-            # Update category list
-            updated_categories = [
-                c for c in existing_attempt["categories"]
-                if c["category"] != payload.category
-            ]
-            updated_categories.append(category_entry)
+        if not active_attempt:
+            raise HTTPException(status_code=500, detail="Attempt not found after update.")
 
-            result = await db.answers.update_one(
+        # Remove existing category if re-submitted
+        updated_categories = [
+            c for c in active_attempt.get("categories", [])
+            if c["category"] != payload.category
+        ]
+        updated_categories.append({
+            "category": payload.category,
+            "total_marks": total_marks,
+            "answers": answers_list
+        })
+
+        # Update DB
+        await db.answers.update_one(
+            {"student_id": payload.student_id, "attempts.attempt": attempt},
+            {"$set": {"attempts.$.categories": updated_categories}}
+        )
+
+        # ---------------------------------------
+        # AUTO MARK ATTEMPT AS COMPLETED
+        # ---------------------------------------
+        total_category_count = len(updated_categories)
+        if total_category_count >= 8:  # if all 8 intelligence types answered
+            await db.answers.update_one(
                 {"student_id": payload.student_id, "attempts.attempt": attempt},
-                {"$set": {"attempts.$.categories": updated_categories}},
-                upsert=True
+                {"$set": {"attempts.$.status": "completed"}}
             )
-            print(f"🟢 Updated attempt {attempt} for {payload.student_id}, matched={result.matched_count}, modified={result.modified_count}")
+            print(f"🏁 Attempt {attempt} marked as COMPLETED for {payload.student_id}")
 
-        else:
-            # Push new attempt
-            result = await db.answers.update_one(
-                {"student_id": payload.student_id},
-                {"$push": {
-                    "attempts": {
-                        "attempt": attempt,
-                        "status": "in-progress",
-                        "timestamp_utc": datetime.now(timezone.utc),
-                        "categories": [category_entry]
-                    }
-                }},
-                upsert=True
-            )
-            print(f"🟡 Added new attempt {attempt} for {payload.student_id}, matched={result.matched_count}, modified={result.modified_count}")
-
-    # Debug output
+    # Debug log
     updated_doc = await db.answers.find_one({"student_id": payload.student_id})
     print("🔍 Updated document:\n", updated_doc)
 
@@ -269,6 +289,9 @@ async def save_answers(payload: AnswerRequest):
         "rating_average": rating_avg,
         "total_marks": total_marks
     }
+
+
+
 @router.get("/get_students")
 async def get_students():
     cursor = db.students.find({}, {"_id": 0})  # exclude MongoDB _id
@@ -389,52 +412,57 @@ career_map = {
 }
 
 
-@router.post("/analyze-career/{student_id}/{attempt}")
-async def analyze_career(student_id: str, attempt: int):
-    """Analyze career based on latest attempt categories and scores"""
+@router.post("/analyze-career/{student_id}")
+async def analyze_career(student_id: str):
+    """Automatically analyze the latest *completed* attempt for a student"""
 
+    # 1️⃣ Fetch student answers document
     student_doc = await db.answers.find_one({"student_id": student_id})
     if not student_doc:
         raise HTTPException(status_code=404, detail="No answers found for this student")
 
-    # Find the attempt
-    attempt_data = next(
-        (a for a in student_doc.get("attempts", []) if a["attempt"] == attempt),
-        None
-    )
+    attempts = student_doc.get("attempts", [])
+    if not attempts:
+        raise HTTPException(status_code=404, detail="No attempts found for this student")
 
-    if not attempt_data or not attempt_data.get("categories"):
-        raise HTTPException(status_code=404, detail=f"No categories found for attempt {attempt}")
+    # 2️⃣ Find the latest completed attempt
+    completed_attempts = [a for a in attempts if a.get("status") == "completed"]
+    if not completed_attempts:
+        raise HTTPException(
+            status_code=400,
+            detail="No completed attempt found. Please finish all categories first."
+        )
 
-    # Calculate total marks per category
-    scores = {}
-    for category in attempt_data["categories"]:
-        cat_name = category["category"]
-        cat_score = category.get("total_marks", 0)
-        scores[cat_name] = cat_score
+    latest_attempt = max(completed_attempts, key=lambda a: a["attempt"])
+    attempt_num = latest_attempt["attempt"]
 
+    # 3️⃣ Extract categories and calculate scores
+    categories = latest_attempt.get("categories", [])
+    if not categories:
+        raise HTTPException(status_code=400, detail="No category data found in this attempt")
+
+    scores = {cat["category"]: cat.get("total_marks", 0) for cat in categories}
     if not scores:
         raise HTTPException(status_code=400, detail="No valid scores found")
 
-    # Identify top 3 and best category
+    # 4️⃣ Determine top 3 and best category
     top_3 = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
     top_cat = top_3[0][0]
     recommended_career = career_map.get(top_cat.lower(), "No career mapped")
 
-    # Prepare insights
+    # 5️⃣ Generate personality insights
     insights = [
         f"{cat}: Strong inclination towards {cat.lower()} intelligence."
         for cat, _ in top_3
     ]
-
     career_suggestions = [
         f"{cat} ➔ {career_map.get(cat.strip().lower(), 'Unknown Career')}"
         for cat, _ in top_3
     ]
 
-    # Save result in career_analyzer table (with attempt reference)
+    # 6️⃣ Save or update result in `career_analyzer` collection
     await db.career_analyzer.update_one(
-        {"student_id": student_id, "attempt": attempt},
+        {"student_id": student_id, "attempt": attempt_num},
         {
             "$set": {
                 "scores": scores,
@@ -446,10 +474,11 @@ async def analyze_career(student_id: str, attempt: int):
         upsert=True
     )
 
+    # 7️⃣ Return analysis summary
     return {
         "status_code": 200,
         "student_id": student_id,
-        "attempt": attempt,
+        "analyzed_attempt": attempt_num,
         "scores": scores,
         "top_category": top_cat,
         "recommended_career": recommended_career,

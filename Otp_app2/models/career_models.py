@@ -2,10 +2,12 @@ from pydantic import BaseModel
 from typing import List, Dict
 from datetime import datetime
 
-class Career_analyzer(BaseModel):
+class CareerAnalyzer(BaseModel):  # Optional: camel case name cleanup
     student_id: str
     attempt: int
     top_category: str
-    recommended_career: List[str]
-    scores: Dict[str, float]              # category_name → score
+    recommended_career: List[str]      # Stored as array in MongoDB
+    scores: Dict[str, float]           # category_name → score
     timestamp_utc: datetime
+
+

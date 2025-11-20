@@ -5,9 +5,10 @@ from core.database import db
 from datetime import datetime, timezone
 from fastapi import Query, HTTPException
 from typing import Dict, List
-from models.career_models import Career_analyzer
+from models.career_models import CareerAnalyzer
 from bson import ObjectId
-
+from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
+import re
 router = APIRouter(tags=["User"])
 
 # --------------------- Student Registration -------------------------
@@ -408,8 +409,43 @@ career_map = {
     "visual-spatial": "Architect, Designer, Artist, Pilot",
     "interpersonal": "Teacher, Counselor, Manager, Salesperson",
     "intrapersonal": "Psychologist, Philosopher, Writer",
-    "naturalistic": "Biologist, Environmentalist, Farmer, Veterinarian"
+    "naturalist": "Biologist, Environmentalist, Farmer, Veterinarian"
 }
+
+
+import matplotlib.pyplot as plt
+import base64
+from io import BytesIO
+from datetime import datetime, timezone
+import math
+from fastapi import HTTPException
+def normalize_percentages(scores: dict) -> dict:
+    total = sum(scores.values())
+
+    # If total is 0 → return all zeros
+    if total == 0:
+        return {k: 0 for k in scores}
+
+    # 1️⃣ Exact percentages
+    exact = {k: (v / total) * 100 for k, v in scores.items()}
+
+    # 2️⃣ Floor values
+    floor_pct = {k: math.floor(p) for k, p in exact.items()}
+
+    # 3️⃣ Remaining percentage points to distribute
+    remaining = 100 - sum(floor_pct.values())
+
+    # 4️⃣ Sort categories by fractional remainder descending
+    remainders = [(k, exact[k] - floor_pct[k], scores[k]) for k in scores]
+    remainders.sort(key=lambda x: (-x[1], -x[2]))
+
+    # 5️⃣ Distribute remaining points
+    result = floor_pct.copy()
+    for i in range(remaining):
+        key = remainders[i][0]
+        result[key] += 1
+
+    return result
 
 
 @router.post("/analyze-career/{student_id}")
@@ -436,7 +472,7 @@ async def analyze_career(student_id: str):
     latest_attempt = max(completed_attempts, key=lambda a: a["attempt"])
     attempt_num = latest_attempt["attempt"]
 
-    # 3️⃣ Extract categories and calculate scores
+    # 3️⃣ Extract categories & scores
     categories = latest_attempt.get("categories", [])
     if not categories:
         raise HTTPException(status_code=400, detail="No category data found in this attempt")
@@ -445,12 +481,15 @@ async def analyze_career(student_id: str):
     if not scores:
         raise HTTPException(status_code=400, detail="No valid scores found")
 
+    # ➕ 3.1 Use the **correct** normalized percentages
+    percentages = normalize_percentages(scores)
+
     # 4️⃣ Determine top 3 and best category
     top_3 = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
     top_cat = top_3[0][0]
     recommended_career = career_map.get(top_cat.lower(), "No career mapped")
 
-    # 5️⃣ Generate personality insights
+    # 5️⃣ Personality insights and career suggestions
     insights = [
         f"{cat}: Strong inclination towards {cat.lower()} intelligence."
         for cat, _ in top_3
@@ -459,13 +498,19 @@ async def analyze_career(student_id: str):
         f"{cat} ➔ {career_map.get(cat.strip().lower(), 'Unknown Career')}"
         for cat, _ in top_3
     ]
+    
+    # recommended_career_list = (
+    # recommended_career if isinstance(recommended_career, list)
+    # else [career.strip() for career in recommended_career.split(",")])
 
-    # 6️⃣ Save or update result in `career_analyzer` collection
+    # 6️⃣ Save/update result in DB
     await db.career_analyzer.update_one(
         {"student_id": student_id, "attempt": attempt_num},
         {
             "$set": {
                 "scores": scores,
+                "overall_score": sum(scores.values()),
+                "percentages": percentages,   # 📌 updated logic
                 "top_category": top_cat,
                 "recommended_career": recommended_career,
                 "timestamp": datetime.now(timezone.utc)
@@ -474,20 +519,37 @@ async def analyze_career(student_id: str):
         upsert=True
     )
 
-    # 7️⃣ Return analysis summary
+    # 7️⃣ API Response
     return {
         "status_code": 200,
         "student_id": student_id,
         "analyzed_attempt": attempt_num,
         "scores": scores,
+        "overall_score": sum(scores.values()),
+        "percentages": percentages,
         "top_category": top_cat,
         "recommended_career": recommended_career,
         "personality_insights": insights,
         "career_suggestions": career_suggestions
     }
-
 from bson import json_util
 import json
+
+@router.get("/career-result/{student_id}")
+async def get_career_result(student_id: str):
+    records = await db.career_analyzer.find({"student_id": student_id}).to_list(None)
+    if not records:
+        raise HTTPException(status_code=404, detail="No career result found")
+
+    return json.loads(json_util.dumps({
+        "student_id": student_id,
+        "history": records
+    }))
+
+from fastapi import APIRouter, HTTPException
+from bson import ObjectId
+
+
 @router.get("/career-history/{student_id}")
 async def get_career_history(student_id: str):
 
@@ -583,76 +645,63 @@ async def get_career_history(student_id: str):
         "career_history": combined_history
     }
 
+# @router.post("/auto-generate-question")
+# async def auto_generate_question(
+#     student_id: str = Form(...),
+#     subject: str = Form(...),
+#     question_type: str = Form(...)
+# ):
+#     # 1️⃣ Fetch student data from DB
+#     student = await db.students.find_one({"student_id": student_id})
 
+#     if not student:
+#         raise HTTPException(status_code=404, detail="Student not found")
 
-from fastapi import APIRouter, HTTPException
-from bson import ObjectId
+#     # 2️⃣ Extract class automatically
+#     class_level = student.get("student_class")
+#     if not class_level:
+#         raise HTTPException(status_code=400, detail="Student class not found in database")
 
+#     # 3️⃣ Generate question automatically using student class
+#     question = await generate_subject_question(subject, class_level, question_type)
 
-@router.get("/career-results/{student_id}")
-async def get_career_results(student_id: str):
-    # Get all career analysis attempts
-    career_records = await db.career_analyzer.find({"student_id": student_id}).sort("timestamp", -1).to_list(None)
-    if not career_records:
-        raise HTTPException(status_code=200, detail="No career analysis found for this student")
+#     return {
+#         "status_code": 200,
+#         "student_id": student_id,
+#         "student_class": class_level,
+#         "subject": subject,
+#         "question_type": question_type,
+#         "generated_question": question
+#     }
+# @router.post("/evaluate-answer")
+# async def evaluate_student_answer(
+#     student_id: str = Form(...),
+#     question: str = Form(...),
+#     answer: str = Form(...)
+# ):
+#     evaluation = await evaluate_answer(question, answer)
 
-    # Get student's answer document
-    answers_doc = await db.answers.find_one({"student_id": student_id})
-    if not answers_doc:
-        raise HTTPException(status_code=200, detail="No answers found for this student")
+#     import re
+#     score_match = re.search(r"Score:\s*(\d+)/10", evaluation)
+#     score = int(score_match.group(1)) if score_match else 0
 
-    # Build detailed data per attempt
-    full_attempts = []
-    for attempt in answers_doc.get("attempts", []):
-        categories_detailed = []
-        for cat in attempt.get("categories", []):
-            answers_detailed = []
-            for ans in cat.get("answers", []):
-                qid = ans["question_id"]
-                question = await db.questions.find_one(
-                    {"_id": ObjectId(qid)},
-                    {"text": 1, "options": 1, "image_options": 1, "correct_index": 1, "correct_answer": 1}
-                )
+#     level = map_score_to_level(score)
 
-                if question:
-                    answers_detailed.append({
-                        "question_id": qid,
-                        "question_text": question.get("text"),
-                        "options": question.get("options") or question.get("image_options"),
-                        "student_answer": ans.get("answer_value"),
-                        "correct_index": question.get("correct_index"),
-                        "correct_answer": question.get("correct_answer"),
-                        "is_correct": ans.get("mark") == 1
-                    })
-            categories_detailed.append({
-                "category": cat["category"],
-                "total_marks": cat["total_marks"],
-                "answers": answers_detailed
-            })
+#     record = {
+#         "student_id": student_id,
+#         "question": question,
+#         "answer": answer,
+#         "evaluation": evaluation,
+#         "score": score,
+#         "level": level,
+#         "timestamp": datetime.now(timezone.utc)
+#     }
+#     await db.score_questions.insert_one(record)
 
-        full_attempts.append({
-            "attempt": attempt["attempt"],
-            "timestamp_utc": attempt["timestamp_utc"],
-            "status": attempt.get("status", "in-progress"),
-            "categories": categories_detailed
-        })
-
-    # Merge attempts with career analysis records
-    combined_history = []
-    for record in career_records:
-        attempt_no = record.get("attempt", 0)
-        matching_attempt = next((a for a in full_attempts if a["attempt"] == attempt_no), None)
-        combined_history.append({
-            "attempt": attempt_no,
-            "timestamp": record.get("timestamp"),
-            "top_category": record.get("top_category"),
-            "recommended_career": record.get("recommended_career"),
-            "scores": record.get("scores"),
-            "answers_detail": matching_attempt
-        })
-
-    return {
-        "student_id": student_id,
-        "total_attempts": len(combined_history),
-        "career_history": combined_history
-    }
+#     return {
+#         "status_code": 200,
+#         "message": "Answer evaluated and saved successfully",
+#         "score": score,
+#         "level": level,
+#         "evaluation": evaluation
+#     }

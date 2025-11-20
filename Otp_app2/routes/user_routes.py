@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from models.user_models import UserCreate, Student, UserTypeRequest
 from models.answer_models import AnswerRequest
-from models.QAGeneration_models import generate_subject_question, evaluate_answer, map_score_to_level
 from core.database import db
 from datetime import datetime, timezone
 from fastapi import Query, HTTPException
@@ -647,63 +646,63 @@ async def get_career_history(student_id: str):
         "career_history": combined_history
     }
 
-@router.post("/auto-generate-question")
-async def auto_generate_question(
-    student_id: str = Form(...),
-    subject: str = Form(...),
-    question_type: str = Form(...)
-):
-    # 1️⃣ Fetch student data from DB
-    student = await db.students.find_one({"student_id": student_id})
+# @router.post("/auto-generate-question")
+# async def auto_generate_question(
+#     student_id: str = Form(...),
+#     subject: str = Form(...),
+#     question_type: str = Form(...)
+# ):
+#     # 1️⃣ Fetch student data from DB
+#     student = await db.students.find_one({"student_id": student_id})
 
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+#     if not student:
+#         raise HTTPException(status_code=404, detail="Student not found")
 
-    # 2️⃣ Extract class automatically
-    class_level = student.get("student_class")
-    if not class_level:
-        raise HTTPException(status_code=400, detail="Student class not found in database")
+#     # 2️⃣ Extract class automatically
+#     class_level = student.get("student_class")
+#     if not class_level:
+#         raise HTTPException(status_code=400, detail="Student class not found in database")
 
-    # 3️⃣ Generate question automatically using student class
-    question = await generate_subject_question(subject, class_level, question_type)
+#     # 3️⃣ Generate question automatically using student class
+#     question = await generate_subject_question(subject, class_level, question_type)
 
-    return {
-        "status_code": 200,
-        "student_id": student_id,
-        "student_class": class_level,
-        "subject": subject,
-        "question_type": question_type,
-        "generated_question": question
-    }
-@router.post("/evaluate-answer")
-async def evaluate_student_answer(
-    student_id: str = Form(...),
-    question: str = Form(...),
-    answer: str = Form(...)
-):
-    evaluation = await evaluate_answer(question, answer)
+#     return {
+#         "status_code": 200,
+#         "student_id": student_id,
+#         "student_class": class_level,
+#         "subject": subject,
+#         "question_type": question_type,
+#         "generated_question": question
+#     }
+# @router.post("/evaluate-answer")
+# async def evaluate_student_answer(
+#     student_id: str = Form(...),
+#     question: str = Form(...),
+#     answer: str = Form(...)
+# ):
+#     evaluation = await evaluate_answer(question, answer)
 
-    import re
-    score_match = re.search(r"Score:\s*(\d+)/10", evaluation)
-    score = int(score_match.group(1)) if score_match else 0
+#     import re
+#     score_match = re.search(r"Score:\s*(\d+)/10", evaluation)
+#     score = int(score_match.group(1)) if score_match else 0
 
-    level = map_score_to_level(score)
+#     level = map_score_to_level(score)
 
-    record = {
-        "student_id": student_id,
-        "question": question,
-        "answer": answer,
-        "evaluation": evaluation,
-        "score": score,
-        "level": level,
-        "timestamp": datetime.now(timezone.utc)
-    }
-    await db.score_questions.insert_one(record)
+#     record = {
+#         "student_id": student_id,
+#         "question": question,
+#         "answer": answer,
+#         "evaluation": evaluation,
+#         "score": score,
+#         "level": level,
+#         "timestamp": datetime.now(timezone.utc)
+#     }
+#     await db.score_questions.insert_one(record)
 
-    return {
-        "status_code": 200,
-        "message": "Answer evaluated and saved successfully",
-        "score": score,
-        "level": level,
-        "evaluation": evaluation
-    }
+#     return {
+#         "status_code": 200,
+#         "message": "Answer evaluated and saved successfully",
+#         "score": score,
+#         "level": level,
+#         "evaluation": evaluation
+#     }

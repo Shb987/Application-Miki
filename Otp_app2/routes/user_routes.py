@@ -149,7 +149,7 @@ async def get_questions_by_age(age: int = Query(...)):
     }
 
 # --------------------- Save Answer -------------------------
-
+ 
 
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -488,18 +488,101 @@ async def analyze_career(student_id: str):
 
 from bson import json_util
 import json
-
 @router.get("/career-history/{student_id}")
 async def get_career_history(student_id: str):
-    records = await db.career_analyzer.find({"student_id": student_id}).to_list(None)
-    if not records:
-        raise HTTPException(status_code=404, detail="No career history found")
 
-    # Serialize BSON (ObjectId, datetime, etc.) properly
-    return json.loads(json_util.dumps({
+    # Get all career analysis attempts
+    career_records = await db.career_analyzer.find({"student_id": student_id}).sort("timestamp", -1).to_list(None)
+    if not career_records:
+        raise HTTPException(status_code=200, detail="No career analysis found for this student")
+
+    # Get student's answer document
+    answers_doc = await db.answers.find_one({"student_id": student_id})
+    if not answers_doc:
+        raise HTTPException(status_code=200, detail="No answers found for this student")
+
+    # Build detailed data per attempt
+    full_attempts = []
+    for attempt in answers_doc.get("attempts", []):
+        categories_detailed = []
+
+        for cat in attempt.get("categories", []):
+            answers_detailed = []
+
+            for ans in cat.get("answers", []):
+                qid = ans["question_id"]
+
+                # Fetch question details
+                question = await db.questions.find_one(
+                    {"_id": ObjectId(qid)},
+                    {"text": 1, "type": 1, "options": 1, "image_options": 1,
+                     "correct_index": 1, "correct_answer": 1}
+                )
+
+                # Extract data
+                qtype = question.get("type")
+                student_answer = ans.get("answer_value")
+                correct_index = question.get("correct_index")
+
+                # Convert both to string for robust matching ("2" vs 2)
+                student_answer_s = str(student_answer).strip() if student_answer is not None else None
+                correct_index_s = str(correct_index).strip() if correct_index is not None else None
+
+                # Determine correctness
+                if qtype == "rating":
+                    is_correct = True
+                else:
+                    is_correct = (student_answer_s == correct_index_s)
+
+                # Append detailed answer
+                answers_detailed.append({
+                    "question_id": qid,
+                    "question_text": question.get("text"),
+                    "options": question.get("options") or question.get("image_options"),
+                    "student_answer": student_answer,
+                    "type": qtype,
+                    "correct_index": correct_index,
+                    "correct_answer": question.get("correct_answer"),
+                    "is_correct": is_correct
+                })
+
+            # Append category-level details
+            categories_detailed.append({
+                "category": cat["category"],
+                "total_marks": cat["total_marks"],
+                "answers": answers_detailed
+            })
+
+        # Append attempt-level details
+        full_attempts.append({
+            "attempt": attempt["attempt"],
+            "timestamp_utc": attempt["timestamp_utc"],
+            "status": attempt.get("status", "in-progress"),
+            "categories": categories_detailed
+        })
+
+    # Merge attempts with career analysis results
+    combined_history = []
+    for record in career_records:
+        attempt_no = record.get("attempt", 0)
+
+        matching_attempt = next((a for a in full_attempts if a["attempt"] == attempt_no), None)
+
+        combined_history.append({
+            "attempt": attempt_no,
+            "timestamp": record.get("timestamp"),
+            "top_category": record.get("top_category"),
+            "recommended_career": record.get("recommended_career"),
+            "scores": record.get("scores"),
+            "answers_detail": matching_attempt
+        })
+
+    return {
         "student_id": student_id,
-        "history": records
-    }))
+        "total_attempts": len(combined_history),
+        "career_history": combined_history
+    }
+
 
 
 from fastapi import APIRouter, HTTPException
@@ -511,12 +594,12 @@ async def get_career_results(student_id: str):
     # Get all career analysis attempts
     career_records = await db.career_analyzer.find({"student_id": student_id}).sort("timestamp", -1).to_list(None)
     if not career_records:
-        raise HTTPException(status_code=404, detail="No career analysis found for this student")
+        raise HTTPException(status_code=200, detail="No career analysis found for this student")
 
     # Get student's answer document
     answers_doc = await db.answers.find_one({"student_id": student_id})
     if not answers_doc:
-        raise HTTPException(status_code=404, detail="No answers found for this student")
+        raise HTTPException(status_code=200, detail="No answers found for this student")
 
     # Build detailed data per attempt
     full_attempts = []

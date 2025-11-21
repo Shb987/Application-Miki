@@ -535,6 +535,31 @@ async def analyze_career(student_id: str):
 from bson import json_util
 import json
 
+
+@router.get("/career-analysis/{student_id}/{attempt}")
+async def get_career_analysis(student_id: str, attempt: int):
+    """
+    Fetch career analysis for a specific student and attempt number.
+    """
+
+    record = await db.career_analyzer.find_one(
+        {"student_id": student_id, "attempt": attempt},
+        {"_id": 0}   # hide MongoDB ObjectId
+    )
+
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No career analysis found for student {student_id} in attempt {attempt}"
+        )
+
+    return {
+        "status_code": 200,
+        "student_id": student_id,
+        "attempt": attempt,
+        "career_analysis": record
+    }
+
 @router.get("/career-result/{student_id}")
 async def get_career_result(student_id: str):
     records = await db.career_analyzer.find({"student_id": student_id}).to_list(None)

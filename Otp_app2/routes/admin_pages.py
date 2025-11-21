@@ -16,11 +16,6 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login_one.html", {"request": request})
 
 
-# @router.get("/dashboard", response_class=HTMLResponse)
-# async def read_dashboard(request: Request):
-#     response = templates.TemplateResponse("index.html", {"request": request})
-#     response.headers["Cache-Control"] = "no-store"  # Prevents back button from showing old page
-#     return response
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def read_dashboard(request: Request, tab: str = None):
@@ -45,6 +40,10 @@ async def users_page(request: Request):
 async def questions_page(request: Request):
     return templates.TemplateResponse("questions.html", {"request": request})
 
+@router.get("/exam_module-page", response_class=HTMLResponse)
+async def questions_page(request: Request):
+    return templates.TemplateResponse("Exammodule.html", {"request": request})
+
 @router.get("/questions/{category}", response_class=HTMLResponse)
 async def questions_category_page(request: Request, category: str):
     # Fetch questions for this category from MongoDB (async)
@@ -65,6 +64,3 @@ async def questions_category_page(request: Request, category: str):
     )
 
 
-# @router.get("/logins", response_class=HTMLResponse)
-# async def logins_page(request: Request):
-#     return templates.TemplateResponse("logins.html", {"request": request})

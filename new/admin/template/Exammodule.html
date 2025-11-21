@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -38,28 +39,6 @@
     <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
     <!-- Responsive css-->
     <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
-    <style>
-/* Page-specific fix for logo container */
-.header-logo-wrapper {
-    display: flex !important;
-    align-items: center !important;  /* vertically center */
-    justify-content: flex-start !important; /* keep original alignment */
-    position: relative !important;  /* ensure it’s not collapsed */
-    height: auto !important;        /* allow container to grow */
-}
-
-.header-logo-wrapper .logo-wrapper {
-    display: block !important;
-    height: auto !important;
-    overflow: visible !important;
-}
-
-.header-logo-wrapper .logo-wrapper a img {
-    display: block !important;
-    max-height: 60px;               /* adjust to fit header */
-}
-</style>
-
   </head>
   <body>
     <!-- loader starts-->
@@ -89,10 +68,9 @@
             </div>
           </form>
           <div class="header-logo-wrapper col-auto p-0">
-
+            <div class="logo-wrapper"> <a href="index.html"><img class="img-fluid for-light" src="/assets/images/logo/logo_dark.png" alt="logo-light"><img class="img-fluid for-dark" src="/assets/images/logo/logo.png" alt="logo-dark"></a></div>
             <div class="toggle-sidebar"> <i class="status_toggle middle sidebar-toggle" data-feather="align-center"></i></div>
           </div>
-
           <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
             <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
               <div class="d-flex align-items-center gap-2 ">
@@ -381,117 +359,120 @@
       <!-- Page Header Ends                              -->
       <!-- Page Body Start-->
       <div class="page-body-wrapper">
-
-        <!-- Sidebar -->
-        {% include "sidebar.html" %}
-        <!-- Sidebar Ends -->
-
-        <!-- Page Body -->
+        <!-- Page Sidebar Start-->
+          {% include "sidebar.html" %}
+        <!-- Page Sidebar Ends-->
         <div class="page-body">
           <div class="container-fluid">
-
-            <!-- Title & Breadcrumb -->
-            <div class="page-title mb-3">
+            <div class="page-title">
               <div class="row">
                 <div class="col-6">
-                  <h4>{{ category | replace("-", " ") | upper }} QUESTIONS</h4>
+                  <h4>Exam Module</h4>
                 </div>
                 <div class="col-6">
                   <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                      <a href="/admin-panel/dashboard">
+                    <li class="breadcrumb-item"><a href="index.html">
                         <svg class="stroke-icon">
                           <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
-                        </svg>
-                      </a>
-                    </li>
-                    <li class="breadcrumb-item">Questions</li>
-                    <li class="breadcrumb-item active">{{ category | replace("-", " ") }}</li>
+                        </svg></a></li>
+                    <li class="breadcrumb-item">Dashboard</li>
+                    <!-- <li class="breadcrumb-item active">Default</li> -->
                   </ol>
                 </div>
               </div>
             </div>
-
-            <!-- Add Question Form -->
-            <div class="card mb-3 p-3">
-              <h5>Add New Questions</h5>
-              <!-- Question type selector -->
-              <div class="mb-3">
-                <label class="form-label">Question Type</label>
-                <select id="question-type" class="form-select" onchange="toggleQuestionType()">
-                  <option value="text">Text-based MCQ</option>
-                  <option value="image">Image-based MCQ</option>
-                  <option value="rating">Text-based Rating</option>
-                </select>
-              </div>
-
-              <!-- Common fields -->
-              <input type="text" id="new-question-text" class="form-control mb-2" placeholder="Enter question text" />
-
-              <div class="row">
-                <div class="col-md-6 mb-2">
-                  <input type="number" id="new-question-age-min" class="form-control" placeholder="Minimum Age" />
+          </div>
+          <!-- Container-fluid starts-->
+          <!-- Main content area -->
+            <!-- =======================
+                Syllabus Upload Section
+            =========================== -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Upload Syllabus</h5>
                 </div>
-                <div class="col-md-6 mb-2">
-                  <input type="number" id="new-question-age-max" class="form-control" placeholder="Maximum Age" />
+
+                <div class="card-body">
+                    <form action="/admin-panel/upload-syllabus" method="POST" enctype="multipart/form-data">
+
+                        <!-- Syllabus Board -->
+                        <div class="mb-3">
+                            <label class="form-label">Syllabus Board</label>
+                            <select class="form-select" name="syllabus_board" required>
+                                <option value="">-- Select Board --</option>
+                                <option value="CBSE">CBSE</option>
+                                <option value="State">State</option>
+                                <option value="ICSE">ICSE</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Standard -->
+                        <div class="mb-3">
+                            <label class="form-label">Standard</label>
+                            <select class="form-select" name="standard" required>
+                                <option value="">-- Select Standard --</option>
+                                <!-- Auto-generate 1 to 12 -->
+                                <script>
+                                    for (let i = 1; i <= 12; i++) {
+                                        document.write(`<option value="${i}">Class ${i}</option>`);
+                                    }
+                                </script>
+                            </select>
+                        </div>
+
+                        <!-- State -->
+                        <div class="mb-3">
+                            <label class="form-label">State</label>
+                            <select class="form-select" name="state" required>
+                                <option value="">-- Select State --</option>
+                                <option value="Kerala">Kerala</option>
+                                <option value="Delhi">Delhi</option>
+                                <option value="Tamil Nadu">Tamil Nadu</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Subject -->
+                        <div class="mb-3">
+                            <label class="form-label">Subject</label>
+                            <select class="form-select" name="subject" required>
+                                <option value="">-- Select Subject --</option>
+                                <option value="Science">Science</option>
+                                <option value="Maths">Maths</option>
+                                <option value="English">English</option>
+                                <option value="Malayalam">Malayalam</option>
+                                <option value="Social Science">Social Science</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                                <option value="Biology">Biology</option>
+                            </select>
+                        </div>
+
+                        <!-- PDF Upload -->
+                        <div class="mb-3">
+                            <label class="form-label">Upload Syllabus PDF</label>
+                            <input type="file" class="form-control" name="syllabus_pdf" accept="application/pdf" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Upload Syllabus</button>
+                    </form>
                 </div>
+            </div>
+
+        </div>
+        <!-- footer start-->
+        <footer class="footer">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-md-12 footer-copyright text-center">
+                <p class="mb-0">Copyright 2024 © Riho theme by pixelstrap</p>
               </div>
-
-              <!-- 🔹 Text-based MCQ fields -->
-              
-              <div id="text-options" class="mb-3">
-                <h6>Text Options</h6>
-                <input type="text" class="form-control mb-2" id="option1" placeholder="Option 1" />
-                <input type="text" class="form-control mb-2" id="option2" placeholder="Option 2" />
-                <input type="text" class="form-control mb-2" id="option3" placeholder="Option 3" />
-                <input type="text" class="form-control mb-2" id="option4" placeholder="Option 4" />
-                <input type="text" class="form-control" id="correct-answer" placeholder="Correct Answer (must match one option)" />
-              </div>
-
-              <!-- 🔹 Image-based MCQ fields -->
-              <div id="image-options" class="mb-3" style="display: none;">
-                <h6>Image Options</h6>
-                <input type="file" class="form-control mb-2" id="img1" accept="image/*" />
-                <input type="file" class="form-control mb-2" id="img2" accept="image/*" />
-                <input type="file" class="form-control mb-2" id="img3" accept="image/*" />
-                <input type="file" class="form-control mb-2" id="img4" accept="image/*" />
-                <label>Select correct image (1–4):</label>
-                <input type="number" class="form-control" id="correct-index" min="1" max="4" />
-              </div>
-
-              <!-- ⭐ Text-based Rating fields (no options) -->
-              <div id="rating-section" class="mb-3" style="display: none;">
-                <h6>Rating Question</h6>
-                <p class="text-muted">
-                  This question type has no options — only question text and age range will be saved.
-                </p>
-              </div>
-
-              <button class="btn btn-primary mt-3" onclick="addQuestion()">➕ Add Question</button>
-
-
-
-            <!-- Questions List -->
-            <ul class="list-group" id="questions-list">
-              {% for q in questions %}
-                <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ q._id }}">
-                  <span class="question-text">{{ q.text }} ({{ q.age_min }}-{{ q.age_max }} yrs)</span>
-                  <div>
-                    <button class="btn btn-sm btn-warning" onclick="editQuestion('{{ q._id }}', {{ q.age_min }}, {{ q.age_max }})">✏️</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteQuestion('{{ q._id }}')">🗑️</button>
-                  </div>
-                </li>
-              {% else %}
-                <li class="list-group-item">No questions yet in this category.</li>
-              {% endfor %}
-            </ul>
-
-          </div> <!-- container-fluid -->
-        </div> <!-- page-body -->
-
-      </div> <!-- page-body-wrapper -->
-  </div> <!-- page-wrapper -->
-</body>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
     <!-- latest jquery-->
     <script src="/assets/js/jquery.min.js"></script>
     <!-- Bootstrap js-->
@@ -530,180 +511,5 @@
     <script src="/assets/js/script.js"></script>
     <script src="/assets/js/theme-customizer/customizer.js"></script>
 
-    <script>
-
-    // ✅ Declare token ONCE, at the top
-    const API_BASE = "/admin-panel/questions";  // Backend endpoint
-    const category = "{{ category }}";
-    const token = localStorage.getItem("access_token");
-
-    // Toggle between text and image question forms
-    function toggleQuestionType() {
-      const type = document.getElementById("question-type").value;
-      document.getElementById("text-options").style.display = type === "text" ? "block" : "none";
-      document.getElementById("image-options").style.display = type === "image" ? "block" : "none";
-      document.getElementById("rating-options").style.display = type === "rating" ? "block" : "none";
-    }
-    // ✅ Redirect immediately if not logged in
-    if (!token) {
-      window.location.replace("/admin-panel/login");
-    }
-
-    // ✅ Load admin profile
-    async function loadAdminProfile() {
-      try {
-        const res = await fetch("http://127.0.0.1:8000/admin-panel/get_details", {
-          headers: {
-            "Authorization": "Bearer " + token
-          }
-        });
-
-        if (!res.ok) {
-          // Token invalid or expired
-          localStorage.removeItem("access_token");
-          window.location.replace("/admin-panel/login");
-          return;
-        }
-
-        const data = await res.json();
-        document.getElementById("admin-name").innerText = data.username;
-      } catch (err) {
-        console.error("Error loading profile:", err);
-        document.getElementById("admin-name").innerText = "Admin";
-      }
-    }
-    // Add Question
-    async function addQuestion() {
-  const type = document.getElementById("question-type").value;
-  const text = document.getElementById("new-question-text").value.trim();
-  const age_min = parseInt(document.getElementById("new-question-age-min").value);
-  const age_max = parseInt(document.getElementById("new-question-age-max").value);
-
-  if (!text || isNaN(age_min) || isNaN(age_max)) {
-    alert("Please fill question text and age range.");
-    return;
-  }
-
-  let res;
-  const formData = new FormData();
-
-  formData.append("category", category);
-  formData.append("text", text);
-  formData.append("age_min", age_min);
-  formData.append("age_max", age_max);
-  formData.append("type", type);
-
-  if (type === "text") {
-    // 📝 Text-based MCQ
-    formData.append("options", JSON.stringify([
-      document.getElementById("option1").value.trim(),
-      document.getElementById("option2").value.trim(),
-      document.getElementById("option3").value.trim(),
-      document.getElementById("option4").value.trim()
-    ].filter(Boolean)));
-    formData.append("correct_answer", document.getElementById("correct-answer").value.trim());
-
-    res = await fetch(API_BASE, {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token },
-      body: formData
-    });
-
-  } else if (type === "image") {
-    // 🖼️ Image-based MCQ
-    const correct_index = parseInt(document.getElementById("correct-index").value);
-    if (isNaN(correct_index) || correct_index < 1 || correct_index > 4) {
-      alert("Please enter a valid correct image number (1–4).");
-      return;
-    }
-    formData.append("correct_index", correct_index - 1);
-
-    // Attach image files
-    ["img1", "img2", "img3", "img4"].forEach((id, i) => {
-      const file = document.getElementById(id).files[0];
-      if (file) formData.append(`option${i + 1}`, file);
-    });
-
-    res = await fetch(API_BASE, {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token },
-      body: formData
-    });
-
-  } else if (type === "rating") {
-    // ⭐ Text-based Rating (no options)
-    // Only question text, min age, and max age
-    res = await fetch(API_BASE, {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token },
-      body: formData
-    });
-  }
-
-  // ✅ Handle API response
-  const data = await res.json();
-  if (res.ok) {
-    alert("Question added successfully!");
-    location.reload();
-  } else {
-    alert(data.detail || "Error adding question");
-  }
-}
-
-    // Edit Question
-    async function editQuestion(id, currentAgeMin, currentAgeMax) {
-        const li = document.querySelector(`li[data-id='${id}']`);
-        const currentText = li.querySelector(".question-text").innerText.split(' (')[0];
-
-        const newText = prompt("Edit question:", currentText);
-        const newAgeMin = parseInt(prompt("Minimum Age:", currentAgeMin));
-        const newAgeMax = parseInt(prompt("Maximum Age:", currentAgeMax));
-        if (!newText || isNaN(newAgeMin) || isNaN(newAgeMax)) return;
-
-        const res = await fetch(`${API_BASE}/${id}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({ text: newText, category, age_min: newAgeMin, age_max: newAgeMax })
-        });
-
-        if (res.ok) {
-            li.querySelector(".question-text").innerText = `${newText} (${newAgeMin}-${newAgeMax} yrs)`;
-        } else {
-            const data = await res.json();
-            alert(data.detail || "Error updating question");
-        }
-    }
-
-
-    // Delete Question
-    async function deleteQuestion(id) {
-        if (!confirm("Are you sure you want to delete this question?")) return;
-
-        const res = await fetch(`${API_BASE}/${id}`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": "Bearer " + token
-            }
-        });
-        if (res.ok) {
-            document.querySelector(`li[data-id='${id}']`).remove();
-        } else {
-            const data = await res.json();
-            alert(data.detail || "Error deleting question");
-        }
-    }
-  if (typeof window.logout !== "function") {
-    window.logout = function() {
-      localStorage.removeItem("access_token");
-      window.location.href = "/admin-panel/login";
-    };
-  }
-</script>
-
-    loadAdminProfile()
-    </script>
-
+ </body>
 </html>

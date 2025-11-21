@@ -8,18 +8,22 @@
       <i class="status_toggle middle sidebar-toggle" data-feather="grid"></i>
     </div>
   </div>
+
   <div class="logo-icon-wrapper">
     <a href="/admin-panel/dashboard">
       <img class="img-fluid" src="/assets/images/logo/logo-icon.png" alt="logo-icon">
     </a>
   </div>
+
   <nav class="sidebar-main">
     <div id="sidebar-menu">
       <ul class="sidebar-links" id="simple-bar">
+
         <li class="sidebar-main-title">
           <div><h6>GENERAL</h6></div>
         </li>
-        <!-- ✅ Dashboard -->
+
+        <!-- Dashboard -->
         <li class="sidebar-list" id="menu-dashboard">
           <a class="sidebar-link sidebar-title" href="#">
             <svg class="stroke-icon">
@@ -36,7 +40,8 @@
             <li><a href="/admin-panel/dashboard?tab=logins">Login Data</a></li>
           </ul>
         </li>
-        <!-- ✅ Questions -->
+
+        <!-- Questions -->
         <li class="sidebar-list" id="menu-questions">
           <a class="sidebar-link sidebar-title" href="#">
             <svg class="stroke-icon">
@@ -58,25 +63,53 @@
             <li><a href="/admin-panel/questions/naturalist">Naturalist</a></li>
           </ul>
         </li>
+
+        <!-- Exam Module -->
+        <li class="sidebar-list" id="menu-Exams">
+          <a class="sidebar-link sidebar-title" href="#">
+            <svg class="stroke-icon">
+              <use xlink:href="/assets/svg/icon-sprite.svg#stroke-file"></use>
+            </svg>
+            <svg class="fill-icon">
+              <use xlink:href="/assets/svg/icon-sprite.svg#fill-file"></use>
+            </svg>
+            <span>Exam Module</span>
+          </a>
+          <ul class="sidebar-submenu">
+            <li><a href="/admin-panel/exam_module-page">Add Exam Details</a></li>
+          </ul>
+        </li>
+
       </ul>
     </div>
   </nav>
 </div>
 
+<!-- Corrected Active Menu Script -->
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const currentUrl = window.location.href;
+document.addEventListener("DOMContentLoaded", function () {
+    const currentPath = window.location.pathname;  
+    const currentUrl = window.location.origin + window.location.pathname;
+
     document.querySelectorAll(".sidebar-submenu a").forEach(link => {
-      if (currentUrl.includes(link.getAttribute("href"))) {
-        link.classList.add("active");
-        const parentMenu = link.closest(".sidebar-list");
-        if (parentMenu) {
-          parentMenu.classList.add("active");
-          const submenu = parentMenu.querySelector(".sidebar-submenu");
-          submenu.classList.add("menu-open");
-          submenu.style.display = "block";
+        const linkUrl = new URL(link.href);
+        const cleanLink = linkUrl.origin + linkUrl.pathname;
+
+        // Match only by pathname — avoids false matches
+        if (currentUrl === cleanLink) {
+            link.classList.add("active");
+
+            const parentMenu = link.closest(".sidebar-list");
+            if (parentMenu) {
+                parentMenu.classList.add("active");
+
+                const submenu = parentMenu.querySelector(".sidebar-submenu");
+                if (submenu) {
+                    submenu.classList.add("menu-open");
+                    submenu.style.display = "block";
+                }
+            }
         }
-      }
     });
-  });
+});
 </script>

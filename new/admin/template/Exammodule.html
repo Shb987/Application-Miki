@@ -384,81 +384,97 @@
           </div>
           <!-- Container-fluid starts-->
           <!-- Main content area -->
-            <!-- =======================
-                Syllabus Upload Section
-            =========================== -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Upload Syllabus</h5>
-                </div>
+          <!-- =======================
+              Syllabus Upload Section
+          =========================== -->
 
-                <div class="card-body">
-                    <form action="/admin-panel/upload-syllabus" method="POST" enctype="multipart/form-data">
+          <div class="card mt-4">
+              <div class="card-header">
+                  <h5 class="mb-0">Upload Syllabus</h5>
+              </div>
 
-                        <!-- Syllabus Board -->
-                        <div class="mb-3">
-                            <label class="form-label">Syllabus Board</label>
-                            <select class="form-select" name="syllabus_board" required>
-                                <option value="">-- Select Board --</option>
-                                <option value="CBSE">CBSE</option>
-                                <option value="State">State</option>
-                                <option value="ICSE">ICSE</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
+              <div class="card-body">
 
-                        <!-- Standard -->
-                        <div class="mb-3">
-                            <label class="form-label">Standard</label>
-                            <select class="form-select" name="standard" required>
-                                <option value="">-- Select Standard --</option>
-                                <!-- Auto-generate 1 to 12 -->
-                                <script>
-                                    for (let i = 1; i <= 12; i++) {
-                                        document.write(`<option value="${i}">Class ${i}</option>`);
-                                    }
-                                </script>
-                            </select>
-                        </div>
+                  <!-- STATUS BOX -->
+                  <div id="status"></div>
 
-                        <!-- State -->
-                        <div class="mb-3">
-                            <label class="form-label">State</label>
-                            <select class="form-select" name="state" required>
-                                <option value="">-- Select State --</option>
-                                <option value="Kerala">Kerala</option>
-                                <option value="Delhi">Delhi</option>
-                                <option value="Tamil Nadu">Tamil Nadu</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
+                  <form id="syllabusForm" enctype="multipart/form-data">
 
-                        <!-- Subject -->
-                        <div class="mb-3">
-                            <label class="form-label">Subject</label>
-                            <select class="form-select" name="subject" required>
-                                <option value="">-- Select Subject --</option>
-                                <option value="Science">Science</option>
-                                <option value="Maths">Maths</option>
-                                <option value="English">English</option>
-                                <option value="Malayalam">Malayalam</option>
-                                <option value="Social Science">Social Science</option>
-                                <option value="Physics">Physics</option>
-                                <option value="Chemistry">Chemistry</option>
-                                <option value="Biology">Biology</option>
-                            </select>
-                        </div>
+                      <!-- Syllabus Board -->
+                      <div class="mb-3">
+                          <label class="form-label">Syllabus Board</label>
+                          <select class="form-select" id="board" required>
+                              <option value="">-- Select Board --</option>
+                              <option value="CBSE">CBSE</option>
+                              <option value="State">State</option>
+                              <option value="ICSE">ICSE</option>
+                              <option value="Other">Other</option>
+                          </select>
+                      </div>
 
-                        <!-- PDF Upload -->
-                        <div class="mb-3">
-                            <label class="form-label">Upload Syllabus PDF</label>
-                            <input type="file" class="form-control" name="syllabus_pdf" accept="application/pdf" required>
-                        </div>
+                      <!-- Standard -->
+                      <div class="mb-3">
+                          <label class="form-label">Standard</label>
+                          <select class="form-select" id="standard" required>
+                              <option value="">-- Select Standard --</option>
+                              <script>
+                                  for (let i = 1; i <= 12; i++) {
+                                      document.write(`<option value="${i}">Class ${i}</option>`);
+                                  }
+                              </script>
+                          </select>
+                      </div>
 
-                        <button type="submit" class="btn btn-primary">Upload Syllabus</button>
-                    </form>
-                </div>
+                      <!-- State -->
+                      <div class="mb-3">
+                          <label class="form-label">State</label>
+                          <select class="form-select" id="state" required>
+                              <option value="">-- Select State --</option>
+                              <option value="Kerala">Kerala</option>
+                              <option value="Delhi">Delhi</option>
+                              <option value="Tamil Nadu">Tamil Nadu</option>
+                              <option value="Other">Other</option>
+                          </select>
+                      </div>
+
+                      <!-- Subject -->
+                      <div class="mb-3">
+                          <label class="form-label">Subject</label>
+                          <select class="form-select" id="subject" required>
+                              <option value="">-- Select Subject --</option>
+                              <option value="Science">Science</option>
+                              <option value="Maths">Maths</option>
+                              <option value="English">English</option>
+                              <option value="Malayalam">Malayalam</option>
+                              <option value="Social Science">Social Science</option>
+                              <option value="Physics">Physics</option>
+                              <option value="Chemistry">Chemistry</option>
+                              <option value="Biology">Biology</option>
+                          </select>
+                      </div>
+
+                      <!-- PDF File Upload -->
+                      <div class="mb-3">
+                          <label class="form-label">Upload Syllabus PDF</label>
+                          <input type="file" class="form-control" id="pdf" accept="application/pdf" required>
+                      </div>
+
+                      <!-- Question Count -->
+                      <div class="mb-3">
+                          <label class="form-label">Enter Question Count</label>
+                          <input type="number" class="form-control" id="count" min="1" max="5" required>
+                      </div>
+
+                      <button type="submit" class="btn btn-primary w-100">
+                          Upload Syllabus
+                      </button>
+
+                  </form>
+
+              </div>
+          </div>
             </div>
+
 
         </div>
         <!-- footer start-->
@@ -510,6 +526,84 @@
     <!-- Theme js-->
     <script src="/assets/js/script.js"></script>
     <script src="/assets/js/theme-customizer/customizer.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
 
+        const form = document.getElementById("syllabusForm");
+        const statusBox = document.getElementById("status");
+
+        let pollInterval;
+
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            statusBox.innerHTML = `
+                <div class="alert alert-info">Uploading syllabus… Please wait.</div>
+            `;
+
+            const fd = new FormData();
+            fd.append("syllabus_board", document.getElementById("board").value);
+            fd.append("standard", document.getElementById("standard").value);
+            fd.append("state", document.getElementById("state").value);
+            fd.append("subject", document.getElementById("subject").value);
+            fd.append("count", document.getElementById("count").value);
+            fd.append("syllabus_pdf", document.getElementById("pdf").files[0]);
+
+            try {
+                const response = await fetch("/admin-panel/upload-syllabus", {
+                    method: "POST",
+                    body: fd
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail);
+
+                const syllabusId = result.syllabus_id;
+
+                statusBox.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Syllabus uploaded successfully!</strong><br>
+                        Processing started in background.<br>
+                        ID: <b>${syllabusId}</b>
+                    </div>
+                `;
+
+                // 🔥 Trigger processing endpoint
+                await fetch(`/admin-panel/process-syllabus/${syllabusId}`, {
+                    method: "POST"
+                });
+
+                // 📢 Start polling status
+                pollInterval = setInterval(() => pollStatus(syllabusId), 2000);
+
+            } catch (error) {
+                statusBox.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+
+        async function pollStatus(id) {
+            const res = await fetch(`/admin-panel/syllabus/status/${id}`);
+            const data = await res.json();
+
+            statusBox.innerHTML = `
+                <div class="alert alert-info">
+                    Status: <b>${data.status}</b><br>
+                    Progress: <b>${data.progress}%</b>
+                </div>
+            `;
+
+            if (data.status === "completed") {
+                clearInterval(pollInterval);
+                statusBox.innerHTML = `
+                    <div class="alert alert-success">
+                        🎉 Completed! Chapters extracted & embedded successfully.<br>
+                        Now you can generate questions.
+                    </div>
+                `;
+            }
+        }
+
+    });
+    </script>
  </body>
 </html>

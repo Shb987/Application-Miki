@@ -36,6 +36,7 @@ async def students_page(request: Request):
 @router.get("/users", response_class=HTMLResponse)
 async def users_page(request: Request):
     return templates.TemplateResponse("users.html", {"request": request})
+
 @router.get("/question-page", response_class=HTMLResponse)
 async def questions_page(request: Request):
     return templates.TemplateResponse("questions.html", {"request": request})

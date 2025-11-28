@@ -338,120 +338,332 @@ async def generate_questions_trigger(payload: dict = Body(...)):
 # =====================================================
 
 
+
+# async def generate_questions_worker(job_id: str):
+#     job = await db.question_jobs.find_one({"job_id": job_id})
+#     if not job:
+#         return
+
+#     await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"status": "running", "progress": 5}})
+
+#     standard = int(job["standard"])
+#     subject = job["subject"]
+#     chapters = job["chapters"]
+#     papers = job["papers"]
+#     total_marks = int(job["marks"])
+
+#     generated_ids = []
+
+#     # Determine allowed question types based on standard
+#     if standard <= 5:
+#         types_allowed = [
+#             "MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse",
+#             "VeryShort", "PictureBased", "Sequencing", "Observation"
+#         ]
+#     elif standard <= 8:
+#         types_allowed = ["MCQ", "VeryShort", "Short", "ShortEssay"]
+#     elif standard <= 10:
+#         types_allowed = ["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"]
+#     else:
+#         types_allowed = ["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
+
+#     total_steps = papers
+
+#     for p in range(papers):
+#         try:
+#             # Build prompt for LLM
+#             prompt = f"""
+# You are a highly experienced exam paper generator with knowledge of Kerala SCERT question papers.
+# Standard: {standard}
+# Subject: {subject}
+# Chapters: {', '.join(chapters)}
+# Total Marks: {total_marks}
+# Allowed Question Types: {', '.join(types_allowed)}
+
+# Your task:
+# - Create a question paper exactly worth {total_marks} marks.
+# - Use only the allowed question types for this class.
+# - Include questions from the given chapters.
+# - For primary classes (Std 1-5), include interactive questions like FillInTheBlanks, MatchTheFollowing, TrueFalse, PictureBased, Sequencing, Observation.
+# - For middle and high school, mix MCQ, Short, Essay, Apply, Analyze, CaseStudy, Diagram appropriately.
+# - Ensure language is age-appropriate and concise.
+# - Return STRICT valid JSON in this format:
+
+# {{
+#   "paper_id": "{job_id}-{p+1}",
+#   "standard": "{standard}",
+#   "subject": "{subject}",
+#   "chapters_used": {json.dumps(chapters)},
+#   "marks_total": {total_marks},
+#   "questions": [
+#     {{ "type": "MCQ", "question": "...", "options": ["A","B","C","D"], "answer": "A", "marks": 1 }},
+#     {{ "type": "Short", "question": "...", "marks": 2 }},
+#     {{ "type": "Essay", "question": "...", "marks": 8 }}
+#   ]
+# }}
+
+# Create an appropriate mix of questions so that the sum of marks equals exactly {total_marks}.
+# """
+
+#             # Call LLM
+#             resp = client.chat.completions.create(
+#                 model="gpt-4o-mini",
+#                 messages=[{"role": "user", "content": prompt}]
+#             )
+
+#             raw = resp.choices[0].message.content
+#             cleaned = raw.replace("```json", "").replace("```", "").strip()
+
+#             try:
+#                 paper_json = json.loads(cleaned)
+#             except Exception:
+#                 # fallback empty paper
+#                 paper_json = {
+#                     "paper_id": f"{job_id}-{p+1}",
+#                     "standard": standard,
+#                     "subject": subject,
+#                     "chapters_used": chapters,
+#                     "marks_total": total_marks,
+#                     "questions": []
+#                 }
+
+#             paper_doc = {
+#                 "job_id": job_id,
+#                 "paper_index": p + 1,
+#                 "paper": paper_json,
+#                 "created_at": datetime.utcnow()
+#             }
+#             res = await db.generated_papers.insert_one(paper_doc)
+#             generated_ids.append(str(res.inserted_id))
+
+#             # Update progress
+#             prog = 5 + int((p + 1) / total_steps * 90)
+#             await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"progress": prog}})
+
+#         except Exception as e:
+#             await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"status": "error", "message": str(e)}})
+
+#     # Finish job
+#     await db.question_jobs.update_one(
+#         {"job_id": job_id},
+#         {"$set": {"status": "completed", "progress": 100, "generated": generated_ids}}
+#     )
+
 # =====================================================
 # Blueprint functions
 # =====================================================
 
-def get_exam_structure(std: int, total: int):
-    """Return allowed types and blueprint sections for exam based on standard."""
-    structure = {
-        1: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased"],  {"A": (1, 25)}),
-        2: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
-        3: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
-        4: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (3, 2)}),
-        5: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "PictureBased"], {"A": (1, 15), "B": (2, 5), "C": (4, 2)}),
-        6: (["MCQ", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (4, 2)}),
-        7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
-        8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
-    }
+# def get_exam_structure(std: int, total: int):
+#     """Return allowed types and blueprint sections for exam based on standard."""
+#     structure = {
+#         1: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased"],  {"A": (1, 25)}),
+#         2: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
+#         3: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
+#         4: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (3, 2)}),
+#         5: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "PictureBased"], {"A": (1, 15), "B": (2, 5), "C": (4, 2)}),
+#         6: (["MCQ", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (4, 2)}),
+#         7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
+#         8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
+#     }
 
-    if std in [9, 10]:
-        if total == 50:
-            structure[std] = (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"],
-                              {"A": (1, 5), "B": (2, 5), "C": (3, 3), "D": (8, 2), "E": (10, 1)})
-        else:
-            structure[std] = (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"],
-                              {"A": (1, 10), "B": (2, 10), "C": (3, 6), "D": (5, 4), "E": (8, 2)})
+#     if std in [9, 10]:
+#         if total == 50:
+#             structure[std] = (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"],
+#                               {"A": (1, 5), "B": (2, 5), "C": (3, 3), "D": (8, 2), "E": (10, 1)})
+#         else:
+#             structure[std] = (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"],
+#                               {"A": (1, 10), "B": (2, 10), "C": (3, 6), "D": (5, 4), "E": (8, 2)})
 
-    if std == 11:
-        structure[11] = (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"],
-                         {"A": (1, 5), "B": (3, 5), "C": (8, 3), "D": (10, 1)} if total == 50 else
-                         {"A": (1, 10), "B": (3, 6), "C": (5, 4), "D": (8, 2), "E": (10, 1)})
+#     if std == 11:
+#         structure[11] = (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"],
+#                          {"A": (1, 5), "B": (3, 5), "C": (8, 3), "D": (10, 1)} if total == 50 else
+#                          {"A": (1, 10), "B": (3, 6), "C": (5, 4), "D": (8, 2), "E": (10, 1)})
 
-    if std == 12:
-        structure[12] = (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"],
-                         {"A": (1, 10), "B": (4, 5), "C": (10, 2)} if total == 50 else
-                         {"A": (1, 15), "B": (3, 8), "C": (5, 3), "D": (8, 3), "E": (10, 1)})
+#     if std == 12:
+#         structure[12] = (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"],
+#                          {"A": (1, 10), "B": (4, 5), "C": (10, 2)} if total == 50 else
+#                          {"A": (1, 15), "B": (3, 8), "C": (5, 3), "D": (8, 3), "E": (10, 1)})
 
-    return structure.get(std, structure[12])
-
-
-def build_distribution_from_structure(sections):
-    distribution = []
-    for sec, (mark, count) in sections.items():
-        distribution.extend([mark] * count)
-    return distribution
+#     return structure.get(std, structure[12])
 
 
-# =====================================================
-# Generate single paper
-# =====================================================
-
-async def generate_single_paper(job, idx, allowed_types, sections, distribution):
-    std = int(job["standard"])
-    subject = job["subject"]
-    chapters = job["chapters"]
-    total_marks = int(job["marks"])
-    job_id = job["job_id"]
-
-    prompt = f"""
-Generate Kerala SCERT format question paper:
-
-Standard: {std}
-Subject: {subject}
-Chapters: {', '.join(chapters)}
-Required Total Marks: {total_marks}
-
-Allowed Question Types:
-{allowed_types}
-
-Sections and Mark Pattern:
-{json.dumps(sections)}
-
-Marks distribution in exact order:
-{distribution}
-
-Rules:
-- Follow order of marks EXACTLY in questions list.
-- Include a realistic mix of question types based on SCERT style.
-- Strict JSON only, no text outside JSON.
-
-Expected Format:
-{{
- "paper_id": "{job_id}-{idx}",
- "standard": "{std}",
- "subject": "{subject}",
- "marks_total": {total_marks},
- "sections": {json.dumps(sections)},
- "questions": [
-   {{"type":"MCQ", "question":"Example?", "marks":1}}
- ]
-}}
-"""
-
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    raw = resp.choices[0].message.content
-    cleaned = raw.replace("```json", "").replace("```", "").strip()
-    paper_json = json.loads(cleaned)
-
-    res = await db.generated_papers.insert_one({
-        "job_id": job_id,
-        "paper_index": idx,
-        "paper": paper_json,
-        "created_at": datetime.utcnow()
-    })
-
-    return str(res.inserted_id)
+# def build_distribution_from_structure(sections):
+#     distribution = []
+#     for sec, (mark, count) in sections.items():
+#         distribution.extend([mark] * count)
+#     return distribution
 
 
-# =====================================================
-# Main worker
-# =====================================================
+# # =====================================================
+# # Generate single paper
+# # =====================================================
 
+# async def generate_single_paper(job, idx, allowed_types, sections, distribution):
+#     std = int(job["standard"])
+#     subject = job["subject"]
+#     chapters = job["chapters"]
+#     total_marks = int(job["marks"])
+#     job_id = job["job_id"]
+
+#     prompt = f"""
+# Generate Kerala SCERT format question paper:
+
+# Standard: {std}
+# Subject: {subject}
+# Chapters: {', '.join(chapters)}
+# Required Total Marks: {total_marks}
+
+# Allowed Question Types:
+# {allowed_types}
+
+# Sections and Mark Pattern:
+# {json.dumps(sections)}
+
+# Marks distribution in exact order:
+# {distribution}
+
+# Rules:
+# - Follow order of marks EXACTLY in questions list.
+# - Include a realistic mix of question types based on SCERT style.
+# - Strict JSON only, no text outside JSON.
+
+# Expected Format:
+# {{
+#  "paper_id": "{job_id}-{idx}",
+#  "standard": "{std}",
+#  "subject": "{subject}",
+#  "marks_total": {total_marks},
+#  "sections": {json.dumps(sections)},
+#  "questions": [
+#    {{"type":"MCQ", "question":"Example?", "marks":1}}
+#  ]
+# }}
+# """
+
+#     resp = client.chat.completions.create(
+#         model="gpt-4o-mini",
+#         messages=[{"role": "user", "content": prompt}]
+#     )
+
+#     raw = resp.choices[0].message.content
+#     cleaned = raw.replace("```json", "").replace("```", "").strip()
+#     paper_json = json.loads(cleaned)
+
+#     res = await db.generated_papers.insert_one({
+#         "job_id": job_id,
+#         "paper_index": idx,
+#         "paper": paper_json,
+#         "created_at": datetime.utcnow()
+#     })
+
+#     return str(res.inserted_id)
+
+
+# # =====================================================
+# # Main worker
+# # =====================================================
+
+# async def generate_questions_worker(job_id: str):
+#     job = await db.question_jobs.find_one({"job_id": job_id})
+#     if not job:
+#         return
+
+#     await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"status": "running", "progress": 5}})
+
+#     std = int(job["standard"])
+#     total_marks = int(job["marks"])
+#     papers = job["papers"]
+
+#     allowed_types, sections = get_exam_structure(std, total_marks)
+#     distribution = build_distribution_from_structure(sections)
+
+#     generated_ids = []
+
+#     tasks = [
+#         generate_single_paper(job, i + 1, allowed_types, sections, distribution)
+#         for i in range(papers)
+#     ]
+
+#     for idx, task in enumerate(asyncio.as_completed(tasks), start=1):
+#         rid = await task
+#         generated_ids.append(rid)
+
+#         await db.question_jobs.update_one({"job_id": job_id},
+#                                           {"$set": {"progress": int(idx / papers * 100)}})
+
+#     await db.question_jobs.update_one(
+#         {"job_id": job_id},
+#         {"$set": {"status": "completed", "generated": generated_ids, "progress": 100}}
+#     )
+
+#     logging.info(f"Job {job_id} completed")
+
+
+import json
+import uuid
+from datetime import datetime
+
+# ---------------- BLUEPRINT STRUCTURES ---------------- #
+
+EXAM_STRUCTURES = {
+    1: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased"],  {"A": (1, 25)}),
+    2: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
+    3: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
+    4: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (3, 2)}),
+    5: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "PictureBased"], {"A": (1, 15), "B": (2, 5), "C": (4, 2)}),
+    6: (["MCQ", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (4, 2)}),
+    7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
+    8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
+}
+
+HIGH_SCHOOL = {
+    50:  (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"], {"A": (1, 5), "B": (2, 5), "C": (3, 3), "D": (8, 2), "E": (10, 1)}),
+    80: (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"], {
+            "A": (1, 10),  # 10×1 = 10
+            "B": (2, 10),  # 10×2 = 20
+            "C": (4, 4),   # 4×4 = 16 (instead of 3×4 to scale up)
+            "D": (5, 4),   # 4×5 = 20
+            "E": (7, 2),   # 2×7 = 14
+        }),
+}
+
+PLUS_TWO = {
+    50:  (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {"A": (1, 5), "B": (3, 5), "C": (8, 3), "D": (10, 1)}),
+    80: (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {
+    "A": (1, 10),
+    "B": (2, 10),
+    "C": (3, 4),
+    "D": (5, 4),
+    "E": (9, 2)
+})
+}
+
+
+# ---------------- BLUEPRINT RESOLVER ---------------- #
+
+def get_exam_structure(standard: int, total: int):
+    if standard <= 8:
+        return EXAM_STRUCTURES.get(standard)
+
+    if standard in [9, 10]:
+        return HIGH_SCHOOL.get(total)
+
+    return PLUS_TWO.get(total)
+
+
+# ---------------- MARK VALIDATION + AUTO FIX ---------------- #
+
+def validate_fix_marks(paper: dict, required_total: int):
+    total = sum(q.get("marks", 0) for q in paper["questions"])
+    diff = required_total - total
+
+    if diff != 0 and paper["questions"]:
+        paper["questions"][-1]["marks"] += diff  # add or subtract
+
+    return paper
+
+
+# ---------------- ASYNC GENERATION WORKER ---------------- #
 async def generate_questions_worker(job_id: str):
     job = await db.question_jobs.find_one({"job_id": job_id})
     if not job:
@@ -461,31 +673,101 @@ async def generate_questions_worker(job_id: str):
 
     std = int(job["standard"])
     total_marks = int(job["marks"])
+    chapters = job["chapters"]
+    subject = job["subject"]
     papers = job["papers"]
 
     allowed_types, sections = get_exam_structure(std, total_marks)
-    distribution = build_distribution_from_structure(sections)
 
     generated_ids = []
 
-    tasks = [
-        generate_single_paper(job, i + 1, allowed_types, sections, distribution)
-        for i in range(papers)
-    ]
+    for p in range(papers):
 
-    for idx, task in enumerate(asyncio.as_completed(tasks), start=1):
-        rid = await task
-        generated_ids.append(rid)
+        # Build section formatting instruction (e.g., A: 1 mark × 5 questions)
+        section_text = "\n".join([
+            f"Section {key}: {val[0]} mark questions × {val[1]}"
+            for key, val in sections.items()
+        ])
 
-        await db.question_jobs.update_one({"job_id": job_id},
-                                          {"$set": {"progress": int(idx / papers * 100)}})
+        prompt = f"""
+Kerala SCERT Board Exam Question Paper Generator
+
+Standard: {std}
+Subject: {subject}
+Chapters: {", ".join(chapters)}
+
+Allowed Question Types: {allowed_types}
+
+### QUESTION STRUCTURE REQUIREMENTS ###
+Generate questions STRICTLY grouped by sections.
+Follow EXACT question counts specified below (do not change them):
+
+{section_text}
+
+### OUTPUT FORMAT ###
+Respond with valid JSON only. No text outside JSON.
+
+{{
+  "paper_id": "{job_id}-{p+1}",
+  "standard": "{std}",
+  "subject": "{subject}",
+  "chapters_used": {json.dumps(chapters)},
+  "sections": [
+    {{
+      "section": "A",
+      "marks_per_question": {list(sections.values())[0][0]},
+      "questions": []
+    }},
+    {{
+      "section": "B",
+      "marks_per_question": {list(sections.values())[1][0]},
+      "questions": []
+    }},
+    {{
+      "section": "C",
+      "marks_per_question": {list(sections.values())[2][0]},
+      "questions": []
+    }}
+  ]
+}}
+Ensure:
+- Only allowed question types are used.
+- The number of questions in each section matches exactly the counts specified.
+"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
+
+        content = response.choices[0].message.content
+        cleaned = content.replace("```json", "").replace("```", "").strip()
+
+        try:
+            paper_json = json.loads(cleaned)
+        except:
+            paper_json = {"paper_id": f"{job_id}-{p+1}", "sections": []}
+
+        result = await db.generated_papers.insert_one({
+            "job_id": job_id,
+            "paper_index": p + 1,
+            "paper": paper_json,
+            "created_at": datetime.utcnow(),
+        })
+
+        generated_ids.append(str(result.inserted_id))
+
+        await db.question_jobs.update_one(
+            {"job_id": job_id},
+            {"$set": {"progress": int((p + 1) / papers * 100)}}
+        )
 
     await db.question_jobs.update_one(
         {"job_id": job_id},
-        {"$set": {"status": "completed", "generated": generated_ids, "progress": 100}}
+        {"$set": {"status": "completed", "generated": generated_ids}}
     )
 
-    logging.info(f"Job {job_id} completed")
 
 
 from typing import List, Optional

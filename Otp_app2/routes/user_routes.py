@@ -561,6 +561,7 @@ async def get_career_analysis(student_id: str, attempt: int):
         "career_analysis": record
     }
 
+
 # @router.get("/career-result/{student_id}")
 # async def get_career_result(student_id: str):
 #     records = await db.career_analyzer.find({"student_id": student_id}).to_list(None)

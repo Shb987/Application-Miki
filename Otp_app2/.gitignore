@@ -5,3 +5,5 @@ folder_structure.txt
 testing.py
 __pycache__/
 *.pyc
+.env.*
+*.env

@@ -718,28 +718,40 @@
                 }
             }, 2000);
         }
-
-        // Load generated papers for the job
         async function loadGeneratedPapers(jobId) {
             try {
                 const res = await fetch(`/admin-panel/generated-papers?job_id=${encodeURIComponent(jobId)}`);
                 if (!res.ok) throw new Error("Failed to load generated papers");
+
                 const arr = await res.json();
                 recentPapersDiv.innerHTML = "";
+
                 if (!arr || arr.length === 0) {
                     recentPapersDiv.innerHTML = "<div class='text-muted'>No papers generated yet.</div>";
                     return;
                 }
-                // Display prettified JSONs
+
                 arr.forEach(doc => {
                     const card = document.createElement("div");
                     card.className = "card mb-3";
+
                     const body = document.createElement("div");
                     body.className = "card-body";
-                    const pre = document.createElement("pre");
-                    pre.style.whiteSpace = "pre-wrap";
-                    pre.textContent = JSON.stringify(doc.paper, null, 2);
-                    body.appendChild(pre);
+
+                    const message = document.createElement("div");
+                    message.textContent = `Paper for subject "${doc.paper.subject}" has been generated.`;
+
+                    body.appendChild(message);
+
+                    if (doc.pdf_url) {
+                        const link = document.createElement("a");
+                        link.href = doc.pdf_url;
+                        link.target = "_blank";
+                        link.className = "btn btn-sm btn-primary mt-2";
+                        link.textContent = "View / Download PDF";
+                        body.appendChild(link);
+                    }
+
                     card.appendChild(body);
                     recentPapersDiv.appendChild(card);
                 });

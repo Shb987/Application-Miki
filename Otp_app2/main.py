@@ -20,6 +20,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +36,7 @@ app.mount("/assets", StaticFiles(directory="../new/admin/assets"), name="assets"
 app.mount("/dist", StaticFiles(directory="../new/admin/dist"), name="dist")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
  
+app.mount("/static/generated_papers", StaticFiles(directory="Exams/generated_papers"), name="generated_papers")
 
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])

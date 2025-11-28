@@ -1,15 +1,24 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+# exam_module.py
+
+from fastapi import APIRouter, UploadFile, File, Form, Body, HTTPException, Request
+from fastapi.templating import Jinja2Templates
 from fastapi import BackgroundTasks
 from datetime import datetime
+from typing import List, Optional
 from bson import ObjectId
 import pdfplumber
 import uuid
 import json
 import os
 import asyncio
+from report.scert_pdf_professional import save_scert_question_paper
 
 from core.database import db
 from openai import OpenAI
+
+# --------------------------
+# CONFIGURATION / CONSTANTS
+# --------------------------
 
 # OpenAI Client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -20,21 +29,78 @@ router = APIRouter(tags=["Exam Module"])
 UPLOAD_DIR = "Exams/syllabus"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-from fastapi import Request
-from fastapi.templating import Jinja2Templates
+GENERATED_PDF_DIR = "Exams/generated_papers"
+os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
+
 
 templates = Jinja2Templates(directory="../new/admin/template")
+
+# --------------------------
+# EXAM BLUEPRINTS
+# --------------------------
+
+EXAM_STRUCTURES = {
+    1: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased"],  {"A": (1, 25)}),
+    2: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
+    3: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
+    4: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (3, 2)}),
+    5: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "PictureBased"], {"A": (1, 15), "B": (2, 5), "C": (4, 2)}),
+    6: (["MCQ", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (4, 2)}),
+    7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
+    8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
+}
+
+HIGH_SCHOOL = {
+    50:  (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"], {"A": (1, 5), "B": (2, 5), "C": (3, 3), "D": (8, 2), "E": (10, 1)}),
+    80: (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"], {"A": (1, 10), "B": (2, 10), "C": (4, 4), "D": (5, 4), "E": (7, 2)}),
+}
+
+PLUS_TWO = {
+    50:  (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {"A": (1, 5), "B": (3, 5), "C": (8, 3), "D": (10, 1)}),
+    80: (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 4), "E": (9, 2)}),
+}
+
+# --------------------------
+# UTILITIES
+# --------------------------
+
+def _safe(obj, key, default=""):
+    return obj.get(key, default) if isinstance(obj, dict) else default
+
+def get_exam_structure(standard: int, total: int):
+    if standard <= 8:
+        return EXAM_STRUCTURES.get(standard)
+    if standard in [9, 10]:
+        return HIGH_SCHOOL.get(total)
+    return PLUS_TWO.get(total)
+
+def validate_fix_marks(paper: dict, required_total: int):
+    total = sum(q.get("marks", 0) for q in paper["questions"])
+    diff = required_total - total
+    if diff != 0 and paper["questions"]:
+        paper["questions"][-1]["marks"] += diff
+    return paper
+
+# --------------------------
+# ROUTES - PAGE TEMPLATES
+# --------------------------
 
 @router.get("/exam_module-page")
 async def exam_module_page(request: Request):
     return templates.TemplateResponse("Exammodule.html", {"request": request})
+
 @router.get("/question_generation-page")
 async def question_generation_page(request: Request):
     return templates.TemplateResponse("question_generation.html", {"request": request})
 
-# =====================================================================
-# 1️⃣ Upload Syllabus  → FAST (No waiting)
-# =====================================================================
+@router.get("/generated-question_view-page")
+async def generated_question_page(request: Request):
+    return templates.TemplateResponse("view_questions.html", {"request": request})
+
+# --------------------------
+# ROUTES - SYLLABUS
+# --------------------------
+
 @router.post("/upload-syllabus")
 async def upload_syllabus(
     syllabus_board: str = Form(...),
@@ -44,19 +110,15 @@ async def upload_syllabus(
     count: int = Form(...),
     syllabus_pdf: UploadFile = File(...)
 ):
-
     if syllabus_pdf.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF allowed")
 
-    # Save file
     file_id = str(uuid.uuid4())
     filename = f"{file_id}.pdf"
     file_path = os.path.join(UPLOAD_DIR, filename)
-
     with open(file_path, "wb") as f:
         f.write(await syllabus_pdf.read())
 
-    # Extract text
     text_content = ""
     try:
         with pdfplumber.open(file_path) as pdf:
@@ -65,7 +127,6 @@ async def upload_syllabus(
     except:
         text_content = ""
 
-    # Insert syllabus entry
     data = {
         "board": syllabus_board,
         "standard": standard,
@@ -81,39 +142,30 @@ async def upload_syllabus(
     }
 
     result = await db.syllabus.insert_one(data)
+    return {"status": "uploaded", "syllabus_id": str(result.inserted_id)}
 
-    return {
-        "status": "uploaded",
-        "syllabus_id": str(result.inserted_id)
-    }
-
-
-# =====================================================================
-# 2️⃣ Trigger Processing (returns immediately)
-# =====================================================================
 @router.post("/process-syllabus/{syllabus_id}")
 async def process_syllabus_trigger(syllabus_id: str):
-
     syllabus = await db.syllabus.find_one({"_id": ObjectId(syllabus_id)})
     if not syllabus:
         raise HTTPException(status_code=404, detail="Syllabus not found")
 
-    # Run worker in background (ASYNC)
     asyncio.create_task(process_syllabus_worker(syllabus_id))
+    return {"status": "started", "message": "Processing started in background", "syllabus_id": syllabus_id}
 
-    return {
-        "status": "started",
-        "message": "Processing started in background",
-        "syllabus_id": syllabus_id
-    }
+@router.get("/syllabus/status/{syllabus_id}")
+async def syllabus_status(syllabus_id: str):
+    data = await db.syllabus.find_one({"_id": ObjectId(syllabus_id)})
+    if not data:
+        raise HTTPException(status_code=404, detail="Invalid ID")
+    data["_id"] = str(data["_id"])
+    return data
 
+# --------------------------
+# BACKGROUND WORKERS
+# --------------------------
 
-# =====================================================================
-# 3️⃣ Background Worker (async)
-# =====================================================================
 async def process_syllabus_worker(syllabus_id: str):
-
-    # Update status → Extracting structure
     await db.syllabus.update_one(
         {"_id": ObjectId(syllabus_id)},
         {"$set": {"status": "extracting", "progress": 10}}
@@ -126,14 +178,7 @@ async def process_syllabus_worker(syllabus_id: str):
 You are an expert syllabus analyzer for Kerala SCERT textbooks.
 Your job is to extract accurate chapter titles and content from the provided syllabus text.
 
-Rules:
-- Identify REAL chapter names exactly as they appear.
-- Maintain syllabus order.
-- Do NOT invent or modify chapter titles.
-- Group all relevant remaining text under its chapter.
-
 Return STRICT VALID JSON ONLY in this format:
-
 [
   {{
     "chapter": "Exact Chapter Name",
@@ -150,39 +195,21 @@ Text to analyze:
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
         )
-
         raw = ai.choices[0].message.content
         cleaned = raw.replace("```json", "").replace("```", "").strip()
         chapters = json.loads(cleaned)
-        # Save chapter titles in main syllabus table
         chapter_titles = [c["chapter"].strip() for c in chapters]
-        await db.syllabus.update_one(
-            {"_id": ObjectId(syllabus_id)},
-            {"$set": {"chapters": chapter_titles}}
-        )
-
-    except Exception as e:
-        await db.syllabus.update_one(
-            {"_id": ObjectId(syllabus_id)},
-            {"$set": {"status": "failed", "progress": 0}}
-        )
+        await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"chapters": chapter_titles}})
+    except Exception:
+        await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"status": "failed", "progress": 0}})
         return
 
-    # Update progress → Embeddings
-    await db.syllabus.update_one(
-        {"_id": ObjectId(syllabus_id)},
-        {"$set": {"status": "embedding", "progress": 40}}
-    )
+    await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"status": "embedding", "progress": 40}})
 
-    # ---- EMBEDDINGS AND STORAGE ----
     for idx, ch in enumerate(chapters):
         try:
-            emb = client.embeddings.create(
-                model="text-embedding-3-large",
-                input=ch["content"]
-            )
+            emb = client.embeddings.create(model="text-embedding-3-large", input=ch["content"])
             vector = emb.data[0].embedding
-
             chapter_doc = {
                 "syllabus_id": syllabus_id,
                 "board": syllabus["board"],
@@ -194,79 +221,36 @@ Text to analyze:
                 "vector": vector,
                 "created_at": datetime.utcnow(),
             }
-
             await db.syllabus_chapters.insert_one(chapter_doc)
-
             progress = 40 + int((idx + 1) / len(chapters) * 55)
-            await db.syllabus.update_one(
-                {"_id": ObjectId(syllabus_id)},
-                {"$set": {"progress": progress}}
-            )
-
+            await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"progress": progress}})
         except:
             pass
 
-    await db.syllabus.update_one(
-        {"_id": ObjectId(syllabus_id)},
-        {"$set": {
-            "status": "completed",
-            "processed": True,
-            "progress": 100
-        }}
-    )
+    await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"status": "completed", "processed": True, "progress": 100}})
 
+# --------------------------
+# ROUTES - STANDARDS / SUBJECTS / CHAPTERS
+# --------------------------
 
-# =====================================================================
-# 4️⃣ STATUS ENDPOINT (poll every 2s)
-# =====================================================================
-@router.get("/syllabus/status/{syllabus_id}")
-async def syllabus_status(syllabus_id: str):
-
-    data = await db.syllabus.find_one({"_id": ObjectId(syllabus_id)})
-    if not data:
-        raise HTTPException(status_code=404, detail="Invalid ID")
-
-    data["_id"] = str(data["_id"])
-    return data
-
-
-
-from fastapi import Body
-
-
-# ============================
-# 1) GET standards (distinct)
-# ============================
 @router.get("/standards")
 async def get_standards():
-    # returns list of unique standards (as strings) sorted
     standards = await db.syllabus.distinct("standard")
-    # normalize to strings and sort numeric where possible
     try:
         standards_sorted = sorted(standards, key=lambda x: int(x))
     except:
         standards_sorted = sorted(standards)
     return {"standards": standards_sorted}
 
-
-# ============================
-# 2) GET subjects for a standard
-# ============================
 @router.get("/subjects/{standard}")
 async def get_subjects(standard: str):
     subjects = await db.syllabus.distinct("subject", {"standard": standard})
-    subjects = sorted([s for s in subjects if s])  # filter empty
+    subjects = sorted([s for s in subjects if s])
     return {"subjects": subjects}
 
-
-# ===============================================
-# 3) GET chapters for a given standard + subject
-# ===============================================
 @router.get("/chapters/{standard}/{subject}")
 async def get_chapters(standard: str, subject: str):
-    # First try to read 'chapters' array from syllabus documents
     docs = await db.syllabus.find({"standard": standard, "subject": subject, "processed": True}).to_list(None)
-
     chapter_set = []
     for d in docs:
         chs = d.get("chapters")
@@ -274,33 +258,20 @@ async def get_chapters(standard: str, subject: str):
             for c in chs:
                 if c and c not in chapter_set:
                     chapter_set.append(c)
-
-    # Fallback: if nothing in 'chapters' arrays, use syllabus_chapters collection
     if not chapter_set:
         ch_docs = await db.syllabus_chapters.find({"standard": standard, "subject": subject}).to_list(None)
         for cd in ch_docs:
             title = cd.get("chapter_title")
             if title and title not in chapter_set:
                 chapter_set.append(title)
-
     return {"chapters": chapter_set}
 
+# --------------------------
+# ROUTES - QUESTION GENERATION
+# --------------------------
 
-# =====================================================
-# 4) POST generate-questions (trigger background worker)
-# =====================================================
 @router.post("/generate-questions")
 async def generate_questions_trigger(payload: dict = Body(...)):
-    """
-    payload example:
-    {
-      "standard": "10",
-      "subject": "Biology",
-      "chapters": ["Paths of Evolution","Behind Sensations"],
-      "papers": 2,
-      "marks": 50
-    }
-    """
     standard = payload.get("standard")
     subject = payload.get("subject")
     chapters = payload.get("chapters", [])
@@ -324,352 +295,22 @@ async def generate_questions_trigger(payload: dict = Body(...)):
     }
     await db.question_jobs.insert_one(job_doc)
 
-    # start background worker
     asyncio.create_task(generate_questions_worker(job_id))
-
     return {"status": "started", "job_id": job_id}
 
 
+GENERATED_PDF_DIR = "Exams/generated_papers"
+os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
 
-
-
-# =====================================================
-# Background worker: generate_questions_worker
-# =====================================================
-
-
-
-# async def generate_questions_worker(job_id: str):
-#     job = await db.question_jobs.find_one({"job_id": job_id})
-#     if not job:
-#         return
-
-#     await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"status": "running", "progress": 5}})
-
-#     standard = int(job["standard"])
-#     subject = job["subject"]
-#     chapters = job["chapters"]
-#     papers = job["papers"]
-#     total_marks = int(job["marks"])
-
-#     generated_ids = []
-
-#     # Determine allowed question types based on standard
-#     if standard <= 5:
-#         types_allowed = [
-#             "MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse",
-#             "VeryShort", "PictureBased", "Sequencing", "Observation"
-#         ]
-#     elif standard <= 8:
-#         types_allowed = ["MCQ", "VeryShort", "Short", "ShortEssay"]
-#     elif standard <= 10:
-#         types_allowed = ["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"]
-#     else:
-#         types_allowed = ["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
-
-#     total_steps = papers
-
-#     for p in range(papers):
-#         try:
-#             # Build prompt for LLM
-#             prompt = f"""
-# You are a highly experienced exam paper generator with knowledge of Kerala SCERT question papers.
-# Standard: {standard}
-# Subject: {subject}
-# Chapters: {', '.join(chapters)}
-# Total Marks: {total_marks}
-# Allowed Question Types: {', '.join(types_allowed)}
-
-# Your task:
-# - Create a question paper exactly worth {total_marks} marks.
-# - Use only the allowed question types for this class.
-# - Include questions from the given chapters.
-# - For primary classes (Std 1-5), include interactive questions like FillInTheBlanks, MatchTheFollowing, TrueFalse, PictureBased, Sequencing, Observation.
-# - For middle and high school, mix MCQ, Short, Essay, Apply, Analyze, CaseStudy, Diagram appropriately.
-# - Ensure language is age-appropriate and concise.
-# - Return STRICT valid JSON in this format:
-
-# {{
-#   "paper_id": "{job_id}-{p+1}",
-#   "standard": "{standard}",
-#   "subject": "{subject}",
-#   "chapters_used": {json.dumps(chapters)},
-#   "marks_total": {total_marks},
-#   "questions": [
-#     {{ "type": "MCQ", "question": "...", "options": ["A","B","C","D"], "answer": "A", "marks": 1 }},
-#     {{ "type": "Short", "question": "...", "marks": 2 }},
-#     {{ "type": "Essay", "question": "...", "marks": 8 }}
-#   ]
-# }}
-
-# Create an appropriate mix of questions so that the sum of marks equals exactly {total_marks}.
-# """
-
-#             # Call LLM
-#             resp = client.chat.completions.create(
-#                 model="gpt-4o-mini",
-#                 messages=[{"role": "user", "content": prompt}]
-#             )
-
-#             raw = resp.choices[0].message.content
-#             cleaned = raw.replace("```json", "").replace("```", "").strip()
-
-#             try:
-#                 paper_json = json.loads(cleaned)
-#             except Exception:
-#                 # fallback empty paper
-#                 paper_json = {
-#                     "paper_id": f"{job_id}-{p+1}",
-#                     "standard": standard,
-#                     "subject": subject,
-#                     "chapters_used": chapters,
-#                     "marks_total": total_marks,
-#                     "questions": []
-#                 }
-
-#             paper_doc = {
-#                 "job_id": job_id,
-#                 "paper_index": p + 1,
-#                 "paper": paper_json,
-#                 "created_at": datetime.utcnow()
-#             }
-#             res = await db.generated_papers.insert_one(paper_doc)
-#             generated_ids.append(str(res.inserted_id))
-
-#             # Update progress
-#             prog = 5 + int((p + 1) / total_steps * 90)
-#             await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"progress": prog}})
-
-#         except Exception as e:
-#             await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"status": "error", "message": str(e)}})
-
-#     # Finish job
-#     await db.question_jobs.update_one(
-#         {"job_id": job_id},
-#         {"$set": {"status": "completed", "progress": 100, "generated": generated_ids}}
-#     )
-
-# =====================================================
-# Blueprint functions
-# =====================================================
-
-# def get_exam_structure(std: int, total: int):
-#     """Return allowed types and blueprint sections for exam based on standard."""
-#     structure = {
-#         1: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased"],  {"A": (1, 25)}),
-#         2: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
-#         3: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
-#         4: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (3, 2)}),
-#         5: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "PictureBased"], {"A": (1, 15), "B": (2, 5), "C": (4, 2)}),
-#         6: (["MCQ", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (4, 2)}),
-#         7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
-#         8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
-#     }
-
-#     if std in [9, 10]:
-#         if total == 50:
-#             structure[std] = (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"],
-#                               {"A": (1, 5), "B": (2, 5), "C": (3, 3), "D": (8, 2), "E": (10, 1)})
-#         else:
-#             structure[std] = (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"],
-#                               {"A": (1, 10), "B": (2, 10), "C": (3, 6), "D": (5, 4), "E": (8, 2)})
-
-#     if std == 11:
-#         structure[11] = (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"],
-#                          {"A": (1, 5), "B": (3, 5), "C": (8, 3), "D": (10, 1)} if total == 50 else
-#                          {"A": (1, 10), "B": (3, 6), "C": (5, 4), "D": (8, 2), "E": (10, 1)})
-
-#     if std == 12:
-#         structure[12] = (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"],
-#                          {"A": (1, 10), "B": (4, 5), "C": (10, 2)} if total == 50 else
-#                          {"A": (1, 15), "B": (3, 8), "C": (5, 3), "D": (8, 3), "E": (10, 1)})
-
-#     return structure.get(std, structure[12])
-
-
-# def build_distribution_from_structure(sections):
-#     distribution = []
-#     for sec, (mark, count) in sections.items():
-#         distribution.extend([mark] * count)
-#     return distribution
-
-
-# # =====================================================
-# # Generate single paper
-# # =====================================================
-
-# async def generate_single_paper(job, idx, allowed_types, sections, distribution):
-#     std = int(job["standard"])
-#     subject = job["subject"]
-#     chapters = job["chapters"]
-#     total_marks = int(job["marks"])
-#     job_id = job["job_id"]
-
-#     prompt = f"""
-# Generate Kerala SCERT format question paper:
-
-# Standard: {std}
-# Subject: {subject}
-# Chapters: {', '.join(chapters)}
-# Required Total Marks: {total_marks}
-
-# Allowed Question Types:
-# {allowed_types}
-
-# Sections and Mark Pattern:
-# {json.dumps(sections)}
-
-# Marks distribution in exact order:
-# {distribution}
-
-# Rules:
-# - Follow order of marks EXACTLY in questions list.
-# - Include a realistic mix of question types based on SCERT style.
-# - Strict JSON only, no text outside JSON.
-
-# Expected Format:
-# {{
-#  "paper_id": "{job_id}-{idx}",
-#  "standard": "{std}",
-#  "subject": "{subject}",
-#  "marks_total": {total_marks},
-#  "sections": {json.dumps(sections)},
-#  "questions": [
-#    {{"type":"MCQ", "question":"Example?", "marks":1}}
-#  ]
-# }}
-# """
-
-#     resp = client.chat.completions.create(
-#         model="gpt-4o-mini",
-#         messages=[{"role": "user", "content": prompt}]
-#     )
-
-#     raw = resp.choices[0].message.content
-#     cleaned = raw.replace("```json", "").replace("```", "").strip()
-#     paper_json = json.loads(cleaned)
-
-#     res = await db.generated_papers.insert_one({
-#         "job_id": job_id,
-#         "paper_index": idx,
-#         "paper": paper_json,
-#         "created_at": datetime.utcnow()
-#     })
-
-#     return str(res.inserted_id)
-
-
-# # =====================================================
-# # Main worker
-# # =====================================================
-
-# async def generate_questions_worker(job_id: str):
-#     job = await db.question_jobs.find_one({"job_id": job_id})
-#     if not job:
-#         return
-
-#     await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"status": "running", "progress": 5}})
-
-#     std = int(job["standard"])
-#     total_marks = int(job["marks"])
-#     papers = job["papers"]
-
-#     allowed_types, sections = get_exam_structure(std, total_marks)
-#     distribution = build_distribution_from_structure(sections)
-
-#     generated_ids = []
-
-#     tasks = [
-#         generate_single_paper(job, i + 1, allowed_types, sections, distribution)
-#         for i in range(papers)
-#     ]
-
-#     for idx, task in enumerate(asyncio.as_completed(tasks), start=1):
-#         rid = await task
-#         generated_ids.append(rid)
-
-#         await db.question_jobs.update_one({"job_id": job_id},
-#                                           {"$set": {"progress": int(idx / papers * 100)}})
-
-#     await db.question_jobs.update_one(
-#         {"job_id": job_id},
-#         {"$set": {"status": "completed", "generated": generated_ids, "progress": 100}}
-#     )
-
-#     logging.info(f"Job {job_id} completed")
-
-
-import json
-import uuid
-from datetime import datetime
-
-# ---------------- BLUEPRINT STRUCTURES ---------------- #
-
-EXAM_STRUCTURES = {
-    1: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased"],  {"A": (1, 25)}),
-    2: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
-    3: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
-    4: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (3, 2)}),
-    5: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "PictureBased"], {"A": (1, 15), "B": (2, 5), "C": (4, 2)}),
-    6: (["MCQ", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (4, 2)}),
-    7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
-    8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
-}
-
-HIGH_SCHOOL = {
-    50:  (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"], {"A": (1, 5), "B": (2, 5), "C": (3, 3), "D": (8, 2), "E": (10, 1)}),
-    80: (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"], {
-            "A": (1, 10),  # 10×1 = 10
-            "B": (2, 10),  # 10×2 = 20
-            "C": (4, 4),   # 4×4 = 16 (instead of 3×4 to scale up)
-            "D": (5, 4),   # 4×5 = 20
-            "E": (7, 2),   # 2×7 = 14
-        }),
-}
-
-PLUS_TWO = {
-    50:  (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {"A": (1, 5), "B": (3, 5), "C": (8, 3), "D": (10, 1)}),
-    80: (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {
-    "A": (1, 10),
-    "B": (2, 10),
-    "C": (3, 4),
-    "D": (5, 4),
-    "E": (9, 2)
-})
-}
-
-
-# ---------------- BLUEPRINT RESOLVER ---------------- #
-
-def get_exam_structure(standard: int, total: int):
-    if standard <= 8:
-        return EXAM_STRUCTURES.get(standard)
-
-    if standard in [9, 10]:
-        return HIGH_SCHOOL.get(total)
-
-    return PLUS_TWO.get(total)
-
-
-# ---------------- MARK VALIDATION + AUTO FIX ---------------- #
-
-def validate_fix_marks(paper: dict, required_total: int):
-    total = sum(q.get("marks", 0) for q in paper["questions"])
-    diff = required_total - total
-
-    if diff != 0 and paper["questions"]:
-        paper["questions"][-1]["marks"] += diff  # add or subtract
-
-    return paper
-
-
-# ---------------- ASYNC GENERATION WORKER ---------------- #
 async def generate_questions_worker(job_id: str):
     job = await db.question_jobs.find_one({"job_id": job_id})
     if not job:
         return
 
-    await db.question_jobs.update_one({"job_id": job_id}, {"$set": {"status": "running", "progress": 5}})
+    await db.question_jobs.update_one(
+        {"job_id": job_id},
+        {"$set": {"status": "running", "progress": 5}}
+    )
 
     std = int(job["standard"])
     total_marks = int(job["marks"])
@@ -678,29 +319,23 @@ async def generate_questions_worker(job_id: str):
     papers = job["papers"]
 
     allowed_types, sections = get_exam_structure(std, total_marks)
-
     generated_ids = []
 
     for p in range(papers):
-
-        # Build section formatting instruction (e.g., A: 1 mark × 5 questions)
-        section_text = "\n".join([
-            f"Section {key}: {val[0]} mark questions × {val[1]}"
-            for key, val in sections.items()
-        ])
+        section_text = "\n".join([f"Section {key}: {val[0]} mark questions × {val[1]}" for key, val in sections.items()])
 
         prompt = f"""
 Kerala SCERT Board Exam Question Paper Generator
 
 Standard: {std}
 Subject: {subject}
-Chapters: {", ".join(chapters)}
+Chapters: {', '.join(chapters)}
 
 Allowed Question Types: {allowed_types}
 
 ### QUESTION STRUCTURE REQUIREMENTS ###
 Generate questions STRICTLY grouped by sections.
-Follow EXACT question counts specified below (do not change them):
+Follow EXACT question counts specified below:
 
 {section_text}
 
@@ -713,26 +348,11 @@ Respond with valid JSON only. No text outside JSON.
   "subject": "{subject}",
   "chapters_used": {json.dumps(chapters)},
   "sections": [
-    {{
-      "section": "A",
-      "marks_per_question": {list(sections.values())[0][0]},
-      "questions": []
-    }},
-    {{
-      "section": "B",
-      "marks_per_question": {list(sections.values())[1][0]},
-      "questions": []
-    }},
-    {{
-      "section": "C",
-      "marks_per_question": {list(sections.values())[2][0]},
-      "questions": []
-    }}
+    {{"section": "A", "marks_per_question": {list(sections.values())[0][0]}, "questions": []}},
+    {{"section": "B", "marks_per_question": {list(sections.values())[1][0]}, "questions": []}},
+    {{"section": "C", "marks_per_question": {list(sections.values())[2][0]}, "questions": []}}
   ]
 }}
-Ensure:
-- Only allowed question types are used.
-- The number of questions in each section matches exactly the counts specified.
 """
 
         response = client.chat.completions.create(
@@ -746,35 +366,46 @@ Ensure:
 
         try:
             paper_json = json.loads(cleaned)
-        except:
+        except Exception:
             paper_json = {"paper_id": f"{job_id}-{p+1}", "sections": []}
 
+        # Insert JSON into DB
         result = await db.generated_papers.insert_one({
             "job_id": job_id,
             "paper_index": p + 1,
             "paper": paper_json,
             "created_at": datetime.utcnow(),
         })
-
         generated_ids.append(str(result.inserted_id))
 
+        # --- PDF Generation ---
+        try:
+            paper_filename = f"{GENERATED_PDF_DIR}/{paper_json['paper_id']}.pdf"
+            save_scert_question_paper(paper_json, paper_filename)
+            # Update DB with PDF path
+            await db.generated_papers.update_one(
+                {"_id": result.inserted_id},
+                {"$set": {"pdf_path": paper_filename}}
+            )
+        except Exception as e:
+            print(f"Failed to generate PDF for paper {paper_json.get('paper_id')}: {e}")
+
+        # Update progress
         await db.question_jobs.update_one(
             {"job_id": job_id},
             {"$set": {"progress": int((p + 1) / papers * 100)}}
         )
 
+    # Mark job completed
     await db.question_jobs.update_one(
         {"job_id": job_id},
         {"$set": {"status": "completed", "generated": generated_ids}}
     )
 
+# --------------------------
+# ROUTES - JOB STATUS / GENERATED PAPERS
+# --------------------------
 
-
-from typing import List, Optional
-
-
-
-    # Job status
 @router.get("/question-job-status/{job_id}")
 async def question_job_status(job_id: str):
     job = await db.question_jobs.find_one({"job_id": job_id})
@@ -787,7 +418,6 @@ async def question_job_status(job_id: str):
         "message": job.get("message", "")
     }
 
-# Fetch generated papers (filter by job_id)
 @router.get("/generated-papers")
 async def get_generated_papers(job_id: Optional[str] = None):
     q = {}
@@ -796,4 +426,38 @@ async def get_generated_papers(job_id: Optional[str] = None):
     docs = await db.generated_papers.find(q).to_list(None)
     for d in docs:
         d["_id"] = str(d["_id"])
+        # Add pdf_url if pdf_path exists
+        if "pdf_path" in d:
+            # Assuming static files are served from "/static/generated_papers/"
+            pdf_filename = os.path.basename(d["pdf_path"])
+            d["pdf_url"] = f"/static/generated_papers/{pdf_filename}"
+    return docs
+
+
+@router.delete("/generated-paper/{paper_id}")
+async def delete_generated_paper(paper_id: str):
+    doc = await db.generated_papers.find_one({"_id": ObjectId(paper_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    # Delete PDF file from folder
+    pdf_path = doc.get("pdf_path")
+    if pdf_path and os.path.exists(pdf_path):
+        os.remove(pdf_path)
+
+    await db.generated_papers.delete_one({"_id": ObjectId(paper_id)})
+
+    return {"status": "deleted", "message": "Question paper removed successfully"}
+
+
+@router.get("/generated-papers/filter")
+async def get_generated_papers_filtered(standard: str, subject: str):
+    docs = await db.generated_papers.find({"paper.standard": standard, "paper.subject": subject}).to_list(None)
+
+    for d in docs:
+        d["_id"] = str(d["_id"])
+        if "pdf_path" in d:
+            filename = os.path.basename(d["pdf_path"])
+            d["pdf_url"] = f"/static/generated_papers/{filename}"
+
     return docs

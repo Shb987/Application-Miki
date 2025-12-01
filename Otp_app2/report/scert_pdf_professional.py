@@ -1,4 +1,3 @@
-# scert_pdf_professional.py
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable
@@ -74,14 +73,17 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     # -------------------
     # HEADER
     # -------------------
-    story.append(Paragraph("KERALA SCERT QUESTION PAPER", title_style))
+    story.append(Paragraph("QUESTION PAPER", title_style))
     story.append(Paragraph(f"CLASS: { _safe(json_paper, 'standard', 'N/A') }", hdr_style))
     story.append(Paragraph(f"SUBJECT: { _safe(json_paper, 'subject', 'N/A') }", hdr_style))
     story.append(Spacer(1, 8))
 
     # TIME / MM row
-    time_text = _safe(json_paper, "time", "TIME - 90 MINUTES")
-    mm_text = f"MM - {_safe(json_paper, 'marks_total', 'N/A')} M"
+    
+    time_text = json_paper.get("time", "TIME - 90 MINUTES")
+    marks_total = json_paper.get("marks", 0)
+    mm_text = f"TOTAL MARKS: {marks_total}"
+
     title_row = Table([[time_text, "", mm_text]], colWidths=[9*cm, 2*cm, 8*cm])
     title_row.setStyle(TableStyle([
         ("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"),
@@ -115,7 +117,6 @@ def save_scert_question_paper(json_paper: dict, filename: str):
         gen_instr_list.append(text)
 
     gen_instr_list.append("Attempt all questions.")
-    gen_instr_list.append("All questions carry equal marks.")
     gen_instr_list.append("There is no negative marking.")
 
     for i, inst in enumerate(gen_instr_list, start=1):
@@ -194,7 +195,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
             elif qtype == "FILLINTHEBLANKS":
                 blanks = q.get("blanks", 1)
                 for _ in range(blanks):
-                    story.append(Paragraph("__________", opt_style))
+                    story.append(Paragraph("____", opt_style))
 
             # Diagram/Map placeholder
             elif qtype in ("DIAGRAM", "MAP"):
@@ -220,7 +221,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     # -------------------
     def _footer(canvas, doc):
         canvas.saveState()
-        footer_text = f"Page {canvas.getPageNumber()}    Kerala SCERT"
+        footer_text = f"Page {canvas.getPageNumber()}"
         canvas.setFont("Helvetica", 9)
         canvas.drawRightString(A4[0] - 36, 18, footer_text)
         canvas.restoreState()
@@ -234,7 +235,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
 # -------------------
 # EXAMPLE USAGE
 # -------------------
-if __name__ == "__main__":
+if __name__ == "_main_":
     example_file = "paper.json"   # replace with your actual file path
     output_pdf = "Class10_Biology_Paper_Professional.pdf"
     with open(example_file, "r", encoding="utf-8") as f:

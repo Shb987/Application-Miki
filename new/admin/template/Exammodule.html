@@ -390,7 +390,7 @@
 
           <div class="card mt-4">
               <div class="card-header">
-                  <h5 class="mb-0">Upload Syllabus</h5>
+                  <h5 class="mb-0">Upload Textbook</h5>
               </div>
 
               <div class="card-body">
@@ -398,11 +398,11 @@
                   <!-- STATUS BOX -->
                   <div id="status"></div>
 
-                  <form id="syllabusForm" enctype="multipart/form-data">
+                  <form id="textbookForm" enctype="multipart/form-data">
 
-                      <!-- Syllabus Board -->
+                      <!-- Textbook Board -->
                       <div class="mb-3">
-                          <label class="form-label">Syllabus Board</label>
+                          <label class="form-label">Textbook Board</label>
                           <select class="form-select" id="board" required>
                               <option value="">-- Select Board --</option>
                               <option value="CBSE">CBSE</option>
@@ -455,7 +455,7 @@
 
                       <!-- PDF File Upload -->
                       <div class="mb-3">
-                          <label class="form-label">Upload Syllabus PDF</label>
+                          <label class="form-label">Upload Textbook PDF</label>
                           <input type="file" class="form-control" id="pdf" accept="application/pdf" required>
                       </div>
 
@@ -466,7 +466,7 @@
                       </div>
 
                       <button type="submit" class="btn btn-primary w-100">
-                          Upload Syllabus
+                          Upload Textbook
                       </button>
 
                   </form>
@@ -529,7 +529,7 @@
     <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-        const form = document.getElementById("syllabusForm");
+        const form = document.getElementById("textbookForm");
         const statusBox = document.getElementById("status");
 
         let pollInterval;
@@ -538,19 +538,19 @@
             e.preventDefault();
 
             statusBox.innerHTML = `
-                <div class="alert alert-info">Uploading syllabus… Please wait.</div>
+                <div class="alert alert-info">Uploading textbook… Please wait.</div>
             `;
 
             const fd = new FormData();
-            fd.append("syllabus_board", document.getElementById("board").value);
+            fd.append("textbook_board", document.getElementById("board").value);
             fd.append("standard", document.getElementById("standard").value);
             fd.append("state", document.getElementById("state").value);
             fd.append("subject", document.getElementById("subject").value);
             fd.append("count", document.getElementById("count").value);
-            fd.append("syllabus_pdf", document.getElementById("pdf").files[0]);
+            fd.append("textbook_pdf", document.getElementById("pdf").files[0]);
 
             try {
-                const response = await fetch("/admin-panel/upload-syllabus", {
+                const response = await fetch("/admin-panel/upload-textbook", {
                     method: "POST",
                     body: fd
                 });
@@ -558,23 +558,23 @@
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.detail);
 
-                const syllabusId = result.syllabus_id;
+                const textbookId = result.textbook_id;
 
                 statusBox.innerHTML = `
                     <div class="alert alert-success">
-                        <strong>Syllabus uploaded successfully!</strong><br>
+                        <strong>Textbook uploaded successfully!</strong><br>
                         Processing started in background.<br>
-                        ID: <b>${syllabusId}</b>
+                        ID: <b>${textbookId}</b>
                     </div>
                 `;
 
                 // 🔥 Trigger processing endpoint
-                await fetch(`/admin-panel/process-syllabus/${syllabusId}`, {
+                await fetch(`/admin-panel/process-textbook/${textbookId}`, {
                     method: "POST"
                 });
 
                 // 📢 Start polling status
-                pollInterval = setInterval(() => pollStatus(syllabusId), 2000);
+                pollInterval = setInterval(() => pollStatus(textbookId), 2000);
 
             } catch (error) {
                 statusBox.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
@@ -582,7 +582,7 @@
         });
 
         async function pollStatus(id) {
-            const res = await fetch(`/admin-panel/syllabus/status/${id}`);
+            const res = await fetch(`/admin-panel/textbook/status/${id}`);
             const data = await res.json();
 
             statusBox.innerHTML = `

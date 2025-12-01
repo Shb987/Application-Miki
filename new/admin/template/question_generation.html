@@ -432,7 +432,7 @@
                     </div>
                 </div>
 
-                <div id="jobStatus"></div>
+                <div id="taskStatus"></div>
 
                 <hr>
                 <h5>Recently Generated Papers</h5>
@@ -500,10 +500,10 @@
         const generateBtn = document.getElementById("generateBtn");
         const papersInput = document.getElementById("count");
         const marksSel = document.getElementById("marks");
-        const jobStatusDiv = document.getElementById("jobStatus");
+        const taskStatusDiv = document.getElementById("taskStatus");
         const recentPapersDiv = document.getElementById("recentPapers");
 
-        let currentJobPoll = null;
+        let currentTaskPoll = null;
 
         // ===== corrected markOptions =====
         const markOptions = {
@@ -533,7 +533,7 @@
 
         // Show progress bar + message
         function showProgress(status, pct) {
-            jobStatusDiv.innerHTML = `
+            taskStatusDiv.innerHTML = `
             <div class="mb-2">
                 <div class="d-flex justify-content-between">
                 <div><strong>Status:</strong> ${escapeHtml(status)}</div>
@@ -548,7 +548,7 @@
         }
 
         function showMessage(html) {
-            jobStatusDiv.innerHTML = html;
+            taskStatusDiv.innerHTML = html;
         }
 
         // Escape helper (simple)
@@ -690,37 +690,37 @@
         }
 
         // Poll job status
-        function startJobPoll(jobId) {
-            if (currentJobPoll) clearInterval(currentJobPoll);
-            currentJobPoll = setInterval(async () => {
+        function startTaskPoll(taskId) {
+            if (currentTaskPoll) clearInterval(currentTaskPoll);
+            currentTaskPoll = setInterval(async () => {
                 try {
-                    const res = await fetch(`/admin-panel/question-job-status/${jobId}`);
-                    if (!res.ok) throw new Error("Failed to poll job");
+                    const res = await fetch(`/admin-panel/question-task-status/${taskId}`);
+                    if (!res.ok) throw new Error("Failed to poll task");
                     const data = await res.json();
                     showProgress(data.status || "running", data.progress || 0);
                     if (data.status === "completed") {
-                        clearInterval(currentJobPoll);
-                        currentJobPoll = null;
-                        showMessage(`<div class="alert alert-success">🎉 Job completed. Loading papers…</div>`);
-                        await loadGeneratedPapers(jobId);
+                        clearInterval(currentTaskPoll);
+                        currentTaskPoll = null;
+                        showMessage(`<div class="alert alert-success">🎉 Task completed. Loading papers…</div>`);
+                        await loadGeneratedPapers(taskId);
                         setUIEnabled(true);
                     } else if (data.status === "error" || data.status === "failed") {
-                        clearInterval(currentJobPoll);
-                        currentJobPoll = null;
-                        showMessage(`<div class="alert alert-danger">Job error: ${escapeHtml(data.message || "Unknown")}</div>`);
+                        clearInterval(currentTaskPoll);
+                        currentTaskPoll = null;
+                        showMessage(`<div class="alert alert-danger">Task error: ${escapeHtml(data.message || "Unknown")}</div>`);
                         setUIEnabled(true);
                     }
                 } catch (err) {
-                    clearInterval(currentJobPoll);
-                    currentJobPoll = null;
+                    clearInterval(currentTaskPoll);
+                    currentTaskPoll = null;
                     showMessage(`<div class="alert alert-danger">Polling failed: ${escapeHtml(err.message)}</div>`);
                     setUIEnabled(true);
                 }
             }, 2000);
         }
-        async function loadGeneratedPapers(jobId) {
+        async function loadGeneratedPapers(taskId) {
             try {
-                const res = await fetch(`/admin-panel/generated-papers?job_id=${encodeURIComponent(jobId)}`);
+                const res = await fetch(`/admin-panel/generated-papers?task_id=${encodeURIComponent(taskId)}`);
                 if (!res.ok) throw new Error("Failed to load generated papers");
 
                 const arr = await res.json();
@@ -783,12 +783,12 @@
                     body: JSON.stringify(payload)
                 });
                 const j = await res.json();
-                if (!res.ok) throw new Error(j.detail || "Failed to start generation job");
-                const jobId = j.job_id;
+                if (!res.ok) throw new Error(j.detail || "Failed to start generation task");
+                const taskId = j.task_id;
                 showProgress("running", 2);
-                startJobPoll(jobId);
+                startTaskPoll(taskId);
             } catch (err) {
-                showMessage(`<div class="alert alert-danger">Failed to start job: ${escapeHtml(err.message)}</div>`);
+                showMessage(`<div class="alert alert-danger">Failed to start task: ${escapeHtml(err.message)}</div>`);
                 setUIEnabled(true);
             }
         });

@@ -26,7 +26,7 @@ print("OpenAI Client Initialized Successfully!")
 
 router = APIRouter(tags=["Exam Module"])
 
-UPLOAD_DIR = "Exams/syllabus"
+UPLOAD_DIR = "Exams/textbook"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 GENERATED_PDF_DIR = "Exams/generated_papers"
@@ -46,8 +46,8 @@ EXAM_STRUCTURES = {
     4: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (3, 2)}),
     5: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "PictureBased"], {"A": (1, 15), "B": (2, 5), "C": (4, 2)}),
     6: (["MCQ", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (4, 2)}),
-    7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
-    8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 2)}),
+    7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 9), "C": (3, 4), "D": (5, 2)}),
+    8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 9), "C": (3, 4), "D": (5, 2)}),
 }
 
 HIGH_SCHOOL = {
@@ -101,23 +101,23 @@ async def generated_question_page(request: Request):
 # ROUTES - SYLLABUS
 # --------------------------
 
-@router.post("/upload-syllabus")
-async def upload_syllabus(
-    syllabus_board: str = Form(...),
+@router.post("/upload-textbook")
+async def upload_textbook(
+    textbook_board: str = Form(...),
     standard: str = Form(...),
     state: str = Form(...),
     subject: str = Form(...),
     count: int = Form(...),
-    syllabus_pdf: UploadFile = File(...)
+    textbook_pdf: UploadFile = File(...)
 ):
-    if syllabus_pdf.content_type != "application/pdf":
+    if textbook_pdf.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF allowed")
 
     file_id = str(uuid.uuid4())
     filename = f"{file_id}.pdf"
     file_path = os.path.join(UPLOAD_DIR, filename)
     with open(file_path, "wb") as f:
-        f.write(await syllabus_pdf.read())
+        f.write(await textbook_pdf.read())
 
     text_content = ""
     try:
@@ -128,7 +128,7 @@ async def upload_syllabus(
         text_content = ""
 
     data = {
-        "board": syllabus_board,
+        "board": textbook_board,
         "standard": standard,
         "state": state,
         "subject": subject,
@@ -141,21 +141,21 @@ async def upload_syllabus(
         "created_at": datetime.utcnow()
     }
 
-    result = await db.syllabus.insert_one(data)
-    return {"status": "uploaded", "syllabus_id": str(result.inserted_id)}
+    result = await db.textbook.insert_one(data)
+    return {"status": "uploaded", "textbook_id": str(result.inserted_id)}
 
-@router.post("/process-syllabus/{syllabus_id}")
-async def process_syllabus_trigger(syllabus_id: str):
-    syllabus = await db.syllabus.find_one({"_id": ObjectId(syllabus_id)})
-    if not syllabus:
-        raise HTTPException(status_code=404, detail="Syllabus not found")
+@router.post("/process-textbook/{textbook_id}")
+async def process_textbook_trigger(textbook_id: str):
+    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
+    if not textbook:
+        raise HTTPException(status_code=404, detail="Textbook not found")
 
-    asyncio.create_task(process_syllabus_worker(syllabus_id))
-    return {"status": "started", "message": "Processing started in background", "syllabus_id": syllabus_id}
+    asyncio.create_task(process_textbook_worker(textbook_id))
+    return {"status": "started", "message": "Processing started in background", "textbook_id": textbook_id}
 
-@router.get("/syllabus/status/{syllabus_id}")
-async def syllabus_status(syllabus_id: str):
-    data = await db.syllabus.find_one({"_id": ObjectId(syllabus_id)})
+@router.get("/textbook/status/{textbook_id}")
+async def textbook_status(textbook_id: str):
+    data = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
     if not data:
         raise HTTPException(status_code=404, detail="Invalid ID")
     data["_id"] = str(data["_id"])
@@ -165,18 +165,18 @@ async def syllabus_status(syllabus_id: str):
 # BACKGROUND WORKERS
 # --------------------------
 
-async def process_syllabus_worker(syllabus_id: str):
-    await db.syllabus.update_one(
-        {"_id": ObjectId(syllabus_id)},
+async def process_textbook_worker(textbook_id: str):
+    await db.textbook.update_one(
+        {"_id": ObjectId(textbook_id)},
         {"$set": {"status": "extracting", "progress": 10}}
     )
 
-    syllabus = await db.syllabus.find_one({"_id": ObjectId(syllabus_id)})
-    text = syllabus.get("text_content", "")
+    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
+    text = textbook.get("text_content", "")
 
     prompt = f"""
-You are an expert syllabus analyzer for Kerala SCERT textbooks.
-Your job is to extract accurate chapter titles and content from the provided syllabus text.
+You are an expert textbook analyzer for Kerala SCERT textbooks.
+Your task is to extract accurate chapter titles and content from the provided textbook text.
 
 Return STRICT VALID JSON ONLY in this format:
 [
@@ -199,35 +199,35 @@ Text to analyze:
         cleaned = raw.replace("```json", "").replace("```", "").strip()
         chapters = json.loads(cleaned)
         chapter_titles = [c["chapter"].strip() for c in chapters]
-        await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"chapters": chapter_titles}})
+        await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"chapters": chapter_titles}})
     except Exception:
-        await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"status": "failed", "progress": 0}})
+        await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"status": "failed", "progress": 0}})
         return
 
-    await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"status": "embedding", "progress": 40}})
+    await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"status": "embedding", "progress": 40}})
 
     for idx, ch in enumerate(chapters):
         try:
             emb = client.embeddings.create(model="text-embedding-3-large", input=ch["content"])
             vector = emb.data[0].embedding
             chapter_doc = {
-                "syllabus_id": syllabus_id,
-                "board": syllabus["board"],
-                "standard": syllabus["standard"],
-                "state": syllabus["state"],
-                "subject": syllabus["subject"],
+                "textbook_id": textbook_id,
+                "board": textbook["board"],
+                "standard": textbook["standard"],
+                "state": textbook["state"],
+                "subject": textbook["subject"],
                 "chapter_title": ch["chapter"].strip(),
                 "content": ch["content"].strip(),
                 "vector": vector,
                 "created_at": datetime.utcnow(),
             }
-            await db.syllabus_chapters.insert_one(chapter_doc)
+            await db.textbook_chapters.insert_one(chapter_doc)
             progress = 40 + int((idx + 1) / len(chapters) * 55)
-            await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"progress": progress}})
+            await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"progress": progress}})
         except:
             pass
 
-    await db.syllabus.update_one({"_id": ObjectId(syllabus_id)}, {"$set": {"status": "completed", "processed": True, "progress": 100}})
+    await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"status": "completed", "processed": True, "progress": 100}})
 
 # --------------------------
 # ROUTES - STANDARDS / SUBJECTS / CHAPTERS
@@ -235,7 +235,7 @@ Text to analyze:
 
 @router.get("/standards")
 async def get_standards():
-    standards = await db.syllabus.distinct("standard")
+    standards = await db.textbook.distinct("standard")
     try:
         standards_sorted = sorted(standards, key=lambda x: int(x))
     except:
@@ -244,13 +244,13 @@ async def get_standards():
 
 @router.get("/subjects/{standard}")
 async def get_subjects(standard: str):
-    subjects = await db.syllabus.distinct("subject", {"standard": standard})
+    subjects = await db.textbook.distinct("subject", {"standard": standard})
     subjects = sorted([s for s in subjects if s])
     return {"subjects": subjects}
 
 @router.get("/chapters/{standard}/{subject}")
 async def get_chapters(standard: str, subject: str):
-    docs = await db.syllabus.find({"standard": standard, "subject": subject, "processed": True}).to_list(None)
+    docs = await db.textbook.find({"standard": standard, "subject": subject, "processed": True}).to_list(None)
     chapter_set = []
     for d in docs:
         chs = d.get("chapters")
@@ -259,7 +259,7 @@ async def get_chapters(standard: str, subject: str):
                 if c and c not in chapter_set:
                     chapter_set.append(c)
     if not chapter_set:
-        ch_docs = await db.syllabus_chapters.find({"standard": standard, "subject": subject}).to_list(None)
+        ch_docs = await db.textbook_chapters.find({"standard": standard, "subject": subject}).to_list(None)
         for cd in ch_docs:
             title = cd.get("chapter_title")
             if title and title not in chapter_set:
@@ -281,9 +281,9 @@ async def generate_questions_trigger(payload: dict = Body(...)):
     if not standard or not subject or not chapters:
         raise HTTPException(status_code=400, detail="standard, subject and chapters are required")
 
-    job_id = str(uuid.uuid4())
-    job_doc = {
-        "job_id": job_id,
+    task_id = str(uuid.uuid4())
+    task_doc = {
+        "task_id": task_id,
         "standard": standard,
         "subject": subject,
         "chapters": chapters,
@@ -293,30 +293,30 @@ async def generate_questions_trigger(payload: dict = Body(...)):
         "progress": 0,
         "created_at": datetime.utcnow()
     }
-    await db.question_jobs.insert_one(job_doc)
+    await db.question_tasks.insert_one(task_doc)
 
-    asyncio.create_task(generate_questions_worker(job_id))
-    return {"status": "started", "job_id": job_id}
+    asyncio.create_task(generate_questions_worker(task_id))
+    return {"status": "started", "task_id": task_id}
 
 
 GENERATED_PDF_DIR = "Exams/generated_papers"
 os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
 
-async def generate_questions_worker(job_id: str):
-    job = await db.question_jobs.find_one({"job_id": job_id})
-    if not job:
+async def generate_questions_worker(task_id: str):
+    task = await db.question_tasks.find_one({"task_id": task_id})
+    if not task:
         return
 
-    await db.question_jobs.update_one(
-        {"job_id": job_id},
+    await db.question_tasks.update_one(
+        {"task_id": task_id},
         {"$set": {"status": "running", "progress": 5}}
     )
 
-    std = int(job["standard"])
-    total_marks = int(job["marks"])
-    chapters = job["chapters"]
-    subject = job["subject"]
-    papers = job["papers"]
+    std = int(task["standard"])
+    total_marks = int(task["marks"])
+    chapters = task["chapters"]
+    subject = task["subject"]
+    papers = task["papers"]
 
     allowed_types, sections = get_exam_structure(std, total_marks)
     generated_ids = []
@@ -343,7 +343,7 @@ Follow EXACT question counts specified below:
 Respond with valid JSON only. No text outside JSON.
 
 {{
-  "paper_id": "{job_id}-{p+1}",
+  "paper_id": "{task_id}-{p+1}",
   "standard": "{std}",
   "subject": "{subject}",
   "chapters_used": {json.dumps(chapters)},
@@ -367,11 +367,11 @@ Respond with valid JSON only. No text outside JSON.
         try:
             paper_json = json.loads(cleaned)
         except Exception:
-            paper_json = {"paper_id": f"{job_id}-{p+1}", "sections": []}
+            paper_json = {"paper_id": f"{task_id}-{p+1}", "sections": []}
 
         # Insert JSON into DB
         result = await db.generated_papers.insert_one({
-            "job_id": job_id,
+            "task_id": task_id,
             "paper_index": p + 1,
             "paper": paper_json,
             "created_at": datetime.utcnow(),
@@ -391,14 +391,14 @@ Respond with valid JSON only. No text outside JSON.
             print(f"Failed to generate PDF for paper {paper_json.get('paper_id')}: {e}")
 
         # Update progress
-        await db.question_jobs.update_one(
-            {"job_id": job_id},
+        await db.question_tasks.update_one(
+            {"task_id": task_id},
             {"$set": {"progress": int((p + 1) / papers * 100)}}
         )
 
     # Mark job completed
-    await db.question_jobs.update_one(
-        {"job_id": job_id},
+    await db.question_tasks.update_one(
+        {"task_id": task_id},
         {"$set": {"status": "completed", "generated": generated_ids}}
     )
 
@@ -406,23 +406,23 @@ Respond with valid JSON only. No text outside JSON.
 # ROUTES - JOB STATUS / GENERATED PAPERS
 # --------------------------
 
-@router.get("/question-job-status/{job_id}")
-async def question_job_status(job_id: str):
-    job = await db.question_jobs.find_one({"job_id": job_id})
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+@router.get("/question-task-status/{task_id}")
+async def question_task_status(task_id: str):
+    task = await db.question_tasks.find_one({"task_id": task_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
     return {
-        "job_id": job_id,
-        "status": job.get("status", "unknown"),
-        "progress": job.get("progress", 0),
-        "message": job.get("message", "")
+        "task_id": task_id,
+        "status": task.get("status", "unknown"),
+        "progress": task.get("progress", 0),
+        "message": task.get("message", "")
     }
 
 @router.get("/generated-papers")
-async def get_generated_papers(job_id: Optional[str] = None):
+async def get_generated_papers(task_id: Optional[str] = None):
     q = {}
-    if job_id:
-        q["job_id"] = job_id
+    if task_id:
+        q["task_id"] = task_id
     docs = await db.generated_papers.find(q).to_list(None)
     for d in docs:
         d["_id"] = str(d["_id"])
@@ -461,3 +461,4 @@ async def get_generated_papers_filtered(standard: str, subject: str):
             d["pdf_url"] = f"/static/generated_papers/{filename}"
 
     return docs
+

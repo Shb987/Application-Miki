@@ -22,18 +22,23 @@ from core.database import db
 
 router = APIRouter()
 
+from typing import List
+
 # -------------------------------
-# 1. OCR (PLACEHOLDER FOR NOW)
+# 1. OCR (UPDATED FOR IMAGES)
 # -------------------------------
-async def extract_text_from_pdf_with_openai(pdf_file_path):
-    doc = fitz.open(pdf_file_path)
+async def extract_text_from_images(image_paths):
     full_text = ""
-
-    for page_num in range(len(doc)):
-        page = doc.load_page(page_num)
-
-        full_text += f"\n--- Page {page_num+1} ---\n"
-        full_text += "[Extracted text placeholder]\n"
+    
+    # Placeholder: In a real scenario, you'd use OpenAI Vision or an OCR tool here.
+    # For now, we'll just iterate and append a placeholder.
+    for i, img_path in enumerate(image_paths):
+        full_text += f"\n--- Image {i+1} ---\n"
+        # TODO: Implement actual OCR here. 
+        # Example: 
+        # with open(img_path, "rb") as image_file:
+        #     response = client.chat.completions.create(...)
+        full_text += "[Extracted text placeholder from image]\n"
 
     return full_text
 
@@ -123,17 +128,22 @@ def serialize_mongo(document):
 async def evaluate_answersheet(
     student_id: str = Form(...),
     paper_id: str = Form(...),
-    answersheet: UploadFile = File(...)
+    files: List[UploadFile] = File(...)
 ):
 
-    # Save file
-    temp_path = f"temp/{uuid.uuid4()}.pdf"
+    # Save files
+    saved_file_paths = []
     os.makedirs("temp", exist_ok=True)
-    with open(temp_path, "wb") as f:
-        f.write(await answersheet.read())
+    
+    for file in files:
+        file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        temp_path = f"temp/{uuid.uuid4()}.{file_ext}"
+        with open(temp_path, "wb") as f:
+            f.write(await file.read())
+        saved_file_paths.append(temp_path)
 
     # OCR extraction
-    raw_text = await extract_text_from_pdf_with_openai(temp_path)
+    raw_text = await extract_text_from_images(saved_file_paths)
 
     # Split answers
     student_answers = split_answers(raw_text)

@@ -67,66 +67,71 @@ async def get_subjects_and_chapters(standard: str):
         "subjects": result
     }
 
-# @router.get("/get-question-paper/{standard}/{subject}/{chapter}/{marks}")
-# async def get_generated_question_paper(
-#     standard: str, 
-#     subject: str, 
-#     chapter: str, 
-#     marks: int
-# ):
 
-#     # Step 1: Find the task from question_tasks collection based on filters
-#     task_doc = await db.question_tasks.find_one({
-#         "standard": standard,
-#         "subject": subject,
-#         "chapters": {"$in": [chapter]},
-#         "marks": marks
-#     })
+from typing import List
 
-#     if not task_doc:
-#         return {
-#             "status": False,
-#             "message": "No question task found for the given standard, subject, chapter and marks.",
-#             "data": None
-#         }
+@router.get("/get-question-paper/{standard}/{subject}/{marks}")
+async def get_generated_question_paper(
+    standard: str, 
+    subject: str, 
+    marks: int,
+    chapters: str   # <-- coming as comma separated string
+):
 
-#     task_id = task_doc.get("task_id")
+    # Convert comma-separated string to list
+    chapter_list = [c.strip() for c in chapters.split(",")]
 
-#     # Step 2: Using task_id, find the generated question paper
-#     paper_doc = await db.generated_papers.find_one({
-#         "task_id": task_id
-#     })
+    # Step 1: Find the task from question_jobs collection based on filters
+    task_doc = await db.question_jobs.find_one({
+        "standard": standard,
+        "subject": subject,
+        "chapters": {"$in": chapter_list},   # <-- supports single/multiple
+        "marks": marks
+    })
 
-#     if not paper_doc:
-#         return {
-#             "status": False,
-#             "message": "Generated question paper not found for the given task_id.",
-#             "data": None
-#         }
+    if not task_doc:
+        return {
+            "status": False,
+            "message": "No question task found for the given standard, subject, chapters and marks.",
+            "data": None
+        }
 
-#     # Extract the nested paper object
-#     paper = paper_doc.get("paper", {})
+    task_id = task_doc.get("task_id")
 
-#     # Step 3: Return combined response
-#     return {
-#         "status": True,
-#         "message": "Question paper retrieved successfully.",
-#         "data": {
-#             "task_id": task_id,
-#             "paper_id": paper.get("paper_id"),
-#             "standard": paper.get("standard"),
-#             "subject": paper.get("subject"),
-#             "chapters_used": paper.get("chapters_used"),
-#             "sections": paper.get("sections"),
-#             "marks": marks,  # Added marks here
+    # Step 2: Using task_id, find the generated question paper
+    paper_doc = await db.generated_papers.find_one({
+        "task_id": task_id
+    })
 
-#             # PDF path from top-level generated_papers
-#             "pdf_path": paper_doc.get("pdf_path"),
+    if not paper_doc:
+        return {
+            "status": False,
+            "message": "Generated question paper not found for the given task_id.",
+            "data": None
+        }
 
-#             # created_at from top-level
-#             "created_at": paper_doc.get("created_at")
-#         }
-#     }
+    # Extract the nested paper object
+    paper = paper_doc.get("paper", {})
+
+    # Step 3: Return combined response
+    return {
+        "status": True,
+        "message": "Question paper retrieved successfully.",
+        "data": {
+            "task_id": task_id,
+            "paper_id": paper.get("paper_id"),
+            "standard": paper.get("standard"),
+            "subject": paper.get("subject"),
+            "chapters_used": paper.get("chapters_used"),
+            "sections": paper.get("sections"),
+            "marks": marks,
+            "pdf_path": paper_doc.get("pdf_path"),
+            "created_at": paper_doc.get("created_at")
+        }
+    }
+
+
+
 from fastapi import APIRouter, Query
 from typing import List
 
@@ -182,62 +187,62 @@ from typing import List
 #             "created_at": paper_doc.get("created_at")
 #         }
 #     }
-from models.paper_models import QuestionPaperRequest
-@router.post("/get-question-paper/{standard}/{subject}/{marks}")
-async def get_generated_question_paper(
-    standard: str,
-    subject: str,
-    marks: int,
-    body: QuestionPaperRequest
-):
+# from models.paper_models import QuestionPaperRequest
+# @router.post("/get-question-paper/{standard}/{subject}/{marks}")
+# async def get_generated_question_paper(
+#     standard: str,
+#     subject: str,
+#     marks: int,
+#     body: QuestionPaperRequest
+# ):
 
-    chapters = body.chapters  # Get chapters list from the body
+#     chapters = body.chapters  # Get chapters list from the body
 
-    # Step 1: Find the task based on standard, subject, selected chapters, and marks
-    task_doc = await db.question_tasks.find_one({
-        "standard": standard,
-        "subject": subject,
-        "chapters": {"$all": chapters},
-        "marks": marks
-    })
+#     # Step 1: Find the task based on standard, subject, selected chapters, and marks
+#     task_doc = await db.question_tasks.find_one({
+#         "standard": standard,
+#         "subject": subject,
+#         "chapters": {"$all": chapters},
+#         "marks": marks
+#     })
 
-    if not task_doc:
-        return {
-            "status": False,
-            "message": "No question task found for the given standard, subject, chapters and marks.",
-            "data": None
-        }
+#     if not task_doc:
+#         return {
+#             "status": False,
+#             "message": "No question task found for the given standard, subject, chapters and marks.",
+#             "data": None
+#         }
 
-    task_id = task_doc.get("task_id")
+#     task_id = task_doc.get("task_id")
 
-    # Step 2: Get the generated question paper
-    paper_doc = await db.generated_papers.find_one({"task_id": task_id})
+#     # Step 2: Get the generated question paper
+#     paper_doc = await db.generated_papers.find_one({"task_id": task_id})
 
-    if not paper_doc:
-        return {
-            "status": False,
-            "message": "Generated question paper not found for the given task_id.",
-            "data": None
-        }
+#     if not paper_doc:
+#         return {
+#             "status": False,
+#             "message": "Generated question paper not found for the given task_id.",
+#             "data": None
+#         }
 
-    paper = paper_doc.get("paper", {})
+#     paper = paper_doc.get("paper", {})
 
-    # Step 3: Return response
-    return {
-        "status": True,
-        "message": "Question paper retrieved successfully.",
-        "data": {
-            "task_id": task_id,
-            "paper_id": paper.get("paper_id"),
-            "standard": paper.get("standard"),
-            "subject": paper.get("subject"),
-            "chapters_used": paper.get("chapters_used"),
-            "sections": paper.get("sections"),
-            "marks": marks,
-            "pdf_path": paper_doc.get("pdf_path"),
-            "created_at": paper_doc.get("created_at")
-        }
-    }
+#     # Step 3: Return response
+#     return {
+#         "status": True,
+#         "message": "Question paper retrieved successfully.",
+#         "data": {
+#             "task_id": task_id,
+#             "paper_id": paper.get("paper_id"),
+#             "standard": paper.get("standard"),
+#             "subject": paper.get("subject"),
+#             "chapters_used": paper.get("chapters_used"),
+#             "sections": paper.get("sections"),
+#             "marks": marks,
+#             "pdf_path": paper_doc.get("pdf_path"),
+#             "created_at": paper_doc.get("created_at")
+#         }
+#     }
 
 
 

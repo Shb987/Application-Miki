@@ -2,15 +2,13 @@ import uuid
 import os
 import re
 import datetime
+import base64
 from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from openai import OpenAI
-import fitz
-from PIL import Image
-import io
 import json
-from bson import ObjectId  # FIX
+from bson import ObjectId
 
 # Load environment variables
 load_dotenv()
@@ -25,53 +23,84 @@ router = APIRouter()
 from typing import List
 
 # -------------------------------
-# 1. OCR (UPDATED FOR IMAGES)
+# 1. OCR WITH GPT-4o VISION
 # -------------------------------
-async def extract_text_from_images(image_paths):
-    full_text = ""
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
+
+async def extract_answers_with_vision(image_paths, question_paper_text):
+    """
+    Sends images to GPT-4o to extract handwritten answers directly into JSON.
+    """
     
-    # Placeholder: In a real scenario, you'd use OpenAI Vision or an OCR tool here.
-    # For now, we'll just iterate and append a placeholder.
-    for i, img_path in enumerate(image_paths):
-        full_text += f"\n--- Image {i+1} ---\n"
-        # TODO: Implement actual OCR here. 
-        # Example: 
-        # with open(img_path, "rb") as image_file:
-        #     response = client.chat.completions.create(...)
-        full_text += "[Extracted text placeholder from image]\n"
+    content_payload = [
+        {
+            "type": "text", 
+            "text": f"""
+            You are an expert OCR assistant for handwritten exam papers.
+            
+            ### EXAM QUESTIONS (CONTEXT) ###
+            {question_paper_text}
+            ### END QUESTIONS ###
 
-    return full_text
+            TASK:
+            1. Read the handwritten answers from the provided images.
+            2. Match each answer to the correct Question Number from the "EXAM QUESTIONS" list above based on the content.
+               - IGNORE the student's handwritten numbering if it conflicts with the content of the answer.
+               - Use the content to determine which question is being answered.
+            3. Extract the full text of the answer.
+            
+            OUTPUT FORMAT:
+            Return a STRICT JSON object where keys are Question Numbers (as integers) and values are the Answer Text.
+            
+            Example:
+            {{
+                "1": "The cell is the basic unit of life...",
+                "2": "Photosynthesis is the process..."
+            }}
+            
+            If you cannot read an answer, mark it as "[Unreadable]".
+            """
+        }
+    ]
 
+    for img_path in image_paths:
+        base64_image = encode_image(img_path)
+        content_payload.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{base64_image}",
+                "detail": "high"
+            }
+        })
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": content_payload}
+            ],
+            max_tokens=4000,
+            response_format={"type": "json_object"}
+        )
+        
+        result = response.choices[0].message.content
+        return json.loads(result)
+    except Exception as e:
+        print(f"OCR Failed: {e}")
+        return {}
 
 # --------------------------------
-# 2. SPLIT ANSWERS FROM OCR TEXT
+# 2. EVALUATE ONE QUESTION (RAG)
 # --------------------------------
-def split_answers(raw_text):
-    pattern = r"(\d+)\.|\bQ(\d+)"
-    parts = re.split(pattern, raw_text)
-
-    answers = {}
-    q_number = None
-
-    for item in parts:
-        if item is None:
-            continue
-        if item.strip().isdigit():
-            q_number = int(item.strip())
-        else:
-            if q_number:
-                answers[q_number] = item.strip()
-                q_number = None
-
-    return answers
-
-
-# --------------------------------
-# 3. EVALUATE ONE QUESTION
-# --------------------------------
-def evaluate_answer(question, student_answer, max_marks):
+def evaluate_answer(question, student_answer, max_marks, context_text):
     prompt = f"""
-You are an expert evaluator.
+You are an expert academic evaluator.
+
+### REFERENCE MATERIAL (TEXTBOOK CONTENT) ###
+{context_text}
+### END REFERENCE ###
 
 QUESTION:
 {question}
@@ -81,33 +110,40 @@ STUDENT ANSWER:
 
 MAX MARKS: {max_marks}
 
+TASK:
+Evaluate the student's answer based STRICTLY on the provided REFERENCE MATERIAL.
+- If the answer is correct according to the text, award full marks.
+- If partially correct, award partial marks.
+- If the answer contradicts the text, award 0.
+
 Return JSON only:
 {{
-  "score": "...",
-  "feedback": "...",
-  "ideal_answer": "..."
+  "score": "number (e.g. 2, 0.5, 5)",
+  "feedback": "Brief feedback explaining the score",
+  "ideal_answer": "The correct answer based on the reference text"
 }}
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    message = response.choices[0].message.content
-
     try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+
+        message = response.choices[0].message.content
         return json.loads(message)
     except:
         return {
             "score": 0,
-            "feedback": "AI response could not be parsed.",
+            "feedback": "AI evaluation failed.",
             "ideal_answer": ""
         }
 
 
 # ------------------------------
-# 4. FIX ObjectId Serializer
+# 3. UTILS
 # ------------------------------
 def serialize_mongo(document):
     """Convert ObjectId → str recursively"""
@@ -122,7 +158,7 @@ def serialize_mongo(document):
 
 
 # ------------------------------
-# 5. MAIN API
+# 4. MAIN API
 # ------------------------------
 @router.post("/evaluate-answersheet")
 async def evaluate_answersheet(
@@ -131,7 +167,7 @@ async def evaluate_answersheet(
     files: List[UploadFile] = File(...)
 ):
 
-    # Save files
+    # 1. Save files locally
     saved_file_paths = []
     os.makedirs("temp", exist_ok=True)
     
@@ -142,42 +178,77 @@ async def evaluate_answersheet(
             f.write(await file.read())
         saved_file_paths.append(temp_path)
 
-    # OCR extraction
-    raw_text = await extract_text_from_images(saved_file_paths)
-
-    # Split answers
-    student_answers = split_answers(raw_text)
-
-    # Find question paper
+    # 2. Find question paper (MOVED UP)
     paper_doc = await db.generated_papers.find_one({"paper.paper_id": paper_id})
     if not paper_doc:
         return JSONResponse({"status": False, "message": "Question paper not found."})
 
     paper = paper_doc["paper"]
+    standard = paper.get("standard")
+    subject = paper.get("subject")
+    chapters_used = paper.get("chapters_used", [])
+
+    # Construct Question Paper Text for Context
+    question_paper_text = ""
+    q_counter = 1
+    for section in paper["sections"]:
+        for q in section["questions"]:
+            question_paper_text += f"{q_counter}. {q['question']}\n"
+            q_counter += 1
+
+    # 3. OCR extraction (Vision) - Now with Context
+    student_answers_json = await extract_answers_with_vision(saved_file_paths, question_paper_text)
+    
+    # Normalize keys to strings for easy lookup
+    student_answers = {str(k): v for k, v in student_answers_json.items()}
+
+    # 4. RAG: Fetch Textbook Content
+    chapter_docs = await db.textbook_chapters.find({
+        "standard": str(standard),
+        "subject": subject,
+        "chapter_title": {"$in": chapters_used}
+    }).to_list(None)
+
+    context_text = ""
+    for doc in chapter_docs:
+        # Limit context to avoid overflow (approx 50k chars total context)
+        content_snippet = doc.get("content", "")[:50000]
+        context_text += f"\n=== CHAPTER: {doc.get('chapter_title')} ===\n{content_snippet}\n"
+    
+    if not context_text:
+        context_text = "No specific textbook content found. Evaluate based on general academic knowledge."
 
     total_score = 0
     max_total = 0
     detailed_results = []
     q_number = 1
 
-    # Evaluate all sections & questions
+    # 5. Evaluate all sections & questions
     for section in paper["sections"]:
         marks_per_q = section["marks_per_question"]
 
         for q in section["questions"]:
             question_text = q["question"]
-            student_ans = student_answers.get(q_number, "")
+            
+            # Try to find answer by Question Number
+            student_ans = student_answers.get(str(q_number))
+            
+            # If not found, try finding by text match (fallback) or just mark as not attempted
+            if not student_ans:
+                student_ans = "[Not Attempted / Not Detected]"
 
-            eval_result = evaluate_answer(question_text, student_ans, marks_per_q)
+            eval_result = evaluate_answer(question_text, student_ans, marks_per_q, context_text)
 
+            # Parse score safely
             score_raw = str(eval_result.get("score", "0"))
-            if "/" in score_raw:
-                score = int(score_raw.split("/")[0])
-            else:
-                try:
-                    score = int(score_raw)
-                except:
-                    score = 0
+            try:
+                # Handle cases like "2/5" or "2.5"
+                if "/" in score_raw:
+                    score = float(score_raw.split("/")[0])
+                else:
+                    score = float(score_raw)
+            except:
+                score = 0
 
             total_score += score
             max_total += marks_per_q
@@ -204,8 +275,15 @@ async def evaluate_answersheet(
         "created_at": datetime.datetime.utcnow().isoformat()
     }
 
-    # Save to DB
+    # 6. Save to DB
     await db.evaluations.insert_one(evaluation_data)
+
+    # 7. Cleanup Temp Files
+    for path in saved_file_paths:
+        try:
+            os.remove(path)
+        except:
+            pass
 
     # Serialize to remove ObjectId
     safe_data = serialize_mongo(evaluation_data)
@@ -215,3 +293,5 @@ async def evaluate_answersheet(
         "message": "Evaluation completed successfully.",
         "data": safe_data
     })
+
+

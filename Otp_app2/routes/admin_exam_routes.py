@@ -178,6 +178,16 @@ async def process_textbook_worker(textbook_id: str):
 You are an expert textbook analyzer for Kerala SCERT textbooks.
 Your task is to extract accurate chapter titles and content from the provided textbook text.
 
+IMPORTANT:
+- IGNORE front matter and back matter such as:
+  - "The National Anthem"
+  - "Pledge"
+  - "Constitution of India"
+  - "Preface", "Foreword", "Teachers' Note"
+  - "Dear Students", "Instructions"
+- Extract ONLY the actual educational chapters (e.g., "Chapter 1: ...", "Unit 1: ...", "1. ...").
+- If a chapter has a number and a title, combine them (e.g., "Chapter 1: The Dawn of History").
+
 Return STRICT VALID JSON ONLY in this format:
 [
   {{
@@ -321,6 +331,24 @@ async def generate_questions_worker(task_id: str):
     allowed_types, sections = get_exam_structure(std, total_marks)
     generated_ids = []
 
+    # --- RAG: Fetch Chapter Content ---
+    # We query by standard (as string) because upload saves it as string
+    chapter_docs = await db.textbook_chapters.find({
+        "standard": str(std),
+        "subject": subject,
+        "chapter_title": {"$in": chapters}
+    }).to_list(None)
+
+    context_text = ""
+    for doc in chapter_docs:
+        # Limit content to avoid token overflow (approx 3000 words per chapter)
+        # UPDATED: Increased to 100,000 chars to cover full chapters
+        content_snippet = doc.get("content", "")[:100000]
+        context_text += f"\n=== CHAPTER: {doc.get('chapter_title')} ===\n{content_snippet}\n"
+
+    if not context_text:
+        context_text = "No specific textbook content found. Generate based on general knowledge of these chapters."
+
     for p in range(papers):
         section_text = "\n".join([f"Section {key}: {val[0]} mark questions × {val[1]}" for key, val in sections.items()])
 
@@ -333,9 +361,15 @@ Chapters: {', '.join(chapters)}
 
 Allowed Question Types: {allowed_types}
 
+### TEXTBOOK CONTENT (SOURCE MATERIAL) ###
+Use the following content to generate relevant questions. Do NOT ask questions outside this scope if possible.
+{context_text}
+### END CONTENT ###
+
 ### QUESTION STRUCTURE REQUIREMENTS ###
-Generate questions STRICTLY grouped by sections.
-Follow EXACT question counts specified below:
+1. Generate questions STRICTLY grouped by sections.
+2. Follow EXACT question counts specified below.
+3. **CRITICAL**: Ensure questions are distributed EVENLY across all provided chapters/topics. Do not focus only on the first few pages. Cover the entire provided content.
 
 {section_text}
 
@@ -417,6 +451,7 @@ async def question_task_status(task_id: str):
         "progress": task.get("progress", 0),
         "message": task.get("message", "")
     }
+    
 
 @router.get("/generated-papers")
 async def get_generated_papers(task_id: Optional[str] = None):

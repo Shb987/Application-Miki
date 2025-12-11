@@ -13,7 +13,10 @@ import json
 import os
 import asyncio
 from report.scert_pdf_professional import save_scert_question_paper
-
+from fastapi import APIRouter, Query
+from typing import List
+from fastapi.responses import FileResponse
+import os
 from core.database import db
 from openai import OpenAI
 
@@ -82,7 +85,7 @@ async def get_generated_question_paper(
     chapter_list = [c.strip() for c in chapters.split(",")]
 
     # Step 1: Find the task from question_jobs collection based on filters
-    task_doc = await db.question_jobs.find_one({
+    task_doc = await db.question_tasks.find_one({
         "standard": standard,
         "subject": subject,
         "chapters": {"$in": chapter_list},   # <-- supports single/multiple
@@ -131,123 +134,6 @@ async def get_generated_question_paper(
     }
 
 
-
-from fastapi import APIRouter, Query
-from typing import List
-
-# @router.get("/get-question-paper/{standard}/{subject}/{marks}")
-# async def get_generated_question_paper(
-#     standard: str,
-#     subject: str,
-#     marks: int,
-#     chapters: List[str] = Query(..., description="List of chapter names")
-# ):
-#     # Step 1: Find the task based on standard, subject, selected chapters, and marks
-#     task_doc = await db.question_tasks.find_one({
-#         "standard": standard,
-#         "subject": subject,
-#         "chapters": {"$all": chapters},  # Matches documents containing all selected chapters
-#         "marks": marks
-#     })
-
-#     if not task_doc:
-#         return {
-#             "status": False,
-#             "message": "No question task found for the given standard, subject, chapters and marks.",
-#             "data": None
-#         }
-
-#     task_id = task_doc.get("task_id")
-
-#     # Step 2: Get the generated question paper
-#     paper_doc = await db.generated_papers.find_one({"task_id": task_id})
-
-#     if not paper_doc:
-#         return {
-#             "status": False,
-#             "message": "Generated question paper not found for the given task_id.",
-#             "data": None
-#         }
-
-#     paper = paper_doc.get("paper", {})
-
-#     # Step 3: Return response
-#     return {
-#         "status": True,
-#         "message": "Question paper retrieved successfully.",
-#         "data": {
-#             "task_id": task_id,
-#             "paper_id": paper.get("paper_id"),
-#             "standard": paper.get("standard"),
-#             "subject": paper.get("subject"),
-#             "chapters_used": paper.get("chapters_used"),  # Already a list of strings
-#             "sections": paper.get("sections"),
-#             "marks": marks,
-#             "pdf_path": paper_doc.get("pdf_path"),
-#             "created_at": paper_doc.get("created_at")
-#         }
-#     }
-# from models.paper_models import QuestionPaperRequest
-# @router.post("/get-question-paper/{standard}/{subject}/{marks}")
-# async def get_generated_question_paper(
-#     standard: str,
-#     subject: str,
-#     marks: int,
-#     body: QuestionPaperRequest
-# ):
-
-#     chapters = body.chapters  # Get chapters list from the body
-
-#     # Step 1: Find the task based on standard, subject, selected chapters, and marks
-#     task_doc = await db.question_tasks.find_one({
-#         "standard": standard,
-#         "subject": subject,
-#         "chapters": {"$all": chapters},
-#         "marks": marks
-#     })
-
-#     if not task_doc:
-#         return {
-#             "status": False,
-#             "message": "No question task found for the given standard, subject, chapters and marks.",
-#             "data": None
-#         }
-
-#     task_id = task_doc.get("task_id")
-
-#     # Step 2: Get the generated question paper
-#     paper_doc = await db.generated_papers.find_one({"task_id": task_id})
-
-#     if not paper_doc:
-#         return {
-#             "status": False,
-#             "message": "Generated question paper not found for the given task_id.",
-#             "data": None
-#         }
-
-#     paper = paper_doc.get("paper", {})
-
-#     # Step 3: Return response
-#     return {
-#         "status": True,
-#         "message": "Question paper retrieved successfully.",
-#         "data": {
-#             "task_id": task_id,
-#             "paper_id": paper.get("paper_id"),
-#             "standard": paper.get("standard"),
-#             "subject": paper.get("subject"),
-#             "chapters_used": paper.get("chapters_used"),
-#             "sections": paper.get("sections"),
-#             "marks": marks,
-#             "pdf_path": paper_doc.get("pdf_path"),
-#             "created_at": paper_doc.get("created_at")
-#         }
-#     }
-
-
-
-from fastapi.responses import FileResponse
-import os
 
 @router.get("/download-paper/{paper_id}")
 async def download_paper(paper_id: str):

@@ -2,11 +2,13 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer
 from core.settings import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/admin/login")
+
+# Use simple Bearer token instead of OAuth2 password flow
+oauth2_scheme = HTTPBearer()
 
 def get_password_hash(password: str):
     return pwd_context.hash(password)
@@ -22,11 +24,13 @@ def create_access_token(data: dict):
 
 def decode_access_token(token: str = Depends(oauth2_scheme)):
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # HTTPBearer returns object with .credentials
+        token_str = token.credentials  
+        payload = jwt.decode(token_str, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-# ✅ New helper to fetch current logged-in admin
+
 def get_current_admin(token: str = Depends(oauth2_scheme)):
     payload = decode_access_token(token)
     username: str = payload.get("sub")

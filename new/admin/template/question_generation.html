@@ -494,6 +494,12 @@
     <script src="/assets/js/theme-customizer/customizer.js"></script>
     <script>
     document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("admin_token");
+        if (!token) {
+            window.location.replace("/admin-panel/login");
+            return;
+        }
+
         const stdSel = document.getElementById("std");
         const subjectSel = document.getElementById("subject");
         const chaptersSel = document.getElementById("chapters");
@@ -505,33 +511,28 @@
 
         let currentTaskPoll = null;
 
-        // ===== corrected markOptions =====
-        const markOptions = {
-            "1": [25],
-            "2": [25, 30],
-            "3": [25, 30],
-            "4": [30, 40],
-            "5": [40, 50],
-            "6": [30, 50],
-            "7": [50],
-            "8": [50],
-            "9": [50, 80],
-            "10": [50, 80],
-            "11": [50, 80],
-            "12": [50, 80]
+        // Logout function
+        window.logout = function () {
+            localStorage.removeItem("admin_token");
+            window.location.href = "/admin-panel/login";
         };
 
-        // Helper: enable/disable UI while job runs
+        // Mark options per standard
+        const markOptions = {
+            "1": [25], "2": [25, 30], "3": [25, 30], "4": [30, 40],
+            "5": [40, 50], "6": [30, 50], "7": [50], "8": [50],
+            "9": [50, 80], "10": [50, 80], "11": [50, 80], "12": [50, 80]
+        };
+
         function setUIEnabled(enabled) {
             stdSel.disabled = !enabled;
             subjectSel.disabled = !enabled || !stdSel.value;
             chaptersSel.disabled = !enabled || !subjectSel.value;
             papersInput.disabled = !enabled;
-            marksSel.disabled = !enabled || !stdSel.value; // keep marks disabled if no standard selected
+            marksSel.disabled = !enabled || !stdSel.value;
             generateBtn.disabled = !enabled;
         }
 
-        // Show progress bar + message
         function showProgress(status, pct) {
             taskStatusDiv.innerHTML = `
             <div class="mb-2">
@@ -543,28 +544,22 @@
                 <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
                     style="width: ${pct}%" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
-            </div>
-            `;
+            </div>`;
         }
 
         function showMessage(html) {
             taskStatusDiv.innerHTML = html;
         }
 
-        // Escape helper (simple)
         function escapeHtml(str) {
             if (!str) return "";
             return str.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
         }
 
-        // ===== updateMarksOptions: populate marks select for a standard =====
         function updateMarksOptions(standard) {
-            // convert to string key (markOptions keys are strings)
-            const key = standard === null || standard === undefined ? "" : String(standard);
-            marksSel.innerHTML = ""; // Clear existing options
-
+            const key = standard ? String(standard) : "";
+            marksSel.innerHTML = "";
             if (!key || !markOptions[key] || markOptions[key].length === 0) {
-                // show default disabled placeholder
                 const placeholder = document.createElement("option");
                 placeholder.value = "";
                 placeholder.textContent = "-- Select Marks --";
@@ -575,25 +570,22 @@
                 checkEnableGenerate();
                 return;
             }
-
-            // populate options
             markOptions[key].forEach((val, idx) => {
                 const opt = document.createElement("option");
                 opt.value = String(val);
                 opt.textContent = `${val} Marks`;
-                // select first option by default
                 if (idx === 0) opt.selected = true;
                 marksSel.appendChild(opt);
             });
-
             marksSel.disabled = false;
             checkEnableGenerate();
         }
 
-        // Load standards on page load
         async function loadStandards() {
             try {
-                const res = await fetch("/admin-panel/standards");
+                const res = await fetch("/admin-panel/standards", {
+                    headers: { "Authorization": "Bearer " + token }
+                });
                 if (!res.ok) throw new Error("Failed to load standards");
                 const js = await res.json();
                 stdSel.innerHTML = `<option value="">-- Select Standard --</option>`;
@@ -606,15 +598,12 @@
                 subjectSel.disabled = true;
                 chaptersSel.disabled = true;
                 generateBtn.disabled = true;
-
-                // ensure marksSel has placeholder on initial load
                 updateMarksOptions("");
             } catch (err) {
                 showMessage(`<div class="alert alert-danger">Error loading standards: ${escapeHtml(err.message)}</div>`);
             }
         }
 
-        // Load subjects for standard
         async function loadSubjects(standard) {
             subjectSel.innerHTML = "";
             chaptersSel.innerHTML = "";
@@ -622,12 +611,13 @@
             if (!standard) {
                 subjectSel.disabled = true;
                 chaptersSel.disabled = true;
-                // clear marks if no standard
                 updateMarksOptions("");
                 return;
             }
             try {
-                const res = await fetch(`/admin-panel/subjects/${encodeURIComponent(standard)}`);
+                const res = await fetch(`/admin-panel/subjects/${encodeURIComponent(standard)}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
                 if (!res.ok) throw new Error("Failed to load subjects");
                 const js = await res.json();
                 subjectSel.innerHTML = `<option value="">-- Select Subject --</option>`;
@@ -644,7 +634,6 @@
             }
         }
 
-        // Load chapters for standard + subject
         async function loadChapters(standard, subject) {
             chaptersSel.innerHTML = "";
             generateBtn.disabled = true;
@@ -653,7 +642,9 @@
                 return;
             }
             try {
-                const res = await fetch(`/admin-panel/chapters/${encodeURIComponent(standard)}/${encodeURIComponent(subject)}`);
+                const res = await fetch(`/admin-panel/chapters/${encodeURIComponent(standard)}/${encodeURIComponent(subject)}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
                 if (!res.ok) throw new Error("Failed to load chapters");
                 const js = await res.json();
                 if (!js.chapters || js.chapters.length === 0) {
@@ -674,27 +665,22 @@
             }
         }
 
-        // Enable generate when valid
         function checkEnableGenerate() {
             const hasStd = !!stdSel.value;
             const hasSub = !!subjectSel.value;
             const selectedChapters = Array.from(chaptersSel.selectedOptions).map(o => o.value);
             const countVal = parseInt(papersInput.value || "0", 10);
-            // require marks to be selected (non-empty) too
             const hasMarks = !!marksSel.value;
-            if (hasStd && hasSub && selectedChapters.length > 0 && countVal >= 1 && hasMarks) {
-                generateBtn.disabled = false;
-            } else {
-                generateBtn.disabled = true;
-            }
+            generateBtn.disabled = !(hasStd && hasSub && selectedChapters.length > 0 && countVal >= 1 && hasMarks);
         }
 
-        // Poll job status
         function startTaskPoll(taskId) {
             if (currentTaskPoll) clearInterval(currentTaskPoll);
             currentTaskPoll = setInterval(async () => {
                 try {
-                    const res = await fetch(`/admin-panel/question-task-status/${taskId}`);
+                    const res = await fetch(`/admin-panel/question-task-status/${taskId}`, {
+                        headers: { "Authorization": "Bearer " + token }
+                    });
                     if (!res.ok) throw new Error("Failed to poll task");
                     const data = await res.json();
                     showProgress(data.status || "running", data.progress || 0);
@@ -718,31 +704,27 @@
                 }
             }, 2000);
         }
+
         async function loadGeneratedPapers(taskId) {
             try {
-                const res = await fetch(`/admin-panel/generated-papers?task_id=${encodeURIComponent(taskId)}`);
+                const res = await fetch(`/admin-panel/generated-papers?task_id=${encodeURIComponent(taskId)}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
                 if (!res.ok) throw new Error("Failed to load generated papers");
-
                 const arr = await res.json();
                 recentPapersDiv.innerHTML = "";
-
                 if (!arr || arr.length === 0) {
                     recentPapersDiv.innerHTML = "<div class='text-muted'>No papers generated yet.</div>";
                     return;
                 }
-
                 arr.forEach(doc => {
                     const card = document.createElement("div");
                     card.className = "card mb-3";
-
                     const body = document.createElement("div");
                     body.className = "card-body";
-
                     const message = document.createElement("div");
                     message.textContent = `Paper for subject "${doc.paper.subject}" has been generated.`;
-
                     body.appendChild(message);
-
                     if (doc.pdf_url) {
                         const link = document.createElement("a");
                         link.href = doc.pdf_url;
@@ -751,7 +733,6 @@
                         link.textContent = "View / Download PDF";
                         body.appendChild(link);
                     }
-
                     card.appendChild(body);
                     recentPapersDiv.appendChild(card);
                 });
@@ -760,7 +741,6 @@
             }
         }
 
-        // Trigger generation
         generateBtn.addEventListener("click", async () => {
             const standard = stdSel.value;
             const subject = subjectSel.value;
@@ -779,7 +759,7 @@
                 const payload = { standard, subject, chapters, papers, marks };
                 const res = await fetch("/admin-panel/generate-questions", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
                     body: JSON.stringify(payload)
                 });
                 const j = await res.json();
@@ -796,26 +776,22 @@
         // UI events
         stdSel.addEventListener("change", (e) => {
             const stdVal = e.target.value;
-            // Update marks first (so user sees marks update instantly)
             updateMarksOptions(stdVal);
-            // Then load subjects
             loadSubjects(stdVal);
         });
-
         subjectSel.addEventListener("change", (e) => {
             loadChapters(stdSel.value, e.target.value);
         });
-
-        // Check enable on chapters selection change, papers input and marks change
         chaptersSel.addEventListener("change", checkEnableGenerate);
         papersInput.addEventListener("input", checkEnableGenerate);
         marksSel.addEventListener("change", checkEnableGenerate);
 
-        // initial load
-        updateMarksOptions(""); // ensure marks select has placeholder
+        // Initial load
+        updateMarksOptions("");
         loadStandards();
     });
     </script>
+
 
  </body>
 </html>

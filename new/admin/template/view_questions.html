@@ -457,80 +457,121 @@
     <script src="/assets/js/script.js"></script>
     <script src="/assets/js/theme-customizer/customizer.js"></script>
     <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("admin_token");
+        if (!token) {
+            window.location.replace("/admin-panel/login");
+            return;
+        }
+
+        // Logout function
+        window.logout = function () {
+            localStorage.removeItem("admin_token");
+            window.location.href = "/admin-panel/login";
+        };
+
         async function loadStandardsForFilter() {
-        const res = await fetch("/admin-panel/standards");
-        const data = await res.json();
-        const select = document.getElementById("filterStandard");
-        select.innerHTML = `<option value="">Select</option>`;
-        data.standards.forEach(s => {
-            select.innerHTML += `<option value="${s}">${s}</option>`;
-        });
-    }
+            try {
+                const res = await fetch("/admin-panel/standards", {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await res.json();
+                const select = document.getElementById("filterStandard");
+                select.innerHTML = `<option value="">Select</option>`;
+                data.standards.forEach(s => {
+                    select.innerHTML += `<option value="${s}">${s}</option>`;
+                });
+            } catch (err) {
+                alert("Error loading standards: " + err.message);
+            }
+        }
 
-    document.getElementById("filterStandard").addEventListener("change", async function () {
-        const std = this.value;
-        const res = await fetch(`/admin-panel/subjects/${std}`);
-        const data = await res.json();
-
-        const subjectSel = document.getElementById("filterSubject");
-        subjectSel.innerHTML = `<option value="">Select</option>`;
-        data.subjects.forEach(sub => {
-            subjectSel.innerHTML += `<option value="${sub}">${sub}</option>`;
+        document.getElementById("filterStandard").addEventListener("change", async function () {
+            const std = this.value;
+            if (!std) return;
+            try {
+                const res = await fetch(`/admin-panel/subjects/${encodeURIComponent(std)}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await res.json();
+                const subjectSel = document.getElementById("filterSubject");
+                subjectSel.innerHTML = `<option value="">Select</option>`;
+                data.subjects.forEach(sub => {
+                    subjectSel.innerHTML += `<option value="${sub}">${sub}</option>`;
+                });
+            } catch (err) {
+                alert("Error loading subjects: " + err.message);
+            }
         });
+
+        async function loadGeneratedFiltered() {
+            const std = document.getElementById("filterStandard").value;
+            const subj = document.getElementById("filterSubject").value;
+
+            if (!std || !subj) {
+                alert("Please choose both Standard & Subject");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/admin-panel/generated-papers/filter?standard=${encodeURIComponent(std)}&subject=${encodeURIComponent(subj)}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const papers = await res.json();
+                const container = document.getElementById("results");
+                container.innerHTML = "";
+
+                if (!papers.length) {
+                    container.innerHTML = "<div class='alert alert-info'>No generated papers found.</div>";
+                    return;
+                }
+
+                papers.forEach(p => {
+                    const card = document.createElement("div");
+                    card.className = "card mb-3";
+
+                    card.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">Paper: ${p.paper.paper_id}</h5>
+                            <p><b>Chapters Used:</b> ${p.paper.chapters_used.join(", ")}</p>
+                            <p><b>Created:</b> ${new Date(p.created_at).toLocaleString()}</p>
+
+                            <a href="${p.pdf_url}" target="_blank" class="btn btn-success btn-sm">
+                                View / Download PDF
+                            </a>
+
+                            <button class="btn btn-danger btn-sm" onclick="deletePaper('${p._id}')">
+                                Delete
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                alert("Error loading papers: " + err.message);
+            }
+        }
+
+        async function deletePaper(id) {
+            if (!confirm("Are you sure to delete this paper?")) return;
+            try {
+                await fetch(`/admin-panel/generated-paper/${id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                loadGeneratedFiltered();
+            } catch (err) {
+                alert("Error deleting paper: " + err.message);
+            }
+        }
+
+        // Initialize
+        loadStandardsForFilter();
+
+        // Expose functions globally
+        window.loadGeneratedFiltered = loadGeneratedFiltered;
+        window.deletePaper = deletePaper;
     });
-
-    async function loadGeneratedFiltered() {
-        const std = document.getElementById("filterStandard").value;
-        const subj = document.getElementById("filterSubject").value;
-
-        if (!std || !subj) {
-            alert("Please choose both Standard & Subject");
-            return;
-        }
-
-        const res = await fetch(`/admin-panel/generated-papers/filter?standard=${std}&subject=${subj}`);
-        const papers = await res.json();
-
-        const container = document.getElementById("results");
-        container.innerHTML = "";
-
-        if (!papers.length) {
-            container.innerHTML = "<div class='alert alert-info'>No generated papers found.</div>";
-            return;
-        }
-
-        papers.forEach(p => {
-            const card = document.createElement("div");
-            card.className = "card mb-3";
-
-            card.innerHTML = `
-                <div class="card-body">
-                    <h5 class="card-title">Paper: ${p.paper.paper_id}</h5>
-                    <p><b>Chapters Used:</b> ${p.paper.chapters_used.join(", ")}</p>
-                    <p><b>Created:</b> ${new Date(p.created_at).toLocaleString()}</p>
-
-                    <a href="${p.pdf_url}" target="_blank" class="btn btn-success btn-sm">
-                        View / Download PDF
-                    </a>
-
-                    <button class="btn btn-danger btn-sm" onclick="deletePaper('${p._id}')">
-                        Delete
-                    </button>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-    }
-
-    async function deletePaper(id) {
-        if (!confirm("Are you sure to delete this paper?")) return;
-        await fetch(`/admin-panel/generated-paper/${id}`, { method: "DELETE" });
-        loadGeneratedFiltered();
-    }
-
-    // Initialize
-    loadStandardsForFilter();
-
     </script>
 
 

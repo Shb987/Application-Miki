@@ -4,64 +4,66 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from core.database import db
 
-# Project root = Otp_app2
-BASE_DIR = Path(__file__).resolve().parent.parent  # this gives .../Otp_app2
-print(BASE_DIR)
+BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory="../new/admin/template")
-print(templates)
+
 router = APIRouter(tags=["Admin Pages"])
+
+# ---------------------------------------
+# PUBLIC ROUTES (HTML PAGES ONLY)
+# ---------------------------------------
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse("login_one.html", {"request": request})
 
 
-
 @router.get("/dashboard", response_class=HTMLResponse)
 async def read_dashboard(request: Request, tab: str = None):
-    response = templates.TemplateResponse(
+    return templates.TemplateResponse(
         "index.html",
-        {
-            "request": request,
-            "active_tab": tab  # 👈 Now "tab" is defined
-        }
+        {"request": request, "active_tab": tab}
     )
-    response.headers["Cache-Control"] = "no-store"
-    return response
+
 
 @router.get("/students", response_class=HTMLResponse)
 async def students_page(request: Request):
     return templates.TemplateResponse("students.html", {"request": request})
 
+
 @router.get("/users", response_class=HTMLResponse)
 async def users_page(request: Request):
     return templates.TemplateResponse("users.html", {"request": request})
+
 
 @router.get("/question-page", response_class=HTMLResponse)
 async def questions_page(request: Request):
     return templates.TemplateResponse("questions.html", {"request": request})
 
-@router.get("/exam_module-page", response_class=HTMLResponse)
-async def questions_page(request: Request):
+
+
+@router.get("/exam_module-page")
+async def exam_module_page(request: Request):
     return templates.TemplateResponse("Exammodule.html", {"request": request})
+
+@router.get("/question_generation-page")
+async def question_generation_page(request: Request):
+    return templates.TemplateResponse("question_generation.html", {"request": request})
+
+@router.get("/generated-question_view-page")
+async def generated_question_page(request: Request):
+    return templates.TemplateResponse("view_questions.html", {"request": request})
+
 
 @router.get("/questions/{category}", response_class=HTMLResponse)
 async def questions_category_page(request: Request, category: str):
-    # Fetch questions for this category from MongoDB (async)
     questions_cursor = db.questions.find({"category": category})
     questions = await questions_cursor.to_list(length=None)
 
-    # Convert ObjectId to string for template rendering
     for q in questions:
         q["_id"] = str(q["_id"])
 
     return templates.TemplateResponse(
         "questions.html",
-        {
-            "request": request,
-            "category": category,
-            "questions": questions
-        }
+        {"request": request, "category": category, "questions": questions}
     )
-
-

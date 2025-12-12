@@ -528,18 +528,56 @@
     <script src="/assets/js/theme-customizer/customizer.js"></script>
     <script>
     document.addEventListener("DOMContentLoaded", function () {
-
+        const token = localStorage.getItem("admin_token");
         const form = document.getElementById("textbookForm");
         const statusBox = document.getElementById("status");
-
+        const API_BASE = "/admin-panel/questions";
+        const category = "{{ category }}"; // replace with actual category
         let pollInterval;
 
+        // 🔒 Redirect if not logged in
+        if (!token) {
+            window.location.replace("/admin-panel/login");
+            return;
+        }
+
+        // Load admin profile
+        async function loadAdminProfile() {
+            try {
+                const res = await fetch("/admin-panel/get_details", {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                if (!res.ok) {
+                    localStorage.removeItem("admin_token");
+                    window.location.replace("/admin-panel/login");
+                    return;
+                }
+
+                const data = await res.json();
+                document.getElementById("admin-name").innerText = data.username;
+
+            } catch (err) {
+                console.error("Error loading profile:", err);
+                document.getElementById("admin-name").innerText = "Admin";
+            }
+        }
+
+        loadAdminProfile();
+
+        // Logout function
+        window.logout = function () {
+            localStorage.removeItem("admin_token");
+            window.location.href = "/admin-panel/login";
+        };
+
+        // -------------------------
+        // Textbook upload
+        // -------------------------
         form.addEventListener("submit", async function (e) {
             e.preventDefault();
 
-            statusBox.innerHTML = `
-                <div class="alert alert-info">Uploading textbook… Please wait.</div>
-            `;
+            statusBox.innerHTML = `<div class="alert alert-info">Uploading textbook… Please wait.</div>`;
 
             const fd = new FormData();
             fd.append("textbook_board", document.getElementById("board").value);
@@ -552,6 +590,7 @@
             try {
                 const response = await fetch("/admin-panel/upload-textbook", {
                     method: "POST",
+                    headers: { "Authorization": "Bearer " + token },
                     body: fd
                 });
 
@@ -568,12 +607,13 @@
                     </div>
                 `;
 
-                // 🔥 Trigger processing endpoint
+                // Trigger processing endpoint
                 await fetch(`/admin-panel/process-textbook/${textbookId}`, {
-                    method: "POST"
+                    method: "POST",
+                    headers: { "Authorization": "Bearer " + token }
                 });
 
-                // 📢 Start polling status
+                // Start polling status
                 pollInterval = setInterval(() => pollStatus(textbookId), 2000);
 
             } catch (error) {
@@ -582,28 +622,146 @@
         });
 
         async function pollStatus(id) {
-            const res = await fetch(`/admin-panel/textbook/status/${id}`);
-            const data = await res.json();
+            try {
+                const res = await fetch(`/admin-panel/textbook/status/${id}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await res.json();
 
-            statusBox.innerHTML = `
-                <div class="alert alert-info">
-                    Status: <b>${data.status}</b><br>
-                    Progress: <b>${data.progress}%</b>
-                </div>
-            `;
-
-            if (data.status === "completed") {
-                clearInterval(pollInterval);
                 statusBox.innerHTML = `
-                    <div class="alert alert-success">
-                        🎉 Completed! Chapters extracted & embedded successfully.<br>
-                        Now you can generate questions.
+                    <div class="alert alert-info">
+                        Status: <b>${data.status}</b><br>
+                        Progress: <b>${data.progress}%</b>
                     </div>
                 `;
+
+                if (data.status === "completed") {
+                    clearInterval(pollInterval);
+                    statusBox.innerHTML = `
+                        <div class="alert alert-success">
+                            🎉 Completed! Chapters extracted & embedded successfully.<br>
+                            Now you can generate questions.
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                clearInterval(pollInterval);
+                statusBox.innerHTML = `<div class="alert alert-danger">Error polling status: ${err.message}</div>`;
             }
         }
 
+        // -------------------------
+        // Question Management
+        // -------------------------
+        window.toggleQuestionType = function () {
+            const type = document.getElementById("question-type").value;
+            document.getElementById("text-options").style.display = type === "text" ? "block" : "none";
+            document.getElementById("image-options").style.display = type === "image" ? "block" : "none";
+            document.getElementById("rating-options").style.display = type === "rating" ? "block" : "none";
+        };
+
+        window.addQuestion = async function () {
+            const type = document.getElementById("question-type").value;
+            const text = document.getElementById("new-question-text").value.trim();
+            const age_min = parseInt(document.getElementById("new-question-age-min").value);
+            const age_max = parseInt(document.getElementById("new-question-age-max").value);
+
+            if (!text || isNaN(age_min) || isNaN(age_max)) {
+                alert("Please fill question text and age range.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("category", category);
+            formData.append("text", text);
+            formData.append("age_min", age_min);
+            formData.append("age_max", age_max);
+            formData.append("type", type);
+
+            let res;
+
+            if (type === "text") {
+                formData.append(
+                    "options",
+                    JSON.stringify([
+                        document.getElementById("option1").value.trim(),
+                        document.getElementById("option2").value.trim(),
+                        document.getElementById("option3").value.trim(),
+                        document.getElementById("option4").value.trim()
+                    ].filter(Boolean))
+                );
+                formData.append("correct_answer", document.getElementById("correct-answer").value.trim());
+
+                res = await fetch(API_BASE, { method: "POST", headers: { "Authorization": "Bearer " + token }, body: formData });
+
+            } else if (type === "image") {
+                const correct_index = parseInt(document.getElementById("correct-index").value);
+                if (isNaN(correct_index) || correct_index < 1 || correct_index > 4) {
+                    alert("Please enter a valid image number (1–4).");
+                    return;
+                }
+                formData.append("correct_index", correct_index - 1);
+                ["img1", "img2", "img3", "img4"].forEach((id, i) => {
+                    const file = document.getElementById(id).files[0];
+                    if (file) formData.append(`option${i + 1}`, file);
+                });
+
+                res = await fetch(API_BASE, { method: "POST", headers: { "Authorization": "Bearer " + token }, body: formData });
+
+            } else if (type === "rating") {
+                res = await fetch(API_BASE, { method: "POST", headers: { "Authorization": "Bearer " + token }, body: formData });
+            }
+
+            const data = await res.json();
+            if (res.ok) {
+                alert("Question added successfully!");
+                location.reload();
+            } else {
+                alert(data.detail || "Error adding question");
+            }
+        };
+
+        window.editQuestion = async function (id, currentAgeMin, currentAgeMax) {
+            const li = document.querySelector(`li[data-id='${id}']`);
+            const currentText = li.querySelector(".question-text").innerText.split(' (')[0];
+
+            const newText = prompt("Edit question:", currentText);
+            const newAgeMin = parseInt(prompt("Minimum Age:", currentAgeMin));
+            const newAgeMax = parseInt(prompt("Maximum Age:", currentAgeMax));
+
+            if (!newText || isNaN(newAgeMin) || isNaN(newAgeMax)) return;
+
+            const res = await fetch(`${API_BASE}/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify({ text: newText, category, age_min: newAgeMin, age_max: newAgeMax })
+            });
+
+            if (res.ok) {
+                li.querySelector(".question-text").innerText = `${newText} (${newAgeMin}-${newAgeMax} yrs)`;
+            } else {
+                const data = await res.json();
+                alert(data.detail || "Error updating question");
+            }
+        };
+
+        window.deleteQuestion = async function (id) {
+            if (!confirm("Are you sure you want to delete this question?")) return;
+
+            const res = await fetch(`${API_BASE}/${id}`, {
+                method: "DELETE",
+                headers: { "Authorization": "Bearer " + token }
+            });
+
+            if (res.ok) {
+                document.querySelector(`li[data-id='${id}']`).remove();
+            } else {
+                const data = await res.json();
+                alert(data.detail || "Error deleting question");
+            }
+        };
     });
     </script>
+
  </body>
 </html>

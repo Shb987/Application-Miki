@@ -25,7 +25,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ✅ Register new admin
 @router.post("/register")
-async def register_admin(admin: AdminLogin):
+async def register_admin(
+    admin: AdminLogin,
+    current_admin: dict = Depends(get_current_admin)  # 🔐 Protection added
+):
     existing = await db.admins.find_one({"username": admin.username})
     if existing:
         raise HTTPException(status_code=400, detail="Admin already exists")
@@ -53,11 +56,13 @@ async def get_admin_me(current_admin: dict = Depends(get_current_admin)):
 
 
 # ✅ Create Question (supports text & image-based MCQs)
+
+# ✅ Create Question (PROTECTED NOW)
 @router.post("/questions")
 async def create_question(
     category: str = Form(...),
     text: str = Form(...),
-    type: Optional[str] = Form("text"),  # "text", "image", or "rating"
+    type: Optional[str] = Form("text"),
     options: Optional[str] = Form(None),
     correct_answer: Optional[str] = Form(None),
     correct_index: Optional[int] = Form(None),
@@ -67,14 +72,15 @@ async def create_question(
     option2: UploadFile | None = File(None),
     option3: UploadFile | None = File(None),
     option4: UploadFile | None = File(None),
+    current_admin: dict = Depends(get_current_admin)  # 🔐 Protection added
 ):
-    os.makedirs(UPLOAD_DIR, exist_ok=True)  # ✅ Ensure uploads folder exists
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
 
     image_files = [option1, option2, option3, option4]
-    is_image_question = type == "image" or any(file is not None for file in image_files)
+    is_image_question = type == "image" or any(file for file in image_files)
     image_options = []
 
-    # 🖼️ IMAGE-BASED QUESTION
+    # 🖼️ IMAGE QUESTION
     if is_image_question:
         for file in image_files:
             if file:
@@ -82,7 +88,6 @@ async def create_question(
                 file_path = os.path.join(UPLOAD_DIR, filename)
                 with open(file_path, "wb") as buffer:
                     buffer.write(await file.read())
-                # Store relative URL (recommended)
                 image_options.append(f"/uploads/{filename}")
             else:
                 image_options.append(None)
@@ -102,7 +107,7 @@ async def create_question(
 
     # ⭐ RATING-TYPE QUESTION
     elif type == "rating":
-        if options or any(file is not None for file in image_files):
+        if options or any(file for file in image_files):
             raise HTTPException(status_code=400, detail="Rating questions should not include options or images")
 
         question_data = Question(
@@ -113,7 +118,7 @@ async def create_question(
             age_max=age_max,
         )
 
-    # 📝 TEXT-BASED QUESTION
+    # 📝 TEXT QUESTION
     else:
         if not options:
             raise HTTPException(status_code=400, detail="Missing options for text question")
@@ -122,17 +127,15 @@ async def create_question(
             options_list = json.loads(options)
             if not isinstance(options_list, list):
                 raise ValueError
-        except (json.JSONDecodeError, ValueError):
-            raise HTTPException(status_code=400, detail="Optionsssss must be a valid JSON list")
-
-
+        except:
+            raise HTTPException(status_code=400, detail="Options must be a valid JSON list")
 
         question_data = Question(
             category=category,
             text=text,
             type="text",
             options=options_list,
-            correct_index=int(correct_answer )-1,
+            correct_index=int(correct_answer) - 1,
             age_min=age_min,
             age_max=age_max,
         )

@@ -128,8 +128,8 @@
 
             const data = await res.json();
 
-            // ✅ Save token
-            localStorage.setItem("access_token", data.access_token);
+            // ✅ Save the real returned token key
+            localStorage.setItem("admin_token", data.access_token);
 
             // ✅ Redirect to dashboard
             window.location.replace("/admin-panel/dashboard");

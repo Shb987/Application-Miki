@@ -452,7 +452,7 @@
         <!-- Custom Dashboard Script -->
   <script>
     // ✅ Declare token ONCE, at the top
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("admin_token");
     const API_BASE = "http://127.0.0.1:8000";
 
     // ✅ Redirect immediately if not logged in
@@ -463,15 +463,14 @@
     // ✅ Load admin profile
     async function loadAdminProfile() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/admin-panel/get_details", {
+        const res = await fetch(`${API_BASE}/admin-panel/get_details`, {
           headers: {
             "Authorization": "Bearer " + token
           }
         });
 
         if (!res.ok) {
-          // Token invalid or expired
-          localStorage.removeItem("access_token");
+          localStorage.removeItem("admin_token");
           window.location.replace("/admin-panel/login");
           return;
         }
@@ -483,7 +482,6 @@
         document.getElementById("admin-name").innerText = "Admin";
       }
     }
-
     // ✅ Load Students
     async function loadStudents() {
       const res = await fetch(`${API_BASE}/user/get_students`, {
@@ -612,8 +610,8 @@
     }
     // ✅ Logout function
     function logout() {
-      localStorage.removeItem("access_token");
-      window.location.replace("/admin-panel/login");
+        localStorage.removeItem("admin_token");
+        window.location.replace("/admin-panel/login");
     }
 
     // ✅ Run on page load

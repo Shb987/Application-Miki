@@ -6,7 +6,7 @@ import json
 
 # Local imports
 from core.database import db
-from utils.auth import (
+from utils.admin_auth import (
     verify_password,
     create_access_token,
     get_password_hash,

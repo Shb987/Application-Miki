@@ -10,3 +10,4 @@ __pycache__/
 Exams/
 uploads/
 replacements.txt
+test_jwt_gen.py

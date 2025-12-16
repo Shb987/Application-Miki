@@ -81,27 +81,30 @@ def validate_fix_marks(paper: dict, required_total: int):
         paper["questions"][-1]["marks"] += diff
     return paper
 
-# --------------------------
-# ROUTES - PAGE TEMPLATES
-# --------------------------
+# # --------------------------
+# # ROUTES - PAGE TEMPLATES
+# # --------------------------
 
-@router.get("/exam_module-page")
-async def exam_module_page(request: Request):
-    return templates.TemplateResponse("Exammodule.html", {"request": request})
+# @router.get("/exam_module-page")
+# async def exam_module_page(request: Request):
+#     return templates.TemplateResponse("Exammodule.html", {"request": request})
 
-@router.get("/question_generation-page")
-async def question_generation_page(request: Request):
-    return templates.TemplateResponse("question_generation.html", {"request": request})
+# @router.get("/question_generation-page")
+# async def question_generation_page(request: Request):
+#     return templates.TemplateResponse("question_generation.html", {"request": request})
 
-@router.get("/generated-question_view-page")
-async def generated_question_page(request: Request):
-    return templates.TemplateResponse("view_questions.html", {"request": request})
+# @router.get("/generated-question_view-page")
+# async def generated_question_page(request: Request):
+#     return templates.TemplateResponse("view_questions.html", {"request": request})
 
 # --------------------------
 # ROUTES - SYLLABUS
 # --------------------------
 
-@router.post("/upload-textbook")
+from utils.admin_auth import get_current_admin
+from fastapi import Depends
+
+@router.post("/upload-textbook", dependencies=[Depends(get_current_admin)])
 async def upload_textbook(
     textbook_board: str = Form(...),
     standard: str = Form(...),
@@ -144,7 +147,7 @@ async def upload_textbook(
     result = await db.textbook.insert_one(data)
     return {"status": "uploaded", "textbook_id": str(result.inserted_id)}
 
-@router.post("/process-textbook/{textbook_id}")
+@router.post("/process-textbook/{textbook_id}", dependencies=[Depends(get_current_admin)])
 async def process_textbook_trigger(textbook_id: str):
     textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
     if not textbook:
@@ -153,7 +156,7 @@ async def process_textbook_trigger(textbook_id: str):
     asyncio.create_task(process_textbook_worker(textbook_id))
     return {"status": "started", "message": "Processing started in background", "textbook_id": textbook_id}
 
-@router.get("/textbook/status/{textbook_id}")
+@router.get("/textbook/status/{textbook_id}", dependencies=[Depends(get_current_admin)])
 async def textbook_status(textbook_id: str):
     data = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
     if not data:
@@ -280,7 +283,7 @@ async def get_chapters(standard: str, subject: str):
 # ROUTES - QUESTION GENERATION
 # --------------------------
 
-@router.post("/generate-questions")
+@router.post("/generate-questions", dependencies=[Depends(get_current_admin)])
 async def generate_questions_trigger(payload: dict = Body(...)):
     standard = payload.get("standard")
     subject = payload.get("subject")
@@ -440,7 +443,7 @@ Respond with valid JSON only. No text outside JSON.
 # ROUTES - JOB STATUS / GENERATED PAPERS
 # --------------------------
 
-@router.get("/question-task-status/{task_id}")
+@router.get("/question-task-status/{task_id}", dependencies=[Depends(get_current_admin)])
 async def question_task_status(task_id: str):
     task = await db.question_tasks.find_one({"task_id": task_id})
     if not task:
@@ -469,7 +472,7 @@ async def get_generated_papers(task_id: Optional[str] = None):
     return docs
 
 
-@router.delete("/generated-paper/{paper_id}")
+@router.delete("/generated-paper/{paper_id}", dependencies=[Depends(get_current_admin)])
 async def delete_generated_paper(paper_id: str):
     doc = await db.generated_papers.find_one({"_id": ObjectId(paper_id)})
     if not doc:
@@ -485,7 +488,7 @@ async def delete_generated_paper(paper_id: str):
     return {"status": "deleted", "message": "Question paper removed successfully"}
 
 
-@router.get("/generated-papers/filter")
+@router.get("/generated-papers/filter", dependencies=[Depends(get_current_admin)])
 async def get_generated_papers_filtered(standard: str, subject: str):
     docs = await db.generated_papers.find({"paper.standard": standard, "paper.subject": subject}).to_list(None)
 

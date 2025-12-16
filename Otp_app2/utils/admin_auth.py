@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer
 from core.settings import settings
+from datetime import datetime, timedelta, timezone
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -18,7 +18,7 @@ def verify_password(plain_password, hashed_password):
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
+    expire = datetime.now(timezone.utc) + timedelta(hours=settings.ACCESS_TOKEN_EXPIRE_HOURS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 

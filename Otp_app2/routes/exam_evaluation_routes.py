@@ -160,11 +160,17 @@ def serialize_mongo(document):
 # ------------------------------
 # 4. MAIN API
 # ------------------------------
+from fastapi import APIRouter, UploadFile, File, Form, Depends
+from utils.user_auth import get_current_user
+
+# ...
+
 @router.post("/evaluate-answersheet")
 async def evaluate_answersheet(
     student_id: str = Form(...),
     paper_id: str = Form(...),
-    files: List[UploadFile] = File(...)
+    files: List[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user)
 ):
 
     # 1. Save files locally

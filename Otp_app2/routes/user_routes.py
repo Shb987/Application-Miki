@@ -9,6 +9,8 @@ from models.career_models import CareerAnalyzer
 from bson import ObjectId
 from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
 import re
+from utils.user_auth import get_current_user,admin_or_user
+from utils.admin_auth import get_current_admin 
 router = APIRouter(tags=["User"])
 
 # --------------------- Student Registration -------------------------
@@ -19,7 +21,9 @@ async def generate_student_id():
 @router.post("/register-student")
 async def register_student(
     data: Student,
-    parent_mobile: str = Query(..., description="Parent mobile number")
+    parent_mobile: str = Query(..., description="Parent mobile number"),
+    current=Depends(admin_or_user)
+
 ):
     student_id = await generate_student_id()
 
@@ -60,10 +64,11 @@ def clean_mongo_doc(doc):
         return doc
     doc["_id"] = str(doc["_id"])
     return doc
-
 # --------------------- Fetch Parent Details -------------------------
 @router.get("/parent")
-async def get_parent_details(mobile_number: str = Query(..., description="The mobile number of the parent")):
+async def get_parent_details(mobile_number: str = Query(..., description="The mobile number of the parent"),
+    current_user=Depends(get_current_user)
+):
     user_record = await db.usertable.find_one({"mobile_number": mobile_number})
     if not user_record:
         return {"status_code": 404, "message": "Parent not found"}
@@ -76,7 +81,10 @@ async def get_parent_details(mobile_number: str = Query(..., description="The mo
 
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
 @router.post("/set-usertype")
-async def set_usertype(data: UserTypeRequest):
+async def set_usertype(    data: UserTypeRequest,
+    current_user: dict = Depends(get_current_user)
+):
+
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
     if not record:
         return {"status_code": 400, "message": "User not found"}
@@ -157,7 +165,7 @@ from bson import ObjectId
 from fastapi import HTTPException
 
 @router.post("/answers")
-async def save_answers(payload: AnswerRequest):
+async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_current_user)):
 
     answers_list = []
     total_marks = 0
@@ -294,7 +302,8 @@ async def save_answers(payload: AnswerRequest):
 
 
 @router.get("/get_students")
-async def get_students():
+async def get_students(
+    admin=Depends(get_current_admin)):
     cursor = db.students.find({}, {"_id": 0})  # exclude MongoDB _id
     students = await cursor.to_list(length=None)
     return {
@@ -302,84 +311,9 @@ async def get_students():
         "students": students
     }
 
-
-# from bson import ObjectId
-# @router.post("/answers")
-# async def save_answers(payload: AnswerRequest):
-
-#     answers_list = []
-#     total_marks = 0
-#     rating_values = []  # collect rating answers
-
-#     # Loop through each question + answer
-#     for qid, ans in zip(payload.question_ids, payload.answers):
-
-#         # Fetch question
-#         question = await db.questions.find_one({"_id": ObjectId(qid)})
-#         if not question:
-#             continue
-
-#         q_type = question.get("type")
-#         correct_index = question.get("correct_index")
-
-#         # ============================
-#         # 1) HANDLE RATING QUESTIONS
-#         # ============================
-#         if q_type == "rating":
-#             rating_values.append(ans)    # store rating
-#             mark = 0                     # rating gives no direct mark
-#         else:
-#             # ==============================
-#             # 2) HANDLE MCQ QUESTIONS (text/image)
-#             # ==============================
-#             mark = 1 if ans == correct_index else 0
-#             total_marks += mark
-
-#         # Append answer details
-#         answers_list.append({
-#             "question_id": qid,
-#             "answer_value": ans,
-#             "correct_index": correct_index,
-#             "type": q_type,
-#             "mark": mark
-#         })
-
-#     # ==============================
-#     # 3) CALCULATE RATING AVERAGE
-#     # ==============================
-#     if rating_values:
-#         rating_avg = sum(rating_values) / len(rating_values)
-#         total_marks += rating_avg
-#     else:
-#         rating_avg = 0
-
-#     # Default attempt = 0
-#     attempt = getattr(payload, "attempt", 0)
-
-#     # Final document
-#     document = {
-#         "student_id": payload.student_id,
-#         "category": payload.category,
-#         "attempt": attempt,
-#         "answers": answers_list,
-#         "rating_average": rating_avg,
-#         "total_marks": total_marks,
-#         "timestamp": datetime.now(timezone.utc)
-#     }
-
-#     result = await db.answers.insert_one(document)
-
-#     return {
-#         "status_code": 200,
-#         "message": "All answers saved",
-#         "answer_sheet_id": str(result.inserted_id),
-#         "rating_average": rating_avg,
-#         "total_marks": total_marks
-#     }
-
 # ✅ Get all Users (Parents table)
 @router.get("/get_users")
-async def get_users():
+async def get_users(admin=Depends(get_current_admin)):
     cursor = db.usertable.find({}, {"_id": 0})
     users = await cursor.to_list(length=None)
     return {
@@ -387,9 +321,10 @@ async def get_users():
         "users": users
     }
 
+
 # ✅ Get all Login Attempts (OTP table)
 @router.get("/get_logins")
-async def get_logins():
+async def get_logins(admin=Depends(get_current_admin)):
     cursor = db.otps.find({}, {"_id": 0})
     logins = await cursor.to_list(length=None)
     return {
@@ -449,7 +384,9 @@ def normalize_percentages(scores: dict) -> dict:
 
 
 @router.post("/analyze-career/{student_id}")
-async def analyze_career(student_id: str):
+async def analyze_career(student_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     """Automatically analyze the latest *completed* attempt for a student"""
 
     # 1️⃣ Fetch student answers document
@@ -535,9 +472,10 @@ async def analyze_career(student_id: str):
 from bson import json_util
 import json
 
-
 @router.get("/career-analysis/{student_id}/{attempt}")
-async def get_career_analysis(student_id: str, attempt: int):
+async def get_career_analysis(student_id: str, attempt: int,
+    current=Depends(admin_or_user)
+):
     """
     Fetch career analysis for a specific student and attempt number.
     """
@@ -561,24 +499,13 @@ async def get_career_analysis(student_id: str, attempt: int):
         "career_analysis": record
     }
 
-
-# @router.get("/career-result/{student_id}")
-# async def get_career_result(student_id: str):
-#     records = await db.career_analyzer.find({"student_id": student_id}).to_list(None)
-#     if not records:
-#         raise HTTPException(status_code=404, detail="No career result found")
-
-#     return json.loads(json_util.dumps({
-#         "student_id": student_id,
-#         "history": records
-#     }))
-
 from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 
-
 @router.get("/career-history/{student_id}")
-async def get_career_history(student_id: str):
+async def get_career_history(student_id: str,
+    current=Depends(admin_or_user)
+):
 
     # Get all career analysis attempts
     career_records = await db.career_analyzer.find({"student_id": student_id}).sort("timestamp", -1).to_list(None)
@@ -671,68 +598,3 @@ async def get_career_history(student_id: str):
         "total_attempts": len(combined_history),
         "career_history": combined_history
     }
-
-# @router.post("/auto-generate-question")
-# async def auto_generate_question(
-#     student_id: str = Form(...),
-#     subject: str = Form(...),
-#     question_type: str = Form(...)
-# ):
-#     # 1️⃣ Fetch student data from DB
-#     student = await db.students.find_one({"student_id": student_id})
-
-#     if not student:
-#         raise HTTPException(status_code=404, detail="Student not found")
-
-#     # 2️⃣ Extract class automatically
-#     class_level = student.get("student_class")
-#     if not class_level:
-#         raise HTTPException(status_code=400, detail="Student class not found in database")
-
-#     # 3️⃣ Generate question automatically using student class
-#     question = await generate_subject_question(subject, class_level, question_type)
-
-#     return {
-#         "status_code": 200,
-#         "student_id": student_id,
-#         "student_class": class_level,
-#         "subject": subject,
-#         "question_type": question_type,
-#         "generated_question": question
-#     }
-# @router.post("/evaluate-answer")
-# async def evaluate_student_answer(
-#     student_id: str = Form(...),
-#     question: str = Form(...),
-#     answer: str = Form(...)
-# ):
-#     evaluation = await evaluate_answer(question, answer)
-
-#     import re
-#     score_match = re.search(r"Score:\s*(\d+)/10", evaluation)
-#     score = int(score_match.group(1)) if score_match else 0
-
-#     level = map_score_to_level(score)
-
-#     record = {
-#         "student_id": student_id,
-#         "question": question,
-#         "answer": answer,
-#         "evaluation": evaluation,
-#         "score": score,
-#         "level": level,
-#         "timestamp": datetime.now(timezone.utc)
-#     }
-#     await db.score_questions.insert_one(record)
-
-#     return {
-#         "status_code": 200,
-#         "message": "Answer evaluated and saved successfully",
-#         "score": score,
-#         "level": level,
-#         "evaluation": evaluation
-#     }
-
-
-
-

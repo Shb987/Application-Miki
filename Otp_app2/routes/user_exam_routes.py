@@ -23,16 +23,17 @@ from openai import OpenAI
 router = APIRouter(tags=["User_Exam Module"])
 
 
-
 @router.get("/standard/{standard}")
 async def get_subjects_and_chapters(standard: str):
     # Step 1: Get subjects for the given standard
     subjects = await db.textbook.distinct("subject", {"standard": standard})
     subjects = sorted([s for s in subjects if s])
 
+    # Optimization: List images once
+    image_files = os.listdir("Subject_images") if os.path.exists("Subject_images") else []
+    
     result = []
-
-    # Step 2: Build subject objects with chapters
+    
     for subject in subjects:
         chapters_set = set()
 
@@ -60,9 +61,40 @@ async def get_subjects_and_chapters(standard: str):
                 if title:
                     chapters_set.add(title)
 
+        # Image matching logic
+        normalized_subject = subject.lower().replace(" ", "")
+        
+        # Manual mapping
+        special_cases = {
+            "english": "eng.jpg",
+            "biology": "biolagy.jpg"
+        }
+        
+        image_url = None
+        
+        if normalized_subject in special_cases:
+            target_image = special_cases[normalized_subject]
+            if target_image in image_files:
+                image_url = f"subject_images/{target_image}"
+        else:
+            # Search for loosely matching image
+            for img in image_files:
+                if img.lower().startswith(normalized_subject):
+                    image_url = f"subject_images/{img}"
+                    break
+        
+        # Fallback: match by name without extension
+        if not image_url:
+             for img in image_files:
+                img_name = os.path.splitext(img)[0].lower()
+                if img_name == normalized_subject:
+                    image_url = f"subject_images/{img}"
+                    break
+
         result.append({
             "name": subject,
-            "chapters": sorted(list(chapters_set))
+            "chapters": sorted(list(chapters_set)),
+            "image_url": image_url
         })
 
     return {
@@ -73,12 +105,16 @@ async def get_subjects_and_chapters(standard: str):
 
 from typing import List
 
+from utils.user_auth import get_current_user
+from fastapi import Depends
+
 @router.get("/get-question-paper/{standard}/{subject}/{marks}")
 async def get_generated_question_paper(
     standard: str, 
     subject: str, 
     marks: int,
-    chapters: str   # <-- coming as comma separated string
+    chapters: str,   # <-- coming as comma separated string
+    current_user: dict = Depends(get_current_user)
 ):
 
     # Convert comma-separated string to list
@@ -136,7 +172,7 @@ async def get_generated_question_paper(
 
 
 @router.get("/download-paper/{paper_id}")
-async def download_paper(paper_id: str):
+async def download_paper(paper_id: str, current_user: dict = Depends(get_current_user)):
 
     # Find the document containing this paper_id
     paper_doc = await db.generated_papers.find_one({

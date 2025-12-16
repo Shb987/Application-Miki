@@ -37,6 +37,7 @@ app.mount("/dist", StaticFiles(directory="../new/admin/dist"), name="dist")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
  
 app.mount("/static/generated_papers", StaticFiles(directory="Exams/generated_papers"), name="generated_papers")
+app.mount("/subject_images", StaticFiles(directory="Subject_images"), name="subject_images")
 
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])

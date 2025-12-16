@@ -1,9 +1,10 @@
 import random
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from models.otp_models import OTPRequest, OTPVerify
 from core.database import db
 from core.settings import settings
+from utils.user_auth import get_current_user  # <-- USERS JWT (parent/student)
 
 router = APIRouter(tags=["OTP"])
 
@@ -12,10 +13,9 @@ OTP_EXPIRY_MINUTES = settings.OTP_EXPIRY_MINUTES
 @router.post("/send")
 async def send_otp(data: OTPRequest):
     otp = str(random.randint(100000, 999999))
-    now = datetime.now(timezone.utc)  # store UTC
+    now = datetime.now(timezone.utc)
     expiry_time = now + timedelta(minutes=OTP_EXPIRY_MINUTES)
 
-    # Check if mobile number exists
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
 
     update_data = {
@@ -24,7 +24,6 @@ async def send_otp(data: OTPRequest):
         "expiry": expiry_time,
     }
 
-    # If user does not exist, add usertype = None
     if not record:
         update_data["usertype"] = None
 
@@ -46,7 +45,6 @@ async def verify_otp(data: OTPVerify):
 
     expiry_time = record.get("expiry")
 
-    # Force to UTC if Mongo stored as naive
     if expiry_time.tzinfo is None:
         expiry_time = expiry_time.replace(tzinfo=timezone.utc)
 
@@ -56,17 +54,39 @@ async def verify_otp(data: OTPVerify):
     if record.get("otp") != data.otp:
         return {"status_code": 400, "message": "Invalid OTP"}
 
-    return {"status_code": 200, 
-            "message": "OTP verified successfully",
-            "usertype": record.get("usertype")  # 👈 include in response
-}
+    # Generate Token
+    from utils.user_auth import create_user_token
+    
+    usertype = record.get("usertype") 
+    # Handle case if usertype is None (e.g. fresh registration) - defaulting to "parent" or handling appropriately?
+    # Based on existing flow, clean registration usually happens AFTER verify? 
+    # But we need a token to call protected routes.
+    # If usertype is None, let's treat it as a temporary/guest state or just pass "parent" if that's the default entry.
+    # Looking at register_student, it sets "usertype": "parent".
+    
+    if not usertype:
+        usertype = "null" # Default fallback for new users who haven't set a type yet.
+
+    access_token = create_user_token(
+        mobile_number=data.mobile_number, 
+        usertype=usertype
+    )
+
+    return {
+        "status_code": 200,
+        "message": "OTP verified successfully",
+        "usertype": record.get("usertype"),
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 
+# 🔐 PROTECTED — must be a LOGGED IN USER (parent)
 @router.post("/switch-user/send-otp")
-async def switch_user_send_otp(data: OTPRequest):
-    """
-    Step 1: Send OTP for switching/login as Student
-    """
+async def switch_user_send_otp(
+    data: OTPRequest,
+    current_user: dict = Depends(get_current_user)
+):
     otp = str(random.randint(100000, 999999))
     now = datetime.now(timezone.utc)
     expiry_time = now + timedelta(minutes=OTP_EXPIRY_MINUTES)
@@ -75,34 +95,31 @@ async def switch_user_send_otp(data: OTPRequest):
     await db.otps.update_one({"mobile_number": data.mobile_number}, {"$set": update_data}, upsert=True)
 
     return {"status_code": 200, "message": "OTP sent for student login", "otp": otp}
+
+
 from fastapi import Query
 
+# 🔐 PROTECTED — must be a LOGGED IN USER (parent)
 @router.post("/switch-to-student")
 async def switch_to_student(
     data: OTPVerify,
-    student_id: str = Query(..., description="The ID of the student")
+    student_id: str = Query(..., description="The ID of the student"),
+    current_user: dict = Depends(get_current_user)
 ):
-    """
-    Verify OTP and switch to student account using student's own mobile number.
-    """
-    # Step 1: Verify OTP
     verify_result = await verify_otp(data)
     if verify_result["status_code"] != 200:
         return verify_result
 
-    # Step 2: Check that student exists
     student_doc = await db.students.find_one({"student_id": student_id})
     if not student_doc:
         return {"status_code": 404, "message": "Student not found"}
     print(student_id)
-    # Step 3: Ensure student_id belongs to some parent
     parent_record = await db.usertable.find_one({
         "student_ids": {"$in": [student_id]},
         "usertype": "parent"
-    })    
+    })
     print(parent_record)
     if not parent_record:
-        # DEBUG: print all parent records that have student_ids
         cursor = db.usertable.find({"usertype": "parent"})
         parent_docs = await cursor.to_list(length=None)
 
@@ -113,17 +130,15 @@ async def switch_to_student(
             }
             for doc in parent_docs
         ]
-        print("DEBUG: Parent records with student_ids:", all_links)
 
         return {
             "status_code": 403,
             "message": f"This student ({student_id}) is not linked to any parent account",
-            "all_parent_links": all_links   # 👈 optional: send back in API response too
+            "all_parent_links": all_links
         }
 
-    # Step 4: Create/Update student user account with their own mobile
     await db.usertable.update_one(
-        {"mobile_number": data.mobile_number},   # student logs in with their own number
+        {"mobile_number": data.mobile_number},
         {
             "$set": {
                 "usertype": "student",
@@ -133,14 +148,15 @@ async def switch_to_student(
         },
         upsert=True
     )
-    # Step 5: Mark student as user
+
     await db.students.update_one(
         {"student_id": student_id},
         {"$set": {"is_user": True}}
     )
+
     return {
         "status_code": 200,
         "message": "Switched to student successfully",
         "usertype": "student",
-        "student_id": student_id        
+        "student_id": student_id
     }

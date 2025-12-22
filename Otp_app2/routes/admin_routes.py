@@ -26,8 +26,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # ✅ Register new admin
 @router.post("/register")
 async def register_admin(
-    admin: AdminLogin,
-    current_admin: dict = Depends(get_current_admin)  # 🔐 Protection added
+    admin: AdminLogin
 ):
     existing = await db.admins.find_one({"username": admin.username})
     if existing:

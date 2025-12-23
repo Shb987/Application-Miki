@@ -35,7 +35,7 @@ app.add_middleware(
 app.mount("/assets", StaticFiles(directory="../new/admin/assets"), name="assets")
 app.mount("/dist", StaticFiles(directory="../new/admin/dist"), name="dist")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
- 
+
 app.mount("/static/generated_papers", StaticFiles(directory="Exams/generated_papers"), name="generated_papers")
 app.mount("/subject_images", StaticFiles(directory="Subject_images"), name="subject_images")
 
@@ -51,4 +51,5 @@ app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Fu
 
 # Admin Panel page routes (Jinja)
 app.include_router(admin_pages.router,prefix="/admin-panel",tags=["Admin Pages"])
+
 

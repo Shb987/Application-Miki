@@ -19,6 +19,7 @@ def create_user_token(mobile_number: str, usertype: str, student_id: str | None 
         "student_id": student_id,
         "exp": expire
     }
+    print(payload)
 
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 

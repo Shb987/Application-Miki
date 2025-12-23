@@ -160,11 +160,37 @@ def serialize_mongo(document):
 # ------------------------------
 # 4. MAIN API
 # ------------------------------
-from fastapi import APIRouter, UploadFile, File, Form, Depends
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from fastapi.responses import JSONResponse
+from typing import List
+import os, uuid, datetime
+
 from utils.user_auth import get_current_user
+from services.notification_service import create_notification
 
-# ...
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+from typing import List
+import os
+import uuid
+import datetime
 
+from utils.user_auth import get_current_user
+from services.notification_service import create_notification
+from bson import ObjectId
+
+def clean_mongo(data):
+    if isinstance(data, dict):
+        return {k: clean_mongo(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [clean_mongo(v) for v in data]
+    elif isinstance(data, ObjectId):
+        return str(data)
+    else:
+        return data
+
+router = APIRouter()
 @router.post("/evaluate-answersheet")
 async def evaluate_answersheet(
     student_id: str = Form(...),
@@ -172,132 +198,199 @@ async def evaluate_answersheet(
     files: List[UploadFile] = File(...),
     current_user: dict = Depends(get_current_user)
 ):
-
-    # 1. Save files locally
     saved_file_paths = []
-    os.makedirs("temp", exist_ok=True)
-    
-    for file in files:
-        file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-        temp_path = f"temp/{uuid.uuid4()}.{file_ext}"
-        with open(temp_path, "wb") as f:
-            f.write(await file.read())
-        saved_file_paths.append(temp_path)
-
-    # 2. Find question paper (MOVED UP)
-    paper_doc = await db.generated_papers.find_one({"paper.paper_id": paper_id})
-    if not paper_doc:
-        return JSONResponse({"status": False, "message": "Question paper not found."})
-
-    paper = paper_doc["paper"]
-    standard = paper.get("standard")
-    subject = paper.get("subject")
-    chapters_used = paper.get("chapters_used", [])
-
-    # Construct Question Paper Text for Context
-    question_paper_text = ""
-    q_counter = 1
-    for section in paper["sections"]:
-        for q in section["questions"]:
-            question_paper_text += f"{q_counter}. {q['question']}\n"
-            q_counter += 1
-
-    # 3. OCR extraction (Vision) - Now with Context
-    student_answers_json = await extract_answers_with_vision(saved_file_paths, question_paper_text)
-    
-    # Normalize keys to strings for easy lookup
-    student_answers = {str(k): v for k, v in student_answers_json.items()}
-
-    # 4. RAG: Fetch Textbook Content
-    chapter_docs = await db.textbook_chapters.find({
-        "standard": str(standard),
-        "subject": subject,
-        "chapter_title": {"$in": chapters_used}
-    }).to_list(None)
-
-    context_text = ""
-    for doc in chapter_docs:
-        # Limit context to avoid overflow (approx 50k chars total context)
-        content_snippet = doc.get("content", "")[:50000]
-        context_text += f"\n=== CHAPTER: {doc.get('chapter_title')} ===\n{content_snippet}\n"
-    
-    if not context_text:
-        context_text = "No specific textbook content found. Evaluate based on general academic knowledge."
-
+    evaluation_status = "FAILED"
     total_score = 0
     max_total = 0
-    detailed_results = []
-    q_number = 1
 
-    # 5. Evaluate all sections & questions
-    for section in paper["sections"]:
-        marks_per_q = section["marks_per_question"]
+    try:
+        # 1. Save files
+        os.makedirs("temp", exist_ok=True)
+        for file in files:
+            ext = file.filename.split(".")[-1]
+            path = f"temp/{uuid.uuid4()}.{ext}"
+            with open(path, "wb") as f:
+                f.write(await file.read())
+            saved_file_paths.append(path)
 
-        for q in section["questions"]:
-            question_text = q["question"]
-            
-            # Try to find answer by Question Number
-            student_ans = student_answers.get(str(q_number))
-            
-            # If not found, try finding by text match (fallback) or just mark as not attempted
-            if not student_ans:
-                student_ans = "[Not Attempted / Not Detected]"
+        # 2. Fetch paper
+        paper_doc = await db.generated_papers.find_one({"paper.paper_id": paper_id})
+        if not paper_doc:
+            raise Exception("Question paper not found")
 
-            eval_result = evaluate_answer(question_text, student_ans, marks_per_q, context_text)
+        paper = paper_doc["paper"]
 
-            # Parse score safely
-            score_raw = str(eval_result.get("score", "0"))
-            try:
-                # Handle cases like "2/5" or "2.5"
-                if "/" in score_raw:
-                    score = float(score_raw.split("/")[0])
-                else:
-                    score = float(score_raw)
-            except:
-                score = 0
+        # 3. Prepare question context
+        question_paper_text = ""
+        q_counter = 1
+        for section in paper["sections"]:
+            for q in section["questions"]:
+                question_paper_text += f"{q_counter}. {q['question']}\n"
+                q_counter += 1
 
-            total_score += score
-            max_total += marks_per_q
+        # 4. OCR
+        student_answers_json = await extract_answers_with_vision(
+            saved_file_paths,
+            question_paper_text
+        )
 
-            detailed_results.append({
-                "q_no": q_number,
-                "question": question_text,
-                "student_answer": student_ans,
-                "max_marks": marks_per_q,
-                "score": score,
-                "feedback": eval_result.get("feedback"),
-                "ideal_answer": eval_result.get("ideal_answer")
-            })
+        student_answers = {str(k): v for k, v in student_answers_json.items()}
 
-            q_number += 1
+        # 5. Context
+        chapter_docs = await db.textbook_chapters.find({
+            "standard": str(paper.get("standard")),
+            "subject": paper.get("subject"),
+            "chapter_title": {"$in": paper.get("chapters_used", [])}
+        }).to_list(None)
 
-    evaluation_data = {
-        "evaluation_id": str(uuid.uuid4()),
-        "paper_id": paper_id,
-        "student_id": student_id,
-        "total_score": total_score,
-        "max_total": max_total,
-        "detailed_results": detailed_results,
-        "created_at": datetime.datetime.utcnow().isoformat()
-    }
+        context_text = "".join(
+            f"\n=== {doc.get('chapter_title')} ===\n{doc.get('content','')[:50000]}"
+            for doc in chapter_docs
+        ) or "Evaluate using general academic knowledge."
 
-    # 6. Save to DB
-    await db.evaluations.insert_one(evaluation_data)
+        # 6. Evaluation
+        detailed_results = []
+        q_number = 1
 
-    # 7. Cleanup Temp Files
-    for path in saved_file_paths:
+        for section in paper["sections"]:
+            marks = section["marks_per_question"]
+            for q in section["questions"]:
+                student_ans = student_answers.get(str(q_number), "[Not Attempted]")
+                eval_result = evaluate_answer(
+                    q["question"], student_ans, marks, context_text
+                )
+
+                score = float(str(eval_result.get("score", "0")).split("/")[0])
+                total_score += score
+                max_total += marks
+
+                detailed_results.append({
+                    "q_no": q_number,
+                    "question": q["question"],
+                    "student_answer": student_ans,
+                    "max_marks": marks,
+                    "score": score,
+                    "feedback": eval_result.get("feedback"),
+                    "ideal_answer": eval_result.get("ideal_answer")
+                })
+
+                q_number += 1
+
+        evaluation_status = "COMPLETED"
+
+        evaluation_data = {
+            "evaluation_id": str(uuid.uuid4()),
+            "paper_id": paper_id,
+            "student_id": student_id,
+            "status": evaluation_status,
+            "total_score": total_score,
+            "max_total": max_total,
+            "detailed_results": detailed_results,
+            "created_at": datetime.datetime.utcnow().isoformat()
+        }
+
+        await db.evaluations.insert_one(evaluation_data)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": True,
+                "message": "Evaluation completed successfully",
+                "data": clean_mongo(evaluation_data)
+            }
+        )
+
+    except Exception as e:
+        error_message = str(e)
+
+        evaluation_data = {
+            "evaluation_id": str(uuid.uuid4()),
+            "paper_id": paper_id,
+            "student_id": student_id,
+            "status": "FAILED",
+            "error": error_message,
+            "created_at": datetime.datetime.utcnow().isoformat()
+        }
+
+        await db.evaluations.insert_one(evaluation_data)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": False,
+                "message": "Evaluation failed",
+                "error": error_message
+            }
+        )
+
+    finally:
+        # 🔔 Notification MUST NEVER FAIL
+        print(evaluation_status)
         try:
-            os.remove(path)
-        except:
-            pass
+            if evaluation_status == "COMPLETED":
+                print('first')
+                await create_notification(
+                    db=db,
+                    user_id=student_id,
+                    title="Evaluation Completed",
+                    message=f"Your evaluation is complete. Score: {total_score}/{max_total}.",
+                    type="evaluation_completed"
+                )
+            else:
+                print('second')
 
-    # Serialize to remove ObjectId
-    safe_data = serialize_mongo(evaluation_data)
+                await create_notification(
+                    db=db,
+                    user_id=student_id,
+                    title="Evaluation Failed",
+                    message="Evaluation failed due to OCR / processing issue. Please try again later.",
+                    type="evaluation_failed"
+                )
+        except Exception as n_err:
+            print("Notification error:", n_err)
 
-    return JSONResponse({
-        "status": True,
-        "message": "Evaluation completed successfully.",
-        "data": safe_data
-    })
+        for path in saved_file_paths:
+            try:
+                os.remove(path)
+            except:
+                pass
 
 
+@router.get("/notifications/{user_id}")
+async def get_notifications(user_id: str, current_user: dict = Depends(get_current_user)):
+    print(current_user)
+    # Enforce ownership: User can only see their own notifications
+    user_student_id = current_user.get("student_id")
+    print(user_student_id)
+    # If the token belongs to a student, ensure it matches the requested user_id
+    if user_student_id and user_student_id != user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized access to notifications")
+
+    notifications = await db.notifications.find(
+        {"user_id": user_id}
+    ).sort("created_at", -1).to_list(100)
+
+    return {"status": True, "data": clean_mongo(notifications)}
+
+@router.post("/notifications/read/{notification_id}")
+async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user.get("student_id")
+    print(user_id)
+    
+    # Update only if notification belongs to the user
+    query = {"notification_id": notification_id}
+    if user_id:
+        query["user_id"] = user_id
+
+    result = await db.notifications.update_one(
+        query,
+        {"$set": {"is_read": True}}
+    )
+    
+    if result.matched_count == 0:
+        return JSONResponse(
+            status_code=404,
+            content={"status": False, "message": "Notification not found"}
+        )
+
+    return {"status": True, "message": "Notification marked as read"}

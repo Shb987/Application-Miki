@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quiz Questions Management">
+    <link rel="icon" href="/assets/images/favicon.png" type="image/x-icon">
+    <link rel="shortcut icon" href="/assets/images/favicon.png" type="image/x-icon">
+    <title>Quiz Questions - Admin Panel</title>
+    <!-- Google font-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/icofont.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/themify.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/flag-icon.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/feather-icon.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/scrollbar.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/animate.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/datatables.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
+    <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
+</head>
+
+<body>
+    <!-- loader starts-->
+    <div class="loader-wrapper">
+        <div class="loader">
+            <div class="loader4"></div>
+        </div>
+    </div>
+    <!-- loader ends-->
+    <!-- tap on top starts-->
+    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
+    <!-- tap on tap ends-->
+    <!-- page-wrapper Start-->
+    <div class="page-wrapper compact-wrapper" id="pageWrapper">
+        <!-- Page Header Start-->
+        <div class="page-header">
+            <div class="header-wrapper row m-0">
+                <div class="header-logo-wrapper col-auto p-0">
+                    <div class="logo-wrapper"> <a href="/admin-panel/dashboard"><img class="img-fluid for-light"
+                                src="/assets/images/logo/logo_dark.png" alt="logo-light"><img class="img-fluid for-dark"
+                                src="/assets/images/logo/logo.png" alt="logo-dark"></a></div>
+                    <div class="toggle-sidebar"> <i class="status_toggle middle sidebar-toggle"
+                            data-feather="align-center"></i></div>
+                </div>
+                <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
+                    <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
+                        <div class="d-flex align-items-center gap-2 ">
+                            <h4 class="f-w-600">Quiz Management</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="nav-right col-xxl-7 col-xl-6 col-md-7 col-8 pull-right right-header p-0 ms-auto">
+                    <ul class="nav-menus">
+                        <li class="profile-nav onhover-dropdown">
+                            <div class="media profile-media"><img class="b-r-10"
+                                    src="/assets/images/dashboard/profile.png" alt="">
+                                <div class="media-body d-xxl-block d-none box-col-none">
+                                    <div class="d-flex align-items-center gap-2"> <span id="admin-name">Admin</span><i
+                                            class="middle fa fa-angle-down"> </i></div>
+                                    <p class="mb-0 font-roboto">Admin</p>
+                                </div>
+                            </div>
+                            <ul class="profile-dropdown onhover-show-div">
+                                <li><a href="#" onclick="logout()"><i data-feather="log-out"></i><span>Log
+                                            Out</span></a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- Page Header Ends-->
+        <!-- Page Body Start-->
+        <div class="page-body-wrapper">
+            <!-- Page Sidebar Start-->
+            {% include "sidebar.html" %}
+            <!-- Page Sidebar Ends-->
+            <div class="page-body">
+                <div class="container-fluid">
+                    <div class="page-title">
+                        <div class="row">
+                            <div class="col-6">
+                                <h4>Quiz Questions</h4>
+                            </div>
+                            <div class="col-6">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard">
+                                            <svg class="stroke-icon">
+                                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                                            </svg></a></li>
+                                    <li class="breadcrumb-item">Quiz Module</li>
+                                    <li class="breadcrumb-item active">Questions</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Container-fluid starts-->
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <!-- Filters Card -->
+                            <div class="card">
+                                <div class="card-header pb-0">
+                                    <h5>Filters</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Domain</label>
+                                            <select class="form-select" id="filterDomain">
+                                                <option value="">All Domains</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Class Range</label>
+                                            <select class="form-select" id="filterClass">
+                                                <option value="">All Classes</option>
+                                                <option value="1-3">1-3</option>
+                                                <option value="3-5">3-5</option>
+                                                <option value="6-8">6-8</option>
+                                                <option value="9-10">9-10</option>
+                                                <option value="11-12">11-12</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Difficulty</label>
+                                            <select class="form-select" id="filterDifficulty">
+                                                <option value="">All Levels</option>
+                                                <option value="Easy">Easy</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="Hard">Hard</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Question Type</label>
+                                            <select class="form-select" id="filterType">
+                                                <option value="">All Types</option>
+                                                <option value="MCQ">MCQ</option>
+                                                <option value="TrueFalse">True/False</option>
+                                                <option value="FillInBlank">Fill in Blank</option>
+                                                <option value="PatternRecognition">Pattern Recognition</option>
+                                                <option value="LogicalReasoning">Logical Reasoning</option>
+                                                <option value="Analogy">Analogy</option>
+                                                <option value="Puzzle">Puzzle</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <button class="btn btn-primary" onclick="loadQuestions()"><i
+                                                    data-feather="filter"></i> Apply Filters</button>
+                                            <button class="btn btn-secondary" onclick="clearFilters()"><i
+                                                    data-feather="x"></i> Clear</button>
+                                            <a href="/admin-panel/quiz/add-question-page"
+                                                class="btn btn-success float-end"><i data-feather="plus"></i> Add
+                                                Question</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Questions Table Card -->
+                            <div class="card">
+                                <div class="card-header pb-0">
+                                    <h5>Questions List <span id="totalCount" class="badge badge-primary">0</span></h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+                                        <table class="table table-hover table-striped" id="questionsTable">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th style="width: 40%">Question</th>
+                                                    <th>Domain</th>
+                                                    <th>Type</th>
+                                                    <th>Class</th>
+                                                    <th>Difficulty</th>
+                                                    <th>Marks</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="questionsBody">
+                                                <tr>
+                                                    <td colspan="7" class="text-center">
+                                                        <div class="spinner-border text-primary" role="status">
+                                                            <span class="visually-hidden">Loading...</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Container-fluid Ends-->
+            </div>
+            <!-- footer start-->
+            <footer class="footer">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12 footer-copyright text-center">
+                            <p class="mb-0">Copyright 2024 © Quiz Management System</p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- View Question Modal -->
+    <div class="modal fade" id="viewQuestionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Question Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="questionDetails">
+                    <!-- Question details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
+    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
+    <script src="/assets/js/scrollbar/simplebar.js"></script>
+    <script src="/assets/js/scrollbar/custom.js"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/sidebar-menu.js"></script>
+    <script src="/assets/js/sidebar-pin.js"></script>
+    <script src="/assets/js/script.js"></script>
+
+    <script>
+        const token = localStorage.getItem("admin_token");
+        const API_BASE = "http://127.0.0.1:8000";
+
+        if (!token) {
+            window.location.replace("/admin-panel/login");
+        }
+
+        // Load domains for filter
+        async function loadDomains() {
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/quiz/domains`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await res.json();
+
+                const select = document.getElementById("filterDomain");
+                data.domains.forEach(domain => {
+                    const option = document.createElement("option");
+                    option.value = domain;
+                    option.textContent = domain;
+                    select.appendChild(option);
+                });
+            } catch (err) {
+                console.error("Error loading domains:", err);
+            }
+        }
+
+        // Load questions with filters
+        async function loadQuestions() {
+            const domain = document.getElementById("filterDomain").value;
+            const classRange = document.getElementById("filterClass").value;
+            const difficulty = document.getElementById("filterDifficulty").value;
+            const questionType = document.getElementById("filterType").value;
+
+            let url = `${API_BASE}/admin-panel/quiz/questions?limit=100`;
+            if (domain) url += `&domain=${encodeURIComponent(domain)}`;
+            if (classRange) url += `&class_range=${encodeURIComponent(classRange)}`;
+            if (difficulty) url += `&difficulty_level=${encodeURIComponent(difficulty)}`;
+            if (questionType) url += `&question_type=${encodeURIComponent(questionType)}`;
+
+            try {
+                const res = await fetch(url, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const data = await res.json();
+
+                document.getElementById("totalCount").textContent = data.total_count;
+                displayQuestions(data.data || []);
+            } catch (err) {
+                console.error("Error loading questions:", err);
+                document.getElementById("questionsBody").innerHTML =
+                    '<tr><td colspan="7" class="text-center text-danger">Error loading questions</td></tr>';
+            }
+        }
+
+        // Display questions in table
+        function displayQuestions(questions) {
+            const tbody = document.getElementById("questionsBody");
+
+            if (questions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">No questions found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = questions.map(q => `
+          <tr>
+            <td>
+              <div class="text-truncate" style="max-width: 400px;" title="${escapeHtml(q.question_text)}">
+                ${escapeHtml(q.question_text)}
+              </div>
+            </td>
+            <td><span class="badge badge-info">${q.domain}</span></td>
+            <td><span class="badge badge-secondary">${q.question_type}</span></td>
+            <td>${q.class_range}</td>
+            <td><span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${q.difficulty_level}</span></td>
+            <td>${q.marks}</td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="viewQuestion('${q.question_id}')" title="View">
+                <i data-feather="eye"></i>
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="deleteQuestion('${q.question_id}')" title="Delete">
+                <i data-feather="trash-2"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+            feather.replace();
+        }
+
+        // View question details
+        async function viewQuestion(questionId) {
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/quiz/question/${questionId}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const result = await res.json();
+                const q = result.data;
+
+                let optionsHtml = '';
+                if (q.options && q.options.length > 0) {
+                    optionsHtml = `
+              <div class="mb-3">
+                <strong>Options:</strong>
+                <ul>
+                  ${q.options.map(opt => `<li>${escapeHtml(opt)}</li>`).join('')}
+                </ul>
+              </div>
+            `;
+                }
+
+                document.getElementById("questionDetails").innerHTML = `
+            <div class="mb-3">
+              <strong>Question:</strong>
+              <p>${escapeHtml(q.question_text)}</p>
+            </div>
+            ${optionsHtml}
+            <div class="mb-3">
+              <strong>Correct Answer:</strong>
+              <p class="text-success">${escapeHtml(q.correct_answer)}</p>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <strong>Domain:</strong> ${q.domain}
+              </div>
+              <div class="col-md-6">
+                <strong>Type:</strong> ${q.question_type}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <strong>Class:</strong> ${q.class_range}
+              </div>
+              <div class="col-md-4">
+                <strong>Difficulty:</strong> ${q.difficulty_level}
+              </div>
+              <div class="col-md-4">
+                <strong>Marks:</strong> ${q.marks}
+              </div>
+            </div>
+            ${q.explanation ? `
+              <div class="mb-3">
+                <strong>Explanation:</strong>
+                <p>${escapeHtml(q.explanation)}</p>
+              </div>
+            ` : ''}
+            ${q.hints ? `
+              <div class="mb-3">
+                <strong>Hints:</strong>
+                <p>${escapeHtml(q.hints)}</p>
+              </div>
+            ` : ''}
+          `;
+
+                new bootstrap.Modal(document.getElementById('viewQuestionModal')).show();
+            } catch (err) {
+                console.error("Error viewing question:", err);
+                alert("Error loading question details");
+            }
+        }
+
+        // Delete question
+        async function deleteQuestion(questionId) {
+            if (!confirm("Are you sure you want to delete this question?")) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/quiz/delete-question/${questionId}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                if (res.ok) {
+                    alert("Question deleted successfully");
+                    loadQuestions();
+                } else {
+                    alert("Error deleting question");
+                }
+            } catch (err) {
+                console.error("Error deleting question:", err);
+                alert("Error deleting question");
+            }
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById("filterDomain").value = "";
+            document.getElementById("filterClass").value = "";
+            document.getElementById("filterDifficulty").value = "";
+            document.getElementById("filterType").value = "";
+            loadQuestions();
+        }
+
+        // Helper functions
+        function getDifficultyColor(difficulty) {
+            switch (difficulty) {
+                case 'Easy': return 'success';
+                case 'Medium': return 'warning';
+                case 'Hard': return 'danger';
+                default: return 'secondary';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function logout() {
+            localStorage.removeItem("admin_token");
+            window.location.replace("/admin-panel/login");
+        }
+
+        // Initialize
+        loadDomains();
+        loadQuestions();
+    </script>
+</body>
+
+</html>

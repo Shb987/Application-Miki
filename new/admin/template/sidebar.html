@@ -20,7 +20,9 @@
       <ul class="sidebar-links" id="simple-bar">
 
         <li class="sidebar-main-title">
-          <div><h6>GENERAL</h6></div>
+          <div>
+            <h6>GENERAL</h6>
+          </div>
         </li>
 
         <!-- Dashboard -->
@@ -79,7 +81,24 @@
             <li><a href="/admin-panel/exam_module-page">Add Textbook Details</a></li>
             <li><a href="/admin-panel/question_generation-page">Question Generation</a></li>
             <li><a href="/admin-panel/generated-question_view-page">View Questions</a></li>
+          </ul>
+        </li>
 
+        <!-- Quiz Module -->
+        <li class="sidebar-list" id="menu-quiz">
+          <a class="sidebar-link sidebar-title" href="#">
+            <svg class="stroke-icon">
+              <use xlink:href="/assets/svg/icon-sprite.svg#stroke-learning"></use>
+            </svg>
+            <svg class="fill-icon">
+              <use xlink:href="/assets/svg/icon-sprite.svg#fill-learning"></use>
+            </svg>
+            <span>Quiz Module</span>
+          </a>
+          <ul class="sidebar-submenu">
+            <li><a href="/admin-panel/quiz/questions-page">Manage Questions</a></li>
+            <li><a href="/admin-panel/quiz/add-question-page">Add Question</a></li>
+            <li><a href="/admin-panel/quiz/statistics-page">Statistics</a></li>
           </ul>
         </li>
 
@@ -90,29 +109,29 @@
 
 <!-- Corrected Active Menu Script -->
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const currentPath = window.location.pathname;  
+  document.addEventListener("DOMContentLoaded", function () {
+    const currentPath = window.location.pathname;
     const currentUrl = window.location.origin + window.location.pathname;
 
     document.querySelectorAll(".sidebar-submenu a").forEach(link => {
-        const linkUrl = new URL(link.href);
-        const cleanLink = linkUrl.origin + linkUrl.pathname;
+      const linkUrl = new URL(link.href);
+      const cleanLink = linkUrl.origin + linkUrl.pathname;
 
-        // Match only by pathname — avoids false matches
-        if (currentUrl === cleanLink) {
-            link.classList.add("active");
+      // Match only by pathname — avoids false matches
+      if (currentUrl === cleanLink) {
+        link.classList.add("active");
 
-            const parentMenu = link.closest(".sidebar-list");
-            if (parentMenu) {
-                parentMenu.classList.add("active");
+        const parentMenu = link.closest(".sidebar-list");
+        if (parentMenu) {
+          parentMenu.classList.add("active");
 
-                const submenu = parentMenu.querySelector(".sidebar-submenu");
-                if (submenu) {
-                    submenu.classList.add("menu-open");
-                    submenu.style.display = "block";
-                }
-            }
+          const submenu = parentMenu.querySelector(".sidebar-submenu");
+          if (submenu) {
+            submenu.classList.add("menu-open");
+            submenu.style.display = "block";
+          }
         }
+      }
     });
-});
+  });
 </script>

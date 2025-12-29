@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from routes import admin_routes, user_routes, otp_routes, admin_pages ,admin_exam_routes,user_exam_routes, exam_evaluation_routes, user_futurestudy_routes
+from routes import admin_routes, user_routes, otp_routes, admin_pages ,admin_exam_routes,user_exam_routes, exam_evaluation_routes, user_futurestudy_routes, admin_quiz_routes, user_quiz_routes
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
@@ -47,6 +47,8 @@ app.include_router(otp_routes.router, prefix="/otp", tags=["OTP"])
 app.include_router(user_exam_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(exam_evaluation_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Futurestudy Module"])
+app.include_router(admin_quiz_routes.router, prefix="/admin-panel", tags=["Quiz Module - Admin"])
+app.include_router(user_quiz_routes.router, prefix="/user", tags=["Quiz Module - User"])
 # router = APIRouter(tags=["Exam Module11"])
 
 # Admin Panel page routes (Jinja)

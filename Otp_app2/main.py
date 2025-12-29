@@ -1,3 +1,8 @@
+
+import firebase_admin
+from firebase_admin import credentials
+import os
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +14,21 @@ from fastapi.exception_handlers import request_validation_exception_handler
 
 
 app = FastAPI(title="OTP & User Managements")
+
+# ----------------------------------------
+# 🔥 FIREBASE INITIALIZATION
+# ----------------------------------------
+try:
+    cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "serviceAccountKey.json")
+    if os.path.exists(cred_path):
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+        print("✅ Firebase Admin Initialized Successfully")
+    else:
+        print(f"⚠️ Firebase Credentials not found at {cred_path}. Push notifications will not work.")
+except Exception as e:
+    print(f"❌ Failed to initialize Firebase: {e}")
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     print("💥 Validation Error:", exc.errors())

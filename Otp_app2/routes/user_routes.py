@@ -598,3 +598,94 @@ async def get_career_history(student_id: str,
         "total_attempts": len(combined_history),
         "career_history": combined_history
     }
+
+
+
+# --------------------- FCM Token Management -------------------------
+from pydantic import BaseModel
+class FCMTokenRequest(BaseModel):
+    fcm_token: str
+
+@router.post("/update-fcm-token")
+async def update_fcm_token(
+    payload: FCMTokenRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Updates the FCM Token for the logged-in user (Parent/Student).
+    This token is used for sending Push Notifications.
+    """
+    user_id = current_user.get("_id") # Assuming get_current_user returns the mongo document or dict with _id
+    
+    if not user_id:
+        # Fallback if _id is not directly in the dict, maybe it's 'user_id' or 'mobile_number'
+        # We need to identify the user record uniquely.
+        mobile_number = current_user.get("mobile_number")
+        if not mobile_number:
+            raise HTTPException(status_code=400, detail="User identification failed")
+            
+        result = await db.usertable.update_one(
+            {"mobile_number": mobile_number},
+            {"$set": {"fcm_token": payload.fcm_token}}
+        )
+    else:
+        # If we have the object ID
+        result = await db.usertable.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"fcm_token": payload.fcm_token}}
+        )
+
+    if result.modified_count == 0 and result.matched_count == 0:
+         return {"status": False, "message": "User not found or token unchanged"}
+
+    return {
+        "status": True, 
+        "message": "FCM Token updated successfully"
+    }
+
+# --------------------- Test Notification Endpoint -------------------------
+from services.notification_service import create_notification
+
+@router.post("/test-notification")
+async def test_notification(
+    title: str = "Test Notification",
+    message: str = "This is a test message from Swagger/Admin Panel",
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Manually triggers a push notification to the current user (if they have an FCM token).
+    """
+    
+    # We need to find the ID to use. 
+    # Based on notification_service, it expects 'user_id' which is used to look up the user record.
+    # The clean logic in update_fcm_token used 'mobile_number' or '_id'.
+    # create_notification logic looks for 'student_ids' OR '_id'.
+    
+    # Let's try to pass the student_id if available, or just the user's ID.
+    
+    target_id = None
+    
+    # If user is a parent and has connected students, use the first student ID as the "target"
+    if "student_ids" in current_user and current_user["student_ids"]:
+        target_id = current_user["student_ids"][0]
+    
+    # Fallback to the user's direct ID
+    if not target_id:
+        target_id = str(current_user.get("_id"))
+        
+    if not target_id:
+         raise HTTPException(status_code=400, detail="Could not determine a target ID for notification")
+
+    result = await create_notification(
+        db=db,
+        user_id=target_id,
+        title=title,
+        message=message,
+        type="test_notification"
+    )
+    
+    return {
+        "status": True, 
+        "message": "Notification Triggered. Check server logs for '🔥 FCM Notification Sent'.", 
+        "data": result
+    }

@@ -47,11 +47,14 @@ app.include_router(otp_routes.router, prefix="/otp", tags=["OTP"])
 app.include_router(user_exam_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(exam_evaluation_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Futurestudy Module"])
+
+# Admin Panel page routes (Jinja) - MUST come before admin_quiz_routes to avoid conflicts
+app.include_router(admin_pages.router,prefix="/admin-panel",tags=["Admin Pages"])
+
+# Quiz API routes - comes after pages to avoid shadowing
 app.include_router(admin_quiz_routes.router, prefix="/admin-panel", tags=["Quiz Module - Admin"])
 app.include_router(user_quiz_routes.router, prefix="/user", tags=["Quiz Module - User"])
 # router = APIRouter(tags=["Exam Module11"])
 
-# Admin Panel page routes (Jinja)
-app.include_router(admin_pages.router,prefix="/admin-panel",tags=["Admin Pages"])
 
 

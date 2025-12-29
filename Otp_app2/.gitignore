@@ -13,14 +13,13 @@ replacements.txt
 test_jwt_gen.py
 temp/
 tests/
+# Quiz module test/utility files
 check_quiz_db.py
 upload_additional_questions.py
-upload_questions.py
+upload_quiz_questions.py
+test_quiz_module.py
+
+# Sample data files
 additional_quiz_questions.json
 sample_quiz_questions.json
-test_jwt_gen.py
-upload_additional_questions.py
-upload_questions.py
-test_quiz_module.py
-uploads_quiz_questions.py
 paper.json

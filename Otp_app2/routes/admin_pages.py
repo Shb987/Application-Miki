@@ -67,3 +67,24 @@ async def questions_category_page(request: Request, category: str):
         "questions.html",
         {"request": request, "category": category, "questions": questions}
     )
+
+
+# ==================== QUIZ MODULE ROUTES ====================
+
+@router.get("/quiz/questions-page", response_class=HTMLResponse)
+async def quiz_questions_page(request: Request):
+    """Quiz questions management page"""
+    return templates.TemplateResponse("quiz_questions.html", {"request": request})
+
+
+@router.get("/quiz/add-question-page", response_class=HTMLResponse)
+async def quiz_add_question_page(request: Request):
+    """Add/Edit quiz question page"""
+    return templates.TemplateResponse("quiz_add_question.html", {"request": request})
+
+
+@router.get("/quiz/statistics-page", response_class=HTMLResponse)
+async def quiz_statistics_page(request: Request):
+    """Quiz statistics dashboard page"""
+    return templates.TemplateResponse("quiz_statistics.html", {"request": request})
+

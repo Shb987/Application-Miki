@@ -687,7 +687,7 @@ async def test_notification(
         user_id=target_id,
         title=title,
         message=message,
-        type="test_notification"
+        notification_type="test_notification"
     )
     
     return {

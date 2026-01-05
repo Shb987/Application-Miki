@@ -299,7 +299,7 @@ async def process_evaluation_background(evaluation_id: str, paper_id: str, stude
                     user_id=student_id,
                     title="Evaluation Completed",
                     message=f"Your evaluation is complete. Score: {total_score}/{max_total}.",
-                    type="evaluation_completed"
+                    notification_type="evaluation_completed"
                 )
             else:
                 await create_notification(
@@ -307,7 +307,7 @@ async def process_evaluation_background(evaluation_id: str, paper_id: str, stude
                     user_id=student_id,
                     title="Evaluation Failed",
                     message="Evaluation failed. Please try again later.",
-                    type="evaluation_failed"
+                    notification_type="evaluation_failed"
                 )
         except Exception as n_err:
             print("Notification error:", n_err)

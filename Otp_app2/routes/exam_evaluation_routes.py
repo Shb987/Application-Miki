@@ -6,7 +6,7 @@ import base64
 from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import AsyncOpenAI
 import json
 from bson import ObjectId
 
@@ -14,7 +14,7 @@ from bson import ObjectId
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 from core.database import db
 
@@ -76,7 +76,7 @@ async def extract_answers_with_vision(image_paths, question_paper_text):
         })
 
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "user", "content": content_payload}
@@ -94,7 +94,7 @@ async def extract_answers_with_vision(image_paths, question_paper_text):
 # --------------------------------
 # 2. EVALUATE ONE QUESTION (RAG)
 # --------------------------------
-def evaluate_answer(question, student_answer, max_marks, context_text):
+async def evaluate_answer(question, student_answer, max_marks, context_text):
     prompt = f"""
 You are an expert academic evaluator.
 
@@ -125,7 +125,7 @@ Return JSON only:
 """
 
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
@@ -168,7 +168,7 @@ import os, uuid, datetime
 from utils.user_auth import get_current_user
 from services.notification_service import create_notification
 
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from typing import List
@@ -190,29 +190,12 @@ def clean_mongo(data):
     else:
         return data
 
-router = APIRouter()
-@router.post("/evaluate-answersheet")
-async def evaluate_answersheet(
-    student_id: str = Form(...),
-    paper_id: str = Form(...),
-    files: List[UploadFile] = File(...),
-    current_user: dict = Depends(get_current_user)
-):
-    saved_file_paths = []
+async def process_evaluation_background(evaluation_id: str, paper_id: str, student_id: str, saved_file_paths: List[str]):
     evaluation_status = "FAILED"
     total_score = 0
     max_total = 0
 
     try:
-        # 1. Save files
-        os.makedirs("temp", exist_ok=True)
-        for file in files:
-            ext = file.filename.split(".")[-1]
-            path = f"temp/{uuid.uuid4()}.{ext}"
-            with open(path, "wb") as f:
-                f.write(await file.read())
-            saved_file_paths.append(path)
-
         # 2. Fetch paper
         paper_doc = await db.generated_papers.find_one({"paper.paper_id": paper_id})
         if not paper_doc:
@@ -256,7 +239,7 @@ async def evaluate_answersheet(
             marks = section["marks_per_question"]
             for q in section["questions"]:
                 student_ans = student_answers.get(str(q_number), "[Not Attempted]")
-                eval_result = evaluate_answer(
+                eval_result = await evaluate_answer(
                     q["question"], student_ans, marks, context_text
                 )
 
@@ -278,57 +261,39 @@ async def evaluate_answersheet(
 
         evaluation_status = "COMPLETED"
 
-        evaluation_data = {
-            "evaluation_id": str(uuid.uuid4()),
-            "paper_id": paper_id,
-            "student_id": student_id,
-            "status": evaluation_status,
-            "total_score": total_score,
-            "max_total": max_total,
-            "detailed_results": detailed_results,
-            "created_at": datetime.datetime.utcnow().isoformat()
-        }
-
-        await db.evaluations.insert_one(evaluation_data)
-
-        return JSONResponse(
-            status_code=200,
-            content={
-                "status": True,
-                "message": "Evaluation completed successfully",
-                "data": clean_mongo(evaluation_data)
+        # Update the existing evaluation record
+        await db.evaluations.update_one(
+            {"evaluation_id": evaluation_id},
+            {
+                "$set": {
+                    "status": evaluation_status,
+                    "total_score": total_score,
+                    "max_total": max_total,
+                    "detailed_results": detailed_results,
+                    "completed_at": datetime.datetime.utcnow().isoformat()
+                }
             }
         )
 
     except Exception as e:
         error_message = str(e)
-
-        evaluation_data = {
-            "evaluation_id": str(uuid.uuid4()),
-            "paper_id": paper_id,
-            "student_id": student_id,
-            "status": "FAILED",
-            "error": error_message,
-            "created_at": datetime.datetime.utcnow().isoformat()
-        }
-
-        await db.evaluations.insert_one(evaluation_data)
-
-        return JSONResponse(
-            status_code=200,
-            content={
-                "status": False,
-                "message": "Evaluation failed",
-                "error": error_message
+        print(f"Background Evaluation Failed: {e}")
+        
+        await db.evaluations.update_one(
+            {"evaluation_id": evaluation_id},
+            {
+                "$set": {
+                    "status": "FAILED",
+                    "error": error_message,
+                    "completed_at": datetime.datetime.utcnow().isoformat()
+                }
             }
         )
 
     finally:
-        # 🔔 Notification MUST NEVER FAIL
-        print(evaluation_status)
+        # 🔔 Notification
         try:
             if evaluation_status == "COMPLETED":
-                print('first')
                 await create_notification(
                     db=db,
                     user_id=student_id,
@@ -337,23 +302,91 @@ async def evaluate_answersheet(
                     type="evaluation_completed"
                 )
             else:
-                print('second')
-
                 await create_notification(
                     db=db,
                     user_id=student_id,
                     title="Evaluation Failed",
-                    message="Evaluation failed due to OCR / processing issue. Please try again later.",
+                    message="Evaluation failed. Please try again later.",
                     type="evaluation_failed"
                 )
         except Exception as n_err:
             print("Notification error:", n_err)
 
+        # Cleanup files
         for path in saved_file_paths:
             try:
                 os.remove(path)
             except:
                 pass
+
+@router.post("/evaluate-answersheet")
+async def evaluate_answersheet(
+    background_tasks: BackgroundTasks,
+    student_id: str = Form(...),
+    paper_id: str = Form(...),
+    files: List[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    saved_file_paths = []
+    evaluation_id = str(uuid.uuid4())
+    
+    try:
+        # 1. Save files locally (must be done in main thread to await UploadFile)
+        os.makedirs("temp", exist_ok=True)
+        for file in files:
+            ext = file.filename.split(".")[-1]
+            path = f"temp/{uuid.uuid4()}.{ext}"
+            with open(path, "wb") as f:
+                f.write(await file.read())
+            saved_file_paths.append(path)
+
+        # 2. Create Initial DB Record
+        initial_evaluation_data = {
+            "evaluation_id": evaluation_id,
+            "paper_id": paper_id,
+            "student_id": student_id,
+            "status": "PROCESSING",
+            "created_at": datetime.datetime.utcnow().isoformat()
+        }
+        await db.evaluations.insert_one(initial_evaluation_data)
+
+        # 3. Add Background Task
+        background_tasks.add_task(
+            process_evaluation_background,
+            evaluation_id,
+            paper_id,
+            student_id,
+            saved_file_paths
+        )
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": True,
+                "message": "Evaluation started in background.",
+                "data": {
+                    "evaluation_id": evaluation_id,
+                    "status": "PROCESSING"
+                }
+            }
+        )
+
+    except Exception as e:
+        # Cleanup if initial setup fails
+        for path in saved_file_paths:
+            try:
+                os.remove(path)
+            except:
+                pass
+                
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": False,
+                "message": "Failed to start evaluation",
+                "error": str(e)
+            }
+        )
 
 
 @router.get("/notifications/{user_id}")

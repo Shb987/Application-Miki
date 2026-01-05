@@ -12,12 +12,15 @@ uploads/
 replacements.txt
 test_jwt_gen.py
 temp/
+test_onesignal_config.py
 tests/
+
 # Quiz module test/utility files
 check_quiz_db.py
 upload_additional_questions.py
 upload_quiz_questions.py
 test_quiz_module.py
+verify_onesignal_import.py
 
 # Sample data files
 additional_quiz_questions.json
@@ -27,3 +30,5 @@ paper.json
 
 
 serviceAccountKey.json
+NOTIFICATION_WORKFLOW.md
+

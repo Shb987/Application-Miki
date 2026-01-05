@@ -66,9 +66,15 @@ def clean_mongo_doc(doc):
     return doc
 # --------------------- Fetch Parent Details -------------------------
 @router.get("/parent")
-async def get_parent_details(mobile_number: str = Query(..., description="The mobile number of the parent"),
-    current_user=Depends(get_current_user)
+async def get_parent_details(
+    current_user: dict = Depends(get_current_user)
 ):
+    """
+    Fetch details for the currently logged-in parent.
+    Mobile number is extracted from the JWT token.
+    """
+    mobile_number = current_user.get("sub")
+    
     user_record = await db.usertable.find_one({"mobile_number": mobile_number})
     if not user_record:
         return {"status_code": 404, "message": "Parent not found"}

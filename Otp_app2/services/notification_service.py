@@ -1,66 +1,77 @@
-# services/notification_service.py
 import uuid
 import datetime
-from firebase_admin import messaging
+import os
+import httpx
 from bson import ObjectId
 
-async def create_notification(db, user_id: str, title: str, message: str, type: str):
+# OneSignal Credentials
+ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID")
+ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY")
+
+async def create_notification(db, user_id: str, title: str, message: str, notification_type: str):
+    """
+    Creates a notification in MongoDB and sends it via OneSignal.
+    
+    Args:
+        db: MongoDB database instance
+        user_id: The ID of the student/user to receive the notification.
+        title: Notification Title
+        message: Notification Body
+        notification_type: Type of notification (e.g., 'evaluation_completed')
+    """
+    
     # 1. Save to MongoDB (History)
+    notification_id = str(uuid.uuid4())
     notification = {
-        "notification_id": str(uuid.uuid4()),
+        "notification_id": notification_id,
         "user_id": user_id,
         "title": title,
         "message": message,
-        "type": type,  # evaluation_completed, marks_generated, etc
+        "type": notification_type,
         "is_read": False,
         "created_at": datetime.datetime.utcnow()
     }
 
     await db.notifications.insert_one(notification)
 
-    # 2. Push to Firebase (FCM)
+    # 2. Push to OneSignal
+    if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
+        print("⚠️ OneSignal credentials not found in .env. Skipping push notification.")
+        return notification
+
+    url = "https://onesignal.com/api/v1/notifications"
+    
+    headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": f"Basic {ONESIGNAL_API_KEY}"
+    }
+    
+    # Payload for OneSignal
+    # We target the user by their 'user_id' (student_id) which should be set as 'external_user_id' in the App.
+    payload = {
+        "app_id": ONESIGNAL_APP_ID,
+        "include_external_user_ids": [user_id], 
+        "headings": {"en": title},
+        "contents": {"en": message},
+        "data": {
+            "type": notification_type,
+            "student_id": user_id,
+            "notification_id": notification_id
+        }
+    }
+    
+    # Fire and Forget (Async)
+    # We catch exceptions so as not to block the main thread or error out the request
     try:
-        # We need to find the user's FCM token.
-        # Check if user_id is a student_id or a mobile_number (parent).
-        # Assuming user_id refers to 'student_id' based on previous context.
-        
-        # Strategy: 
-        # A. If user_id is a student_id, find the parent (usertable) who owns this student.
-        # as students usually don't have separate logins, they use parents login? 
-        # OR if students have their own login, we check their record.
-        
-        # Based on user_routes, students are linked to 'usertable' via 'student_ids'.
-        # Let's search for the user who HAS this student_id in their list or is the student.
-        
-        user_record = await db.usertable.find_one({"student_ids": user_id}) 
-        if not user_record:
-             # Fallback: maybe the user_id IS the unique ID of the usertable? 
-             user_record = await db.usertable.find_one({"_id": ObjectId(user_id)}) if ObjectId.is_valid(user_id) else None
-
-        if user_record and "fcm_token" in user_record:
-            fcm_token = user_record["fcm_token"]
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, headers=headers)
             
-            # Construct Message
-            message_payload = messaging.Message(
-                notification=messaging.Notification(
-                    title=title,
-                    body=message,
-                ),
-                data={
-                    "type": type,
-                    "student_id": user_id,
-                    "notification_id": notification["notification_id"]
-                },
-                token=fcm_token,
-            )
-
-            # Send
-            response = messaging.send(message_payload)
-            print("🔥 FCM Notification Sent:", response)
-        else:
-            print(f"⚠️ No FCM Token found for user related to student {user_id}")
-
+            if response.status_code == 200:
+                print(f"✅ OneSignal Notification Sent to {user_id}: {response.json()}")
+            else:
+                print(f"❌ OneSignal Error {response.status_code}: {response.text}")
+                
     except Exception as e:
-        print(f"❌ FCM Push Failed: {e}")
+        print(f"❌ OneSignal Push Failed: {e}")
 
     return notification

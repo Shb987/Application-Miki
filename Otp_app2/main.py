@@ -29,6 +29,7 @@ try:
 except Exception as e:
     print(f"❌ Failed to initialize Firebase: {e}")
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     print("💥 Validation Error:", exc.errors())

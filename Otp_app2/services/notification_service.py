@@ -51,6 +51,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
     payload = {
         "app_id": ONESIGNAL_APP_ID,
         "include_external_user_ids": [user_id], 
+        "external_id": user_id,  # Link to student ID for tracking in response
         "headings": {"en": title},
         "contents": {"en": message},
         "data": {
@@ -65,7 +66,8 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
-            
+            print(response)
+            print(headers)
             if response.status_code == 200:
                 print(f"✅ OneSignal Notification Sent to {user_id}: {response.json()}")
             else:

@@ -400,7 +400,7 @@ async def get_notifications(user_id: str, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=403, detail="Unauthorized access to notifications")
 
     notifications = await db.notifications.find(
-        {"user_id": user_id}
+        {"user_id": user_id, "is_read": False}
     ).sort("created_at", -1).to_list(100)
 
     return {"status": True, "data": clean_mongo(notifications)}

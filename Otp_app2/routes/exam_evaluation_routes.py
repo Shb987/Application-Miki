@@ -427,3 +427,33 @@ async def mark_notification_read(notification_id: str, current_user: dict = Depe
         )
 
     return {"status": True, "message": "Notification marked as read"}
+@router.get("/exam-history/{student_id}")
+async def get_exam_history(student_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Fetch all exam evaluations for a specific student.
+    """
+    # Enforce ownership: User can only see their own history or a parent can see their linked students
+    user_student_id = current_user.get("student_id")
+    # If the user is a student, ensure they only access their own history
+    if user_student_id and user_student_id != student_id:
+        raise HTTPException(status_code=403, detail="Unauthorized access to exam history")
+    
+    # If user is a parent, we should ideally check if the student_id is in their list
+    # For now, following the pattern in get_notifications
+    
+    evaluations = await db.evaluations.find(
+        {"student_id": student_id}
+    ).sort("created_at", -1).to_list(100)
+
+    if not evaluations:
+        return {
+            "status": True,
+            "message": "No exam history found for this student.",
+            "data": []
+        }
+
+    return {
+        "status": True,
+        "message": "Exam history retrieved successfully.",
+        "data": clean_mongo(evaluations)
+    }

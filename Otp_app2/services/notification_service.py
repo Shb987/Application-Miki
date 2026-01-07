@@ -9,7 +9,7 @@ from bson import ObjectId
 ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID")
 ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY")
 
-async def create_notification(db, user_id: str, title: str, message: str, notification_type: str):
+async def create_notification(db, user_id: str, title: str, message: str, notification_type: str, extra_data: dict = None):
     """
     Creates a notification in MongoDB and sends it via OneSignal.
     
@@ -19,6 +19,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
         title: Notification Title
         message: Notification Body
         notification_type: Type of notification (e.g., 'evaluation_completed')
+        extra_data: Optional dictionary with additional data (e.g., evaluation_id)
     """
     
     # 1. Save to MongoDB (History)
@@ -32,6 +33,10 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
         "is_read": False,
         "created_at": datetime.datetime.utcnow()
     }
+
+    # Merge extra data if provided
+    if extra_data:
+        notification.update(extra_data)
 
     await db.notifications.insert_one(notification)
 
@@ -49,16 +54,20 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
     
     # Payload for OneSignal
     # We target the user by their 'user_id' (student_id) which should be set as 'external_user_id' in the App.
+    onesignal_data = {
+        "type": notification_type,
+        "student_id": user_id,
+        "notification_id": notification_id
+    }
+    if extra_data:
+        onesignal_data.update(extra_data)
+
     payload = {
         "app_id": ONESIGNAL_APP_ID,
         "include_external_user_ids": [user_id], 
         "headings": {"en": title},
         "contents": {"en": message},
-        "data": {
-            "type": notification_type,
-            "student_id": user_id,
-            "notification_id": notification_id
-        }
+        "data": onesignal_data
     }
     
     # Fire and Forget (Async)

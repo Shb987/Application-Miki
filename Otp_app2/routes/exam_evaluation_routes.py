@@ -299,7 +299,8 @@ async def process_evaluation_background(evaluation_id: str, paper_id: str, stude
                     user_id=student_id,
                     title="Evaluation Completed",
                     message=f"Your evaluation is complete. Score: {total_score}/{max_total}.",
-                    notification_type="evaluation_completed"
+                    notification_type="evaluation_completed",
+                    extra_data={"evaluation_id": evaluation_id}
                 )
             else:
                 await create_notification(

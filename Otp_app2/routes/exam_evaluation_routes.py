@@ -458,3 +458,25 @@ async def get_exam_history(student_id: str, current_user: dict = Depends(get_cur
         "message": "Exam history retrieved successfully.",
         "data": clean_mongo(evaluations)
     }
+
+@router.get("/evaluation-detail/{evaluation_id}")
+async def get_evaluation_detail(evaluation_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Fetch full details of a specific exam evaluation.
+    """
+    evaluation = await db.evaluations.find_one({"evaluation_id": evaluation_id})
+    
+    if not evaluation:
+        raise HTTPException(status_code=404, detail="Evaluation not found")
+
+    # Enforce ownership: User can only see their own history or a parent can see their linked students
+    user_student_id = current_user.get("student_id")
+    # If the user is a student, ensure they only access their own history
+    if user_student_id and user_student_id != evaluation.get("student_id"):
+        raise HTTPException(status_code=403, detail="Unauthorized access to evaluation details")
+
+    return {
+        "status": True,
+        "message": "Evaluation details retrieved successfully.",
+        "data": clean_mongo(evaluation)
+    }

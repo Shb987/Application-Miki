@@ -341,11 +341,16 @@ async def evaluate_answersheet(
                 f.write(await file.read())
             saved_file_paths.append(path)
 
+        try:
+            s_oid = ObjectId(student_id)
+        except:
+            raise HTTPException(status_code=400, detail="Invalid student ID format (must be 24-char hex)")
+
         # 2. Create Initial DB Record
         initial_evaluation_data = {
             "evaluation_id": evaluation_id,
             "paper_id": paper_id,
-            "student_id": student_id,
+            "student_id": s_oid,
             "status": "PROCESSING",
             "created_at": datetime.datetime.utcnow().isoformat()
         }
@@ -356,7 +361,7 @@ async def evaluate_answersheet(
             process_evaluation_background,
             evaluation_id,
             paper_id,
-            student_id,
+            s_oid,
             saved_file_paths
         )
 
@@ -400,8 +405,13 @@ async def get_notifications(user_id: str, current_user: dict = Depends(get_curre
     if user_student_id and user_student_id != user_id:
         raise HTTPException(status_code=403, detail="Unauthorized access to notifications")
 
+    try:
+        s_oid = ObjectId(user_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format (must be 24-char hex)")
+
     notifications = await db.notifications.find(
-        {"user_id": user_id, "is_read": False}
+        {"student_id": s_oid, "is_read": False}
     ).sort("created_at", -1).to_list(100)
 
     return {"status": True, "data": clean_mongo(notifications)}
@@ -414,7 +424,10 @@ async def mark_notification_read(notification_id: str, current_user: dict = Depe
     # Update only if notification belongs to the user
     query = {"notification_id": notification_id}
     if user_id:
-        query["user_id"] = user_id
+        try:
+            query["student_id"] = ObjectId(user_id)
+        except:
+             raise HTTPException(status_code=400, detail="Invalid student_id format in token")
 
     result = await db.notifications.update_one(
         query,
@@ -442,8 +455,13 @@ async def get_exam_history(student_id: str, current_user: dict = Depends(get_cur
     # If user is a parent, we should ideally check if the student_id is in their list
     # For now, following the pattern in get_notifications
     
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format (must be 24-char hex)")
+
     evaluations = await db.evaluations.find(
-        {"student_id": student_id}
+        {"student_id": s_oid}
     ).sort("created_at", -1).to_list(100)
 
     if not evaluations:

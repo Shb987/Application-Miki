@@ -16,9 +16,12 @@ def create_user_token(mobile_number: str, usertype: str, student_id: str | None 
         "sub": mobile_number,
         "role": "user",
         "usertype": usertype,
-        "student_id": student_id,
         "exp": expire
     }
+    
+    # Only include student_id if it's actually provided (e.g. for student sessions)
+    if student_id:
+        payload["student_id"] = student_id
     print(payload)
 
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

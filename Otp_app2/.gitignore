@@ -14,6 +14,9 @@ test_jwt_gen.py
 temp/
 test_onesignal_config.py
 tests/
+services/
+verify_companion_module.py
+test_serializer_fix.py
 
 # Quiz module test/utility files
 check_quiz_db.py

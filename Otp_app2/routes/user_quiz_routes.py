@@ -90,8 +90,15 @@ async def submit_quiz(
     """
     Submit quiz answers and get immediate results with scoring.
     """
-    user_id = current_user.get("mobile_number")
-    student_name = current_user.get("student_name", "Unknown")
+    # Identifiers from token
+    mobile_number = current_user.get("sub")
+    student_id_str = current_user.get("student_id")
+    student_name = current_user.get("student_name", "Student") # Fallback
+    
+    try:
+        s_oid = ObjectId(student_id_str) if student_id_str else None
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id in token")
     
     # Extract question IDs from submission
     question_ids = [ObjectId(ans.question_id) for ans in submission.answers]
@@ -148,8 +155,8 @@ async def submit_quiz(
     
     # Save submission to database
     submission_doc = {
-        "user_id": user_id,
-        "mobile_number": user_id,
+        "student_id": s_oid, # The standard ObjectID link
+        "mobile_number": mobile_number,
         "student_name": student_name,
         "quiz_questions": [ans.question_id for ans in submission.answers],
         "user_answers": user_answers_dict,
@@ -158,7 +165,7 @@ async def submit_quiz(
         "percentage": round(percentage, 2),
         "domain": submission.domain,
         "class_range": submission.class_range,
-        "submitted_at": datetime.utcnow()
+        "submitted_at": datetime.now(timezone.utc)
     }
     
     result = await db.quiz_submissions.insert_one(submission_doc)
@@ -195,8 +202,11 @@ async def get_quiz_results(
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
     
-    # Verify user owns this submission
-    if submission["user_id"] != current_user.get("mobile_number"):
+    # Verify user owns this submission (via mobile OR student_id)
+    mobile_number = current_user.get("sub")
+    student_id_str = current_user.get("student_id")
+    
+    if submission.get("mobile_number") != mobile_number and str(submission.get("student_id")) != student_id_str:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Fetch question details
@@ -248,9 +258,16 @@ async def get_quiz_history(
     """
     Get user's quiz attempt history with optional domain filter.
     """
-    user_id = current_user.get("mobile_number")
-    
-    query = {"user_id": user_id}
+    # Get student_id from token
+    student_id_str = current_user.get("student_id")
+    mobile_number = current_user.get("sub")
+
+    if student_id_str:
+        query = {"student_id": ObjectId(student_id_str)}
+    else:
+        # Fallback for parent view/mixed history
+        query = {"mobile_number": mobile_number}
+        
     if domain:
         query["domain"] = domain
     
@@ -365,11 +382,17 @@ async def get_user_stats(current_user: dict = Depends(get_current_user)):
     """
     Get user's quiz statistics - total quizzes taken, average score, etc.
     """
-    user_id = current_user.get("mobile_number")
+    student_id_str = current_user.get("student_id")
+    mobile_number = current_user.get("sub")
     
+    if student_id_str:
+        match_query = {"student_id": ObjectId(student_id_str)}
+    else:
+        match_query = {"mobile_number": mobile_number}
+
     # Aggregate stats
     pipeline = [
-        {"$match": {"user_id": user_id}},
+        {"$match": match_query},
         {"$group": {
             "_id": None,
             "total_quizzes": {"$sum": 1},
@@ -404,7 +427,7 @@ async def get_user_stats(current_user: dict = Depends(get_current_user)):
     
     # Get domain-wise breakdown
     domain_stats = await db.quiz_submissions.aggregate([
-        {"$match": {"user_id": user_id}},
+        {"$match": match_query},
         {"$group": {
             "_id": "$domain",
             "attempts": {"$sum": 1},

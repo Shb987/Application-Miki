@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from openai import OpenAI
+from bson import ObjectId
 from dotenv import load_dotenv
 from core.database import db
 import os
@@ -22,9 +23,14 @@ async def generate_future_study_guidance(student_id: str):
     recommendations based on student's recommended career.
     """
 
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
     # 1️⃣ Fetch latest career analysis for student
     record = await db.career_analyzer.find_one(
-        {"student_id": student_id},
+        {"student_id": s_oid},
         sort=[("timestamp", -1)]
     )
 
@@ -72,7 +78,7 @@ Return STRICT JSON only in this format:
 
     # 3️⃣ OpenAI call
     response = client.chat.completions.create(
-        model="gpt-4.1-mini",
+        model="gpt-4o-mini",
         messages=[
             {"role": "user", "content": prompt}
         ],

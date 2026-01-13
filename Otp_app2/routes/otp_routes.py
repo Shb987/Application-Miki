@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from models.otp_models import OTPRequest, OTPVerify
 from core.database import db
 from core.settings import settings
-from utils.user_auth import get_current_user  # <-- USERS JWT (parent/student)
+from utils.user_auth import get_current_user,create_user_token  # <-- USERS JWT (parent/student)
 
 router = APIRouter(tags=["OTP"])
 
@@ -54,32 +54,46 @@ async def verify_otp(data: OTPVerify):
     if record.get("otp") != data.otp:
         return {"status_code": 400, "message": "Invalid OTP"}
 
-    # Generate Token
-    from utils.user_auth import create_user_token
-    
-    usertype = record.get("usertype") 
-    # Handle case if usertype is None (e.g. fresh registration) - defaulting to "parent" or handling appropriately?
-    # Based on existing flow, clean registration usually happens AFTER verify? 
-    # But we need a token to call protected routes.
-    # If usertype is None, let's treat it as a temporary/guest state or just pass "parent" if that's the default entry.
-    # Looking at register_student, it sets "usertype": "parent".
-    
-    if not usertype:
-        usertype = "null" # Default fallback for new users who haven't set a type yet.
+    # Get usertype
+    usertype = record.get("usertype") or "null"
 
-    access_token = create_user_token(
-        mobile_number=data.mobile_number, 
-        usertype=usertype
-    )
+    # Default value
+    is_user = False
+
+    # ✅ Check only if student
+    if usertype == "student":
+        print('check1')
+        user_record = await db.usertable.find_one(
+            {"mobile_number": data.mobile_number}
+        )
+        print(data.mobile_number)
+
+        if user_record:
+            print('check2')
+            student_id = user_record.get("student_id")
+
+            if student_id:
+                print('check3')
+
+                student = await db.students.find_one(
+                    {"_id": (student_id)},
+                    {"is_user": 1}
+                )
+
+                if student and student.get("is_user") is True:
+                    print('check4')
+                    is_user = True
+
+    access_token = create_user_token(data.mobile_number, usertype)
 
     return {
         "status_code": 200,
         "message": "OTP verified successfully",
-        "usertype": record.get("usertype"),
+        "usertype": usertype,
+        "is_user": is_user,
         "access_token": access_token,
         "token_type": "bearer"
     }
-
 
 # 🔐 PROTECTED — must be a LOGGED IN USER (parent)
 @router.post("/switch-user/send-otp")

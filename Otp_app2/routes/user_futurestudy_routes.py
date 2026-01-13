@@ -3,6 +3,8 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from core.database import db
 import os
+import json
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -11,18 +13,30 @@ router = APIRouter(
     tags=["User_Futurestudy Module"]
 )
 
-# Initialize OpenAI client using .env key
+# OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
+# ---------- Helper function to safely extract JSON ----------
+def extract_json(text: str):
+    try:
+        # Remove markdown code blocks if present
+        if "" in text:
+            text = text.split("")[1]
+
+        # Extract JSON portion
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        return json.loads(text[start:end])
+    except Exception:
+        return None
+
+
+# ---------- API Endpoint ----------
 @router.get("/{student_id}")
 async def generate_future_study_guidance(student_id: str):
-    """
-    Generate AI-based video, tutorial, and competitive exam
-    recommendations based on student's recommended career.
-    """
 
-    # 1️⃣ Fetch latest career analysis for student
+    # Fetch latest career analysis
     record = await db.career_analyzer.find_one(
         {"student_id": student_id},
         sort=[("timestamp", -1)]
@@ -37,54 +51,99 @@ async def generate_future_study_guidance(student_id: str):
     recommended_career = record.get("recommended_career")
     top_category = record.get("top_category")
 
-    if not recommended_career:
+    if not recommended_career or not top_category:
         raise HTTPException(
             status_code=400,
-            detail="Recommended career not available"
+            detail="Career data incomplete"
         )
 
-    # 2️⃣ OpenAI prompt
+    # Prompt
     prompt = f"""
-You are an expert educational career guidance system.
-Top intelligence category: {top_category}
-Recommended career(s): {recommended_career}
+You are an educational career guidance assistant.
 
-Generate the following in SIMPLE language suitable for school students:
+Student Information:
+- Top intelligence category: {top_category}
+- Recommended career(s): {recommended_career}
 
-1. Video learning suggestions (mention platforms like YouTube, Khan Academy)
-2. Tutorials / learning roadmap
-3. Competitive exams related to this career
-   (India-focused, age-appropriate, future-oriented)
+TASK:
+Provide ONLY verified online learning links and competitive exam details
+suitable for SCHOOL STUDENTS in India.
 
-Rules:
-- Avoid college-only exams for children
-- Avoid technical jargon
-- Keep recommendations practical
+RULES:
+- Video resources → ONLY YouTube links
+- Tutorial resources → ONLY learning/tutorial links
+- Exams must be India-based and school-level
+- No explanations outside JSON
+- No markdown, no extra text
 
-Return STRICT JSON only in this format:
+RETURN STRICT JSON ONLY:
 
 {{
-  "videos": [],
-  "tutorials": [],
-  "competitive_exams": []
+  "youtube_videos": [
+    {{
+      "title": "",
+      "link": ""
+    }}
+  ],
+  "tutorial_links": [
+    {{
+      "title": "",
+      "link": ""
+    }}
+  ],
+  "competitive_exams": [
+    {{
+      "exam_name": "",
+      "eligibility": "",
+      "age_group": "",
+      "description": ""
+    }}
+  ]
 }}
 """
 
-    # 3️⃣ OpenAI call
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.4
-    )
+    # OpenAI call (LATEST API – STABLE)
+    try:
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=prompt
+        )
+        ai_content = response.output_text
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"OpenAI API error: {str(e)}"
+        )
 
-    ai_result = response.choices[0].message.content
+    # Parse AI JSON safely
+    ai_data = extract_json(ai_content)
 
-    # 4️⃣ API response
-    return {
+    if not ai_data:
+        raise HTTPException(
+            status_code=500,
+            detail="AI returned invalid JSON format"
+        )
+
+    # Save to MongoDB (future_study collection)
+    future_study_doc = {
         "student_id": student_id,
         "recommended_career": recommended_career,
         "top_category": top_category,
-        "ai_recommendations": ai_result
+        "resources": ai_data,
+        "created_at": datetime.utcnow()
+    }
+
+    try:
+        await db.future_study.insert_one(future_study_doc)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database insert failed: {str(e)}"
+        )
+
+    # Success response
+    return {
+        "message": "Future study guidance generated successfully",
+        "student_id": student_id,
+        "future_study": ai_data
     }

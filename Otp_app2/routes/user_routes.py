@@ -9,18 +9,26 @@ from models.career_models import CareerAnalyzer
 from bson import ObjectId
 from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
 import re
-from utils.user_auth import get_current_user,admin_or_user
+from utils.user_auth import get_current_user,admin_or_user,create_user_token
 from utils.admin_auth import get_current_admin 
 router = APIRouter(tags=["User"])
 
 # --------------------- Student Registration -------------------------
-
 @router.post("/register-student")
 async def register_student(
     data: Student,
     parent_mobile: str = Query(..., description="Parent mobile number"),
     current=Depends(admin_or_user)
 ):
+    print("hiii")
+    print(current)
+
+    usertype = current.get("usertype")
+
+    # 🔑 Decide is_user
+    is_user = True if usertype == "student" else False
+
+    # 1️⃣ Create student document
     student_doc = {
         "student_name": data.student_name,
         "dob": data.dob,
@@ -29,30 +37,51 @@ async def register_student(
         "address": data.address,
         "guardian_name": data.guardian_name,
         "created_at": datetime.now(timezone.utc),
-        "is_user": False
+        "is_user": is_user
     }
 
     result = await db.students.insert_one(student_doc)
     student_oid = result.inserted_id
 
-    await db.usertable.update_one(
-        {"mobile_number": parent_mobile},
-        {
-            "$setOnInsert": {
-                "usertype": "parent",
-                "created_at": datetime.now(timezone.utc)
+    # 2️⃣ Parent registers student
+    if usertype == "parent":
+        await db.usertable.update_one(
+            {"mobile_number": parent_mobile},
+            {
+                "$setOnInsert": {
+                    "usertype": "parent",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": student_oid
+                }
             },
-            "$addToSet": {
-                "student_ids": student_oid
-            }
-        },
-        upsert=True
-    )
+            upsert=True
+        )
+
+    # 3️⃣ Student self-registers
+    elif usertype == "student":
+        await db.usertable.update_one(
+            {"mobile_number": current["sub"]},
+            {
+                "$setOnInsert": {
+                    "usertype": "student",
+                    "created_at": datetime.now(timezone.utc),
+                    "student_id": student_oid
+                }
+            },
+            upsert=True
+        )
+
+    # 4️⃣ Optional: admin case
+    elif usertype == "admin":
+        pass
 
     return {
         "status_code": 200,
         "message": "Student registered successfully",
-        "student_id": str(student_oid)
+        "student_id": str(student_oid),
+        "is_user": is_user
     }
 
 def serialize_mongo_doc(doc):
@@ -89,28 +118,50 @@ async def get_parent_details(
         students = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
+
 @router.post("/set-usertype")
-async def set_usertype(    data: UserTypeRequest,
+async def set_usertype(
+    data: UserTypeRequest,
     current_user: dict = Depends(get_current_user)
 ):
-
+    # 1️⃣ Check OTP record
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
     if not record:
         return {"status_code": 400, "message": "User not found"}
 
+    # 2️⃣ Update OTP table
     await db.otps.update_one(
         {"mobile_number": data.mobile_number},
         {"$set": {"usertype": data.usertype}}
     )
+
+    # 3️⃣ Update usertable
     await db.usertable.update_one(
         {"mobile_number": data.mobile_number},
-        {"$set": {"usertype": data.usertype}}
+        {
+            "$set": {
+                "usertype": data.usertype,
+                "updated_at": datetime.now(timezone.utc)
+            }
+        },
+        upsert=True
     )
+
+    # 4️⃣ 🔑 CREATE NEW ACCESS TOKEN
+    access_token = create_user_token(
+        mobile_number=data.mobile_number,
+        usertype=data.usertype
+    )
+
 
     return {
         "status_code": 200,
-        "message": f"Usertype set to {data.usertype}"
+        "message": f"Usertype set to {data.usertype}",
+        "usertype": data.usertype,
+        "access_token": access_token,
+        "token_type": "bearer"
     }
+
 # --------------------- Questions by Age -------------------------
 @router.get("/student_questions")
 async def get_questions_by_age(age: int = Query(...)):
@@ -504,12 +555,12 @@ async def get_career_analysis(student_id: str, attempt: int,
         s_oid = ObjectId(student_id)
     except:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
-
+    print('hhhhhhhhhhhi')
     record = await db.career_analyzer.find_one(
         {"student_id": s_oid, "attempt": attempt},
         {"_id": 0}   # hide MongoDB ObjectId
     )
-
+    record = serialize_mongo_doc(record)  
     if not record:
         raise HTTPException(
             status_code=404,

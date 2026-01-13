@@ -294,9 +294,9 @@ async def generate_questions_trigger(payload: dict = Body(...)):
     if not standard or not subject or not chapters:
         raise HTTPException(status_code=400, detail="standard, subject and chapters are required")
 
-    task_id = str(uuid.uuid4())
+    # task_id = str(uuid.uuid4())  <-- REMOVED
     task_doc = {
-        "task_id": task_id,
+        # "task_id": task_id,      <-- REMOVED
         "standard": standard,
         "subject": subject,
         "chapters": chapters,
@@ -306,22 +306,24 @@ async def generate_questions_trigger(payload: dict = Body(...)):
         "progress": 0,
         "created_at": datetime.utcnow()
     }
-    await db.question_tasks.insert_one(task_doc)
+    result = await db.question_tasks.insert_one(task_doc)
+    task_oid = str(result.inserted_id)
 
-    asyncio.create_task(generate_questions_worker(task_id))
-    return {"status": "started", "task_id": task_id}
+    asyncio.create_task(generate_questions_worker(task_oid))
+    return {"status": "started", "task_id": task_oid}
 
 
 GENERATED_PDF_DIR = "Exams/generated_papers"
 os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
 
 async def generate_questions_worker(task_id: str):
-    task = await db.question_tasks.find_one({"task_id": task_id})
+    # Query using _id
+    task = await db.question_tasks.find_one({"_id": ObjectId(task_id)})
     if not task:
         return
 
     await db.question_tasks.update_one(
-        {"task_id": task_id},
+        {"_id": ObjectId(task_id)},
         {"$set": {"status": "running", "progress": 5}}
     )
 
@@ -407,6 +409,7 @@ Respond with valid JSON only. No text outside JSON.
             paper_json = {"paper_id": f"{task_id}-{p+1}", "sections": []}
 
         # Insert JSON into DB
+        # We store 'task_id' (which is the task's ObjectId string) for linking
         result = await db.generated_papers.insert_one({
             "task_id": task_id,
             "paper_index": p + 1,
@@ -429,13 +432,13 @@ Respond with valid JSON only. No text outside JSON.
 
         # Update progress
         await db.question_tasks.update_one(
-            {"task_id": task_id},
+            {"_id": ObjectId(task_id)},
             {"$set": {"progress": int((p + 1) / papers * 100)}}
         )
 
     # Mark job completed
     await db.question_tasks.update_one(
-        {"task_id": task_id},
+        {"_id": ObjectId(task_id)},
         {"$set": {"status": "completed", "generated": generated_ids}}
     )
 
@@ -445,7 +448,7 @@ Respond with valid JSON only. No text outside JSON.
 
 @router.get("/question-task-status/{task_id}", dependencies=[Depends(get_current_admin)])
 async def question_task_status(task_id: str):
-    task = await db.question_tasks.find_one({"task_id": task_id})
+    task = await db.question_tasks.find_one({"_id": ObjectId(task_id)})
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return {

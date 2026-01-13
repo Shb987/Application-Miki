@@ -190,7 +190,7 @@ def clean_mongo(data):
     else:
         return data
 
-async def process_evaluation_background(evaluation_id: str, paper_id: str, student_id: str, saved_file_paths: List[str]):
+async def process_evaluation_background(eval_oid: str, paper_id: str, student_id: str, saved_file_paths: List[str]):
     evaluation_status = "FAILED"
     total_score = 0
     max_total = 0
@@ -263,7 +263,7 @@ async def process_evaluation_background(evaluation_id: str, paper_id: str, stude
 
         # Update the existing evaluation record
         await db.evaluations.update_one(
-            {"evaluation_id": evaluation_id},
+            {"_id": ObjectId(eval_oid)},
             {
                 "$set": {
                     "status": evaluation_status,
@@ -280,7 +280,7 @@ async def process_evaluation_background(evaluation_id: str, paper_id: str, stude
         print(f"Background Evaluation Failed: {e}")
         
         await db.evaluations.update_one(
-            {"evaluation_id": evaluation_id},
+            {"_id": ObjectId(eval_oid)},
             {
                 "$set": {
                     "status": "FAILED",
@@ -300,7 +300,8 @@ async def process_evaluation_background(evaluation_id: str, paper_id: str, stude
                     title="Evaluation Completed",
                     message=f"Your evaluation is complete. Score: {total_score}/{max_total}.",
                     notification_type="evaluation_completed",
-                    extra_data={"evaluation_id": evaluation_id}
+                    # extra_data={"evaluation_id": eval_oid}
+                    extra_data={"evaluation_id": eval_oid} 
                 )
             else:
                 await create_notification(
@@ -329,7 +330,6 @@ async def evaluate_answersheet(
     current_user: dict = Depends(get_current_user)
 ):
     saved_file_paths = []
-    evaluation_id = str(uuid.uuid4())
     
     try:
         # 1. Save files locally (must be done in main thread to await UploadFile)
@@ -348,20 +348,20 @@ async def evaluate_answersheet(
 
         # 2. Create Initial DB Record
         initial_evaluation_data = {
-            "evaluation_id": evaluation_id,
             "paper_id": paper_id,
             "student_id": s_oid,
             "status": "PROCESSING",
             "created_at": datetime.datetime.utcnow().isoformat()
         }
-        await db.evaluations.insert_one(initial_evaluation_data)
+        result = await db.evaluations.insert_one(initial_evaluation_data)
+        eval_oid = str(result.inserted_id)
 
         # 3. Add Background Task
         background_tasks.add_task(
             process_evaluation_background,
-            evaluation_id,
+            eval_oid,
             paper_id,
-            s_oid,
+            str(s_oid), # Convert ObjectId to str for safety in background task args
             saved_file_paths
         )
 
@@ -371,7 +371,7 @@ async def evaluate_answersheet(
                 "status": True,
                 "message": "Evaluation started in background.",
                 "data": {
-                    "evaluation_id": evaluation_id,
+                    "evaluation_id": eval_oid,
                     "status": "PROCESSING"
                 }
             }
@@ -420,7 +420,6 @@ async def get_notifications(user_id: str, current_user: dict = Depends(get_curre
 async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
     user_id = current_user.get("student_id")
     print(user_id)
-    
     # Update only if notification belongs to the user
     query = {"notification_id": notification_id}
     if user_id:
@@ -441,6 +440,7 @@ async def mark_notification_read(notification_id: str, current_user: dict = Depe
         )
 
     return {"status": True, "message": "Notification marked as read"}
+
 @router.get("/exam-history/{student_id}")
 async def get_exam_history(student_id: str, current_user: dict = Depends(get_current_user)):
     """
@@ -482,7 +482,12 @@ async def get_evaluation_detail(evaluation_id: str, current_user: dict = Depends
     """
     Fetch full details of a specific exam evaluation.
     """
-    evaluation = await db.evaluations.find_one({"evaluation_id": evaluation_id})
+    try:
+        e_oid = ObjectId(evaluation_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid evaluation ID format")
+
+    evaluation = await db.evaluations.find_one({"_id": e_oid})
     
     if not evaluation:
         raise HTTPException(status_code=404, detail="Evaluation not found")
@@ -490,7 +495,7 @@ async def get_evaluation_detail(evaluation_id: str, current_user: dict = Depends
     # Enforce ownership: User can only see their own history or a parent can see their linked students
     user_student_id = current_user.get("student_id")
     # If the user is a student, ensure they only access their own history
-    if user_student_id and user_student_id != evaluation.get("student_id"):
+    if user_student_id and user_student_id != str(evaluation.get("student_id")):
         raise HTTPException(status_code=403, detail="Unauthorized access to evaluation details")
 
     return {

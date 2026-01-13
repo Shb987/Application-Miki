@@ -16,7 +16,9 @@ test_onesignal_config.py
 tests/
 services/
 verify_companion_module.py
-test_serializer_fix.py
+intelligence_questions.json
+scripts/
+
 
 # Quiz module test/utility files
 check_quiz_db.py

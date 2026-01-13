@@ -37,6 +37,7 @@ async def send_otp(data: OTPRequest):
     return {"status_code": 200, "message": "OTP generated", "otp": otp}
 
 
+
 @router.post("/verify")
 async def verify_otp(data: OTPVerify):
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
@@ -55,8 +56,35 @@ async def verify_otp(data: OTPVerify):
     if record.get("otp") != data.otp:
         return {"status_code": 400, "message": "Invalid OTP"}
 
-    # Set default usertype
-    usertype = "null"
+    # Get usertype
+    usertype = record.get("usertype") or "null"
+
+    # Default value
+    is_user = False
+
+    # ✅ Check only if student
+    if usertype == "student":
+        print('check1')
+        user_record = await db.usertable.find_one(
+            {"mobile_number": data.mobile_number}
+        )
+        print(data.mobile_number)
+
+        if user_record:
+            print('check2')
+            student_id = user_record.get("student_id")
+
+            if student_id:
+                print('check3')
+
+                student = await db.students.find_one(
+                    {"_id": ObjectId(student_id)},
+                    {"is_user": 1}
+                )
+
+                if student and student.get("is_user") is True:
+                    print('check4')
+                    is_user = True
 
     access_token = create_user_token(data.mobile_number, usertype)
 
@@ -64,9 +92,11 @@ async def verify_otp(data: OTPVerify):
         "status_code": 200,
         "message": "OTP verified successfully",
         "usertype": usertype,
+        "is_user": is_user,
         "access_token": access_token,
         "token_type": "bearer"
     }
+
 
 # 🔐 PROTECTED — must be a LOGGED IN USER (parent)
 @router.post("/switch-user/send-otp")

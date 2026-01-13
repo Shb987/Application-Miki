@@ -135,9 +135,12 @@ async def get_generated_question_paper(
             "data": None
         }
 
-    task_id = task_doc.get("task_id")
+    # task_id = task_doc.get("task_id")
+    # UPDATED: Use the MongoDB _id string as task_id
+    task_id = str(task_doc["_id"])
 
     # Step 2: Using task_id, find the generated question paper
+    # Note: admin_routes stores the task_oid as 'task_id' in generated_papers
     paper_doc = await db.generated_papers.find_one({
         "task_id": task_id
     })
@@ -158,6 +161,7 @@ async def get_generated_question_paper(
         "message": "Question paper retrieved successfully.",
         "data": {
             "task_id": task_id,
+            "paper_oid": str(paper_doc["_id"]),  # NEW: MongoDB ID for download
             "paper_id": paper.get("paper_id"),
             "standard": paper.get("standard"),
             "subject": paper.get("subject"),
@@ -170,14 +174,19 @@ async def get_generated_question_paper(
     }
 
 
-
 @router.get("/download-paper/{paper_id}")
 async def download_paper(paper_id: str, current_user: dict = Depends(get_current_user)):
 
-    # Find the document containing this paper_id
-    paper_doc = await db.generated_papers.find_one({
-        "paper.paper_id": paper_id
-    })
+    # UPDATED: Find by MongoDB _id
+    try:
+        paper_doc = await db.generated_papers.find_one({
+            "_id": ObjectId(paper_id)
+        })
+    except:
+        # Fallback for legacy papers that might send the uuid string
+        paper_doc = await db.generated_papers.find_one({
+            "paper.paper_id": paper_id
+        })
 
     if not paper_doc:
         return {

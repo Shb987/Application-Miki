@@ -10,7 +10,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
 import re
 from utils.user_auth import get_current_user,admin_or_user,create_user_token
-from utils.admin_auth import get_current_admin 
+from utils.admin_auth import get_current_admin
 router = APIRouter(tags=["User"])
 
 # --------------------- Student Registration -------------------------
@@ -26,73 +26,6 @@ async def register_student(
 
 ):
     student_id = await generate_student_id()
-
-    print("hiii")
-    print(current)
-
-    usertype = current.get("usertype")
-
-    # 🔑 Decide is_user
-    is_user = True if usertype == "student" else False
-
-    # 1️⃣ Create student document
-    student_doc = {
-        "student_name": data.student_name,
-        "dob": data.dob,
-        "student_class": data.student_class,
-        "age": data.age,
-        "address": data.address,
-        "guardian_name": data.guardian_name,
-        "created_at": datetime.now(timezone.utc),
-        "is_user": is_user
-    }
-
-    result = await db.students.insert_one(student_doc)
-    student_oid = result.inserted_id
-
-    # 2️⃣ Parent registers student
-    if usertype == "parent":
-        await db.usertable.update_one(
-            {"mobile_number": parent_mobile},
-            {
-                "$setOnInsert": {
-                    "usertype": "parent",
-                    "created_at": datetime.now(timezone.utc)
-                },
-                "$addToSet": {
-                    "student_ids": student_oid
-                }
-            },
-            upsert=True
-        )
-
-    # 3️⃣ Student self-registers
-    elif usertype == "student":
-        await db.usertable.update_one(
-            {"mobile_number": current["sub"]},
-            {
-                "$setOnInsert": {
-                    "usertype": "student",
-                    "created_at": datetime.now(timezone.utc),
-                    "student_id": student_oid
-                }
-            },
-            upsert=True
-        )
-
-    # 4️⃣ Optional: admin case
-    elif usertype == "admin":
-        pass
-
-    return {
-        "status_code": 200,
-        "message": "Student registered successfully",
-        "student_id": str(student_oid),
-        "is_user": is_user
-    }
-
-
-
 def clean_mongo_doc(doc):
     if not doc:
         return doc
@@ -108,7 +41,7 @@ async def get_parent_details(
     Mobile number is extracted from the JWT token.
     """
     mobile_number = current_user.get("sub")
-    
+   
     user_record = await db.usertable.find_one({"mobile_number": mobile_number})
     if not user_record:
         return {"status_code": 404, "message": "Parent not found"}
@@ -120,52 +53,6 @@ async def get_parent_details(
         students = [clean_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
-
-
-
-@router.post("/set-usertype")
-async def set_usertype(
-    data: UserTypeRequest,
-    current_user: dict = Depends(get_current_user)
-):
-    # 1️⃣ Check OTP record
-    record = await db.otps.find_one({"mobile_number": data.mobile_number})
-    if not record:
-        return {"status_code": 400, "message": "User not found"}
-
-    # 2️⃣ Update OTP table
-    await db.otps.update_one(
-        {"mobile_number": data.mobile_number},
-        {"$set": {"usertype": data.usertype}}
-    )
-
-    # 3️⃣ Update usertable
-    await db.usertable.update_one(
-        {"mobile_number": data.mobile_number},
-        {
-            "$set": {
-                "usertype": data.usertype,
-                "updated_at": datetime.now(timezone.utc)
-            }
-        },
-        upsert=True
-    )
-
-    # 4️⃣ 🔑 CREATE NEW ACCESS TOKEN
-    access_token = create_user_token(
-        mobile_number=data.mobile_number,
-        usertype=data.usertype
-    )
-
-
-    return {
-        "status_code": 200,
-        "message": f"Usertype set to {data.usertype}",
-        "usertype": data.usertype,
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
-
 # --------------------- Questions by Age -------------------------
 @router.get("/student_questions")
 async def get_questions_by_age(age: int = Query(...)):
@@ -446,72 +333,65 @@ def normalize_percentages(scores: dict) -> dict:
 
     return result
 
-
+from fastapi import BackgroundTasks
+from services.future_study_service import generate_and_store_future_study
 @router.post("/analyze-career/{student_id}")
-async def analyze_career(student_id: str,
+async def analyze_career(
+    student_id: str,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user)
 ):
-    """Automatically analyze the latest *completed* attempt for a student"""
+    """Automatically analyze the latest completed attempt for a student"""
 
-    # 1️⃣ Fetch student answers document
+    # 1️⃣ Fetch student answers
     student_doc = await db.answers.find_one({"student_id": student_id})
     if not student_doc:
-        raise HTTPException(status_code=404, detail="No answers found for this student")
+        raise HTTPException(status_code=404, detail="No answers found")
 
     attempts = student_doc.get("attempts", [])
-    if not attempts:
-        raise HTTPException(status_code=404, detail="No attempts found for this student")
-
-    # 2️⃣ Find the latest completed attempt
     completed_attempts = [a for a in attempts if a.get("status") == "completed"]
+
     if not completed_attempts:
         raise HTTPException(
             status_code=400,
-            detail="No completed attempt found. Please finish all categories first."
+            detail="No completed attempt found"
         )
 
     latest_attempt = max(completed_attempts, key=lambda a: a["attempt"])
     attempt_num = latest_attempt["attempt"]
 
-    # 3️⃣ Extract categories & scores
+    # 2️⃣ Scores
     categories = latest_attempt.get("categories", [])
-    if not categories:
-        raise HTTPException(status_code=400, detail="No category data found in this attempt")
+    scores = {c["category"]: c.get("total_marks", 0) for c in categories}
 
-    scores = {cat["category"]: cat.get("total_marks", 0) for cat in categories}
-    if not scores:
-        raise HTTPException(status_code=400, detail="No valid scores found")
-
-    # ➕ 3.1 Use the **correct** normalized percentages
     percentages = normalize_percentages(scores)
 
-    # 4️⃣ Determine top 3 and best category
     top_3 = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
     top_cat = top_3[0][0]
-    recommended_career = career_map.get(top_cat.lower(), "No career mapped")
 
-    # 5️⃣ Personality insights and career suggestions
+    recommended_career = career_map.get(
+        top_cat.lower(),
+        "No career mapped"
+    )
+
     insights = [
         f"{cat}: Strong inclination towards {cat.lower()} intelligence."
         for cat, _ in top_3
     ]
+
     career_suggestions = [
-        f"{cat} ➔ {career_map.get(cat.strip().lower(), 'Unknown Career')}"
+        f"{cat} ➔ {career_map.get(cat.lower(), 'Unknown Career')}"
         for cat, _ in top_3
     ]
-    
-    # recommended_career_list = (
-    # recommended_career if isinstance(recommended_career, list)
-    # else [career.strip() for career in recommended_career.split(",")])
 
-    # 6️⃣ Save/update result in DB
+    # 3️⃣ Save career analysis
     await db.career_analyzer.update_one(
         {"student_id": student_id, "attempt": attempt_num},
         {
             "$set": {
                 "scores": scores,
                 "overall_score": sum(scores.values()),
-                "percentages": percentages,   # 📌 updated logic
+                "percentages": percentages,
                 "top_category": top_cat,
                 "recommended_career": recommended_career,
                 "timestamp": datetime.now(timezone.utc)
@@ -520,7 +400,22 @@ async def analyze_career(student_id: str,
         upsert=True
     )
 
-    # 7️⃣ API Response
+    # 4️⃣ Fetch student class
+    student = await db.students.find_one({"student_id": student_id})
+    student_class = student.get("student_class") if student else None
+
+    # 5️⃣ Background task → Future study
+    if student_class:
+        background_tasks.add_task(
+            generate_and_store_future_study,
+            db,
+            student_id,
+            student_class,
+            recommended_career,
+            top_cat
+        )
+
+    # 6️⃣ Immediate response
     return {
         "status_code": 200,
         "student_id": student_id,
@@ -531,8 +426,40 @@ async def analyze_career(student_id: str,
         "top_category": top_cat,
         "recommended_career": recommended_career,
         "personality_insights": insights,
-        "career_suggestions": career_suggestions
+        "career_suggestions": career_suggestions,
+        "future_study_status": "processing"
     }
+
+
+
+
+@router.get("/future-study/{student_id}")
+async def get_future_study(
+    student_id: str,
+    current=Depends(admin_or_user)
+):
+    record = await db.future_study.find_one(
+        {"student_id": student_id},
+        sort=[("created_at", -1)]
+    )
+
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail="Future study guidance not generated yet"
+        )
+
+    return {
+        "status_code": 200,
+        "student_id": student_id,
+        "recommended_career": record.get("recommended_career"),
+        "top_category": record.get("top_category"),
+        "student_class": record.get("student_class"),
+        "future_study": record.get("resources"),
+        "created_at": record.get("created_at")
+    }
+
+
 from bson import json_util
 import json
 
@@ -663,8 +590,6 @@ async def get_career_history(student_id: str,
         "career_history": combined_history
     }
 
-
-
 # --------------------- FCM Token Management -------------------------
 from pydantic import BaseModel
 class FCMTokenRequest(BaseModel):
@@ -680,14 +605,14 @@ async def update_fcm_token(
     This token is used for sending Push Notifications.
     """
     user_id = current_user.get("_id") # Assuming get_current_user returns the mongo document or dict with _id
-    
+   
     if not user_id:
         # Fallback if _id is not directly in the dict, maybe it's 'user_id' or 'mobile_number'
         # We need to identify the user record uniquely.
         mobile_number = current_user.get("mobile_number")
         if not mobile_number:
             raise HTTPException(status_code=400, detail="User identification failed")
-            
+           
         result = await db.usertable.update_one(
             {"mobile_number": mobile_number},
             {"$set": {"fcm_token": payload.fcm_token}}
@@ -703,7 +628,7 @@ async def update_fcm_token(
          return {"status": False, "message": "User not found or token unchanged"}
 
     return {
-        "status": True, 
+        "status": True,
         "message": "FCM Token updated successfully"
     }
 
@@ -719,24 +644,24 @@ async def test_notification(
     """
     Manually triggers a push notification to the current user (if they have an FCM token).
     """
-    
-    # We need to find the ID to use. 
+   
+    # We need to find the ID to use.
     # Based on notification_service, it expects 'user_id' which is used to look up the user record.
     # The clean logic in update_fcm_token used 'mobile_number' or '_id'.
     # create_notification logic looks for 'student_ids' OR '_id'.
-    
+   
     # Let's try to pass the student_id if available, or just the user's ID.
-    
+   
     target_id = None
-    
+   
     # If user is a parent and has connected students, use the first student ID as the "target"
     if "student_ids" in current_user and current_user["student_ids"]:
         target_id = current_user["student_ids"][0]
-    
+   
     # Fallback to the user's direct ID
     if not target_id:
         target_id = str(current_user.get("_id"))
-        
+       
     if not target_id:
          raise HTTPException(status_code=400, detail="Could not determine a target ID for notification")
 
@@ -747,9 +672,9 @@ async def test_notification(
         message=message,
         notification_type="test_notification"
     )
-    
+   
     return {
-        "status": True, 
-        "message": "Notification Triggered. Check server logs for '🔥 FCM Notification Sent'.", 
+        "status": True,
+        "message": "Notification Triggered. Check server logs for '🔥 FCM Notification Sent'.",
         "data": result
     }

@@ -10,13 +10,17 @@ from bson import ObjectId
 router = APIRouter(tags=["OTP"])
 
 OTP_EXPIRY_MINUTES = settings.OTP_EXPIRY_MINUTES
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
 
 @router.post("/send")
 async def send_otp(data: OTPRequest):
     otp = str(random.randint(100000, 999999))
-    now = datetime.now(timezone.utc)
-    expiry_time = now + timedelta(minutes=OTP_EXPIRY_MINUTES)
 
+    now = datetime.now(timezone.utc)  # ✅ explicit UTC
+    expiry_time = now + timedelta(minutes=OTP_EXPIRY_MINUTES)
+    
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
 
     update_data = {
@@ -37,7 +41,6 @@ async def send_otp(data: OTPRequest):
     return {"status_code": 200, "message": "OTP generated", "otp": otp}
 
 
-
 @router.post("/verify")
 async def verify_otp(data: OTPVerify):
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
@@ -50,7 +53,7 @@ async def verify_otp(data: OTPVerify):
     if expiry_time.tzinfo is None:
         expiry_time = expiry_time.replace(tzinfo=timezone.utc)
 
-    if expiry_time < datetime.now(timezone.utc):
+    if expiry_time < datetime.now().astimezone():
         return {"status_code": 400, "message": "OTP expired"}
 
     if record.get("otp") != data.otp:
@@ -73,7 +76,7 @@ async def verify_otp(data: OTPVerify):
         if user_record:
             print('check2')
             student_id = user_record.get("student_id")
-
+            print(student_id)
             if student_id:
                 print('check3')
 
@@ -152,7 +155,7 @@ async def switch_to_student(
             "$set": {
                 "usertype": "student",
                 "student_id": s_oid,
-                "created_at": datetime.now(timezone.utc)
+                "created_at": datetime.now().astimezone()
             }
         },
         upsert=True

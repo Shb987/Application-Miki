@@ -12,6 +12,7 @@ import json
 import os
 import asyncio
 from report.scert_pdf_professional import save_scert_question_paper
+from datetime import datetime, timezone
 
 from core.database import db
 from openai import OpenAI
@@ -104,6 +105,7 @@ def validate_fix_marks(paper: dict, required_total: int):
 from utils.admin_auth import get_current_admin
 from fastapi import Depends
 
+
 @router.post("/upload-textbook", dependencies=[Depends(get_current_admin)])
 async def upload_textbook(
     textbook_board: str = Form(...),
@@ -141,7 +143,7 @@ async def upload_textbook(
         "processed": False,
         "status": "queued",
         "progress": 0,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     }
 
     result = await db.textbook.insert_one(data)
@@ -304,7 +306,7 @@ async def generate_questions_trigger(payload: dict = Body(...)):
         "marks": marks,
         "status": "queued",
         "progress": 0,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     }
     result = await db.question_tasks.insert_one(task_doc)
     task_oid = str(result.inserted_id)

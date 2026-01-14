@@ -67,7 +67,14 @@
       }
     }
 
+    function formatDateTimeUTCToLocal(utcString) {
+      if (!utcString) return "";
+      const date = new Date(utcString);  // JS interprets ISO string as UTC
+      return date.toLocaleString();      // converts to user's local time
+    }
+
     function displayTable(items, title, columns) {
+      console.log(items);
       let html = `<h3>${title}</h3>`;
       if (items.length === 0) {
         html += "<p>No data available</p>";
@@ -82,6 +89,8 @@
             if (col.key.includes("created_at") || col.key.includes("expiry")) {
               value = new Date(value).toLocaleString();
             }
+            console.log(item[col.key], typeof item[col.key]);
+
             if (Array.isArray(value)) {
               value = value.join(", ");
             }
@@ -133,7 +142,11 @@
         { key: "mobile_number", label: "Mobile" },
         { key: "otp", label: "OTP" },
         { key: "usertype", label: "User Type" },
-        { key: "created_at", label: "Created At" },
+        { 
+          key: "created_at", 
+          label: "Created At",
+          format: formatDateTimeUTCToLocal
+        },
         { key: "expiry", label: "Expiry" }
       ]);
     }

@@ -41,6 +41,10 @@ async def send_otp(data: OTPRequest):
     return {"status_code": 200, "message": "OTP generated", "otp": otp}
 
 
+from datetime import datetime, timezone
+from bson import ObjectId
+
+
 @router.post("/verify")
 async def verify_otp(data: OTPVerify):
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
@@ -53,7 +57,7 @@ async def verify_otp(data: OTPVerify):
     if expiry_time.tzinfo is None:
         expiry_time = expiry_time.replace(tzinfo=timezone.utc)
 
-    if expiry_time < datetime.now().astimezone():
+    if expiry_time < datetime.now(timezone.utc):
         return {"status_code": 400, "message": "OTP expired"}
 
     if record.get("otp") != data.otp:
@@ -62,31 +66,27 @@ async def verify_otp(data: OTPVerify):
     # Get usertype
     usertype = record.get("usertype") or "null"
 
-    # Default value
+    # Defaults
     is_user = False
+    student_id = None   # ✅ NEW
 
-    # ✅ Check only if student
+    # ✅ Only if student
     if usertype == "student":
-        print('check1')
         user_record = await db.usertable.find_one(
-            {"mobile_number": data.mobile_number}
+            {"mobile_number": data.mobile_number},
+            {"student_id": 1}
         )
-        print(data.mobile_number)
 
         if user_record:
-            print('check2')
             student_id = user_record.get("student_id")
-            print(student_id)
-            if student_id:
-                print('check3')
 
+            if student_id:
                 student = await db.students.find_one(
                     {"_id": ObjectId(student_id)},
                     {"is_user": 1}
                 )
 
                 if student and student.get("is_user") is True:
-                    print('check4')
                     is_user = True
 
     access_token = create_user_token(data.mobile_number, usertype)
@@ -96,6 +96,10 @@ async def verify_otp(data: OTPVerify):
         "message": "OTP verified successfully",
         "usertype": usertype,
         "is_user": is_user,
+
+        # ✅ Return student_id only for students
+        "student_id": str(student_id) if student_id else None,
+
         "access_token": access_token,
         "token_type": "bearer"
     }

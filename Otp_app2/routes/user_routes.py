@@ -10,26 +10,103 @@ from bson import ObjectId
 from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
 import re
 from utils.user_auth import get_current_user,admin_or_user,create_user_token
-from utils.admin_auth import get_current_admin
+from utils.admin_auth import get_current_admin 
 router = APIRouter(tags=["User"])
 
-# --------------------- Student Registration -------------------------
-async def generate_student_id():
-    count = await db.students.count_documents({})
-    return f"STU{str(count+1).zfill(4)}"
 
+# --------------------- Student Registration -------------------------
 @router.post("/register-student")
 async def register_student(
     data: Student,
     parent_mobile: str = Query(..., description="Parent mobile number"),
     current=Depends(admin_or_user)
-
 ):
-    student_id = await generate_student_id()
-def clean_mongo_doc(doc):
-    if not doc:
-        return doc
-    doc["_id"] = str(doc["_id"])
+    print("hiii")
+    print(current)
+
+    usertype = current.get("usertype")
+
+    # 🔑 Decide is_user
+    is_user = True if usertype == "student" else False
+
+    # 1️⃣ Create student document
+    student_doc = {
+        "student_name": data.student_name,
+        "dob": data.dob,
+        "student_class": data.student_class,
+        "age": data.age,
+        "address": data.address,
+        "guardian_name": data.guardian_name,
+        "created_at": datetime.now(timezone.utc),
+        "is_user": is_user
+    }
+
+    result = await db.students.insert_one(student_doc)
+    student_oid = result.inserted_id
+    print(student_oid)
+    # 2️⃣ Parent registers student
+    if usertype == "parent":
+        await db.usertable.update_one(
+            {"mobile_number": parent_mobile},
+            {
+                "$setOnInsert": {
+                    "usertype": "parent",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": student_oid
+                }
+            },
+            upsert=True
+        )
+
+    # 3️⃣ Student self-registers
+    elif usertype == "student":
+        await db.usertable.update_one(
+            {"mobile_number": current["sub"]},
+            {
+                "$set": {
+                    "student_id": student_oid,
+                "updated_at": datetime.now().astimezone()
+            },
+            "$setOnInsert": {
+                "usertype": "student",
+                "created_at": datetime.now().astimezone()
+            }
+        },
+        upsert=True
+    )
+
+    # 4️⃣ Optional: admin case
+    elif usertype == "admin":
+        pass
+
+    return {
+        "status_code": 200,
+        "message": "Student registered successfully",
+        "student_id": str(student_oid),
+        "is_user": is_user
+    }
+
+
+
+def serialize_mongo_doc(doc):
+    """
+    Recursively convert ObjectId to str in a document (dict) or list.
+    """
+    if isinstance(doc, list):
+        return [serialize_mongo_doc(item) for item in doc]
+    if isinstance(doc, dict):
+        return {k: serialize_mongo_doc(v) for k, v in doc.items()}
+    if isinstance(doc, ObjectId):
+        return str(doc)
+    if isinstance(doc, datetime):
+        # 🕒 Ensure aware datetimes are serialized with UTC indicator 'Z'
+        if doc.tzinfo:
+            return doc.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        else:
+            # 🕒 If naive, assume it was intended as UTC and add 'Z'
+            return doc.isoformat() + "Z"
     return doc
 # --------------------- Fetch Parent Details -------------------------
 @router.get("/parent")
@@ -41,7 +118,7 @@ async def get_parent_details(
     Mobile number is extracted from the JWT token.
     """
     mobile_number = current_user.get("sub")
-   
+    
     user_record = await db.usertable.find_one({"mobile_number": mobile_number})
     if not user_record:
         return {"status_code": 404, "message": "Parent not found"}
@@ -49,10 +126,55 @@ async def get_parent_details(
     student_ids = user_record.get("student_ids", [])
     students = []
     if student_ids:
-        cursor = db.students.find({"student_id": {"$in": student_ids}})
-        students = [clean_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
+        # student_ids is now a list of ObjectIds
+        cursor = db.students.find({"_id": {"$in": student_ids}})
+        students = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
+
+@router.post("/set-usertype")
+async def set_usertype(
+    data: UserTypeRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    # 1️⃣ Check OTP record
+    record = await db.otps.find_one({"mobile_number": data.mobile_number})
+    if not record:
+        return {"status_code": 400, "message": "User not found"}
+
+    # 2️⃣ Update OTP table
+    await db.otps.update_one(
+        {"mobile_number": data.mobile_number},
+        {"$set": {"usertype": data.usertype}}
+    )
+
+    # 3️⃣ Update usertable
+    await db.usertable.update_one(
+        {"mobile_number": data.mobile_number},
+        {
+            "$set": {
+                "usertype": data.usertype,
+                "created_at": datetime.now(timezone.utc)
+            }
+        },
+        upsert=True
+    )
+
+    # 4️⃣ 🔑 CREATE NEW ACCESS TOKEN
+    access_token = create_user_token(
+        mobile_number=data.mobile_number,
+        usertype=data.usertype
+    )
+
+
+    return {
+        "status_code": 200,
+        "message": f"Usertype set to {data.usertype}",
+        "usertype": data.usertype,
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
 # --------------------- Questions by Age -------------------------
 @router.get("/student_questions")
 async def get_questions_by_age(age: int = Query(...)):
@@ -65,7 +187,7 @@ async def get_questions_by_age(age: int = Query(...)):
     }
 
     cursor = db.questions.find(query)
-    questions = [clean_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
+    questions = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     grouped: Dict[str, List[dict]] = {}
 
@@ -153,13 +275,18 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
     # ---------------------------------------
     # AUTO ATTEMPT & STATUS LOGIC
     # ---------------------------------------
-    existing_doc = await db.answers.find_one({"student_id": payload.student_id})
+    try:
+        s_oid = ObjectId(payload.student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format (must be 24-char hex)")
+
+    existing_doc = await db.answers.find_one({"student_id": s_oid})
 
     if not existing_doc:
         # 🟢 First ever record for student
         attempt = 1
         new_doc = {
-            "student_id": payload.student_id,
+            "student_id": s_oid,
             "attempts": [
                 {
                     "attempt": attempt,
@@ -174,7 +301,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
             ]
         }
         await db.answers.insert_one(new_doc)
-        print(f"✅ Created first attempt (1) for {payload.student_id}")
+        print(f"✅ Created first attempt (1) for {s_oid}")
 
     else:
         # 🟡 Student already exists
@@ -189,7 +316,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
             if last_attempt["status"] == "completed":
                 attempt += 1
                 await db.answers.update_one(
-                    {"student_id": payload.student_id},
+                    {"student_id": s_oid},
                     {"$push": {
                         "attempts": {
                             "attempt": attempt,
@@ -199,10 +326,10 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
                         }
                     }}
                 )
-                print(f"🟢 Created new attempt {attempt} for {payload.student_id}")
+                print(f"🟢 Created new attempt {attempt} for {s_oid}")
 
         # Fetch latest document again after potential new attempt creation
-        student_doc = await db.answers.find_one({"student_id": payload.student_id})
+        student_doc = await db.answers.find_one({"student_id": s_oid})
         active_attempt = next(
             (a for a in student_doc["attempts"] if a["attempt"] == attempt),
             None
@@ -224,7 +351,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
         # Update DB
         await db.answers.update_one(
-            {"student_id": payload.student_id, "attempts.attempt": attempt},
+            {"student_id": s_oid, "attempts.attempt": attempt},
             {"$set": {"attempts.$.categories": updated_categories}}
         )
 
@@ -234,13 +361,13 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
         total_category_count = len(updated_categories)
         if total_category_count >= 8:  # if all 8 intelligence types answered
             await db.answers.update_one(
-                {"student_id": payload.student_id, "attempts.attempt": attempt},
+                {"student_id": s_oid, "attempts.attempt": attempt},
                 {"$set": {"attempts.$.status": "completed"}}
             )
-            print(f"🏁 Attempt {attempt} marked as COMPLETED for {payload.student_id}")
+            print(f"🏁 Attempt {attempt} marked as COMPLETED for {s_oid}")
 
     # Debug log
-    updated_doc = await db.answers.find_one({"student_id": payload.student_id})
+    updated_doc = await db.answers.find_one({"student_id": s_oid})
     print("🔍 Updated document:\n", updated_doc)
 
     return {
@@ -253,34 +380,54 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
 
 @router.get("/get_students")
-async def get_students(
-    admin=Depends(get_current_admin)):
-    cursor = db.students.find({}, {"_id": 0})  # exclude MongoDB _id
+async def get_students(admin=Depends(get_current_admin)):
+    cursor = db.students.find({})
     students = await cursor.to_list(length=None)
+    serialized_students = [serialize_mongo_doc(doc) for doc in students]
     return {
         "status_code": 200,
-        "students": students
+        "students": serialized_students
     }
+
+
+@router.get("/student-detail/{student_id}")
+async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    student = await db.students.find_one({"_id": s_oid})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    return {
+        "status_code": 200,
+        "student": serialize_mongo_doc(student)
+    }
+
 
 # ✅ Get all Users (Parents table)
 @router.get("/get_users")
 async def get_users(admin=Depends(get_current_admin)):
-    cursor = db.usertable.find({}, {"_id": 0})
+    cursor = db.usertable.find({})
     users = await cursor.to_list(length=None)
+    serialized_users = [serialize_mongo_doc(doc) for doc in users]
     return {
         "status_code": 200,
-        "users": users
+        "users": serialized_users
     }
 
 
 # ✅ Get all Login Attempts (OTP table)
 @router.get("/get_logins")
 async def get_logins(admin=Depends(get_current_admin)):
-    cursor = db.otps.find({}, {"_id": 0})
+    cursor = db.otps.find({})
     logins = await cursor.to_list(length=None)
+    serialized_logins = [serialize_mongo_doc(doc) for doc in logins]
     return {
         "status_code": 200,
-        "logins": logins
+        "logins": serialized_logins
     }
 
 # --------------------- Career Analyzer Logic -------------------------
@@ -335,6 +482,7 @@ def normalize_percentages(scores: dict) -> dict:
 
 from fastapi import BackgroundTasks
 from services.future_study_service import generate_and_store_future_study
+
 @router.post("/analyze-career/{student_id}")
 async def analyze_career(
     student_id: str,
@@ -344,7 +492,7 @@ async def analyze_career(
     """Automatically analyze the latest completed attempt for a student"""
 
     # 1️⃣ Fetch student answers
-    student_doc = await db.answers.find_one({"student_id": student_id})
+    student_doc = await db.answers.find_one({"student_id": ObjectId(student_id)})
     if not student_doc:
         raise HTTPException(status_code=404, detail="No answers found")
 
@@ -399,13 +547,19 @@ async def analyze_career(
         },
         upsert=True
     )
-
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400,detail='invalid_student_id format')
+    
     # 4️⃣ Fetch student class
-    student = await db.students.find_one({"student_id": student_id})
+    student = await db.students.find_one({"_id": s_oid})
+    print('check',student)
     student_class = student.get("student_class") if student else None
 
     # 5️⃣ Background task → Future study
     if student_class:
+        print('Entered Future study')
         background_tasks.add_task(
             generate_and_store_future_study,
             db,
@@ -429,7 +583,6 @@ async def analyze_career(
         "career_suggestions": career_suggestions,
         "future_study_status": "processing"
     }
-
 
 
 
@@ -460,6 +613,7 @@ async def get_future_study(
     }
 
 
+
 from bson import json_util
 import json
 
@@ -471,11 +625,17 @@ async def get_career_analysis(student_id: str, attempt: int,
     Fetch career analysis for a specific student and attempt number.
     """
 
+    try:
+        s_oid = str(student_id)
+        print(s_oid)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+    print('hhhhhhhhhhhi')
     record = await db.career_analyzer.find_one(
-        {"student_id": student_id, "attempt": attempt},
+        {"student_id": s_oid, "attempt": attempt},
         {"_id": 0}   # hide MongoDB ObjectId
     )
-
+    record = serialize_mongo_doc(record)  
     if not record:
         raise HTTPException(
             status_code=404,
@@ -498,13 +658,18 @@ async def get_career_history(student_id: str,
     current=Depends(admin_or_user)
 ):
 
+    try:
+        s_oid = str(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
     # Get all career analysis attempts
-    career_records = await db.career_analyzer.find({"student_id": student_id}).sort("timestamp", -1).to_list(None)
+    career_records = await db.career_analyzer.find({"student_id": s_oid}).sort("timestamp", -1).to_list(None)
     if not career_records:
         raise HTTPException(status_code=200, detail="No career analysis found for this student")
 
     # Get student's answer document
-    answers_doc = await db.answers.find_one({"student_id": student_id})
+    answers_doc = await db.answers.find_one({"student_id": ObjectId(s_oid)})
     if not answers_doc:
         raise HTTPException(status_code=200, detail="No answers found for this student")
 
@@ -590,6 +755,8 @@ async def get_career_history(student_id: str,
         "career_history": combined_history
     }
 
+
+
 # --------------------- FCM Token Management -------------------------
 from pydantic import BaseModel
 class FCMTokenRequest(BaseModel):
@@ -605,14 +772,14 @@ async def update_fcm_token(
     This token is used for sending Push Notifications.
     """
     user_id = current_user.get("_id") # Assuming get_current_user returns the mongo document or dict with _id
-   
+    
     if not user_id:
         # Fallback if _id is not directly in the dict, maybe it's 'user_id' or 'mobile_number'
         # We need to identify the user record uniquely.
         mobile_number = current_user.get("mobile_number")
         if not mobile_number:
             raise HTTPException(status_code=400, detail="User identification failed")
-           
+            
         result = await db.usertable.update_one(
             {"mobile_number": mobile_number},
             {"$set": {"fcm_token": payload.fcm_token}}
@@ -628,7 +795,7 @@ async def update_fcm_token(
          return {"status": False, "message": "User not found or token unchanged"}
 
     return {
-        "status": True,
+        "status": True, 
         "message": "FCM Token updated successfully"
     }
 
@@ -644,24 +811,24 @@ async def test_notification(
     """
     Manually triggers a push notification to the current user (if they have an FCM token).
     """
-   
-    # We need to find the ID to use.
+    
+    # We need to find the ID to use. 
     # Based on notification_service, it expects 'user_id' which is used to look up the user record.
     # The clean logic in update_fcm_token used 'mobile_number' or '_id'.
     # create_notification logic looks for 'student_ids' OR '_id'.
-   
+    
     # Let's try to pass the student_id if available, or just the user's ID.
-   
+    
     target_id = None
-   
+    
     # If user is a parent and has connected students, use the first student ID as the "target"
     if "student_ids" in current_user and current_user["student_ids"]:
         target_id = current_user["student_ids"][0]
-   
+    
     # Fallback to the user's direct ID
     if not target_id:
         target_id = str(current_user.get("_id"))
-       
+        
     if not target_id:
          raise HTTPException(status_code=400, detail="Could not determine a target ID for notification")
 
@@ -672,9 +839,9 @@ async def test_notification(
         message=message,
         notification_type="test_notification"
     )
-   
+    
     return {
-        "status": True,
-        "message": "Notification Triggered. Check server logs for '🔥 FCM Notification Sent'.",
+        "status": True, 
+        "message": "Notification Triggered. Check server logs for '🔥 FCM Notification Sent'.", 
         "data": result
     }

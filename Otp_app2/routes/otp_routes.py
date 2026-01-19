@@ -68,7 +68,8 @@ async def verify_otp(data: OTPVerify):
 
     # Defaults
     is_user = False
-    student_id = None   # ✅ NEW
+    student_id = None
+    is_new_user = False # Default
 
     # ✅ Only if student
     if usertype == "student":
@@ -88,6 +89,9 @@ async def verify_otp(data: OTPVerify):
 
                 if student and student.get("is_user") is True:
                     is_user = True
+                
+                # ✅ Check if student is "new"
+                is_new_user = student.get("is_new_user", False) if student else False
 
     access_token = create_user_token(data.mobile_number, usertype)
 
@@ -101,7 +105,8 @@ async def verify_otp(data: OTPVerify):
         "student_id": str(student_id) if student_id else None,
 
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "is_new_user": is_new_user  # 🆕 Return new user status
     }
 
 
@@ -177,11 +182,15 @@ async def switch_to_student(
         student_id=str(s_oid)
     )
 
+    # ✅ Return is_new_user status
+    is_new_user = student_doc.get("is_new_user", False)
+
     return {
         "status_code": 200,
         "message": "Switched to student successfully",
         "usertype": "student",
         "student_id": str(s_oid),
         "access_token": new_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "is_new_user": is_new_user  # 🆕 Return new user status
     }

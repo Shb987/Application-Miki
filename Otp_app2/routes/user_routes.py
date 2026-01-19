@@ -38,7 +38,8 @@ async def register_student(
         "address": data.address,
         "guardian_name": data.guardian_name,
         "created_at": datetime.now(timezone.utc),
-        "is_user": is_user
+        "is_user": is_user,
+        "is_new_user": True  # 🆕 Student is "new" upon registration
     }
 
     result = await db.students.insert_one(student_doc)
@@ -482,6 +483,10 @@ def normalize_percentages(scores: dict) -> dict:
 
 from fastapi import BackgroundTasks
 from services.future_study_service import generate_and_store_future_study
+from bson import ObjectId
+
+
+
 
 @router.post("/analyze-career/{student_id}")
 async def analyze_career(
@@ -490,9 +495,10 @@ async def analyze_career(
     current_user: dict = Depends(get_current_user)
 ):
     """Automatically analyze the latest completed attempt for a student"""
-
+    print(student_id)
     # 1️⃣ Fetch student answers
-    student_doc = await db.answers.find_one({"student_id": student_id})
+    student_doc = await db.answers.find_one({"student_id": ObjectId(student_id)})
+    print(student_doc)
     if not student_doc:
         raise HTTPException(status_code=404, detail="No answers found")
 
@@ -548,13 +554,22 @@ async def analyze_career(
         upsert=True
     )
 
-    # 4️⃣ Fetch student class
-    student = await db.students.find_one({"student_id": student_id})
-    print(student)
-    student_class = student.get("student_class") if student else None
+    print("student_id value:", student_id)
+    print("student_id type:", type(student_id))
 
+    # 4️⃣ Fetch student class
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    student = await db.students.find_one({"_id": s_oid})
+    print('check', student)
+    student_class = student.get("student_class") if student else None
+    print('check', student_class)
     # 5️⃣ Background task → Future study
     if student_class:
+        print('CHECK3')
         background_tasks.add_task(
             generate_and_store_future_study,
             db,
@@ -653,7 +668,8 @@ async def get_career_history(student_id: str,
 ):
 
     try:
-        s_oid = ObjectId(student_id)
+        s_oid = str(student_id)
+        print(s_oid)
     except:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
 
@@ -663,7 +679,8 @@ async def get_career_history(student_id: str,
         raise HTTPException(status_code=200, detail="No career analysis found for this student")
 
     # Get student's answer document
-    answers_doc = await db.answers.find_one({"student_id": s_oid})
+    answers_doc = await db.answers.find_one({"student_id": ObjectId(s_oid)})
+
     if not answers_doc:
         raise HTTPException(status_code=200, detail="No answers found for this student")
 
@@ -751,91 +768,43 @@ async def get_career_history(student_id: str,
 
 
 
-# --------------------- FCM Token Management -------------------------
-from pydantic import BaseModel
-class FCMTokenRequest(BaseModel):
-    fcm_token: str
 
-@router.post("/update-fcm-token")
-async def update_fcm_token(
-    payload: FCMTokenRequest,
+# --------------------- New User Status Update -------------------------
+
+@router.post("/update-user-status/{student_id}")
+async def update_user_status(
+    student_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Updates the FCM Token for the logged-in user (Parent/Student).
-    This token is used for sending Push Notifications.
+    Sets is_new_user to False for a specific student.
+    Called when the student first opens their dashboard.
     """
-    user_id = current_user.get("_id") # Assuming get_current_user returns the mongo document or dict with _id
-    
-    if not user_id:
-        # Fallback if _id is not directly in the dict, maybe it's 'user_id' or 'mobile_number'
-        # We need to identify the user record uniquely.
-        mobile_number = current_user.get("mobile_number")
-        if not mobile_number:
-            raise HTTPException(status_code=400, detail="User identification failed")
-            
-        result = await db.usertable.update_one(
-            {"mobile_number": mobile_number},
-            {"$set": {"fcm_token": payload.fcm_token}}
-        )
-    else:
-        # If we have the object ID
-        result = await db.usertable.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {"fcm_token": payload.fcm_token}}
-        )
 
-    if result.modified_count == 0 and result.matched_count == 0:
-         return {"status": False, "message": "User not found or token unchanged"}
+    # 🔐 Optional: Authorization check
+    user_student_id = current_user.get("student_id")
+    if user_student_id and user_student_id != student_id:
+        raise HTTPException(status_code=403, detail="Unauthorized access")
 
-    return {
-        "status": True, 
-        "message": "FCM Token updated successfully"
-    }
+    # ✅ Validate ObjectId
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
 
-# --------------------- Test Notification Endpoint -------------------------
-from services.notification_service import create_notification
-
-@router.post("/test-notification")
-async def test_notification(
-    title: str = "Test Notification",
-    message: str = "This is a test message from Swagger/Admin Panel",
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Manually triggers a push notification to the current user (if they have an FCM token).
-    """
-    
-    # We need to find the ID to use. 
-    # Based on notification_service, it expects 'user_id' which is used to look up the user record.
-    # The clean logic in update_fcm_token used 'mobile_number' or '_id'.
-    # create_notification logic looks for 'student_ids' OR '_id'.
-    
-    # Let's try to pass the student_id if available, or just the user's ID.
-    
-    target_id = None
-    
-    # If user is a parent and has connected students, use the first student ID as the "target"
-    if "student_ids" in current_user and current_user["student_ids"]:
-        target_id = current_user["student_ids"][0]
-    
-    # Fallback to the user's direct ID
-    if not target_id:
-        target_id = str(current_user.get("_id"))
-        
-    if not target_id:
-         raise HTTPException(status_code=400, detail="Could not determine a target ID for notification")
-
-    result = await create_notification(
-        db=db,
-        user_id=target_id,
-        title=title,
-        message=message,
-        notification_type="test_notification"
+    # ✅ Update student
+    result = await db.students.update_one(
+        {"_id": s_oid},
+        {"$set": {"is_new_user": False}}
     )
-    
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Student not found")
+
     return {
-        "status": True, 
-        "message": "Notification Triggered. Check server logs for '🔥 FCM Notification Sent'.", 
-        "data": result
+        "status_code": 200,
+        "message": "User status updated to 'not new'",
+        "student_id": student_id,
+        "is_new_user": False
     }
+

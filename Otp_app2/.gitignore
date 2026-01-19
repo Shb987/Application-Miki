@@ -26,7 +26,7 @@ upload_additional_questions.py
 upload_quiz_questions.py
 test_quiz_module.py
 verify_onesignal_import.py
-
+verify_new_user_logic.py
 # Sample data files
 additional_quiz_questions.json
 sample_quiz_questions.json

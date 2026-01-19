@@ -18,7 +18,7 @@ services/
 verify_companion_module.py
 intelligence_questions.json
 scripts/
-
+.agent/
 
 # Quiz module test/utility files
 check_quiz_db.py

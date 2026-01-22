@@ -15,7 +15,6 @@ from utils.admin_auth import get_current_admin
 router = APIRouter(tags=["User"])
 
 
-
 # --------------------- Student Registration -------------------------
 @router.post("/register-student")
 async def register_student(
@@ -49,7 +48,6 @@ async def register_student(
         "address": data.address,
         "guardian_name": data.guardian_name,
         "created_at": datetime.now(timezone.utc),
-        "is_user": is_user
         "is_user": is_user,
         "is_new_user": True  # 🆕 Student is "new" upon registration
     }
@@ -80,12 +78,15 @@ async def register_student(
             {
                 "$set": {
                     "student_id": student_oid,
-                "updated_at": datetime.now().astimezone()
+                    "updated_at": datetime.now().astimezone()
+                },
+                "$setOnInsert": {
+                    "usertype": "student",
+                    "created_at": datetime.now().astimezone()
+                }
             },
-            "$setOnInsert": {
-                "usertype": "student",
-                "created_at": datetime.now().astimezone()
-            }
+            upsert=True
+        )
     result = await db.students.insert_one(student_doc)
     student_oid = result.inserted_id
     print(student_oid)
@@ -156,9 +157,8 @@ def serialize_mongo_doc(doc):
         else:
             # 🕒 If naive, assume it was intended as UTC and add 'Z'
             return doc.isoformat() + "Z"
-        "student_id": str(student_oid),
-        "is_user": is_user
-    }
+
+    
 
 
 
@@ -211,8 +211,6 @@ async def get_parent_details(
 @router.post("/set-usertype")
 async def set_usertype(
     data: UserTypeRequest,
-async def set_usertype(
-    data: UserTypeRequest,
     current_user: dict = Depends(get_current_user)
 ):
     # 1️⃣ Check OTP record
@@ -248,28 +246,10 @@ async def set_usertype(
         usertype=data.usertype
     )
 
-        {
-            "$set": {
-                "usertype": data.usertype,
-                "created_at": datetime.now(timezone.utc)
-            }
-        },
-        upsert=True
-    )
-
-    # 4️⃣ 🔑 CREATE NEW ACCESS TOKEN
-    access_token = create_user_token(
-        mobile_number=data.mobile_number,
-        usertype=data.usertype
-    )
 
 
     return {
         "status_code": 200,
-        "message": f"Usertype set to {data.usertype}",
-        "usertype": data.usertype,
-        "access_token": access_token,
-        "token_type": "bearer"
         "message": f"Usertype set to {data.usertype}",
         "usertype": data.usertype,
         "access_token": access_token,
@@ -542,7 +522,6 @@ async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
     return {
         "status_code": 200,
         "student": serialize_mongo_doc(student)
-        "student": serialize_mongo_doc(student)
     }
 
 
@@ -558,7 +537,6 @@ async def get_users(admin=Depends(get_current_admin)):
     return {
         "status_code": 200,
         "users": serialized_users
-        "users": serialized_users
     }
 
 
@@ -573,8 +551,8 @@ async def get_logins(admin=Depends(get_current_admin)):
     return {
         "status_code": 200,
         "logins": serialized_logins
-        "logins": serialized_logins
     }
+
 
 # --------------------- Career Analyzer Logic -------------------------
 from fastapi import HTTPException
@@ -636,9 +614,7 @@ from bson import ObjectId
 
 
 @router.post("/analyze-career/{student_id}")
-async def analyze_career(
-    student_id: str,
-    background_tasks: BackgroundTasks,
+
 async def analyze_career(
     student_id: str,
     background_tasks: BackgroundTasks,
@@ -664,7 +640,6 @@ async def analyze_career(
     if not completed_attempts:
         raise HTTPException(
             status_code=400,
-            detail="No completed attempt found"
             detail="No completed attempt found"
         )
 
@@ -817,10 +792,6 @@ async def get_future_study(
     }
 
 
-
-        "career_suggestions": career_suggestions,
-        "future_study_status": "processing"
-    }
 
 
 

@@ -14,7 +14,7 @@ test_jwt_gen.py
 temp/
 test_onesignal_config.py
 tests/
-services/
+services/ai_companion_service.py
 verify_companion_module.py
 intelligence_questions.json
 scripts/

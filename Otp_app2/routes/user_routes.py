@@ -10,8 +10,10 @@ from bson import ObjectId
 from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
 import re
 from utils.user_auth import get_current_user,admin_or_user,create_user_token
+from utils.user_auth import get_current_user,admin_or_user,create_user_token
 from utils.admin_auth import get_current_admin 
 router = APIRouter(tags=["User"])
+
 
 
 # --------------------- Student Registration -------------------------
@@ -30,6 +32,15 @@ async def register_student(
     is_user = True if usertype == "student" else False
 
     # 1️⃣ Create student document
+    print("hiii")
+    print(current)
+
+    usertype = current.get("usertype")
+
+    # 🔑 Decide is_user
+    is_user = True if usertype == "student" else False
+
+    # 1️⃣ Create student document
     student_doc = {
         "student_name": data.student_name,
         "dob": data.dob,
@@ -38,10 +49,43 @@ async def register_student(
         "address": data.address,
         "guardian_name": data.guardian_name,
         "created_at": datetime.now(timezone.utc),
+        "is_user": is_user
         "is_user": is_user,
         "is_new_user": True  # 🆕 Student is "new" upon registration
     }
 
+    result = await db.students.insert_one(student_doc)
+    student_oid = result.inserted_id
+    print(student_oid)
+    # 2️⃣ Parent registers student
+    if usertype == "parent":
+        await db.usertable.update_one(
+            {"mobile_number": parent_mobile},
+            {
+                "$setOnInsert": {
+                    "usertype": "parent",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": student_oid
+                }
+            },
+            upsert=True
+        )
+
+    # 3️⃣ Student self-registers
+    elif usertype == "student":
+        await db.usertable.update_one(
+            {"mobile_number": current["sub"]},
+            {
+                "$set": {
+                    "student_id": student_oid,
+                "updated_at": datetime.now().astimezone()
+            },
+            "$setOnInsert": {
+                "usertype": "student",
+                "created_at": datetime.now().astimezone()
+            }
     result = await db.students.insert_one(student_doc)
     student_oid = result.inserted_id
     print(student_oid)
@@ -82,9 +126,36 @@ async def register_student(
     elif usertype == "admin":
         pass
 
+    # 4️⃣ Optional: admin case
+    elif usertype == "admin":
+        pass
+
     return {
         "status_code": 200,
         "message": "Student registered successfully",
+        "student_id": str(student_oid),
+        "is_user": is_user
+    }
+
+
+
+def serialize_mongo_doc(doc):
+    """
+    Recursively convert ObjectId to str in a document (dict) or list.
+    """
+    if isinstance(doc, list):
+        return [serialize_mongo_doc(item) for item in doc]
+    if isinstance(doc, dict):
+        return {k: serialize_mongo_doc(v) for k, v in doc.items()}
+    if isinstance(doc, ObjectId):
+        return str(doc)
+    if isinstance(doc, datetime):
+        # 🕒 Ensure aware datetimes are serialized with UTC indicator 'Z'
+        if doc.tzinfo:
+            return doc.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        else:
+            # 🕒 If naive, assume it was intended as UTC and add 'Z'
+            return doc.isoformat() + "Z"
         "student_id": str(student_oid),
         "is_user": is_user
     }
@@ -130,19 +201,27 @@ async def get_parent_details(
         # student_ids is now a list of ObjectIds
         cursor = db.students.find({"_id": {"$in": student_ids}})
         students = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
+        # student_ids is now a list of ObjectIds
+        cursor = db.students.find({"_id": {"$in": student_ids}})
+        students = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
 
+
 @router.post("/set-usertype")
+async def set_usertype(
+    data: UserTypeRequest,
 async def set_usertype(
     data: UserTypeRequest,
     current_user: dict = Depends(get_current_user)
 ):
     # 1️⃣ Check OTP record
+    # 1️⃣ Check OTP record
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
     if not record:
         return {"status_code": 400, "message": "User not found"}
 
+    # 2️⃣ Update OTP table
     # 2️⃣ Update OTP table
     await db.otps.update_one(
         {"mobile_number": data.mobile_number},
@@ -150,8 +229,25 @@ async def set_usertype(
     )
 
     # 3️⃣ Update usertable
+
+    # 3️⃣ Update usertable
     await db.usertable.update_one(
         {"mobile_number": data.mobile_number},
+        {
+            "$set": {
+                "usertype": data.usertype,
+                "created_at": datetime.now(timezone.utc)
+            }
+        },
+        upsert=True
+    )
+
+    # 4️⃣ 🔑 CREATE NEW ACCESS TOKEN
+    access_token = create_user_token(
+        mobile_number=data.mobile_number,
+        usertype=data.usertype
+    )
+
         {
             "$set": {
                 "usertype": data.usertype,
@@ -174,7 +270,12 @@ async def set_usertype(
         "usertype": data.usertype,
         "access_token": access_token,
         "token_type": "bearer"
+        "message": f"Usertype set to {data.usertype}",
+        "usertype": data.usertype,
+        "access_token": access_token,
+        "token_type": "bearer"
     }
+
 
 # --------------------- Questions by Age -------------------------
 @router.get("/student_questions")
@@ -188,6 +289,7 @@ async def get_questions_by_age(age: int = Query(...)):
     }
 
     cursor = db.questions.find(query)
+    questions = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
     questions = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     grouped: Dict[str, List[dict]] = {}
@@ -282,11 +384,18 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
         raise HTTPException(status_code=400, detail="Invalid student_id format (must be 24-char hex)")
 
     existing_doc = await db.answers.find_one({"student_id": s_oid})
+    try:
+        s_oid = ObjectId(payload.student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format (must be 24-char hex)")
+
+    existing_doc = await db.answers.find_one({"student_id": s_oid})
 
     if not existing_doc:
         # 🟢 First ever record for student
         attempt = 1
         new_doc = {
+            "student_id": s_oid,
             "student_id": s_oid,
             "attempts": [
                 {
@@ -303,6 +412,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
         }
         await db.answers.insert_one(new_doc)
         print(f"✅ Created first attempt (1) for {s_oid}")
+        print(f"✅ Created first attempt (1) for {s_oid}")
 
     else:
         # 🟡 Student already exists
@@ -318,6 +428,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
                 attempt += 1
                 await db.answers.update_one(
                     {"student_id": s_oid},
+                    {"student_id": s_oid},
                     {"$push": {
                         "attempts": {
                             "attempt": attempt,
@@ -328,8 +439,10 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
                     }}
                 )
                 print(f"🟢 Created new attempt {attempt} for {s_oid}")
+                print(f"🟢 Created new attempt {attempt} for {s_oid}")
 
         # Fetch latest document again after potential new attempt creation
+        student_doc = await db.answers.find_one({"student_id": s_oid})
         student_doc = await db.answers.find_one({"student_id": s_oid})
         active_attempt = next(
             (a for a in student_doc["attempts"] if a["attempt"] == attempt),
@@ -353,6 +466,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
         # Update DB
         await db.answers.update_one(
             {"student_id": s_oid, "attempts.attempt": attempt},
+            {"student_id": s_oid, "attempts.attempt": attempt},
             {"$set": {"attempts.$.categories": updated_categories}}
         )
 
@@ -363,11 +477,14 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
         if total_category_count >= 8:  # if all 8 intelligence types answered
             await db.answers.update_one(
                 {"student_id": s_oid, "attempts.attempt": attempt},
+                {"student_id": s_oid, "attempts.attempt": attempt},
                 {"$set": {"attempts.$.status": "completed"}}
             )
             print(f"🏁 Attempt {attempt} marked as COMPLETED for {s_oid}")
+            print(f"🏁 Attempt {attempt} marked as COMPLETED for {s_oid}")
 
     # Debug log
+    updated_doc = await db.answers.find_one({"student_id": s_oid})
     updated_doc = await db.answers.find_one({"student_id": s_oid})
     print("🔍 Updated document:\n", updated_doc)
 
@@ -381,6 +498,8 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
 
 @router.get("/get_students")
+async def get_students(admin=Depends(get_current_admin)):
+    cursor = db.students.find({})
 async def get_students(admin=Depends(get_current_admin)):
     cursor = db.students.find({})
     students = await cursor.to_list(length=None)
@@ -402,20 +521,43 @@ async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
+    serialized_students = [serialize_mongo_doc(doc) for doc in students]
+    return {
+        "status_code": 200,
+        "students": serialized_students
+    }
+
+
+@router.get("/student-detail/{student_id}")
+async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    student = await db.students.find_one({"_id": s_oid})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
     return {
         "status_code": 200,
         "student": serialize_mongo_doc(student)
+        "student": serialize_mongo_doc(student)
     }
+
 
 
 # ✅ Get all Users (Parents table)
 @router.get("/get_users")
 async def get_users(admin=Depends(get_current_admin)):
     cursor = db.usertable.find({})
+    cursor = db.usertable.find({})
     users = await cursor.to_list(length=None)
+    serialized_users = [serialize_mongo_doc(doc) for doc in users]
     serialized_users = [serialize_mongo_doc(doc) for doc in users]
     return {
         "status_code": 200,
+        "users": serialized_users
         "users": serialized_users
     }
 
@@ -424,10 +566,13 @@ async def get_users(admin=Depends(get_current_admin)):
 @router.get("/get_logins")
 async def get_logins(admin=Depends(get_current_admin)):
     cursor = db.otps.find({})
+    cursor = db.otps.find({})
     logins = await cursor.to_list(length=None)
+    serialized_logins = [serialize_mongo_doc(doc) for doc in logins]
     serialized_logins = [serialize_mongo_doc(doc) for doc in logins]
     return {
         "status_code": 200,
+        "logins": serialized_logins
         "logins": serialized_logins
     }
 
@@ -483,6 +628,8 @@ def normalize_percentages(scores: dict) -> dict:
 
 from fastapi import BackgroundTasks
 from services.future_study_service import generate_and_store_future_study
+from fastapi import BackgroundTasks
+from services.future_study_service import generate_and_store_future_study
 from bson import ObjectId
 
 
@@ -492,8 +639,15 @@ from bson import ObjectId
 async def analyze_career(
     student_id: str,
     background_tasks: BackgroundTasks,
+async def analyze_career(
+    student_id: str,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user)
 ):
+    """Automatically analyze the latest completed attempt for a student"""
+
+    # 1️⃣ Fetch student answers
+    student_doc = await db.answers.find_one({"student_id": ObjectId(student_id)})
     """Automatically analyze the latest completed attempt for a student"""
     print(student_id)
     # 1️⃣ Fetch student answers
@@ -501,13 +655,16 @@ async def analyze_career(
     print(student_doc)
     if not student_doc:
         raise HTTPException(status_code=404, detail="No answers found")
+        raise HTTPException(status_code=404, detail="No answers found")
 
     attempts = student_doc.get("attempts", [])
     completed_attempts = [a for a in attempts if a.get("status") == "completed"]
 
+
     if not completed_attempts:
         raise HTTPException(
             status_code=400,
+            detail="No completed attempt found"
             detail="No completed attempt found"
         )
 
@@ -515,7 +672,10 @@ async def analyze_career(
     attempt_num = latest_attempt["attempt"]
 
     # 2️⃣ Scores
+    # 2️⃣ Scores
     categories = latest_attempt.get("categories", [])
+    scores = {c["category"]: c.get("total_marks", 0) for c in categories}
+
     scores = {c["category"]: c.get("total_marks", 0) for c in categories}
 
     percentages = normalize_percentages(scores)
@@ -528,15 +688,25 @@ async def analyze_career(
         "No career mapped"
     )
 
+
+    recommended_career = career_map.get(
+        top_cat.lower(),
+        "No career mapped"
+    )
+
     insights = [
         f"{cat}: Strong inclination towards {cat.lower()} intelligence."
         for cat, _ in top_3
     ]
 
+
     career_suggestions = [
+        f"{cat} ➔ {career_map.get(cat.lower(), 'Unknown Career')}"
         f"{cat} ➔ {career_map.get(cat.lower(), 'Unknown Career')}"
         for cat, _ in top_3
     ]
+
+    # 3️⃣ Save career analysis
 
     # 3️⃣ Save career analysis
     await db.career_analyzer.update_one(
@@ -546,6 +716,7 @@ async def analyze_career(
                 "scores": scores,
                 "overall_score": sum(scores.values()),
                 "percentages": percentages,
+                "percentages": percentages,
                 "top_category": top_cat,
                 "recommended_career": recommended_career,
                 "timestamp": datetime.now(timezone.utc)
@@ -553,6 +724,29 @@ async def analyze_career(
         },
         upsert=True
     )
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400,detail='invalid_student_id format')
+    
+    # 4️⃣ Fetch student class
+    student = await db.students.find_one({"_id": s_oid})
+    print('check',student)
+    student_class = student.get("student_class") if student else None
+
+    # 5️⃣ Background task → Future study
+    if student_class:
+        print('Entered Future study')
+        background_tasks.add_task(
+            generate_and_store_future_study,
+            db,
+            student_id,
+            student_class,
+            recommended_career,
+            top_cat
+        )
+
+    # 6️⃣ Immediate response
 
     print("student_id value:", student_id)
     print("student_id type:", type(student_id))
@@ -624,6 +818,40 @@ async def get_future_study(
 
 
 
+        "career_suggestions": career_suggestions,
+        "future_study_status": "processing"
+    }
+
+
+
+@router.get("/future-study/{student_id}")
+async def get_future_study(
+    student_id: str,
+    current=Depends(admin_or_user)
+):
+    record = await db.future_study.find_one(
+        {"student_id": student_id},
+        sort=[("created_at", -1)]
+    )
+
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail="Future study guidance not generated yet"
+        )
+
+    return {
+        "status_code": 200,
+        "student_id": student_id,
+        "recommended_career": record.get("recommended_career"),
+        "top_category": record.get("top_category"),
+        "student_class": record.get("student_class"),
+        "future_study": record.get("resources"),
+        "created_at": record.get("created_at")
+    }
+
+
+
 from bson import json_util
 import json
 
@@ -636,14 +864,22 @@ async def get_career_analysis(student_id: str, attempt: int,
     """
 
     try:
+        s_oid = str(student_id)
+        print(s_oid)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+    print('hhhhhhhhhhhi')
+    try:
         s_oid = ObjectId(student_id)
     except:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
     print('hhhhhhhhhhhi')
     record = await db.career_analyzer.find_one(
         {"student_id": s_oid, "attempt": attempt},
+        {"student_id": s_oid, "attempt": attempt},
         {"_id": 0}   # hide MongoDB ObjectId
     )
+    record = serialize_mongo_doc(record)  
     record = serialize_mongo_doc(record)  
     if not record:
         raise HTTPException(
@@ -669,16 +905,23 @@ async def get_career_history(student_id: str,
 
     try:
         s_oid = str(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    try:
+        s_oid = str(student_id)
         print(s_oid)
     except:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
 
     # Get all career analysis attempts
     career_records = await db.career_analyzer.find({"student_id": s_oid}).sort("timestamp", -1).to_list(None)
+    career_records = await db.career_analyzer.find({"student_id": s_oid}).sort("timestamp", -1).to_list(None)
     if not career_records:
         raise HTTPException(status_code=200, detail="No career analysis found for this student")
 
     # Get student's answer document
+    answers_doc = await db.answers.find_one({"student_id": ObjectId(s_oid)})
     answers_doc = await db.answers.find_one({"student_id": ObjectId(s_oid)})
 
     if not answers_doc:

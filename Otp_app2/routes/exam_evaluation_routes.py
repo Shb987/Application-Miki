@@ -448,11 +448,7 @@ async def mark_notification_read(
             }
         )
 
-    return {
-        "status": True,
-        "message": "Notification marked as read"
-    }
-    
+    return {"status": True, "message": "Notification marked as read"}
 @router.get("/exam-history/{student_id}")
 async def get_exam_history(
     student_id: str,
@@ -469,32 +465,20 @@ async def get_exam_history(
 
     if user_student_id and user_student_id != student_id:
         raise HTTPException(status_code=403, detail="Unauthorized access to exam history")
+    
+    # If user is a parent, we should ideally check if the student_id is in their list
+    # For now, following the pattern in get_notifications
+    
+    evaluations = await db.evaluations.find(
+        {"student_id": student_id}
+    ).sort("created_at", -1).to_list(100)
 
-    # 🆔 Validate ObjectId
-    try:
-        s_oid = str(student_id)
-    except:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid student_id format (must be 24-char hex)"
-        )
-
-    # 📌 Pagination math
-    skip = (page - 1) * limit
-
-    # 📊 Fetch data
-    cursor = (
-        db.evaluations
-        .find({"student_id": ObjectId(s_oid)})
-        .sort("created_at", -1)
-        .skip(skip)
-        .limit(limit)
-    )
-
-    evaluations = await cursor.to_list(length=limit)
-
-    # 📈 Total count (for has_more)
-    total_count = await db.evaluations.count_documents({"student_id": ObjectId(s_oid)})
+    if not evaluations:
+        return {
+            "status": True,
+            "message": "No exam history found for this student.",
+            "data": []
+        }
 
     return {
         "status": True,

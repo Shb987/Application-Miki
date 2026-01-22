@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "http://13.200.236.155:8000";
 
 async function apiFetch(url, options = {}) {
   const token = localStorage.getItem("admin_token");

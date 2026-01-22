@@ -404,36 +404,55 @@ async def get_notifications(user_id: str, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=400, detail="Invalid student_id format (must be 24-char hex)")
 
     notifications = await db.notifications.find(
-        {"student_id": s_oid, "is_read": False}
+        {"student_id": str(s_oid), "is_read": False}
     ).sort("created_at", -1).to_list(100)
 
     return {"status": True, "data": clean_mongo(notifications)}
 
 @router.post("/notifications/read/{notification_id}")
-async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
+async def mark_notification_read(
+    notification_id: str,
+    current_user: dict = Depends(get_current_user)
+):
     user_id = current_user.get("student_id")
-    print(user_id)
-    # Update only if notification belongs to the user
-    query = {"notification_id": notification_id}
+
+    # Build query
+    try:
+        query = {
+            "_id": ObjectId(notification_id)
+        }
+    except:
+        raise HTTPException(status_code=400, detail="Invalid notification_id format")
+
+    # Ensure notification belongs to the current user
     if user_id:
         try:
             query["student_id"] = ObjectId(user_id)
         except:
-             raise HTTPException(status_code=400, detail="Invalid student_id format in token")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid student_id format in token"
+            )
 
     result = await db.notifications.update_one(
         query,
         {"$set": {"is_read": True}}
     )
-    
+
     if result.matched_count == 0:
         return JSONResponse(
             status_code=404,
-            content={"status": False, "message": "Notification not found"}
+            content={
+                "status": False,
+                "message": "Notification not found"
+            }
         )
 
-    return {"status": True, "message": "Notification marked as read"}
-
+    return {
+        "status": True,
+        "message": "Notification marked as read"
+    }
+    
 @router.get("/exam-history/{student_id}")
 async def get_exam_history(
     student_id: str,
@@ -466,7 +485,7 @@ async def get_exam_history(
     # 📊 Fetch data
     cursor = (
         db.evaluations
-        .find({"student_id": s_oid})
+        .find({"student_id": ObjectId(s_oid)})
         .sort("created_at", -1)
         .skip(skip)
         .limit(limit)
@@ -475,7 +494,7 @@ async def get_exam_history(
     evaluations = await cursor.to_list(length=limit)
 
     # 📈 Total count (for has_more)
-    total_count = await db.evaluations.count_documents({"student_id": s_oid})
+    total_count = await db.evaluations.count_documents({"student_id": ObjectId(s_oid)})
 
     return {
         "status": True,

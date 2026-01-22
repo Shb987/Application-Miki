@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Admin Login</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <div class="login-container">
     <h2>Admin Login</h2>
@@ -22,7 +24,7 @@
       const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
-      const res = await fetch("http://127.0.0.1:8000/admin/login", {
+      const res = await fetch("http://13.200.236.155:8000/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -39,4 +41,5 @@
     });
   </script>
 </body>
+
 </html>

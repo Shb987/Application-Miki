@@ -563,196 +563,196 @@
       ]);
     }
 
-  async function loadUsers() {
-    const res = await fetch(`${API_BASE}/user/get_users`, {
-      headers: { "Authorization": "Bearer " + token }
-    });
-    const data = await res.json();
+    async function loadUsers() {
+      const res = await fetch(`${API_BASE}/user/get_users`, {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
 
-    displayTable(data.users || [], "Users", [
-      { key: "mobile_number", label: "Mobile" },
-      { key: "usertype", label: "User Type" },
+      displayTable(data.users || [], "Users", [
+        { key: "mobile_number", label: "Mobile" },
+        { key: "usertype", label: "User Type" },
 
-      // 🔑 Virtual column (handles student_ids OR student_id)
-      { key: "student", label: "Student ID(s)" },
+        // 🔑 Virtual column (handles student_ids OR student_id)
+        { key: "student", label: "Student ID(s)" },
 
-      {
-        key: "created_at",
-        label: "Created At",
-        format: formatDateTimeUTCToLocal
+        {
+          key: "created_at",
+          label: "Created At",
+          format: formatDateTimeUTCToLocal
+        }
+      ]);
+    }
+
+    // ==============================
+    // Load Logins
+    // ==============================
+    async function loadLogins() {
+      const res = await fetch(`${API_BASE}/user/get_logins`, {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+
+      displayTable(data.logins || [], "Logins", [
+        { key: "mobile_number", label: "Mobile" },
+        { key: "otp", label: "OTP" },
+        { key: "usertype", label: "User Type" },
+        {
+          key: "created_at",
+          label: "Created At",
+          format: formatDateTimeUTCToLocal
+        },
+        {
+          key: "expiry",
+          label: "Expiry",
+          format: formatDateTimeUTCToLocal
+        }
+      ]);
+    }
+
+    // ==============================
+    // Student ID extractor
+    // ==============================
+    function getStudentIds(user) {
+      // Parent → multiple students
+      if (Array.isArray(user.student_ids) && user.student_ids.length > 0) {
+        return user.student_ids.join(", ");
       }
-    ]);
-  }
 
-  // ==============================
-  // Load Logins
-  // ==============================
-  async function loadLogins() {
-    const res = await fetch(`${API_BASE}/user/get_logins`, {
-      headers: { "Authorization": "Bearer " + token }
-    });
-    const data = await res.json();
-
-    displayTable(data.logins || [], "Logins", [
-      { key: "mobile_number", label: "Mobile" },
-      { key: "otp", label: "OTP" },
-      { key: "usertype", label: "User Type" },
-      {
-        key: "created_at",
-        label: "Created At",
-        format: formatDateTimeUTCToLocal
-      },
-      {
-        key: "expiry",
-        label: "Expiry",
-        format: formatDateTimeUTCToLocal
+      // Student → single student
+      if (typeof user.student_id === "string") {
+        return user.student_id;
       }
-    ]);
-  }
 
-  // ==============================
-  // Student ID extractor
-  // ==============================
-  function getStudentIds(user) {
-    // Parent → multiple students
-    if (Array.isArray(user.student_ids) && user.student_ids.length > 0) {
-      return user.student_ids.join(", ");
+      return "";
     }
 
-    // Student → single student
-    if (typeof user.student_id === "string") {
-      return user.student_id;
+    // ==============================
+    // Tab Loader
+    // ==============================
+    function loadTabContent() {
+      const params = new URLSearchParams(window.location.search);
+      const tabRaw = params.get("tab") || "students";
+      const tab = tabRaw.trim().toLowerCase();
+
+      console.log("DEBUG: Tab detected =", tab);
+
+      switch (tab) {
+        case "students":
+          loadStudents();
+          break;
+        case "users":
+          loadUsers();
+          break;
+        case "logins":
+          loadLogins();
+          break;
+        default:
+          console.warn("Unknown tab:", tab, "falling back to students");
+          loadStudents();
+      }
     }
 
-    return "";
-  }
-
-  // ==============================
-  // Tab Loader
-  // ==============================
-  function loadTabContent() {
-    const params = new URLSearchParams(window.location.search);
-    const tabRaw = params.get("tab") || "students";
-    const tab = tabRaw.trim().toLowerCase();
-
-    console.log("DEBUG: Tab detected =", tab);
-
-    switch (tab) {
-      case "students":
-        loadStudents();
-        break;
-      case "users":
-        loadUsers();
-        break;
-      case "logins":
-        loadLogins();
-        break;
-      default:
-        console.warn("Unknown tab:", tab, "falling back to students");
-        loadStudents();
-    }
-  }
-
-  // ==============================
-  // Display Table Utility
-  // ==============================
-  function displayTable(items, title, columns) {
-    let html = `
+    // ==============================
+    // Display Table Utility
+    // ==============================
+    function displayTable(items, title, columns) {
+      let html = `
       <div class="card my-3">
         <div class="card-body">
           <h5 class="card-title mb-4">${title} Data</h5>
     `;
 
-    if (items.length === 0) {
-      html += `<p class="text-muted">No data available</p>`;
-    } else {
-      html += `
+      if (items.length === 0) {
+        html += `<p class="text-muted">No data available</p>`;
+      } else {
+        html += `
         <div class="table-responsive">
           <table class="table table-bordered table-striped table-hover">
             <thead class="table-dark">
               <tr>
       `;
 
-      columns.forEach(col => {
-        html += `<th>${col.label}</th>`;
-      });
+        columns.forEach(col => {
+          html += `<th>${col.label}</th>`;
+        });
 
-      html += `
+        html += `
               </tr>
             </thead>
             <tbody>
       `;
 
-      items.forEach(item => {
-        html += "<tr>";
+        items.forEach(item => {
+          html += "<tr>";
 
-        columns.forEach(col => {
-          let value = "";
+          columns.forEach(col => {
+            let value = "";
 
-          // 🔑 Handle virtual student column
-          if (col.key === "student") {
-            value = getStudentIds(item);
-          } else {
-            value = item[col.key] ?? "";
-          }
+            // 🔑 Handle virtual student column
+            if (col.key === "student") {
+              value = getStudentIds(item);
+            } else {
+              value = item[col.key] ?? "";
+            }
 
-          // Custom formatter (dates)
-          if (typeof col.format === "function") {
-            value = col.format(value);
-          } 
-          // Arrays fallback
-          else if (Array.isArray(value)) {
-            value = value.join(", ");
-          }
+            // Custom formatter (dates)
+            if (typeof col.format === "function") {
+              value = col.format(value);
+            }
+            // Arrays fallback
+            else if (Array.isArray(value)) {
+              value = value.join(", ");
+            }
 
-          html += `<td>${value}</td>`;
+            html += `<td>${value}</td>`;
+          });
+
+          html += "</tr>";
         });
 
-        html += "</tr>";
-      });
-
-      html += `
+        html += `
             </tbody>
           </table>
         </div>
       `;
-    }
+      }
 
-    html += `
+      html += `
         </div>
       </div>
     `;
 
-    document.getElementById("data-section").innerHTML = html;
-  }
-
-  // ==============================
-  // UTC → Local Date Formatter
-  // ==============================
-  function formatDateTimeUTCToLocal(utcString) {
-    if (!utcString) return "";
-
-    console.log("DEBUG: Raw Date string from DB =", utcString);
-
-    let dateString = utcString;
-
-    if (typeof dateString === "string") {
-      dateString = dateString.replace(" ", "T");
-
-      if (!dateString.includes("Z") && !dateString.includes("+")) {
-        dateString += "Z";
-      }
+      document.getElementById("data-section").innerHTML = html;
     }
 
-    const date = new Date(dateString);
+    // ==============================
+    // UTC → Local Date Formatter
+    // ==============================
+    function formatDateTimeUTCToLocal(utcString) {
+      if (!utcString) return "";
 
-    if (isNaN(date.getTime())) return utcString;
+      console.log("DEBUG: Raw Date string from DB =", utcString);
 
-    const localString = date.toLocaleString();
-    console.log("DEBUG: Formatted Local Date =", localString);
+      let dateString = utcString;
 
-    return localString;
-  }
+      if (typeof dateString === "string") {
+        dateString = dateString.replace(" ", "T");
+
+        if (!dateString.includes("Z") && !dateString.includes("+")) {
+          dateString += "Z";
+        }
+      }
+
+      const date = new Date(dateString);
+
+      if (isNaN(date.getTime())) return utcString;
+
+      const localString = date.toLocaleString();
+      console.log("DEBUG: Formatted Local Date =", localString);
+
+      return localString;
+    }
 
     // ✅ Logout function
     function logout() {

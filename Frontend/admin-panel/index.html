@@ -1,17 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Admin Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h2 { color: #333; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-    th { background-color: #f4f4f4; }
-    .logout { margin-top: 20px; padding: 10px 20px; background: red; color: white; border: none; cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f4f4f4;
+    }
+
+    .logout {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: red;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
   </style>
 </head>
+
 <body>
   <h2>Admin Dashboard</h2>
   <button class="logout" onclick="logout()">Logout</button>
@@ -51,7 +81,7 @@
     }
 
     async function fetchData(endpoint) {
-      const response = await fetch("http://127.0.0.1:8000" + endpoint, {
+      const response = await fetch("http://13.200.236.155:8000" + endpoint, {
         headers: { "Authorization": "Bearer " + token }
       });
       return await response.json();
@@ -95,4 +125,5 @@
     loadDashboard();
   </script>
 </body>
+
 </html>

@@ -10,7 +10,6 @@ from bson import ObjectId
 from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
 import re
 from utils.user_auth import get_current_user,admin_or_user,create_user_token
-from utils.user_auth import get_current_user,admin_or_user,create_user_token
 from utils.admin_auth import get_current_admin 
 router = APIRouter(tags=["User"])
 
@@ -22,22 +21,10 @@ async def register_student(
     parent_mobile: str = Query(..., description="Parent mobile number"),
     current=Depends(admin_or_user)
 ):
-    print("hiii")
-    print(current)
-
     usertype = current.get("usertype")
 
     # 🔑 Decide is_user
-    is_user = True if usertype == "student" else False
-
-    # 1️⃣ Create student document
-    print("hiii")
-    print(current)
-
-    usertype = current.get("usertype")
-
-    # 🔑 Decide is_user
-    is_user = True if usertype == "student" else False
+    is_user = usertype == "student"
 
     # 1️⃣ Create student document
     student_doc = {
@@ -49,12 +36,13 @@ async def register_student(
         "guardian_name": data.guardian_name,
         "created_at": datetime.now(timezone.utc),
         "is_user": is_user,
-        "is_new_user": True  # 🆕 Student is "new" upon registration
+        "is_new_user": True
     }
 
+    # ✅ INSERT STUDENT ONCE
     result = await db.students.insert_one(student_doc)
     student_oid = result.inserted_id
-    print(student_oid)
+
     # 2️⃣ Parent registers student
     if usertype == "parent":
         await db.usertable.update_one(
@@ -78,56 +66,17 @@ async def register_student(
             {
                 "$set": {
                     "student_id": student_oid,
-                    "updated_at": datetime.now().astimezone()
+                    "updated_at": datetime.now(timezone.utc)
                 },
                 "$setOnInsert": {
                     "usertype": "student",
-                    "created_at": datetime.now().astimezone()
-                }
-            },
-            upsert=True
-        )
-    result = await db.students.insert_one(student_doc)
-    student_oid = result.inserted_id
-    print(student_oid)
-    # 2️⃣ Parent registers student
-    if usertype == "parent":
-        await db.usertable.update_one(
-            {"mobile_number": parent_mobile},
-            {
-                "$setOnInsert": {
-                    "usertype": "parent",
                     "created_at": datetime.now(timezone.utc)
-                },
-                "$addToSet": {
-                    "student_ids": student_oid
                 }
             },
             upsert=True
         )
 
-    # 3️⃣ Student self-registers
-    elif usertype == "student":
-        await db.usertable.update_one(
-            {"mobile_number": current["sub"]},
-            {
-                "$set": {
-                    "student_id": student_oid,
-                "updated_at": datetime.now().astimezone()
-            },
-            "$setOnInsert": {
-                "usertype": "student",
-                "created_at": datetime.now().astimezone()
-            }
-        },
-        upsert=True
-    )
-
-    # 4️⃣ Optional: admin case
-    elif usertype == "admin":
-        pass
-
-    # 4️⃣ Optional: admin case
+    # 4️⃣ Admin case (optional)
     elif usertype == "admin":
         pass
 
@@ -137,8 +86,6 @@ async def register_student(
         "student_id": str(student_oid),
         "is_user": is_user
     }
-
-
 
 
 @router.put("/update-student/{student_id}")
@@ -515,8 +462,6 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 @router.get("/get_students")
 async def get_students(admin=Depends(get_current_admin)):
     cursor = db.students.find({})
-async def get_students(admin=Depends(get_current_admin)):
-    cursor = db.students.find({})
     students = await cursor.to_list(length=None)
     serialized_students = [serialize_mongo_doc(doc) for doc in students]
     return {
@@ -542,22 +487,6 @@ async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
         "students": serialized_students
     }
 
-
-@router.get("/student-detail/{student_id}")
-async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
-    try:
-        s_oid = ObjectId(student_id)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid student_id format")
-
-    student = await db.students.find_one({"_id": s_oid})
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-
-    return {
-        "status_code": 200,
-        "student": serialize_mongo_doc(student)
-    }
 
 
 
@@ -829,33 +758,6 @@ async def get_future_study(
 
 
 
-
-
-@router.get("/future-study/{student_id}")
-async def get_future_study(
-    student_id: str,
-    current=Depends(admin_or_user)
-):
-    record = await db.future_study.find_one(
-        {"student_id": student_id},
-        sort=[("created_at", -1)]
-    )
-
-    if not record:
-        raise HTTPException(
-            status_code=404,
-            detail="Future study guidance not generated yet"
-        )
-
-    return {
-        "status_code": 200,
-        "student_id": student_id,
-        "recommended_career": record.get("recommended_career"),
-        "top_category": record.get("top_category"),
-        "student_class": record.get("student_class"),
-        "future_study": record.get("resources"),
-        "created_at": record.get("created_at")
-    }
 
 
 

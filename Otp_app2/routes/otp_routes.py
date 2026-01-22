@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 async def send_otp(data: OTPRequest):
     otp = str(random.randint(100000, 999999))
 
-    now = datetime.now(timezone.utc)  # ✅ explicit UTC
+    now = datetime.now(timezone.utc)  # âœ… explicit UTC
     expiry_time = now + timedelta(minutes=OTP_EXPIRY_MINUTES)
     
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
@@ -41,6 +41,10 @@ async def send_otp(data: OTPRequest):
     return {"status_code": 200, "message": "OTP generated", "otp": otp}
 
 
+from datetime import datetime, timezone
+from bson import ObjectId
+
+
 @router.post("/verify")
 async def verify_otp(data: OTPVerify):
     record = await db.otps.find_one({"mobile_number": data.mobile_number})
@@ -59,18 +63,35 @@ async def verify_otp(data: OTPVerify):
     if record.get("otp") != data.otp:
         return {"status_code": 400, "message": "Invalid OTP"}
 
-    # Generate Token
-    from utils.user_auth import create_user_token
-    
-    usertype = record.get("usertype") 
-    # Handle case if usertype is None (e.g. fresh registration) - defaulting to "parent" or handling appropriately?
-    # Based on existing flow, clean registration usually happens AFTER verify? 
-    # But we need a token to call protected routes.
-    # If usertype is None, let's treat it as a temporary/guest state or just pass "parent" if that's the default entry.
-    # Looking at register_student, it sets "usertype": "parent".
-    
-    if not usertype:
-        usertype = "null" # Default fallback for new users who haven't set a type yet.
+    # Get usertype
+    usertype = record.get("usertype") or "null"
+
+    # Defaults
+    is_user = False
+    student_id = None
+    is_new_user = False # Default
+
+    # âœ… Only if student
+    if usertype == "student":
+        user_record = await db.usertable.find_one(
+            {"mobile_number": data.mobile_number},
+            {"student_id": 1}
+        )
+
+        if user_record:
+            student_id = user_record.get("student_id")
+
+            if student_id:
+                student = await db.students.find_one(
+                    {"_id": ObjectId(student_id)},
+                    {"is_user": 1}
+                )
+
+                if student and student.get("is_user") is True:
+                    is_user = True
+                
+                # âœ… Check if student is "new"
+                is_new_user = student.get("is_new_user", False) if student else False
 
     access_token = create_user_token(data.mobile_number, usertype)
 
@@ -80,15 +101,16 @@ async def verify_otp(data: OTPVerify):
         "usertype": usertype,
         "is_user": is_user,
 
-        # ✅ Return student_id only for students
+        # âœ… Return student_id only for students
         "student_id": str(student_id) if student_id else None,
 
         "access_token": access_token,
         "token_type": "bearer",
-        "is_new_user": is_new_user  # 🆕 Return new user status
+        "is_new_user": is_new_user  # ðŸ†• Return new user status
     }
 
-# 🔐 PROTECTED — must be a LOGGED IN USER (parent)
+
+# ðŸ” PROTECTED â€” must be a LOGGED IN USER (parent)
 @router.post("/switch-user/send-otp")
 async def switch_user_send_otp(
     data: OTPRequest,
@@ -105,7 +127,7 @@ async def switch_user_send_otp(
 
 
 
-# 🔐 PROTECTED — must be a LOGGED IN USER (parent)
+# ðŸ” PROTECTED â€” must be a LOGGED IN USER (parent)
 @router.post("/switch-to-student")
 async def switch_to_student(
     data: OTPVerify,
@@ -153,9 +175,22 @@ async def switch_to_student(
         {"$set": {"is_user": True}}
     )
 
+    # Generate a token for the student session including the ObjectID
+    new_token = create_user_token(
+        mobile_number=data.mobile_number,
+        usertype="student",
+        student_id=str(s_oid)
+    )
+
+    # âœ… Return is_new_user status
+    is_new_user = student_doc.get("is_new_user", False)
+
     return {
         "status_code": 200,
         "message": "Switched to student successfully",
         "usertype": "student",
-        "student_id": student_id
+        "student_id": str(s_oid),
+        "access_token": new_token,
+        "token_type": "bearer",
+        "is_new_user": is_new_user  # ðŸ†• Return new user status
     }

@@ -1,4 +1,5 @@
 from pydantic import BaseModel,field_validator
+from typing import Optional
 
 class UserCreate(BaseModel):
     mobile_number: str
@@ -12,6 +13,22 @@ class Student(BaseModel):
     address: str
     guardian_name: str
     parent_mobile: str   # <-- instead of passing student_id, we link with parent number
+
+
+class StudentUpdate(BaseModel):
+    student_name: Optional[str] = None
+    dob: Optional[str] = None
+    student_class: Optional[str] = None
+    age: Optional[str] = None
+    address: Optional[str] = None
+    guardian_name: Optional[str] = None
+
+    @field_validator("age")
+    @classmethod
+    def validate_age(cls, v):
+        if v is not None and not v.isdigit():
+            raise ValueError("Age must be numeric")
+        return v
 
 
 class UserTypeRequest(BaseModel):

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from models.user_models import UserCreate, Student, UserTypeRequest
+from models.user_models import UserCreate, Student, UserTypeRequest,StudentUpdate
 from models.answer_models import AnswerRequest
 from core.database import db
 from datetime import datetime, timezone
@@ -139,6 +139,41 @@ async def register_student(
     }
 
 
+
+
+@router.put("/update-student/{student_id}")
+async def update_student(
+    student_id: str,
+    data: StudentUpdate,
+    current=Depends(admin_or_user)
+):
+    # 🔐 Validate student_id
+    try:
+        student_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id")
+
+    # 🔄 Extract only provided fields
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields provided to update")
+
+    update_data["updated_at"] = datetime.now(timezone.utc)
+
+    result = await db.students.update_one(
+        {"_id": student_oid},
+        {"$set": update_data}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    return {
+        "status_code": 200,
+        "message": "Student details updated successfully",
+        "student_id": student_id
+    }
 
 def serialize_mongo_doc(doc):
     """
@@ -687,6 +722,7 @@ async def analyze_career(
     await db.career_analyzer.update_one(
         {"student_id": student_id, "attempt": attempt_num},
         {
+
             "$set": {
                 "scores": scores,
                 "overall_score": sum(scores.values()),

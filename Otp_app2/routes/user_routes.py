@@ -531,10 +531,10 @@ async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    serialized_students = [serialize_mongo_doc(doc) for doc in students]
+    serialized_student = serialize_mongo_doc(student)
     return {
         "status_code": 200,
-        "students": serialized_students
+        "student": serialized_student
     }
 
 

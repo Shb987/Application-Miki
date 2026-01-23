@@ -6,7 +6,7 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from routes import admin_routes, user_routes, otp_routes, admin_pages ,admin_exam_routes,user_exam_routes, exam_evaluation_routes, user_futurestudy_routes, admin_quiz_routes, user_quiz_routes, companion_routes
+from routes import admin_routes, user_routes, otp_routes, admin_pages ,admin_exam_routes,user_exam_routes, exam_evaluation_routes, user_futurestudy_routes, admin_quiz_routes, user_quiz_routes, companion_routes, chat_routes
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
@@ -69,6 +69,7 @@ app.include_router(user_exam_routes.router,prefix="/user", tags=["User_Exam Modu
 app.include_router(exam_evaluation_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Futurestudy Module"])
 app.include_router(companion_routes.router, tags=["AI Student Companion"])
+app.include_router(chat_routes.router, prefix="/user")
 
 # Admin Panel page routes (Jinja) - MUST come before admin_quiz_routes to avoid conflicts
 app.include_router(admin_pages.router,prefix="/admin-panel",tags=["Admin Pages"])

@@ -448,16 +448,10 @@ async def mark_notification_read(
             }
         )
 
-<<<<<<< HEAD
-    return {"status": True, "message": "Notification marked as read"}
-=======
     return {
         "status": True,
         "message": "Notification marked as read"
     }
-    
-
->>>>>>> testing-branch
 @router.get("/exam-history/{student_id}")
 async def get_exam_history(
     student_id: str,
@@ -478,18 +472,6 @@ async def get_exam_history(
     # If user is a parent, we should ideally check if the student_id is in their list
     # For now, following the pattern in get_notifications
     
-    evaluations = await db.evaluations.find(
-        {"student_id": student_id}
-    ).sort("created_at", -1).to_list(100)
-
-<<<<<<< HEAD
-    if not evaluations:
-        return {
-            "status": True,
-            "message": "No exam history found for this student.",
-            "data": []
-        }
-=======
     # 🆔 Validate ObjectId
     try:
         s_oid = str(student_id)
@@ -515,7 +497,6 @@ async def get_exam_history(
 
     # 📈 Total count (for has_more)
     total_count = await db.evaluations.count_documents({"student_id": ObjectId(s_oid)})
->>>>>>> testing-branch
 
     return {
         "status": True,

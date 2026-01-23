@@ -4,21 +4,34 @@ from models.answer_models import AnswerRequest
 from core.database import db
 from datetime import datetime, timezone
 from fastapi import Query, HTTPException
-from typing import Dict, List
 from models.career_models import CareerAnalyzer
 from bson import ObjectId
 from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile
 import re
+import os
+import shutil
+import uuid
 from utils.user_auth import get_current_user,admin_or_user,create_user_token
 from utils.admin_auth import get_current_admin 
+from typing import Dict, List, Optional
+
 router = APIRouter(tags=["User"])
+
+UPLOAD_DIR = "uploads/student_images"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # --------------------- Student Registration -------------------------
 @router.post("/register-student")
 async def register_student(
-    data: Student,
-    parent_mobile: str = Query(..., description="Parent mobile number"),
+    student_name: str = Form(...),
+    dob: str = Form(...),
+    student_class: str = Form(...),
+    age: str = Form(...),
+    address: str = Form(...),
+    guardian_name: str = Form(...),
+    parent_mobile: str = Form(...),
+    profile_image: Optional[UploadFile] = File(None),
     current=Depends(admin_or_user)
 ):
     usertype = current.get("usertype")
@@ -26,14 +39,26 @@ async def register_student(
     # 🔑 Decide is_user
     is_user = usertype == "student"
 
+    image_url = None
+    if profile_image:
+        file_extension = os.path.splitext(profile_image.filename)[1]
+        file_name = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(UPLOAD_DIR, file_name)
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(profile_image.file, buffer)
+        
+        image_url = f"/uploads/student_images/{file_name}"
+
     # 1️⃣ Create student document
     student_doc = {
-        "student_name": data.student_name,
-        "dob": data.dob,
-        "student_class": data.student_class,
-        "age": data.age,
-        "address": data.address,
-        "guardian_name": data.guardian_name,
+        "student_name": student_name,
+        "dob": dob,
+        "student_class": student_class,
+        "age": age,
+        "address": address,
+        "guardian_name": guardian_name,
+        "image_url": image_url,
         "created_at": datetime.now(timezone.utc),
         "is_user": is_user,
         "is_new_user": True
@@ -91,7 +116,13 @@ async def register_student(
 @router.put("/update-student/{student_id}")
 async def update_student(
     student_id: str,
-    data: StudentUpdate,
+    student_name: Optional[str] = Form(None),
+    dob: Optional[str] = Form(None),
+    student_class: Optional[str] = Form(None),
+    age: Optional[str] = Form(None),
+    address: Optional[str] = Form(None),
+    guardian_name: Optional[str] = Form(None),
+    profile_image: Optional[UploadFile] = File(None),
     current=Depends(admin_or_user)
 ):
     # 🔐 Validate student_id
@@ -101,7 +132,26 @@ async def update_student(
         raise HTTPException(status_code=400, detail="Invalid student_id")
 
     # 🔄 Extract only provided fields
-    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    update_data = {}
+    if student_name is not None: update_data["student_name"] = student_name
+    if dob is not None: update_data["dob"] = dob
+    if student_class is not None: update_data["student_class"] = student_class
+    if age is not None: 
+        if not age.isdigit():
+            raise HTTPException(status_code=400, detail="Age must be numeric")
+        update_data["age"] = age
+    if address is not None: update_data["address"] = address
+    if guardian_name is not None: update_data["guardian_name"] = guardian_name
+
+    if profile_image:
+        file_extension = os.path.splitext(profile_image.filename)[1]
+        file_name = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(UPLOAD_DIR, file_name)
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(profile_image.file, buffer)
+        
+        update_data["image_url"] = f"/uploads/student_images/{file_name}"
 
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields provided to update")

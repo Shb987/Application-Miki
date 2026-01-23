@@ -13,6 +13,7 @@ class Student(BaseModel):
     address: str
     guardian_name: str
     parent_mobile: str   # <-- instead of passing student_id, we link with parent number
+    image_url: Optional[str] = None
 
 
 class StudentUpdate(BaseModel):
@@ -22,6 +23,7 @@ class StudentUpdate(BaseModel):
     age: Optional[str] = None
     address: Optional[str] = None
     guardian_name: Optional[str] = None
+    image_url: Optional[str] = None
 
     @field_validator("age")
     @classmethod

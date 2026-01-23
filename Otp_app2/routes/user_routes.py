@@ -784,8 +784,12 @@ async def get_career_analysis(student_id: str, attempt: int,
         raise HTTPException(status_code=400, detail="Invalid student_id format")
     print('hhhhhhhhhhhi')
     record = await db.career_analyzer.find_one(
+<<<<<<< HEAD
         {"student_id": s_oid, "attempt": attempt},
         {"student_id": s_oid, "attempt": attempt},
+=======
+        {"student_id": str(s_oid), "attempt": attempt},
+>>>>>>> testing-branch
         {"_id": 0}   # hide MongoDB ObjectId
     )
     record = serialize_mongo_doc(record)  

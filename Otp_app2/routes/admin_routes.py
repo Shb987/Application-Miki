@@ -74,6 +74,7 @@ async def create_question(
     option4: UploadFile | None = File(None),
     current_admin: dict = Depends(get_current_admin)  # 🔐 Protection added
 ):
+    print(category)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
     image_files = [option1, option2, option3, option4]
@@ -168,6 +169,7 @@ async def update_question(
     option4: UploadFile | None = File(None),
     current_admin: dict = Depends(get_current_admin),
 ):
+    print(category)
     """Update a question (text or image-based)"""
     existing = await db.questions.find_one({"_id": ObjectId(question_id)})
     if not existing:

@@ -23,7 +23,9 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
     """
     
     # 1. Save to MongoDB (History)
+
     notification = {
+
         "student_id": user_id,
         "title": title,
         "message": message,
@@ -40,7 +42,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
 
     # ✅ MongoDB-generated notification id
     notification_id = str(result.inserted_id)
-    
+
     # 2. Push to OneSignal
     if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
         print("⚠️ OneSignal credentials not found in .env. Skipping push notification.")

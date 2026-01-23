@@ -30,7 +30,7 @@ async def get_subjects_and_chapters(standard: str):
     subjects = sorted([s for s in subjects if s])
 
     # Optimization: List images once
-    image_files = os.listdir("Subject_images") if os.path.exists("Subject_images") else []
+    image_files = os.listdir("subject_images") if os.path.exists("subject_images") else []
     
     result = []
     

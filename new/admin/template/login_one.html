@@ -114,7 +114,7 @@
           const password = e.target.password.value;
 
           try {
-            const res = await fetch("http://127.0.0.1:8000/admin-panel/login", {
+            const res = await fetch("http://13.202.100.221:8000/admin-panel/login", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ username, password }),

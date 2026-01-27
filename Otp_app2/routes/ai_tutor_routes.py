@@ -8,6 +8,7 @@ from openai import AsyncOpenAI
 from bson import ObjectId
 
 from duckduckgo_search import DDGS
+import numpy as np
 
 router = APIRouter(prefix="/ai-tutor", tags=["AI Tutor"])
 
@@ -61,6 +62,73 @@ async def classify_intent(query: str) -> str:
         return "CHAT"
     except:
         return "CHAT"
+
+async def get_relevant_context(student_class: str, query: str) -> str:
+    """
+    Retrieves relevant textbook content using Vector Search (Cosine Similarity).
+    1. Embeds the user query.
+    2. Fetches all chapters for the student's class.
+    3. Ranks chapters by similarity and returns the top matches.
+    """
+    print(f"🔍 Searching Textbook Context for Class {student_class}...")
+    
+    # 1. Generate Embedding for Query
+    try:
+        response = await client.embeddings.create(
+            model="text-embedding-3-large",
+            input=query
+        )
+        query_vector = response.data[0].embedding
+    except Exception as e:
+        print(f"Embedding Error: {e}")
+        return ""
+
+    # 2. Fetch all chapters for this class
+    # Note: For production with large datasets, use Atlas Vector Search. 
+    # For now, in-memory cosine similarity is sufficient for <1000 chapters.
+    try:
+        cursor = db.textbook_chapters.find({"standard": str(student_class)})
+        chapters = await cursor.to_list(length=None)
+    except Exception as e:
+        print(f"Database Error: {e}")
+        return ""
+
+    if not chapters:
+        print("No textbooks found for this class.")
+        return ""
+
+    # 3. Compute Cosine Similarity
+    def cosine_similarity(v1, v2):
+        dot_product = np.dot(v1, v2)
+        norm_v1 = np.linalg.norm(v1)
+        norm_v2 = np.linalg.norm(v2)
+        if norm_v1 == 0 or norm_v2 == 0:
+            return 0.0
+        return dot_product / (norm_v1 * norm_v2)
+
+    scored_chapters = []
+    for ch in chapters:
+        if "vector" not in ch:
+            continue
+        try:
+            score = cosine_similarity(query_vector, ch["vector"])
+            scored_chapters.append((score, ch))
+        except Exception:
+            continue
+
+    # 4. Sort and Top-K
+    scored_chapters.sort(key=lambda x: x[0], reverse=True)
+    top_3 = scored_chapters[:3]
+
+    # 5. Format Context
+    context_text = ""
+    for score, ch in top_3:
+        # Threshold: Only include if somewhat relevant (e.g., > 0.25)
+        if score > 0.25: 
+            snippet = ch.get('content', '')[:1500] # Limit chunk size
+            context_text += f"\n[TEXTBOOK: {ch.get('subject', 'General')} - {ch.get('chapter_title', '')}]\n{snippet}...\n"
+            
+    return context_text
 
 # -----------------------------------------------------------------------------
 # 💬 CHAT ENDPOINT

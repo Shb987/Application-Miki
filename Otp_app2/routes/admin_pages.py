@@ -3,12 +3,30 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from core.database import db
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory="../new/admin/template")
 
 router = APIRouter(tags=["Admin Pages"])
 
+
+API_BASE = os.getenv("API_BASE")
+print('check33333',API_BASE)    
+if not API_BASE:
+    raise RuntimeError("API_BASE environment variable not set (admin_pages)")
+
+
+@router.get("/config.js", response_class=HTMLResponse)
+async def config_js(request: Request):
+    return templates.TemplateResponse(
+        "config.js",
+        {
+            "request": request,
+            "API_BASE": API_BASE
+        },
+        media_type="application/javascript"
+    )
 # ---------------------------------------
 # PUBLIC ROUTES (HTML PAGES ONLY)
 # ---------------------------------------
@@ -87,4 +105,6 @@ async def quiz_add_question_page(request: Request):
 async def quiz_statistics_page(request: Request):
     """Quiz statistics dashboard page"""
     return templates.TemplateResponse("quiz_statistics.html", {"request": request})
+
+
 

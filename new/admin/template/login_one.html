@@ -95,6 +95,8 @@
       </div>
 
       <!-- latest jquery-->
+      <script src="/admin-panel/config.js"></script>
+
       <script src="../assets/js/jquery.min.js"></script>
       <!-- Bootstrap js-->
       <script src="../assets/js/bootstrap/bootstrap.bundle.min.js"></script>
@@ -112,9 +114,10 @@
 
           const username = e.target.username.value;
           const password = e.target.password.value;
+          console.log("API_BASE =", window.API_BASE);
 
           try {
-            const res = await fetch("http://13.202.100.221:8000/admin-panel/login", {
+            const res = await fetch(`${window.API_BASE}/admin-panel/login`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ username, password }),

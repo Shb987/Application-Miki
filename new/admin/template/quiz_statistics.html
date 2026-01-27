@@ -257,6 +257,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="/admin-panel/config.js"></script>
     <script src="/assets/js/jquery.min.js"></script>
     <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
@@ -272,7 +273,7 @@
 
     <script>
         const token = localStorage.getItem("admin_token");
-        const API_BASE = "http://13.200.236.155:8000";
+        const API_BASE = window.API_BASE;
 
         if (!token) {
             window.location.replace("/admin-panel/login");

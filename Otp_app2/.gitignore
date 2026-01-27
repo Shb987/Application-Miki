@@ -19,7 +19,7 @@ verify_companion_module.py
 intelligence_questions.json
 scripts/
 .agent/
-
+seed_quiz_data.py
 # Quiz module test/utility files
 check_quiz_db.py
 upload_additional_questions.py

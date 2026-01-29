@@ -31,3 +31,4 @@ firebase-admin==6.4.0
 # HTTP Clients (for scripts/tests)
 requests==2.31.0
 httpx==0.26.0
+duckduckgo_search==8.1.1

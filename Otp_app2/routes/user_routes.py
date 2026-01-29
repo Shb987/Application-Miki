@@ -48,7 +48,7 @@ async def register_student(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(profile_image.file, buffer)
         
-        image_url = f"/uploads/student_images/{file_name}"
+        image_url = f"uploads/student_images/{file_name}"
 
     # 1️⃣ Create student document
     student_doc = {
@@ -151,7 +151,7 @@ async def update_student(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(profile_image.file, buffer)
         
-        update_data["image_url"] = f"/uploads/student_images/{file_name}"
+        update_data["image_url"] = f"uploads/student_images/{file_name}"
 
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields provided to update")

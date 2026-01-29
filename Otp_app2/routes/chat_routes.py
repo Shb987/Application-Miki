@@ -150,17 +150,35 @@ async def get_chat_history(group_id: str, student_id: str, current_user: dict = 
 
 @router.websocket("/ws/{group_id}/{student_id}")
 async def websocket_endpoint(websocket: WebSocket, group_id: str, student_id: str):
-    # Verify membership (basic check)
-    group = await db.chat_groups.find_one({"_id": ObjectId(group_id), "member_ids": student_id})
-    if not group:
-        await websocket.close(code=4003) # Forbidden
+    await websocket.accept() # Accept immediately to complete the handshake
+    print('check1')
+    try:
+        print('check2')
+
+        # Verify membership (basic check)
+        group = await db.chat_groups.find_one({
+            "_id": ObjectId(group_id), 
+            "member_ids": student_id
+        })
+        print('check3')
+        if not group:
+            print('check4')
+            await websocket.close(code=4003) # Forbidden
+            return
+
+        # Fetch sender name
+        student = await db.students.find_one({"_id": ObjectId(student_id)})
+        sender_name = student.get("student_name", "Unknown") if student else "Unknown"
+
+        # Register in connection manager (already accepted, so we just add to list)
+        if group_id not in manager.active_connections:
+            manager.active_connections[group_id] = {}
+        manager.active_connections[group_id][student_id] = websocket
+        
+    except Exception as e:
+        print(f"WebSocket Validation Error: {e}")
+        await websocket.close(code=4000) # Internal Error/Invalid ID
         return
-
-    # Fetch sender name
-    student = await db.students.find_one({"_id": ObjectId(student_id)})
-    sender_name = student.get("student_name", "Unknown") if student else "Unknown"
-
-    await manager.connect(websocket, group_id, student_id)
     
     try:
         while True:

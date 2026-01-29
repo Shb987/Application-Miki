@@ -11,6 +11,7 @@ class GroupResponse(BaseModel):
     name: str
     class_name: str
     member_ids: List[str]
+    image_url: Optional[str] = None
     created_by: str
     created_at: datetime
 

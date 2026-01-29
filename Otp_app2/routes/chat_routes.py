@@ -1,10 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, Form
-from typing import List, Dict
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query, Form, File, UploadFile
+from typing import List, Dict, Optional
+import os
+import uuid
+import shutil
 from bson import ObjectId
 from datetime import datetime, timezone
 from core.database import db
 from utils.user_auth import get_current_user
 from models.chat_models import GroupCreate, GroupResponse, ChatMessage
+
+UPLOAD_DIR = "uploads/group_images"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 router = APIRouter(prefix="/chat", tags=["Group Chat"])
 
@@ -81,6 +87,7 @@ async def create_group(
     name: str = Form(...),
     student_id: str = Form(...),
     member_ids: str = Form(...), # Expecting comma-separated IDs
+    group_image: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new chat group"""
@@ -94,10 +101,23 @@ async def create_group(
     if not creator:
         raise HTTPException(status_code=404, detail="Creator student record not found")
 
+    # Handle image upload
+    image_url = None
+    if group_image:
+        file_extension = os.path.splitext(group_image.filename)[1]
+        file_name = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(UPLOAD_DIR, file_name)
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(group_image.file, buffer)
+        
+        image_url = f"uploads/group_images/{file_name}"
+
     group_doc = {
         "name": name,
         "class_name": creator.get("student_class"),
         "member_ids": id_list,
+        "image_url": image_url,
         "created_by": student_id,
         "created_at": datetime.now(timezone.utc)
     }

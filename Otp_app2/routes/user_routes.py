@@ -299,10 +299,12 @@ async def get_questions_by_age(age: int = Query(...)):
             {"age_max": {"$gte": age}}
         ]
     }
+    print(query)
 
     cursor = db.questions.find(query)
+    print(cursor)
     questions = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
-    questions = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
+    print(questions)
 
     grouped: Dict[str, List[dict]] = {}
 
@@ -314,9 +316,9 @@ async def get_questions_by_age(age: int = Query(...)):
 
         # Build question payload
         question_data = {
-    "id": q["_id"],
-    "text": q.get("text"),
-}
+        "id": q["_id"],
+        "text": q.get("text"),
+        }
 
         if q.get("type") == "image":
            question_data["type"] = "image"

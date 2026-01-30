@@ -20,4 +20,7 @@ class Settings:
     # CORS
     CORS_ALLOWED_ORIGINS: List[str] = os.getenv("CORS_ALLOWED_ORIGINS", "*").split(",")
 
+    # YouTube API
+    YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY")
+
 settings = Settings()

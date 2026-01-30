@@ -106,5 +106,10 @@ async def quiz_statistics_page(request: Request):
     """Quiz statistics dashboard page"""
     return templates.TemplateResponse("quiz_statistics.html", {"request": request})
 
+@router.get("/tutorials-page", response_class=HTMLResponse)
+async def tutorials_page(request: Request):
+    """Tutorial management page"""
+    return templates.TemplateResponse("tutorials.html", {"request": request})
+
 
 

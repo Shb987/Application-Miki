@@ -442,7 +442,6 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
                 attempt += 1
                 await db.answers.update_one(
                     {"student_id": s_oid},
-                    {"student_id": s_oid},
                     {"$push": {
                         "attempts": {
                             "attempt": attempt,
@@ -480,7 +479,6 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
         # Update DB
         await db.answers.update_one(
             {"student_id": s_oid, "attempts.attempt": attempt},
-            {"student_id": s_oid, "attempts.attempt": attempt},
             {"$set": {"attempts.$.categories": updated_categories}}
         )
 
@@ -491,14 +489,11 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
         if total_category_count >= 8:  # if all 8 intelligence types answered
             await db.answers.update_one(
                 {"student_id": s_oid, "attempts.attempt": attempt},
-                {"student_id": s_oid, "attempts.attempt": attempt},
                 {"$set": {"attempts.$.status": "completed"}}
             )
             print(f"🏁 Attempt {attempt} marked as COMPLETED for {s_oid}")
-            print(f"🏁 Attempt {attempt} marked as COMPLETED for {s_oid}")
 
     # Debug log
-    updated_doc = await db.answers.find_one({"student_id": s_oid})
     updated_doc = await db.answers.find_one({"student_id": s_oid})
     print("🔍 Updated document:\n", updated_doc)
 

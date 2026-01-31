@@ -112,4 +112,15 @@ async def tutorials_page(request: Request):
     return templates.TemplateResponse("tutorials.html", {"request": request})
 
 
+# ==================== ANALYTICS MODULE ROUTES ====================
 
+@router.get("/analytics-dashboard-page", response_class=HTMLResponse)
+async def analytics_dashboard_page(request: Request):
+    """Analytics dashboard page"""
+    return templates.TemplateResponse("analysis_dashboard.html", {"request": request})
+
+
+@router.get("/student-analytics-page", response_class=HTMLResponse)
+async def student_analytics_page(request: Request):
+    """Individual student analytics page"""
+    return templates.TemplateResponse("student_analytics.html", {"request": request})

@@ -46,16 +46,14 @@ def determine_class_range(std: int) -> str:
 @router.get("/quiz/get-questions")
 async def get_quiz_questions(
     student_class: int = Query(..., description="Student's class (e.g., 5, 8, 10)"),
-    domain: Optional[str] = Query(None, description="Quiz domain (e.g., GK). If omitted or 'Mixed', selects from all."),
     difficulty_level: Optional[str] = Query(None, description="Easy, Medium, or Hard"),
-    limit: int = Query(10, ge=1, le=50, description="Number of questions to fetch"),
+    limit: int = Query(20, ge=1, le=50, description="Number of questions to fetch"),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Get random quiz questions for a student.
     - `student_class`: Pass the single class number (e.g., 5). The system auto-converts it to range (e.g., '3-5').
-    - If `domain` is provided: Fetches questions from that specific domain.
-    - If `domain` is 'Mixed' or omitted: Fetches random mixed questions from ALL domains.
+    - Fetches random mixed questions from ALL domains by default for the 'Game' mode.
     """
     # Auto-convert class number to range string
     class_range = determine_class_range(student_class)
@@ -64,10 +62,6 @@ async def get_quiz_questions(
         "class_range": class_range,
         "is_active": True
     }
-    
-    # Filter by domain only if specified and not "Mixed"
-    if domain and domain.lower() != "mixed":
-        query["domain"] = domain
     
     if difficulty_level:
         query["difficulty_level"] = difficulty_level
@@ -190,7 +184,7 @@ async def submit_quiz(
         "score": scored_marks,
         "total_marks": total_marks,
         "percentage": round(percentage, 2),
-        "domain": submission.domain,
+        "domain": "Mixed",
         "student_class": submission.student_class,
         "submitted_at": datetime.now(timezone.utc)
     }

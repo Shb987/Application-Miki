@@ -72,14 +72,13 @@ class QuizFilter(BaseModel):
     domain: Optional[str] = None
     class_range: Optional[ClassRange] = None
     difficulty_level: Optional[DifficultyLevel] = None
-    limit: int = Field(default=10, ge=1, le=50)
+    limit: int = Field(default=20, ge=1, le=50)
 
 class QuizAnswerSubmission(BaseModel):
     question_id: str
     user_answer: str
 
 class QuizSubmitRequest(BaseModel):
-    domain: str
     student_class: int
     answers: List[QuizAnswerSubmission]
 

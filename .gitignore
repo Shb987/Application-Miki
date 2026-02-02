@@ -1,1 +1,12 @@
 .agent/
+quiz_api_docs.md
+QUIZ_API_DOCS.md
+
+# Quiz Seeding & Audit Utilities
+Otp_app2/seed_*.py
+Otp_app2/check_*.py
+Otp_app2/*_audit.py
+Otp_app2/fill_question_gaps*.py
+Otp_app2/clean_db.py
+Otp_app2/force_clean.py
+Otp_app2/analyze_quiz_db.py

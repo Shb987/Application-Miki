@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime,timezone
 import random
 
 from core.database import db
@@ -28,24 +28,46 @@ def serialize_question_for_user(question: dict) -> QuizQuestionResponse:
         hints=question.get("hints")
     )
 
+# Helper to map class number to range
+def determine_class_range(std: int) -> str:
+    if 1 <= std <= 3:
+        return "1-3"
+    elif 4 <= std <= 5: # Assuming 3-5 covers 3,4,5 or per your seeds
+        return "3-5"
+    elif 6 <= std <= 8:
+        return "6-8"
+    elif 9 <= std <= 10:
+        return "9-10"
+    elif 11 <= std <= 12:
+        return "11-12"
+    return "6-8"  # Default fallback
+
 # ==================== GET QUIZ QUESTIONS ====================
 @router.get("/quiz/get-questions")
 async def get_quiz_questions(
-    domain: str = Query(..., description="Quiz domain (e.g., GK, Sports, Literature)"),
-    class_range: str = Query(..., description="Class range (e.g., 1-3, 6-8, 9-10)"),
+    student_class: int = Query(..., description="Student's class (e.g., 5, 8, 10)"),
+    domain: Optional[str] = Query(None, description="Quiz domain (e.g., GK). If omitted or 'Mixed', selects from all."),
     difficulty_level: Optional[str] = Query(None, description="Easy, Medium, or Hard"),
     limit: int = Query(10, ge=1, le=50, description="Number of questions to fetch"),
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Get random quiz questions for a student based on domain and class.
-    Questions are returned WITHOUT correct answers.
+    Get random quiz questions for a student.
+    - `student_class`: Pass the single class number (e.g., 5). The system auto-converts it to range (e.g., '3-5').
+    - If `domain` is provided: Fetches questions from that specific domain.
+    - If `domain` is 'Mixed' or omitted: Fetches random mixed questions from ALL domains.
     """
+    # Auto-convert class number to range string
+    class_range = determine_class_range(student_class)
+
     query = {
-        "domain": domain,
         "class_range": class_range,
         "is_active": True
     }
+    
+    # Filter by domain only if specified and not "Mixed"
+    if domain and domain.lower() != "mixed":
+        query["domain"] = domain
     
     if difficulty_level:
         query["difficulty_level"] = difficulty_level
@@ -85,20 +107,26 @@ async def get_quiz_questions(
 @router.post("/quiz/submit")
 async def submit_quiz(
     submission: QuizSubmitRequest,
+    student_id: str = Query(..., description="Student ID associated with this submission"),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Submit quiz answers and get immediate results with scoring.
     """
-    # Identifiers from token
-    mobile_number = current_user.get("sub")
-    student_id_str = current_user.get("student_id")
-    student_name = current_user.get("student_name", "Student") # Fallback
-    
     try:
-        s_oid = ObjectId(student_id_str) if student_id_str else None
+        s_oid = ObjectId(student_id)
     except:
-        raise HTTPException(status_code=400, detail="Invalid student_id in token")
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    # Fetch student details from DB
+    student = await db.students.find_one({"_id": s_oid})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    student_name = student.get("student_name", "Unknown Student")
+    
+    # We use the passed student_id
+    s_oid = s_oid
     
     # Extract question IDs from submission
     question_ids = [ObjectId(ans.question_id) for ans in submission.answers]
@@ -155,8 +183,7 @@ async def submit_quiz(
     
     # Save submission to database
     submission_doc = {
-        "student_id": s_oid, # The standard ObjectID link
-        "mobile_number": mobile_number,
+        "student_id": s_oid, 
         "student_name": student_name,
         "quiz_questions": [ans.question_id for ans in submission.answers],
         "user_answers": user_answers_dict,
@@ -177,7 +204,7 @@ async def submit_quiz(
         "submission_id": submission_id,
         "summary": {
             "total_questions": len(submission.answers),
-            "correct_answers": sum(1 for r in results if r.is_correct),
+            "correct_count": sum(1 for r in results if r.is_correct),
             "score": scored_marks,
             "total_marks": total_marks,
             "percentage": round(percentage, 2)

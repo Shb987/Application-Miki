@@ -57,7 +57,6 @@ class QuizQuestion(BaseModel):
 # Quiz Submission Model
 class QuizSubmission(BaseModel):
     user_id: str
-    mobile_number: str
     student_name: Optional[str] = None
     quiz_questions: List[str]  # List of question IDs
     user_answers: Dict[str, str]  # question_id -> user's answer

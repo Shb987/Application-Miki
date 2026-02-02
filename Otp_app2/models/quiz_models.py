@@ -80,7 +80,7 @@ class QuizAnswerSubmission(BaseModel):
 
 class QuizSubmitRequest(BaseModel):
     domain: str
-    class_range: str
+    student_class: int
     answers: List[QuizAnswerSubmission]
 
 # Response Models

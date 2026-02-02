@@ -191,7 +191,7 @@ async def submit_quiz(
         "total_marks": total_marks,
         "percentage": round(percentage, 2),
         "domain": submission.domain,
-        "class_range": submission.class_range,
+        "student_class": submission.student_class,
         "submitted_at": datetime.now(timezone.utc)
     }
     

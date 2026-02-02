@@ -91,6 +91,7 @@ class QuizQuestionResponse(BaseModel):
     image_url: Optional[str] = None
     difficulty_level: str
     marks: int
+    correct_answer: int
 
 class QuizResultDetail(BaseModel):
     question_id: str

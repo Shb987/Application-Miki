@@ -24,7 +24,8 @@ def serialize_question_for_user(question: dict) -> QuizQuestionResponse:
         options=question.get("options"),
         image_url=question.get("image_url"),
         difficulty_level=question["difficulty_level"],
-        marks=question["marks"]
+        marks=question["marks"],
+        correct_answer=question["correct_answer"]
     )
 
 # Helper to map class number to range

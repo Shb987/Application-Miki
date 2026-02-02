@@ -24,8 +24,7 @@ def serialize_question_for_user(question: dict) -> QuizQuestionResponse:
         options=question.get("options"),
         image_url=question.get("image_url"),
         difficulty_level=question["difficulty_level"],
-        marks=question["marks"],
-        hints=question.get("hints")
+        marks=question["marks"]
     )
 
 # Helper to map class number to range
@@ -150,23 +149,22 @@ async def submit_quiz(
         if not question:
             continue
         
-        user_answer = answer.user_answer.strip()
-        correct_answer = question["correct_answer"].strip()
+        user_index = answer.user_answer_index
+        correct_index = question.get("correct_answer")
         
-        # Case-insensitive comparison
-        is_correct = user_answer.lower() == correct_answer.lower()
+        is_correct = user_index == correct_index
         
         marks_awarded = question["marks"] if is_correct else 0
         total_marks += question["marks"]
         scored_marks += marks_awarded
         
-        user_answers_dict[answer.question_id] = user_answer
+        user_answers_dict[answer.question_id] = user_index
         
         results.append(QuizResultDetail(
             question_id=answer.question_id,
             question_text=question["question_text"],
-            user_answer=user_answer,
-            correct_answer=correct_answer,
+            user_answer_index=user_index,
+            correct_answer_index=correct_index,
             is_correct=is_correct,
             marks_awarded=marks_awarded,
             explanation=question.get("explanation")
@@ -240,19 +238,20 @@ async def get_quiz_results(
     
     # Build detailed results
     results = []
-    for qid, user_answer in submission["user_answers"].items():
+    for qid, user_index in submission["user_answers"].items():
         question = questions_map.get(qid)
         if not question:
             continue
         
-        is_correct = user_answer.lower() == question["correct_answer"].lower()
+        correct_index = question.get("correct_answer")
+        is_correct = user_index == correct_index
         marks_awarded = question["marks"] if is_correct else 0
         
         results.append({
             "question_id": qid,
             "question_text": question["question_text"],
-            "user_answer": user_answer,
-            "correct_answer": question["correct_answer"],
+            "user_answer_index": user_index,
+            "correct_answer_index": correct_index,
             "is_correct": is_correct,
             "marks_awarded": marks_awarded,
             "explanation": question.get("explanation")

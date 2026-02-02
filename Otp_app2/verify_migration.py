@@ -13,12 +13,13 @@ async def verify():
     client = AsyncIOMotorClient(MONGO_URI)
     db = client[DB_NAME]
     q = await db.quiz_questions.find_one({})
-    if q:
-        print(f"Question: {q.get('question_text')[:50]}")
-        print(f"Correct Answer: {q.get('correct_answer')}")
-        print(f"Type: {type(q.get('correct_answer'))}")
-    else:
-        print("No questions found")
+    with open("migration_result.txt", "w") as f:
+        if q:
+            f.write(f"Question: {q.get('question_text')[:50]}\n")
+            f.write(f"Correct Answer: {q.get('correct_answer')}\n")
+            f.write(f"Type: {type(q.get('correct_answer'))}\n")
+        else:
+            f.write("No questions found\n")
     client.close()
 
 if __name__ == "__main__":

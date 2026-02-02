@@ -43,12 +43,11 @@ class QuizQuestion(BaseModel):
     question_type: QuestionType
     options: Optional[List[str]] = None  # For MCQ, Analogy, etc.
     image_url: Optional[str] = None  # For picture-based questions
-    correct_answer: str
+    correct_answer: int # Index starting from 1
     difficulty_level: DifficultyLevel
     class_range: ClassRange
     marks: int = Field(default=1, ge=1)
     explanation: Optional[str] = None
-    hints: Optional[str] = None
     created_by: Optional[str] = None  # Admin ID
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -76,7 +75,7 @@ class QuizFilter(BaseModel):
 
 class QuizAnswerSubmission(BaseModel):
     question_id: str
-    user_answer: str
+    user_answer_index: int # Index starting from 1
 
 class QuizSubmitRequest(BaseModel):
     student_class: int
@@ -92,13 +91,12 @@ class QuizQuestionResponse(BaseModel):
     image_url: Optional[str] = None
     difficulty_level: str
     marks: int
-    hints: Optional[str] = None
 
 class QuizResultDetail(BaseModel):
     question_id: str
     question_text: str
-    user_answer: str
-    correct_answer: str
+    user_answer_index: int
+    correct_answer_index: int
     is_correct: bool
     marks_awarded: float
     explanation: Optional[str] = None

@@ -205,105 +205,45 @@ async def submit_quiz(
         "results": [r.dict() for r in results]
     }
 
-# ==================== GET QUIZ RESULTS ====================
-@router.get("/quiz/results/{submission_id}")
-async def get_quiz_results(
-    submission_id: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Get detailed results for a specific quiz submission.
-    """
-    try:
-        submission = await db.quiz_submissions.find_one({"_id": ObjectId(submission_id)})
-    except:
-        raise HTTPException(status_code=400, detail="Invalid submission ID format")
-    
-    if not submission:
-        raise HTTPException(status_code=404, detail="Submission not found")
-    
-    # Verify user owns this submission (via mobile OR student_id)
-    mobile_number = current_user.get("sub")
-    student_id_str = current_user.get("student_id")
-    
-    if submission.get("mobile_number") != mobile_number and str(submission.get("student_id")) != student_id_str:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    # Fetch question details
-    question_ids = [ObjectId(qid) for qid in submission["quiz_questions"]]
-    questions = await db.quiz_questions.find(
-        {"_id": {"$in": question_ids}}
-    ).to_list(length=len(question_ids))
-    
-    questions_map = {str(q["_id"]): q for q in questions}
-    
-    # Build detailed results
-    results = []
-    for qid, user_index in submission["user_answers"].items():
-        question = questions_map.get(qid)
-        if not question:
-            continue
-        
-        correct_index = question.get("correct_answer")
-        is_correct = user_index == correct_index
-        marks_awarded = question["marks"] if is_correct else 0
-        
-        results.append({
-            "question_id": qid,
-            "question_text": question["question_text"],
-            "user_answer_index": user_index,
-            "correct_answer_index": correct_index,
-            "is_correct": is_correct,
-            "marks_awarded": marks_awarded,
-            "explanation": question.get("explanation")
-        })
-    
-    submission["_id"] = str(submission["_id"])
-    
-    return {
-        "status": "success",
-        "data": {
-            "submission": submission,
-            "results": results
-        }
-    }
-
 # ==================== GET QUIZ HISTORY ====================
 @router.get("/quiz/history")
 async def get_quiz_history(
-    domain: Optional[str] = Query(None),
+    student_id: str = Query(..., description="Student ID to fetch history for"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Get user's quiz attempt history with optional domain filter.
+    Get quiz attempt history for a specific student.
+    Filters by student_id passed in query.
+    Returns only summary results, not detailed answers.
     """
-    # Get student_id from token
-    student_id_str = current_user.get("student_id")
-    mobile_number = current_user.get("sub")
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
 
-    if student_id_str:
-        query = {"student_id": ObjectId(student_id_str)}
-    else:
-        # Fallback for parent view/mixed history
-        query = {"mobile_number": mobile_number}
-        
-    if domain:
-        query["domain"] = domain
+    # Filter strictly by student_id
+    query = {"student_id": s_oid}
     
     total_count = await db.quiz_submissions.count_documents(query)
     
-    submissions = await db.quiz_submissions.find(query)\
+    # Exclude detailed arrays to save bandwidth
+    projection = {"quiz_questions": 0, "user_answers": 0}
+    
+    submissions = await db.quiz_submissions.find(query, projection)\
         .sort("submitted_at", -1)\
         .skip(skip)\
         .limit(limit)\
         .to_list(length=limit)
     
-    # Serialize
+    # Serialize ObjectIds to strings
     for sub in submissions:
         sub["_id"] = str(sub["_id"])
         sub["submission_id"] = sub["_id"]
+        # Ensure student_id is also a string if present
+        if "student_id" in sub:
+            sub["student_id"] = str(sub["student_id"])
     
     return {
         "status": "success",
@@ -312,68 +252,33 @@ async def get_quiz_history(
         "data": submissions
     }
 
-# ==================== GET AVAILABLE DOMAINS ====================
-@router.get("/quiz/available-domains")
-async def get_available_domains(
-    class_range: str = Query(..., description="User's class range"),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Get list of quiz domains available for the user's class.
-    """
-    domains = await db.quiz_questions.distinct(
-        "domain",
-        {"class_range": class_range, "is_active": True}
-    )
-    
-    # Get question count per domain
-    domain_counts = []
-    for domain in domains:
-        count = await db.quiz_questions.count_documents({
-            "domain": domain,
-            "class_range": class_range,
-            "is_active": True
-        })
-        domain_counts.append({
-            "domain": domain,
-            "question_count": count
-        })
-    
-    return {
-        "status": "success",
-        "class_range": class_range,
-        "domains": sorted(domain_counts, key=lambda x: x["domain"])
-    }
 
 # ==================== GET LEADERBOARD ====================
 @router.get("/quiz/leaderboard")
 async def get_leaderboard(
-    domain: Optional[str] = Query(None),
-    class_range: Optional[str] = Query(None),
+    student_class: Optional[int] = Query(None, description="Filter by specific class (e.g. 5)"),
     limit: int = Query(10, ge=1, le=50),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Get top scorers leaderboard.
-    Can be filtered by domain and class range.
+    Groups by student_id to show individual student rankings.
+    Can be filtered by student_class.
     """
     match_query = {}
-    if domain:
-        match_query["domain"] = domain
-    if class_range:
-        match_query["class_range"] = class_range
+    if student_class:
+        match_query["student_class"] = student_class
     
-    # Aggregate to get best scores per user
+    # Aggregate to get best scores per STUDENT (not user)
     pipeline = [
         {"$match": match_query},
         {"$sort": {"percentage": -1, "submitted_at": -1}},
         {"$group": {
-            "_id": "$user_id",
+            "_id": "$student_id",
             "student_name": {"$first": "$student_name"},
             "best_score": {"$first": "$score"},
             "best_percentage": {"$first": "$percentage"},
             "total_marks": {"$first": "$total_marks"},
-            "domain": {"$first": "$domain"},
             "submitted_at": {"$first": "$submitted_at"}
         }},
         {"$sort": {"best_percentage": -1}},
@@ -382,34 +287,37 @@ async def get_leaderboard(
     
     leaderboard = await db.quiz_submissions.aggregate(pipeline).to_list(length=limit)
     
-    # Add rank
+    # Add rank and serialize IDs
     for idx, entry in enumerate(leaderboard):
         entry["rank"] = idx + 1
-        entry["user_id"] = entry["_id"]
+        # Convert _id (which is student_id) to string
+        entry["student_id"] = str(entry["_id"])
         del entry["_id"]
     
     return {
         "status": "success",
         "filters": {
-            "domain": domain,
-            "class_range": class_range
+            "student_class": student_class
         },
         "leaderboard": leaderboard
     }
 
 # ==================== GET USER STATS ====================
 @router.get("/quiz/my-stats")
-async def get_user_stats(current_user: dict = Depends(get_current_user)):
+async def get_user_stats(
+    student_id: str = Query(..., description="Student ID to fetch stats for"),
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Get user's quiz statistics - total quizzes taken, average score, etc.
+    Get quiz statistics for a specific student.
+    Strictly filters by student_id.
     """
-    student_id_str = current_user.get("student_id")
-    mobile_number = current_user.get("sub")
-    
-    if student_id_str:
-        match_query = {"student_id": ObjectId(student_id_str)}
-    else:
-        match_query = {"mobile_number": mobile_number}
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    match_query = {"student_id": s_oid}
 
     # Aggregate stats
     pipeline = [

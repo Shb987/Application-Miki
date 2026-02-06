@@ -13,16 +13,44 @@ from utils.user_auth import get_current_user
 
 router = APIRouter(tags=["Quiz Module - User"])
 
+# Helper to map domain to static images
+DOMAIN_IMAGE_MAPPING = {
+    "English": "english.png",
+    "GK": "gk.png",
+    "General": "gk.png",
+    "History": "gk.png",
+    "Economics": "gk.png",
+    "Grammar": "grammar.png",
+    "IT": "it.png",
+    "Literature": "literature.png",
+    "Logic": "logic.png",
+    "Advanced": "logic.png",
+    "Mathematics": "maths.png",
+    "Science": "science.png",
+    "Biology": "science.png",
+    "Chemistry": "science.png",
+    "Physics": "science.png",
+    "Sports": "sports.png"
+}
+
 # Helper function to serialize question for user (without correct answer)
 def serialize_question_for_user(question: dict) -> QuizQuestionResponse:
     """Convert MongoDB document to user-facing format (hides correct answer)"""
+    domain = question.get("domain", "GK")
+    
+    # Logic: Use database image if available, else fallback to domain mapping, else gk.png
+    image_url = question.get("image_url")
+    if not image_url:
+        image_filename = DOMAIN_IMAGE_MAPPING.get(domain, "gk.png")
+        image_url = f"Domain_pictures/{image_filename}"
+
     return QuizQuestionResponse(
         question_id=str(question["_id"]),
-        domain=question["domain"],
+        domain=domain,
         question_text=question["question_text"],
         question_type=question["question_type"],
         options=question.get("options"),
-        image_url=question.get("image_url"),
+        image_url=image_url,
         difficulty_level=question["difficulty_level"],
         marks=question["marks"],
         correct_answer=question["correct_answer"]
@@ -102,6 +130,7 @@ async def get_quiz_questions(
 async def submit_quiz(
     submission: QuizSubmitRequest,
     student_id: str = Query(..., description="Student ID associated with this submission"),
+    difficulty_level: str = Query(..., description="Difficulty of the quiz (Easy, Medium, Hard)"),
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -184,6 +213,7 @@ async def submit_quiz(
         "total_marks": total_marks,
         "percentage": round(percentage, 2),
         "domain": "Mixed",
+        "difficulty_level": difficulty_level,
         "student_class": submission.student_class,
         "submitted_at": datetime.now(timezone.utc)
     }
@@ -228,8 +258,8 @@ async def get_quiz_history(
     
     total_count = await db.quiz_submissions.count_documents(query)
     
-    # Exclude detailed arrays to save bandwidth
-    projection = {"quiz_questions": 0, "user_answers": 0}
+    # Exclude detailed arrays and domain to save bandwidth, include difficulty_level
+    projection = {"quiz_questions": 0, "user_answers": 0, "domain": 0}
     
     submissions = await db.quiz_submissions.find(query, projection)\
         .sort("submitted_at", -1)\
@@ -354,23 +384,23 @@ async def get_user_stats(
     stats_data["avg_percentage"] = round(stats_data["avg_percentage"], 2)
     stats_data["best_percentage"] = round(stats_data["best_percentage"], 2)
     
-    # Get domain-wise breakdown
-    domain_stats = await db.quiz_submissions.aggregate([
+    # Get difficulty-wise breakdown
+    difficulty_stats = await db.quiz_submissions.aggregate([
         {"$match": match_query},
         {"$group": {
-            "_id": "$domain",
+            "_id": "$difficulty_level",
             "attempts": {"$sum": 1},
             "avg_percentage": {"$avg": "$percentage"}
         }}
     ]).to_list(length=None)
     
-    stats_data["by_domain"] = [
+    stats_data["by_difficulty"] = [
         {
-            "domain": item["_id"],
+            "difficulty": item["_id"] if item["_id"] else "Unknown",
             "attempts": item["attempts"],
             "avg_percentage": round(item["avg_percentage"], 2)
         }
-        for item in domain_stats
+        for item in difficulty_stats
     ]
     
     return {

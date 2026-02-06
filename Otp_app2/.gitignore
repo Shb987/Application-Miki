@@ -42,3 +42,6 @@ serviceAccountKey.json
 NOTIFICATION_WORKFLOW.md
 
 migration_result.txt
+domains.txt
+test_quiz_refinement.py
+get_domains.py

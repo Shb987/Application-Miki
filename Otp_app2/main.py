@@ -12,7 +12,7 @@ from routes import (
     user_futurestudy_routes, admin_quiz_routes, user_quiz_routes,
     companion_routes, chat_routes, ai_tutor_routes,
     admin_tutorial_routes, user_tutorial_routes,
-    admin_analysis_routes, user_analysis_routes  # Analytics Module
+    user_analysis_routes,user_game_wordle  # Analytics Module
 )
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
@@ -65,6 +65,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.mount("/static/generated_papers", StaticFiles(directory="Exams/generated_papers"), name="generated_papers")
 app.mount("/subject_images", StaticFiles(directory="subject_images"), name="subject_images")
+app.mount("/Domain_pictures", StaticFiles(directory="Domain_pictures"), name="Domain_pictures")
 
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])
@@ -88,11 +89,9 @@ app.include_router(admin_tutorial_routes.router, tags=["Admin Tutorial"])
 app.include_router(user_tutorial_routes.router, tags=["User Tutorial"])
 
 # Analytics Module routes
-app.include_router(admin_analysis_routes.router, prefix="/admin-panel", tags=["Analytics Module - Admin"])
 app.include_router(user_analysis_routes.router, prefix="/user", tags=["Analytics Module - User"])
-
 # router = APIRouter(tags=["Exam Module11"])
 
-
+app.include_router(user_game_wordle.router, prefix="/user", tags=["Game - Wordle"])
 
 

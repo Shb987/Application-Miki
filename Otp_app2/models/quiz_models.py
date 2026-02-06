@@ -62,8 +62,9 @@ class QuizSubmission(BaseModel):
     score: float
     total_marks: int
     percentage: float
-    domain: str
-    class_range: str
+    domain: Optional[str] = "Mixed"
+    difficulty_level: str # Easy, Medium, Hard
+    student_class: int
     submitted_at: datetime
 
 # Request Models

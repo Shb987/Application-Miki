@@ -287,17 +287,20 @@ async def get_quiz_history(
 @router.get("/quiz/leaderboard")
 async def get_leaderboard(
     student_class: Optional[int] = Query(None, description="Filter by specific class (e.g. 5)"),
+    difficulty_level: Optional[str] = Query(None, description="Filter by difficulty (Easy, Medium, Hard)"),
     limit: int = Query(10, ge=1, le=50),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Get top scorers leaderboard.
     Groups by student_id to show individual student rankings.
-    Can be filtered by student_class.
+    Can be filtered by student_class and difficulty_level.
     """
     match_query = {}
     if student_class:
         match_query["student_class"] = student_class
+    if difficulty_level:
+        match_query["difficulty_level"] = difficulty_level
     
     # Aggregate to get best scores per STUDENT (not user)
     pipeline = [
@@ -309,8 +312,24 @@ async def get_leaderboard(
             "best_score": {"$first": "$score"},
             "best_percentage": {"$first": "$percentage"},
             "total_marks": {"$first": "$total_marks"},
+            "difficulty_level": {"$first": "$difficulty_level"},
             "submitted_at": {"$first": "$submitted_at"}
         }},
+        # Join with students collection to get profile picture
+        {
+            "$lookup": {
+                "from": "students",
+                "localField": "_id",
+                "foreignField": "_id",
+                "as": "student_info"
+            }
+        },
+        {
+            "$addFields": {
+                "image_url": {"$arrayElemAt": ["$student_info.image_url", 0]}
+            }
+        },
+        {"$project": {"student_info": 0}},
         {"$sort": {"best_percentage": -1}},
         {"$limit": limit}
     ]

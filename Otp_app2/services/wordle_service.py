@@ -32,9 +32,7 @@ class WordleService:
             student_class = int(student_class)
         except:
             student_class = 8
-            
         class_range = WordleService.get_class_range(student_class)
-        
         # 2. Determine Level from Session History
         # Find the latest session for this student
         latest_session = await db.wordle_sessions.find_one(
@@ -66,13 +64,13 @@ class WordleService:
         
         if current_student_level > total_max_levels:
             current_student_level = total_max_levels
+            print(current_student_level,total_max_levels)
 
         # 4. Fetch ONLY the current level question
         question = await db.wordle_questions.find_one({
             "class_range": class_range,
             "level": current_student_level
         })
-        
         if not question:
              return {"error": f"Level {current_student_level} not found for class range {class_range}"}
 

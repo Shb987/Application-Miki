@@ -23,6 +23,7 @@ class WordleSessionResponse(BaseModel):
     remaining_attempts: Optional[int] = None
     levels_passed: int
     status: str  # "playing", "idle", "none"
+    mode: Optional[str] = "progression"  # "progression" or "practice"
 
 class WordleGuessResponse(BaseModel):
     feedback: List[str]
@@ -37,3 +38,16 @@ class WordleGuessResponse(BaseModel):
     levels_passed: int
     current_word_length: Optional[int] = None # Added for UI updates
     word_revealed: Optional[str] = None # Show word if lost or won
+    mode: Optional[str] = "progression"  # "progression" or "practice"
+
+class WordleLevelInfo(BaseModel):
+    level: int
+    status: str  # "locked", "unlocked", "completed"
+    playable: bool
+
+class WordleLevelsResponse(BaseModel):
+    student_id: str
+    class_range: str
+    highest_level_reached: int
+    total_levels: int
+    levels: List[WordleLevelInfo]

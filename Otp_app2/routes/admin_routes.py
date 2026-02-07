@@ -56,8 +56,6 @@ async def get_admin_me(current_admin: dict = Depends(get_current_admin)):
 
 
 # ✅ Create Question (supports text & image-based MCQs)
-
-# ✅ Create Question (PROTECTED NOW)
 @router.post("/questions")
 async def create_question(
     category: str = Form(...),
@@ -74,7 +72,6 @@ async def create_question(
     option4: UploadFile | None = File(None),
     current_admin: dict = Depends(get_current_admin)  # 🔐 Protection added
 ):
-    print(category)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
     image_files = [option1, option2, option3, option4]
@@ -151,8 +148,7 @@ async def create_question(
 
 
 
-# ✅ Update Question
-# ✅ Flexible update endpoint for both text & image MCQs
+# ✅ Update Question (supports text & image-based MCQs)
 @router.put("/questions/{question_id}")
 async def update_question(
     question_id: str,
@@ -169,7 +165,6 @@ async def update_question(
     option4: UploadFile | None = File(None),
     current_admin: dict = Depends(get_current_admin),
 ):
-    print(category)
     """Update a question (text or image-based)"""
     existing = await db.questions.find_one({"_id": ObjectId(question_id)})
     if not existing:
@@ -219,7 +214,6 @@ async def update_question(
     await db.questions.update_one({"_id": ObjectId(question_id)}, {"$set": update_data})
     return {"message": "Question updated successfully"}
 
-# ✅ Delete Question
 # ✅ Delete Question (also removes uploaded image files)
 @router.delete("/questions/{question_id}")
 async def delete_question(
@@ -233,8 +227,12 @@ async def delete_question(
     # 🧹 Delete associated image files if exist
     if "image_options" in existing and existing["image_options"]:
         for path in existing["image_options"]:
-            if path and os.path.exists(path):
-                os.remove(path)
+            if not path:
+                continue
+            # Remove leading slash if present for disk path resolution
+            disk_path = path.lstrip("/")
+            if os.path.exists(disk_path):
+                os.remove(disk_path)
 
     await db.questions.delete_one({"_id": ObjectId(question_id)})
     return {"message": "Question deleted successfully"}

@@ -16,7 +16,70 @@ class WordleService:
         return "6-8" # Default to Middle School if unknown
 
     @staticmethod
-    async def start_game(student_id: str) -> Dict[str, Any]:
+    async def get_available_levels(student_id: str) -> Dict[str, Any]:
+        """Get list of all levels with their status (locked/unlocked/completed)"""
+        try:
+            s_oid = ObjectId(student_id)
+            student = await db.students.find_one({"_id": s_oid})
+        except:
+            return {"error": "Invalid student ID"}
+        
+        if not student:
+            return {"error": "Student not found"}
+        
+        student_class = student.get("student_class", 8)
+        try:
+            student_class = int(student_class)
+        except:
+            student_class = 8
+        
+        class_range = WordleService.get_class_range(student_class)
+        
+        # Determine highest level reached
+        latest_session = await db.wordle_sessions.find_one(
+            {"student_id": student_id},
+            sort=[("updated_at", -1)]
+        )
+        
+        highest_level_reached = 1
+        if latest_session:
+            highest_level_reached = latest_session.get("current_level", 1)
+        
+        # Get total levels for this class range
+        level_config = {
+            "1-3": 15, "3-5": 25, "6-8": 50, "9-10": 50, "11-12": 50
+        }
+        total_levels = level_config.get(class_range, 50)
+        
+        # Build level list
+        levels = []
+        for level_num in range(1, total_levels + 1):
+            if level_num < highest_level_reached:
+                status = "completed"
+                playable = True
+            elif level_num == highest_level_reached:
+                status = "unlocked"
+                playable = True
+            else:
+                status = "locked"
+                playable = False
+            
+            levels.append({
+                "level": level_num,
+                "status": status,
+                "playable": playable
+            })
+        
+        return {
+            "student_id": student_id,
+            "class_range": class_range,
+            "highest_level_reached": highest_level_reached,
+            "total_levels": total_levels,
+            "levels": levels
+        }
+
+    @staticmethod
+    async def start_game(student_id: str, selected_level: Optional[int] = None) -> Dict[str, Any]:
         # 1. Get Student Class and Level
         try:
             s_oid = ObjectId(student_id)
@@ -33,8 +96,8 @@ class WordleService:
         except:
             student_class = 8
         class_range = WordleService.get_class_range(student_class)
+        
         # 2. Determine Level from Session History
-        # Find the latest session for this student
         latest_session = await db.wordle_sessions.find_one(
             {"student_id": student_id},
             sort=[("updated_at", -1)]
@@ -42,19 +105,7 @@ class WordleService:
         
         current_student_level = 1
         if latest_session:
-            # If the last session was won, we increment. 
-            # If it was lost or completed otherwise, we use its final level progress.
-            # Note: process_guess already incremented current_level on 'won' status.
-            # So we check if the last state was 'won' in its results or if it was just completed.
-            
-            # Logic: If the student solved the word in the last session (won), 
-            # and that session ended, we should probably start at that next level.
-            # Actually, our process_guess already updates 'current_level' in the session doc.
             current_student_level = latest_session.get("current_level", 1)
-            
-            # If the session was completed/game_over, and the last word was NOT won, 
-            # they stay on that level. If it was won but it was the last level, they stay at max.
-            # But the 'current_level' field in our session already points to where they "are".
         
         # 3. Determine Total Max Levels
         level_config = {
@@ -62,27 +113,44 @@ class WordleService:
         }
         total_max_levels = level_config.get(class_range, 50)
         
-        if current_student_level > total_max_levels:
-            current_student_level = total_max_levels
-            print(current_student_level,total_max_levels)
+        # 4. Handle Level Selection (Practice vs Progression Mode)
+        mode = "progression"
+        level_to_play = current_student_level
+        
+        if selected_level is not None:
+            # Validate selected level
+            if selected_level < 1 or selected_level > total_max_levels:
+                return {"error": f"Invalid level. Must be between 1 and {total_max_levels}"}
+            
+            if selected_level > current_student_level:
+                return {"error": f"Level {selected_level} is locked. You can only play up to level {current_student_level}"}
+            
+            # Practice mode
+            mode = "practice"
+            level_to_play = selected_level
+        
+        if level_to_play > total_max_levels:
+            level_to_play = total_max_levels
 
-        # 4. Fetch ONLY the current level question
+        # 5. Fetch ONLY the selected level question
         question = await db.wordle_questions.find_one({
             "class_range": class_range,
-            "level": current_student_level
+            "level": level_to_play
         })
         if not question:
-             return {"error": f"Level {current_student_level} not found for class range {class_range}"}
+             return {"error": f"Level {level_to_play} not found for class range {class_range}"}
 
-        # 4. Create Session (Clean schema)
+        # 6. Create Session (Clean schema)
         await db.wordle_sessions.delete_many({"student_id": student_id, "status": "playing"})
         
         session_doc = {
             "student_id": student_id,
-            "class_range": class_range, # Keep track of range
-            "current_level": current_student_level,
+            "class_range": class_range,
+            "current_level": current_student_level,  # Student's actual progression level
+            "selected_level": level_to_play,  # The level being played
+            "mode": mode,  # "progression" or "practice"
             "total_levels": total_max_levels,
-            "levels_passed": 0, # Passed in THIS specific session
+            "levels_passed": 0,
             
             # Current Word State
             "current_word_id": question["_id"],
@@ -101,15 +169,16 @@ class WordleService:
         
         return {
             "session_id": str(result.inserted_id),
-            "current_round": current_student_level, 
-            "level": current_student_level,
+            "current_round": level_to_play, 
+            "level": level_to_play,
             "total_rounds": total_max_levels,
             "current_word_length": len(question["word"]),
             "revealed_pattern": session_doc["revealed_pattern"],
             "hint": question["hints"][0] if question["hints"] else "No hint available",
             "remaining_attempts": 5,
             "levels_passed": 0,
-            "status": "playing"
+            "status": "playing",
+            "mode": mode
         }
 
     @staticmethod
@@ -176,6 +245,8 @@ class WordleService:
         current_level = session["current_level"]
         total_max_levels = session["total_levels"]
         levels_passed = session.get("levels_passed", 0)
+        mode = session.get("mode", "progression")
+        selected_level = session.get("selected_level", current_level)
         
         if word_status in ["won", "lost"]:
             word_revealed = secret_word 
@@ -195,16 +266,18 @@ class WordleService:
                     "updated_at": datetime.now(timezone.utc),
                     "$push": {"results": result_entry}
                 }
-                message = f"Level Failed! You are still on Level {current_level}. Try again!"
+                if mode == "practice":
+                    message = f"Level {selected_level} Failed! (Practice Mode)"
+                else:
+                    message = f"Level Failed! You are still on Level {current_level}. Try again!"
                 status_response = "game_over"
-                next_level_to_show = current_level
+                next_level_to_show = selected_level
             else:
-                # WON = Advance
+                # WON
                 levels_passed += 1
                 
-                next_level = current_level + 1
-                if next_level > total_max_levels:
-                    # Final Completion
+                if mode == "practice":
+                    # Practice mode: Don't advance, just complete
                     update_data = {
                         "guesses": guesses,
                         "revealed_pattern": new_revealed_pattern_str,
@@ -214,37 +287,55 @@ class WordleService:
                         "updated_at": datetime.now(timezone.utc),
                         "$push": {"results": result_entry}
                     }
-                    message = "Congratulations! You've passed all levels for your category!"
+                    message = f"Level {selected_level} completed! (Practice Mode)"
                     status_response = "game_over"
-                    next_level_to_show = current_level
+                    next_level_to_show = selected_level
                 else:
-                    # Fetch NEXT word on-demand
-                    next_q = await db.wordle_questions.find_one({
-                        "class_range": session["class_range"],
-                        "level": next_level
-                    })
-                    
-                    if not next_q:
-                        update_data = {"status": "completed", "updated_at": datetime.now(timezone.utc)}
-                        status_response = "game_over"
-                        message = "Error loading next level data."
-                        next_level_to_show = current_level
-                    else:
+                    # Progression mode: Advance to next level
+                    next_level = current_level + 1
+                    if next_level > total_max_levels:
+                        # Final Completion
                         update_data = {
-                            "current_level": next_level,
+                            "guesses": guesses,
+                            "revealed_pattern": new_revealed_pattern_str,
+                            "remaining_attempts": remaining_attempts,
                             "levels_passed": levels_passed,
-                            "current_word_id": next_q["_id"],
-                            "secret_word": next_q["word"],
-                            "hints": next_q["hints"],
-                            "guesses": [],
-                            "revealed_pattern": "_" * len(next_q["word"]),
-                            "remaining_attempts": 5,
+                            "status": "completed",
                             "updated_at": datetime.now(timezone.utc),
                             "$push": {"results": result_entry}
                         }
-                        message = f"Correct! Level {next_level} unlocked!"
-                        status_response = "won"
-                        next_level_to_show = next_level
+                        message = "Congratulations! You've passed all levels for your category!"
+                        status_response = "game_over"
+                        next_level_to_show = current_level
+                    else:
+                        # Fetch NEXT word on-demand
+                        next_q = await db.wordle_questions.find_one({
+                            "class_range": session["class_range"],
+                            "level": next_level
+                        })
+                        
+                        if not next_q:
+                            update_data = {"status": "completed", "updated_at": datetime.now(timezone.utc)}
+                            status_response = "game_over"
+                            message = "Error loading next level data."
+                            next_level_to_show = current_level
+                        else:
+                            update_data = {
+                                "current_level": next_level,
+                                "selected_level": next_level,
+                                "levels_passed": levels_passed,
+                                "current_word_id": next_q["_id"],
+                                "secret_word": next_q["word"],
+                                "hints": next_q["hints"],
+                                "guesses": [],
+                                "revealed_pattern": "_" * len(next_q["word"]),
+                                "remaining_attempts": 5,
+                                "updated_at": datetime.now(timezone.utc),
+                                "$push": {"results": result_entry}
+                            }
+                            message = f"Correct! Level {next_level} unlocked!"
+                            status_response = "won"
+                            next_level_to_show = next_level
         else:
             # Still playing
             update_data = {
@@ -290,7 +381,8 @@ class WordleService:
             "total_rounds": total_max_levels,
             "levels_passed": levels_passed,
             "word_revealed": word_revealed,
-            "current_word_length": output_word_length
+            "current_word_length": output_word_length,
+            "mode": mode
         }
 
     @staticmethod

@@ -31,7 +31,7 @@ async def register_student(
     age: str = Form(...),
     address: str = Form(...),
     guardian_name: str = Form(...),
-    parent_mobile: str = Form(...),
+    parent_mobile: str = Query(...),
     profile_image: Optional[UploadFile] = File(None),
     current=Depends(admin_or_user)
 ):

@@ -48,7 +48,12 @@ class AnalysisService:
     async def get_visual_exam_stats(s_oid: ObjectId) -> Optional[VisualExamAnalytics]:
         """Historical progression trend for descriptive exams"""
         try:
-            cursor = db.exam_evaluations.find({"student_id": str(s_oid)}).sort("created_at", 1)
+            # 1. Fetch completed evaluations from 'evaluations' collection
+            cursor = db.evaluations.find({
+                "student_id": s_oid,
+                "status": "COMPLETED"
+            }).sort("created_at", 1)
+            
             exams = await cursor.to_list(length=100)
             if not exams:
                 return None
@@ -56,12 +61,21 @@ class AnalysisService:
             history = []
             total_pct = 0
             for e in exams:
-                marks = e.get("total_marks", 1)
+                # Use 'max_total' instead of 'total_marks' as per DB structure
+                marks = e.get("max_total", 1)
                 score = e.get("total_score", 0)
+                
+                # Avoid division by zero
+                if marks == 0: marks = 1
+                
                 pct = (score / marks) * 100
                 total_pct += pct
+                
+                # completed_at is usually more accurate for "when it was graded"
+                date_val = e.get("completed_at") or e.get("created_at") or datetime.now()
+                
                 history.append(ExamHistoryItem(
-                    date=e.get("created_at", datetime.now()),
+                    date=date_val,
                     score_percentage=round(pct, 1),
                     paper_id=e.get("paper_id", "Unknown")
                 ))
@@ -70,7 +84,15 @@ class AnalysisService:
             trend = "Stable"
             if len(history) >= 2:
                 recent_avg = sum(h.score_percentage for h in history[-2:]) / 2
-                prev_avg = sum(h.score_percentage for h in history[:-2]) / len(history[:-2]) if history[:-2] else history[0].score_percentage
+                
+                # Calculate previous average (excluding the last 2)
+                prev_records = history[:-2]
+                if prev_records:
+                    prev_avg = sum(h.score_percentage for h in prev_records) / len(prev_records)
+                else:
+                    # If only 2 records exist, compare the last one with the first one
+                    prev_avg = history[0].score_percentage
+                
                 if recent_avg > prev_avg + 5: trend = "Improving"
                 elif recent_avg < prev_avg - 5: trend = "Declining"
 
@@ -78,9 +100,12 @@ class AnalysisService:
                 overall_avg_score=round(total_pct / len(exams), 1),
                 total_papers_taken=len(exams),
                 history=history,
-                latest_feedback=exams[-1].get("overall_feedback", "Keep practicing!"),
+                latest_feedback=exams[-1].get("overall_feedback", "Exam evaluation complete!"),
                 trend=trend
             )
+        except Exception as e:
+            print(f"Error in get_visual_exam_stats: {e}")
+            return None
         except Exception as e:
             print(f"Error in get_visual_exam_stats: {e}")
             return None

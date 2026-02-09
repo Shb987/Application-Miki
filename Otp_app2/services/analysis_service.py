@@ -118,7 +118,6 @@ class AnalysisService:
             # 1. Fetch all Mixed quizzes
             cursor = db.quiz_submissions.find({
                 "student_id": ObjectId(s_oid),
-                "domain": "Mixed"
             }).sort("submitted_at", 1)
             print(cursor)
             quizzes = await cursor.to_list(length=200)
@@ -160,7 +159,6 @@ class AnalysisService:
             ]
 
             return VisualQuizAnalytics(
-                domain="Mixed",
                 difficulty_breakdown=breakdown,
                 last_10_trend=history,
                 overall_accuracy=round(total_all_pct / len(quizzes), 1)

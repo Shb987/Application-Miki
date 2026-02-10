@@ -132,6 +132,105 @@ async def get_my_groups(student_id: str, current_user: dict = Depends(get_curren
     groups = await cursor.to_list(length=100)
     return [serialize_mongo(g) for g in groups]
 
+@router.post("/groups/{group_id}/add-member")
+async def add_member(
+    group_id: str,
+    new_member_id: str = Form(...),
+    student_id: str = Query(...), # The requester
+    current_user: dict = Depends(get_current_user)
+):
+    """Add a student to the group (Only by Creator)"""
+    try:
+        g_oid = ObjectId(group_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid group_id format")
+
+    # 1. Fetch group & Verify creator
+    group = await db.chat_groups.find_one({"_id": g_oid})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    if group.get("created_by") != student_id:
+        raise HTTPException(status_code=403, detail="Only the group creator can add members")
+
+    # 2. Add to member_ids
+    await db.chat_groups.update_one(
+        {"_id": g_oid},
+        {"$addToSet": {"member_ids": new_member_id}}
+    )
+
+    # 3. Broadcast system message
+    creator = await db.students.find_one({"_id": ObjectId(student_id)})
+    new_member = await db.students.find_one({"_id": ObjectId(new_member_id)})
+    
+    c_name = creator.get("student_name", "Admin") if creator else "Admin"
+    n_name = new_member.get("student_name", "New Member") if new_member else "New Member"
+    
+    system_msg = {
+        "group_id": group_id,
+        "sender_id": "system",
+        "sender_name": "System",
+        "message": f"{c_name} added {n_name} to the group",
+        "timestamp": datetime.now(timezone.utc)
+    }
+    await db.chat_messages.insert_one(system_msg)
+    await manager.broadcast_to_group(group_id, serialize_mongo(system_msg))
+
+    return {"message": f"Student {new_member_id} added successfully"}
+
+@router.delete("/groups/{group_id}/remove-member/{member_to_remove}")
+async def remove_member(
+    group_id: str,
+    member_to_remove: str,
+    student_id: str = Query(...), # The requester
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove a student from the group (Only by Creator)"""
+    try:
+        g_oid = ObjectId(group_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid group_id format")
+
+    # 1. Fetch group & Verify creator
+    group = await db.chat_groups.find_one({"_id": g_oid})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    if group.get("created_by") != student_id:
+        raise HTTPException(status_code=403, detail="Only the group creator can remove members")
+
+    # Prevent creator from removing themselves (optional, but safer)
+    if member_to_remove == group.get("created_by"):
+        raise HTTPException(status_code=400, detail="Cannot remove the creator from the group")
+
+    # 2. Remove from member_ids
+    await db.chat_groups.update_one(
+        {"_id": g_oid},
+        {"$pull": {"member_ids": member_to_remove}}
+    )
+
+    # 3. Broadcast system message
+    creator = await db.students.find_one({"_id": ObjectId(student_id)})
+    removed_member = await db.students.find_one({"_id": ObjectId(member_to_remove)})
+    
+    c_name = creator.get("student_name", "Admin") if creator else "Admin"
+    r_name = removed_member.get("student_name", "Member") if removed_member else "Member"
+
+    system_msg = {
+        "group_id": group_id,
+        "sender_id": "system",
+        "sender_name": "System",
+        "message": f"{c_name} removed {r_name} from the group",
+        "timestamp": datetime.now(timezone.utc)
+    }
+    await db.chat_messages.insert_one(system_msg)
+    await manager.broadcast_to_group(group_id, serialize_mongo(system_msg))
+
+    # 4. Disconnect if active (WebSocket)
+    manager.disconnect(group_id, member_to_remove)
+
+    return {"message": f"Student {member_to_remove} removed successfully"}
+
 @router.get("/history/{group_id}")
 async def get_chat_history(group_id: str, student_id: str, current_user: dict = Depends(get_current_user)):
     """Fetch message history for a group"""

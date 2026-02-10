@@ -51,3 +51,21 @@ class UserTypeRequest(BaseModel):
         if v.lower() not in allowed:
             raise ValueError("usertype must be 'parent' or 'student'")
         return v.lower()
+
+class MobileChangeRequest(BaseModel):
+    new_mobile_number: str
+    otp: str
+
+    @field_validator("new_mobile_number")
+    @classmethod
+    def validate_mobile_number(cls, v: str) -> str:
+        if not v.isdigit() or len(v) != 10 or not v.startswith(("6", "7", "8", "9")):
+            raise ValueError("Invalid mobile number")
+        return v
+
+    @field_validator("otp")
+    @classmethod
+    def validate_otp(cls, v: str) -> str:
+        if not v.isdigit() or len(v) != 6:
+            raise ValueError("Invalid OTP format")
+        return v

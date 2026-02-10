@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Form, HTTPException, Depends, File, UploadFile, Query
-from models.user_models import UserCreate, Student, UserTypeRequest, StudentUpdate
+from models.user_models import UserCreate, Student, UserTypeRequest, StudentUpdate, MobileChangeRequest
 from models.answer_models import AnswerRequest
 from models.career_models import CareerAnalyzer
 from core.database import db
@@ -214,6 +214,72 @@ async def get_parent_details(
         students = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
+
+
+@router.post("/change-mobile")
+async def change_mobile(
+    data: MobileChangeRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Change the parent's mobile number after OTP verification.
+    """
+    old_mobile = current_user.get("sub")
+    new_mobile = data.new_mobile_number
+
+    if old_mobile == new_mobile:
+        raise HTTPException(status_code=400, detail="New mobile number must be different from the old one")
+
+    # 1️⃣ Verify OTP for the NEW mobile number
+    otp_record = await db.otps.find_one({"mobile_number": new_mobile})
+    if not otp_record:
+        raise HTTPException(status_code=400, detail="OTP not found for the new mobile number")
+
+    if otp_record.get("otp") != data.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    expiry_time = otp_record.get("expiry")
+    if expiry_time.tzinfo is None:
+        expiry_time = expiry_time.replace(tzinfo=timezone.utc)
+
+    if expiry_time < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="OTP expired")
+
+    # 2️⃣ Check if the new mobile number is already in use
+    existing_user = await db.usertable.find_one({"mobile_number": new_mobile})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="New mobile number is already registered")
+
+    # 3️⃣ Update usertable
+    result = await db.usertable.update_one(
+        {"mobile_number": old_mobile},
+        {"$set": {
+            "mobile_number": new_mobile,
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User record not found")
+
+    # 4️⃣ Update OTP table (optional, but keep things clean)
+    await db.otps.delete_one({"mobile_number": new_mobile}) # OTP is used
+    await db.otps.update_one(
+        {"mobile_number": old_mobile},
+        {"$set": {"mobile_number": new_mobile}}
+    )
+
+    # 5️⃣ Generate NEW access token
+    usertype = current_user.get("usertype", "parent")
+    new_token = create_user_token(mobile_number=new_mobile, usertype=usertype)
+
+    return {
+        "status_code": 200,
+        "message": "Mobile number updated successfully",
+        "new_mobile_number": new_mobile,
+        "access_token": new_token,
+        "token_type": "bearer"
+    }
 
 
 @router.post("/set-usertype")

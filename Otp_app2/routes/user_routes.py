@@ -583,10 +583,10 @@ async def get_logins(admin=Depends(get_current_admin)):
 
 career_map = {
     "musical": "Musician, Composer, Singer, Sound Engineer",
-    "logical - mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
-    "verbal - linguistic": "Writer, Journalist, Teacher, Lawyer",
-    "bodily - kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
-    "visual - spatial": "Architect, Designer, Artist, Pilot",
+    "logical-mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
+    "verbal-linguistic": "Writer, Journalist, Teacher, Lawyer",
+    "bodily-kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
+    "visual-spatial": "Architect, Designer, Artist, Pilot",
     "interpersonal": "Teacher, Counselor, Manager, Salesperson",
     "intrapersonal": "Psychologist, Philosopher, Writer",
     "naturalist": "Biologist, Environmentalist, Farmer, Veterinarian"

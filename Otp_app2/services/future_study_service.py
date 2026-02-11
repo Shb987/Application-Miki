@@ -27,8 +27,42 @@ async def generate_and_store_future_study(
     top_category: str
 ):
     prompt = f"""
-- Videos → ONLY available YouTube links
-- Tutorials → ONLY available learning/tutorial websites
+You are an educational career guidance assistant for Indian school students.
+
+STUDENT PROFILE:
+- Current class: {student_class}
+- Top intelligence category: {top_category}
+- Recommended career: {recommended_career}
+
+CORE REQUIREMENT:
+Provide DETAILED, AGE-APPROPRIATE, and DIVERSE recommendations.
+
+CLASS GUIDELINES:
+- Class 1–5 → curiosity, awareness, basic concepts, fun learning
+- Class 6–8 → foundations, skill exposure
+- Class 9–10 → structured basics and entry-level exams
+- Class 11–12 → subject depth and competitive exams
+
+STRICT CONTENT RULES:
+- NO advanced professional topics for junior classes
+- NO medical/engineering syllabus for Class ≤7
+- Content must be understandable at the student's level
+
+RESOURCE QUANTITY (MANDATORY):
+- YouTube videos → EXACTLY 5 items
+- Tutorial links → EXACTLY 5 items
+- Competitive exams → EXACTLY 5 items
+- Study centers → EXACTLY 5 items
+
+DIVERSITY RULES:
+- Each YouTube video must focus on a DIFFERENT concept
+- Tutorials must come from DIFFERENT platforms
+- Exams must be beginner-friendly and India-based
+- Study centers must support early-stage career exposure
+
+RESOURCE RULES:
+- Videos → ONLY YouTube links
+- Tutorials → ONLY learning/tutorial websites
 - Study centers → India-based institutions or programs
 - NO explanations
 - NO markdown
@@ -38,10 +72,16 @@ RETURN STRICT JSON ONLY:
 
 {{
   "youtube_videos": [
-    {{"title": "", "link": ""}}
+    {{
+      "title": "",
+      "link": ""
+    }}
   ],
   "tutorial_links": [
-    {{"title": "", "link": ""}}
+    {{
+      "title": "",
+      "link": ""
+    }}
   ],
   "competitive_exams": [
     {{

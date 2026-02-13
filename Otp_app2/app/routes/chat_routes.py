@@ -9,7 +9,7 @@ from app.core.database import db
 from app.utils.user_auth import get_current_user
 from app.models.chat_models import GroupCreate, GroupResponse, ChatMessage
 
-UPLOAD_DIR = "uploads/group_images"
+UPLOAD_DIR = "app/static/uploads/group_images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 router = APIRouter(prefix="/chat", tags=["Group Chat"])
@@ -246,6 +246,56 @@ async def remove_member(
     manager.disconnect(group_id, member_to_remove)
 
     return {"message": f"Student {member_to_remove} removed successfully"}
+
+@router.post("/groups/{group_id}/leave")
+async def leave_group(
+    group_id: str,
+    student_id: str = Query(...), # The student who wants to leave
+    current_user: dict = Depends(get_current_user)
+):
+    """Allow a student to leave the group (Creator cannot leave)"""
+    try:
+        g_oid = ObjectId(group_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid group_id format")
+
+    # 1. Fetch group
+    group = await db.chat_groups.find_one({"_id": g_oid})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    # 2. Prevent creator from leaving
+    if group.get("created_by") == student_id:
+        raise HTTPException(status_code=400, detail="Group creator cannot leave the group")
+
+    # 3. Verify membership
+    if student_id not in group.get("member_ids", []):
+        raise HTTPException(status_code=404, detail="Student is not a member of this group")
+
+    # 4. Remove from member_ids
+    await db.chat_groups.update_one(
+        {"_id": g_oid},
+        {"$pull": {"member_ids": student_id}}
+    )
+
+    # 5. Broadcast system message
+    student = await db.students.find_one({"_id": ObjectId(student_id)})
+    s_name = student.get("student_name", "A student") if student else "A student"
+
+    system_msg = {
+        "group_id": group_id,
+        "sender_id": "system",
+        "sender_name": "System",
+        "message": f"{s_name} has left the group",
+        "timestamp": datetime.now(timezone.utc)
+    }
+    await db.chat_messages.insert_one(system_msg)
+    await manager.broadcast_to_group(group_id, serialize_mongo(system_msg))
+
+    # 6. Disconnect if active (WebSocket)
+    manager.disconnect(group_id, student_id)
+
+    return {"message": "You have left the group successfully"}
 
 @router.get("/history/{group_id}")
 async def get_chat_history(group_id: str, student_id: str, current_user: dict = Depends(get_current_user)):

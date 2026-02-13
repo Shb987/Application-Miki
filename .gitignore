@@ -1,7 +1,7 @@
 .agent/
 quiz_api_docs.md
 QUIZ_API_DOCS.md
-
+.pytest_cache/
 # Quiz Seeding & Audit Utilities
 Otp_app2/seed_*.py
 Otp_app2/check_*.py

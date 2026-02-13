@@ -2,11 +2,11 @@
 import firebase_admin
 from firebase_admin import credentials
 import os
-
+from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from routes import (
+from app.routes import (
     admin_routes, user_routes, otp_routes, admin_pages,
     admin_exam_routes, user_exam_routes, exam_evaluation_routes,
     user_futurestudy_routes, admin_quiz_routes, user_quiz_routes,
@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
+
 
 app = FastAPI(title="OTP & User Managements")
 
@@ -58,15 +59,14 @@ app.add_middleware(
 )
 
 
-# Mount static assets (CSS, JS, images)
-app.mount("/assets", StaticFiles(directory="../new/admin/assets"), name="assets")
-app.mount("/dist", StaticFiles(directory="../new/admin/dist"), name="dist")
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+templates = Jinja2Templates(directory="app/templates/admin/template")
 
-app.mount("/static/generated_papers", StaticFiles(directory="Exams/generated_papers"), name="generated_papers")
-app.mount("/subject_images", StaticFiles(directory="subject_images"), name="subject_images")
-app.mount("/Domain_pictures", StaticFiles(directory="Domain_pictures"), name="Domain_pictures")
-
+app.mount("/assets", StaticFiles(directory="app/static/assets"), name="assets")
+app.mount("/dist", StaticFiles(directory="app/static/dist"), name="dist")
+app.mount("/uploads", StaticFiles(directory="app/static/uploads"), name="uploads")
+app.mount("/subject_images", StaticFiles(directory="app/static/subject_images"), name="subject_images")
+app.mount("/Domain_pictures", StaticFiles(directory="app/static/Domain_pictures"), name="Domain_pictures")
+app.mount("/generated_papers", StaticFiles(directory="app/static/generated_papers"), name="generated_papers")
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])
 app.include_router(admin_exam_routes.router,prefix="/admin-panel", tags=["Exam Module"])

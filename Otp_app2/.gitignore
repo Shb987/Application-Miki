@@ -10,6 +10,9 @@ __pycache__/
 *.env
 Exams/
 uploads/
+app/static/uploads/
+app/static/generated_papers/
+app/static/textbook/
 replacements.txt
 test_jwt_gen.py
 temp/

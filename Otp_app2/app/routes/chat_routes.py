@@ -135,17 +135,22 @@ async def get_my_groups(student_id: str, current_user: dict = Depends(get_curren
 @router.post("/groups/{group_id}/add-member")
 async def add_member(
     group_id: str,
-    new_member_id: str = Form(...),
+    member_ids: str = Form(...), # Expecting comma-separated IDs
     student_id: str = Query(...), # The requester
     current_user: dict = Depends(get_current_user)
 ):
-    """Add a student to the group (Only by Creator)"""
+    """Add students to the group (Only by Creator)"""
+    # 1. Parse member IDs
+    new_member_list = [id.strip() for id in member_ids.split(",") if id.strip()]
+    if not new_member_list:
+        raise HTTPException(status_code=400, detail="No member IDs provided")
+
     try:
         g_oid = ObjectId(group_id)
     except:
         raise HTTPException(status_code=400, detail="Invalid group_id format")
 
-    # 1. Fetch group & Verify creator
+    # 2. Fetch group & Verify creator
     group = await db.chat_groups.find_one({"_id": g_oid})
     if not group:
         raise HTTPException(status_code=404, detail="Group not found")
@@ -153,30 +158,41 @@ async def add_member(
     if group.get("created_by") != student_id:
         raise HTTPException(status_code=403, detail="Only the group creator can add members")
 
-    # 2. Add to member_ids
+    # 3. Add to member_ids using $each
     await db.chat_groups.update_one(
         {"_id": g_oid},
-        {"$addToSet": {"member_ids": new_member_id}}
+        {"$addToSet": {"member_ids": {"$each": new_member_list}}}
     )
 
-    # 3. Broadcast system message
+    # 4. Broadcast system message
     creator = await db.students.find_one({"_id": ObjectId(student_id)})
-    new_member = await db.students.find_one({"_id": ObjectId(new_member_id)})
-    
     c_name = creator.get("student_name", "Admin") if creator else "Admin"
-    n_name = new_member.get("student_name", "New Member") if new_member else "New Member"
+    
+    # Fetch names for all new members
+    new_names = []
+    for mid in new_member_list:
+        try:
+            m_data = await db.students.find_one({"_id": ObjectId(mid)})
+            if m_data:
+                new_names.append(m_data.get("student_name", "New Member"))
+            else:
+                new_names.append(mid)
+        except:
+            new_names.append(mid)
+
+    names_str = ", ".join(new_names)
     
     system_msg = {
         "group_id": group_id,
         "sender_id": "system",
         "sender_name": "System",
-        "message": f"{c_name} added {n_name} to the group",
+        "message": f"{c_name} added {names_str} to the group",
         "timestamp": datetime.now(timezone.utc)
     }
     await db.chat_messages.insert_one(system_msg)
     await manager.broadcast_to_group(group_id, serialize_mongo(system_msg))
 
-    return {"message": f"Student {new_member_id} added successfully"}
+    return {"message": f"Successfully added members: {names_str}"}
 
 @router.delete("/groups/{group_id}/remove-member/{member_to_remove}")
 async def remove_member(

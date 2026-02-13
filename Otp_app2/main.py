@@ -59,7 +59,7 @@ app.add_middleware(
 )
 
 
-templates = Jinja2Templates(directory="app/templates/admin/template")
+templates = Jinja2Templates(directory="app/templates")
 
 app.mount("/assets", StaticFiles(directory="app/static/assets"), name="assets")
 app.mount("/dist", StaticFiles(directory="app/static/dist"), name="dist")

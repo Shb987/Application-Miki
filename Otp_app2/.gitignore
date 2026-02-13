@@ -6,6 +6,10 @@ folder_structure.txt
 testing.py
 __pycache__/
 *.pyc
+.pytest_cache/
+.DS_Store
+.idea/
+.vscode/
 .env.*
 *.env
 Exams/

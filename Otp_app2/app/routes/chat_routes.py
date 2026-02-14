@@ -247,6 +247,80 @@ async def remove_member(
 
     return {"message": f"Student {member_to_remove} removed successfully"}
 
+@router.post("/groups/{group_id}/update")
+async def update_group(
+    group_id: str,
+    name: Optional[str] = Form(None),
+    student_id: str = Form(...), # The requester
+    group_image: Optional[UploadFile] = File(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Update group details (Name and Image) - Only by Creator"""
+    try:
+        g_oid = ObjectId(group_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid group_id format")
+
+    # 1. Fetch group & Verify creator
+    group = await db.chat_groups.find_one({"_id": g_oid})
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    if group.get("created_by") != student_id:
+        raise HTTPException(status_code=403, detail="Only the group creator can update group details")
+
+    update_data = {}
+    changes = []
+
+    # 2. Update Name
+    if name and name != group.get("name"):
+        update_data["name"] = name
+        changes.append(f"name to '{name}'")
+
+    # 3. Update Image
+    if group_image:
+        file_extension = os.path.splitext(group_image.filename)[1]
+        file_name = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(UPLOAD_DIR, file_name)
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(group_image.file, buffer)
+        
+        new_image_url = f"uploads/group_images/{file_name}"
+        update_data["image_url"] = new_image_url
+        changes.append("group image")
+        
+        # Optional: Delete old image if it exists
+        old_image = group.get("image_url")
+        if old_image:
+            old_path = os.path.join("app/static", old_image)
+            if os.path.exists(old_path):
+                try: os.remove(old_path)
+                except: pass
+
+    if not update_data:
+        return {"message": "No changes provided"}
+
+    # 4. Apply Updates
+    await db.chat_groups.update_one({"_id": g_oid}, {"$set": update_data})
+
+    # 5. Broadcast system message
+    creator = await db.students.find_one({"_id": ObjectId(student_id)})
+    c_name = creator.get("student_name", "Admin") if creator else "Admin"
+    
+    changes_str = " and ".join(changes)
+    system_msg = {
+        "group_id": group_id,
+        "sender_id": "system",
+        "sender_name": "System",
+        "message": f"{c_name} updated the {changes_str}",
+        "timestamp": datetime.now(timezone.utc)
+    }
+    await db.chat_messages.insert_one(system_msg)
+    await manager.broadcast_to_group(group_id, serialize_mongo(system_msg))
+
+    return {"message": "Group updated successfully", "updated_fields": list(update_data.keys())}
+
 @router.post("/groups/{group_id}/leave")
 async def leave_group(
     group_id: str,

@@ -99,6 +99,8 @@ class SquaresService:
                 "grid": puzzle["grid"],
                 "found_words": [],
                 "found_bonus_words": [],
+                "main_words": puzzle["main_words"],
+                "bonus_words": puzzle.get("bonus_words", []),
                 "main_words_count": len(puzzle["main_words"]),
                 "bonus_words_count": len(puzzle.get("bonus_words", [])),
                 "status": "playing",
@@ -108,46 +110,55 @@ class SquaresService:
             return {"error": str(e)}
 
     @staticmethod
-    async def process_word(session_id: str, word: str) -> Dict[str, Any]:
+    async def process_words(session_id: str, words_list: List[str]) -> Dict[str, Any]:
         try:
             s_oid = ObjectId(session_id)
             session = await db.squares_sessions.find_one({"_id": s_oid})
             if not session: return {"error": "Session not found"}
             if session["status"] != "playing": return {"error": "Game already finished"}
             
-            word = word.upper().strip()
-            if len(word) < 4:
-                return {"error": "Word must be at least 4 letters"}
+            # Clean words
+            input_words = [w.strip().upper() for w in words_list if w.strip()]
+            if not input_words:
+                return {"error": "No words provided"}
             
             main_words = [w.upper() for w in session["main_words"]]
             bonus_words = [w.upper() for w in session["bonus_words"]]
-            found_words = session["found_words"]
-            found_bonus_words = session["found_bonus_words"]
+            found_words = list(session["found_words"])
+            found_bonus_words = list(session["found_bonus_words"])
             
-            is_valid = False
-            is_main = False
-            is_bonus = False
-            is_new = False
-            message = "Word not found in this grid."
+            any_valid = False
+            any_new = False
+            new_main_count = 0
+            new_bonus_count = 0
             
-            if word in main_words:
-                is_valid = True
-                is_main = True
-                if word not in found_words:
-                    is_new = True
-                    found_words.append(word)
-                    message = "Great! You found a main word!"
-                else:
-                    message = "You already found this word."
-            elif word in bonus_words:
-                is_valid = True
-                is_bonus = True
-                if word not in found_bonus_words:
-                    is_new = True
-                    found_bonus_words.append(word)
-                    message = "Awesome! You found a bonus word!"
-                else:
-                    message = "You already found this bonus word."
+            for word in input_words:
+                if len(word) < 4:
+                    continue
+                
+                if word in main_words:
+                    any_valid = True
+                    if word not in found_words:
+                        any_new = True
+                        new_main_count += 1
+                        found_words.append(word)
+                elif word in bonus_words:
+                    any_valid = True
+                    if word not in found_bonus_words:
+                        any_new = True
+                        new_bonus_count += 1
+                        found_bonus_words.append(word)
+            
+            # Message logic
+            if new_main_count > 0 or new_bonus_count > 0:
+                msg_parts = []
+                if new_main_count > 0: msg_parts.append(f"{new_main_count} main word(s)")
+                if new_bonus_count > 0: msg_parts.append(f"{new_bonus_count} bonus word(s)")
+                message = f"Found {' and '.join(msg_parts)}!"
+            elif any_valid:
+                message = "Words already found."
+            else:
+                message = "No new valid words found in this batch."
             
             # Update session
             status = "playing"
@@ -181,12 +192,12 @@ class SquaresService:
                     upsert=True
                 )
                 next_unlocked = True
-
+ 
             return {
-                "is_valid": is_valid,
-                "is_main": is_main,
-                "is_bonus": is_bonus,
-                "is_new": is_new,
+                "is_valid": any_valid,
+                "is_main": new_main_count > 0, # True if at least one new main word was found
+                "is_bonus": new_bonus_count > 0,
+                "is_new": any_new,
                 "message": message,
                 "found_words": found_words,
                 "found_bonus_words": found_bonus_words,
@@ -213,6 +224,8 @@ class SquaresService:
                     "grid": session["grid"],
                     "found_words": session["found_words"],
                     "found_bonus_words": session["found_bonus_words"],
+                    "main_words": session["main_words"],
+                    "bonus_words": session.get("bonus_words", []),
                     "main_words_count": len(session["main_words"]),
                     "bonus_words_count": len(session["bonus_words"]),
                     "status": "playing",

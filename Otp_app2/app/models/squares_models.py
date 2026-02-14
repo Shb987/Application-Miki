@@ -21,6 +21,8 @@ class SquaresSessionResponse(BaseModel):
     grid: List[List[str]]  # 4x4 matrix
     found_words: List[str]
     found_bonus_words: List[str]
+    main_words: List[str]
+    bonus_words: List[str]
     main_words_count: int
     bonus_words_count: int
     status: str  # "playing", "idle"
@@ -28,7 +30,7 @@ class SquaresSessionResponse(BaseModel):
 
 class SquaresWordSubmission(BaseModel):
     session_id: str
-    word: str
+    words: List[str]
 
 class SquaresWordResponse(BaseModel):
     is_valid: bool

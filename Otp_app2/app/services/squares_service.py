@@ -59,6 +59,7 @@ class SquaresService:
             if not student: return {"error": "Student not found"}
             
             std_class = int(student.get("student_class", 8))
+            print(std_class)
             class_range = SquaresService.get_class_range(std_class)
             
             # Verify if level is unlocked
@@ -96,6 +97,7 @@ class SquaresService:
                 "session_id": str(result.inserted_id),
                 "level": level,
                 "class_range": class_range,
+                "hint": puzzle.get("hint"),
                 "grid": puzzle["grid"],
                 "found_words": [],
                 "found_bonus_words": [],
@@ -217,10 +219,18 @@ class SquaresService:
                 sort=[("updated_at", -1)]
             )
             if session:
+                # Fetch hint from the puzzle
+                puzzle = await db.squares_questions.find_one({
+                    "class_range": session["class_range"],
+                    "level": session["level"]
+                })
+                hint = puzzle.get("hint") if puzzle else None
+                
                 return {
                     "session_id": str(session["_id"]),
                     "level": session["level"],
                     "class_range": session["class_range"],
+                    "hint": hint,
                     "grid": session["grid"],
                     "found_words": session["found_words"],
                     "found_bonus_words": session["found_bonus_words"],

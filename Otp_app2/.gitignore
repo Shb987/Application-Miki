@@ -42,7 +42,6 @@ save_payload.py
 additional_quiz_questions.json
 sample_quiz_questions.json
 paper.json
-
 # Quiz module test/utility files
 quiz_api_docs.md
 serviceAccountKey.json
@@ -52,3 +51,9 @@ migration_result.txt
 domains.txt
 test_quiz_refinement.py
 get_domains.py
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+gunicorn_conf.py

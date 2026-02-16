@@ -18,6 +18,7 @@ class SquaresSessionResponse(BaseModel):
     session_id: Optional[str] = None
     level: int
     class_range: str
+    hint: Optional[str] = None
     grid: List[List[str]]  # 4x4 matrix
     found_words: List[str]
     found_bonus_words: List[str]

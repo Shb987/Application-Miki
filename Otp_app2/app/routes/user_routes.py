@@ -115,6 +115,77 @@ async def register_student(
     }
 
 
+# --------------------- Public Student Registration (No Auth) -------------------------
+@router.post("/register-student-public")
+async def register_student_public(
+    student_name: str = Form(...),
+    dob: str = Form(...),
+    student_class: str = Form(...),
+    age: str = Form(...),
+    address: str = Form(...),
+    guardian_name: str = Form(...),
+    parent_mobile: str = Form(...),  # Required for public registration
+    profile_image: Optional[UploadFile] = File(None)
+):
+    """
+    Public endpoint for parents to register students without logging in first.
+    """
+    
+    # 1️⃣ Handle Image Upload
+    image_url = None
+    if profile_image:
+        file_extension = os.path.splitext(profile_image.filename)[1]
+        file_name = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join(UPLOAD_DIR, file_name)
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(profile_image.file, buffer)
+        
+        image_url = f"uploads/student_images/{file_name}"
+
+    # 2️⃣ Create Student Document
+    student_doc = {
+        "student_name": student_name,
+        "dob": dob,
+        "student_class": student_class,
+        "age": age,
+        "address": address,
+        "guardian_name": guardian_name,
+        "image_url": image_url,
+        "created_at": datetime.now(timezone.utc),
+        "is_user": False,  # Child is not the user
+        "is_new_user": True
+    }
+
+    # Insert into DB
+    result = await db.students.insert_one(student_doc)
+    student_oid = result.inserted_id
+
+    # 3️⃣ Create or Link Parent Account
+    # Upsert parent record based on mobile number
+    await db.usertable.update_one(
+        {"mobile_number": parent_mobile},
+        {
+            "$setOnInsert": {
+                "usertype": "parent",
+                "created_at": datetime.now(timezone.utc)
+            },
+            "$addToSet": {
+                "student_ids": student_oid
+            }
+        },
+        upsert=True
+    )
+
+    return {
+        "status_code": 200,
+        "message": "Student registered successfully (Public)",
+        "student_id": str(student_oid),
+        "parent_mobile": parent_mobile
+    }
+
+
+
 @router.put("/update-student/{student_id}")
 async def update_student(
     student_id: str,

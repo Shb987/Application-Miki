@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from app.core.database import db
 from app.utils.user_auth import get_current_user
 from app.models.chat_models import GroupCreate, GroupResponse, ChatMessage
+from app.services.notification_service import create_notification
 
 UPLOAD_DIR = "app/static/uploads/group_images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -123,7 +124,24 @@ async def create_group(
     }
 
     result = await db.chat_groups.insert_one(group_doc)
-    return {"message": "Group created", "group_id": str(result.inserted_id)}
+    group_id = str(result.inserted_id)
+
+    # 🔔 Notify added users (except creator)
+    for mid in id_list:
+        if mid != student_id:
+            try:
+                await create_notification(
+                    db=db,
+                    user_id=mid,
+                    title="New Group",
+                    message=f"You have been added to the group '{name}'.",
+                    notification_type="group_added",
+                    extra_data={"group_id": group_id}
+                )
+            except Exception as e:
+                print(f"Failed to send group notification to {mid}: {e}")
+
+    return {"message": "Group created", "group_id": group_id}
 
 @router.get("/my-groups")
 async def get_my_groups(student_id: str, current_user: dict = Depends(get_current_user)):
@@ -191,6 +209,20 @@ async def add_member(
     }
     await db.chat_messages.insert_one(system_msg)
     await manager.broadcast_to_group(group_id, serialize_mongo(system_msg))
+
+    # 🔔 Notify only NEWLY added users
+    for mid in new_member_list:
+        try:
+            await create_notification(
+                db=db,
+                user_id=mid,
+                title="Added to Group",
+                message=f"You have been added to the group '{group.get('name', 'Unknown')}'.",
+                notification_type="group_added",
+                extra_data={"group_id": group_id}
+            )
+        except Exception as e:
+            print(f"Failed to send group addition notification to {mid}: {e}")
 
     return {"message": f"Successfully added members: {names_str}"}
 

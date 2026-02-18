@@ -35,19 +35,22 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
         print("⚠️ OneSignal credentials not found. Skipping push.")
         return notification
 
-    # Find any linked users in usertable to get the correct targeting IDs
-    # This includes 'parents' linked via student_ids list AND 'students' linked via student_id field
-    cursor = db.usertable.find({
-        "$or": [
-            {"student_ids": {"$in": [ObjectId(user_id)]}, "usertype": "parent"},
-            {"student_id": ObjectId(user_id), "usertype": "student"}
-        ]
-    }, {"_id": 1})
+    # Find the linked users in usertable to get the correct targeting mobile numbers
+    # We want to target the 'mobile_number' field for OneSignal
+    target_ids = []
     
-    users = await cursor.to_list(length=None)
-    target_ids = [str(u["_id"]) for u in users]
+    if ObjectId.is_valid(user_id):
+        cursor = db.usertable.find({
+            "$or": [
+                {"student_ids": {"$in": [ObjectId(user_id)]}, "usertype": "parent"},
+                {"student_id": ObjectId(user_id), "usertype": "student"}
+            ]
+        }, {"mobile_number": 1})
+        
+        users = await cursor.to_list(length=None)
+        target_ids = list(set([u["mobile_number"] for u in users if u.get("mobile_number")]))
     
-    # Fallback to the user_id itself if no specific usertable records found
+    # Fallback to the user_id itself if no mobile numbers found in usertable
     if not target_ids:
         target_ids = [user_id]
     
@@ -77,7 +80,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
             if response.status_code == 200:
-                print(f"✅ OneSignal Sent to {len(target_ids)} targets for Student {user_id}: {response.json()}")
+                print(f"✅ OneSignal Sent to targets {target_ids} for Student {user_id}: {response.json()}")
             else:
                 print(f"❌ OneSignal Error {response.status_code}: {response.text}")
     except Exception as e:
@@ -127,21 +130,21 @@ async def broadcast_notification(db, title: str, message: str, notification_type
         print("⚠️ OneSignal credentials not found. Skipping push.")
         return
 
-    # Get unique User IDs from usertable to avoid duplicate pushes
+    # Get unique Mobile Numbers from usertable to avoid duplicate pushes
     # Includes parents linked to these students AND the students themselves
     s_oids = [ObjectId(sid) for sid in student_ids]
     
-    unique_user_ids = await db.usertable.distinct("_id", {
+    unique_mobile_numbers = await db.usertable.distinct("mobile_number", {
         "$or": [
             {"student_ids": {"$in": s_oids}, "usertype": "parent"},
             {"student_id": {"$in": s_oids}, "usertype": "student"}
         ]
     })
     
-    target_ids = [str(uid) for uid in unique_user_ids]
+    target_ids = [str(mn) for mn in unique_mobile_numbers if mn]
 
     if not target_ids:
-        print("⚠️ No usertable accounts found to receive push notifications.")
+        print("⚠️ No mobile numbers found in usertable to receive push notifications.")
         return
 
     url = "https://onesignal.com/api/v1/notifications"

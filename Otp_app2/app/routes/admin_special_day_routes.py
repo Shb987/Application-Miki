@@ -4,6 +4,8 @@ from app.models.special_day_models import SpecialDayCreate, SpecialDayUpdate, Sp
 from app.utils.user_auth import get_current_user # Assuming admin auth is similar or handled here
 from bson import ObjectId
 from datetime import datetime, timezone
+import pytz
+from app.services.scheduler_service import check_and_notify_special_days
 
 router = APIRouter(prefix="/special-days", tags=["Special Days - Admin"])
 
@@ -36,7 +38,17 @@ async def create_special_day(day_data: SpecialDayCreate):
     
     result = await db.special_days.insert_one(new_day)
     
-    # 3. Return created
+    # 3. Trigger immediate notification if the date is TODAY
+    tz = pytz.timezone("Asia/Kolkata")
+    today_ist = datetime.now(tz).strftime("%Y-%m-%d")
+    if day_data.date == today_ist:
+        # We don't await this to keep the API responsive, 
+        # or we can await it if we want to ensure it sent before returning.
+        # Given it's a broadcast, better to fire it in background.
+        import asyncio
+        asyncio.create_task(check_and_notify_special_days(db))
+
+    # 4. Return created
     created = await db.special_days.find_one({"_id": result.inserted_id})
     return serialize_doc(created)
 
@@ -60,8 +72,16 @@ async def update_special_day(day_id: str, update_data: SpecialDayUpdate):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Special Day not found")
 
-    updated = await db.special_days.find_one({"_id": ObjectId(day_id)})
-    return serialize_doc(updated)
+    # 3. Trigger immediate notification if the date is TODAY
+    updated_doc = await db.special_days.find_one({"_id": ObjectId(day_id)})
+    tz = pytz.timezone("Asia/Kolkata")
+    today_ist = datetime.now(tz).strftime("%Y-%m-%d")
+    
+    if updated_doc.get("date") == today_ist:
+        import asyncio
+        asyncio.create_task(check_and_notify_special_days(db))
+
+    return serialize_doc(updated_doc)
 
 @router.delete("/{day_id}")
 async def delete_special_day(day_id: str):

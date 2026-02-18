@@ -11,21 +11,11 @@ ONESIGNAL_API_KEY = settings.ONESIGNAL_API_KEY
 
 async def create_notification(db, user_id: str, title: str, message: str, notification_type: str, extra_data: dict = None):
     """
-    Creates a notification in MongoDB and sends it via OneSignal.
-    
-    Args:
-        db: MongoDB database instance
-        user_id: The ID of the student/user to receive the notification.
-        title: Notification Title
-        message: Notification Body
-        notification_type: Type of notification (e.g., 'evaluation_completed')
-        extra_data: Optional dictionary with additional data (e.g., evaluation_id)
+    Creates a notification in MongoDB (per student) and sends it via OneSignal (targeting parent).
     """
     
-    # 1. Save to MongoDB (History)
-
+    # 1. Save to MongoDB (History - Always per student)
     notification = {
-
         "student_id": user_id,
         "title": title,
         "message": message,
@@ -34,29 +24,33 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
         "created_at": datetime.datetime.utcnow()
     }
 
-    # Merge extra data if provided
     if extra_data:
         notification.update(extra_data)
 
     result = await db.notifications.insert_one(notification)
-
-    # ✅ MongoDB-generated notification id
     notification_id = str(result.inserted_id)
 
-    # 2. Push to OneSignal
+    # 2. Push to OneSignal (Targeting Parent to avoid duplicates on shared phones)
     if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
-        print("⚠️ OneSignal credentials not found in .env. Skipping push notification.")
+        print("⚠️ OneSignal credentials not found. Skipping push.")
         return notification
 
-    url = "https://onesignal.com/api/v1/notifications"
+    # Find the linked parent to get the correct targeting ID
+    # In this app, OneSignal devices are usually linked to the Parent's mobile or ID
+    parent = await db.usertable.find_one({
+        "student_ids": {"$in": [ObjectId(user_id)]},
+        "usertype": "parent"
+    })
     
+    # Target parent if found, else fallback to student_id (external_user_id)
+    target_id = str(parent["_id"]) if parent else user_id
+    
+    url = "https://onesignal.com/api/v1/notifications"
     headers = {
         "Content-Type": "application/json; charset=utf-8",
         "Authorization": f"Basic {ONESIGNAL_API_KEY}"
     }
     
-    # Payload for OneSignal
-    # We target the user by their 'user_id' (student_id) which should be set as 'external_user_id' in the App.
     onesignal_data = {
         "type": notification_type,
         "student_id": user_id,
@@ -67,24 +61,19 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
 
     payload = {
         "app_id": ONESIGNAL_APP_ID,
-        "include_external_user_ids": [user_id], 
+        "include_external_user_ids": [target_id], 
         "headings": {"en": title},
         "contents": {"en": message},
         "data": onesignal_data
     }
     
-    # Fire and Forget (Async)
-    # We catch exceptions so as not to block the main thread or error out the request
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
-            print(response)
-            
             if response.status_code == 200:
-                print(f"✅ OneSignal Notification Sent to {user_id}: {response.json()}")
+                print(f"✅ OneSignal Sent to Parent {target_id} for Student {user_id}: {response.json()}")
             else:
                 print(f"❌ OneSignal Error {response.status_code}: {response.text}")
-                
     except Exception as e:
         print(f"❌ OneSignal Push Failed: {e}")
 
@@ -92,7 +81,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
 
 async def broadcast_notification(db, title: str, message: str, notification_type: str, extra_data: dict = None):
     """
-    Broadcasts a notification to ALL students via OneSignal and saves to their MongoDB history.
+    Broadcasts a notification to ALL students in DB but deduplicates push notifications by Parent (Phone).
     """
     
     # 1. Fetch all student IDs
@@ -104,18 +93,15 @@ async def broadcast_notification(db, title: str, message: str, notification_type
         print("⚠️ No students found to notify.")
         return
 
-    # 2. Save to MongoDB (History) for each student
-    # Note: For very large student bases (10k+), this should be optimized with insert_many
+    # 2. Save to MongoDB (Individual History for every student)
     notifications_to_insert = []
     now = datetime.datetime.utcnow()
     
     for s_id in student_ids:
-        # Start with extra data to avoid overwriting core fields later
         notif = {}
         if extra_data:
             notif.update(extra_data)
         
-        # Core fields take priority
         notif.update({
             "student_id": s_id,
             "title": title,
@@ -130,9 +116,24 @@ async def broadcast_notification(db, title: str, message: str, notification_type
         await db.notifications.insert_many(notifications_to_insert)
         print(f"✅ Saved notification history for {len(notifications_to_insert)} students.")
 
-    # 3. Push to OneSignal (Universal Broadcast)
+    # 3. Push to OneSignal (Deduplicated per Parent/Phone)
     if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
-        print("⚠️ OneSignal credentials not found. Skipping universal push.")
+        print("⚠️ OneSignal credentials not found. Skipping push.")
+        return
+
+    # Get unique Parent IDs to avoid duplicate pushes on same device
+    # Mapping student_ids to their parent _id in usertable
+    unique_parent_ids = await db.usertable.distinct("_id", {
+        "student_ids": {"$in": [ObjectId(sid) for sid in student_ids]},
+        "usertype": "parent"
+    })
+    
+    target_ids = [str(pid) for pid in unique_parent_ids]
+
+    if not target_ids:
+        print("⚠️ No parent accounts found to receive push notifications.")
+        # Fallback to student_ids if parents aren't linked? 
+        # Usually parents are the ones with devices.
         return
 
     url = "https://onesignal.com/api/v1/notifications"
@@ -150,7 +151,7 @@ async def broadcast_notification(db, title: str, message: str, notification_type
 
     payload = {
         "app_id": ONESIGNAL_APP_ID,
-        "included_segments": ["All"], # Target everyone
+        "include_external_user_ids": target_ids, 
         "headings": {"en": title},
         "contents": {"en": message},
         "data": onesignal_data
@@ -160,7 +161,7 @@ async def broadcast_notification(db, title: str, message: str, notification_type
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
             if response.status_code == 200:
-                print(f"✅ OneSignal Broadcast Sent Successfully: {response.json()}")
+                print(f"✅ Deduplicated OneSignal Broadcast Sent to {len(target_ids)} unique parents: {response.json()}")
             else:
                 print(f"❌ OneSignal Broadcast Error {response.status_code}: {response.text}")
     except Exception as e:

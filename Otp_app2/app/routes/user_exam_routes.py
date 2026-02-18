@@ -29,9 +29,10 @@ async def get_subjects_and_chapters(standard: str):
     subjects = await db.textbook.distinct("subject", {"standard": standard})
     subjects = sorted([s for s in subjects if s])
 
-    # Optimization: List images once
-    image_files = os.listdir("subject_images") if os.path.exists("subject_images") else []
-    
+    # Optimization: List images once from the correct static directory
+    IMAGE_DIR = os.path.join("app", "static", "subject_images")
+    image_files = os.listdir(IMAGE_DIR) if os.path.exists(IMAGE_DIR) else []
+    print(image_files)
     result = []
     
     for subject in subjects:
@@ -64,10 +65,12 @@ async def get_subjects_and_chapters(standard: str):
         # Image matching logic
         normalized_subject = subject.lower().replace(" ", "")
         
-        # Manual mapping
+        # Manual mapping for common abbreviations or typos
         special_cases = {
             "english": "eng.jpg",
-            "biology": "biolagy.jpg"
+            "biology": "biolagy.jpg",
+            "mathematics": "maths.jpg",
+            "socialscience": "socialscience.jpg"
         }
         
         image_url = None

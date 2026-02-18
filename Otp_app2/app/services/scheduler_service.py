@@ -7,13 +7,19 @@ async def check_and_notify_special_days(db):
     """
     Checks if there is a special day today and sends a broadcast notification.
     """
-    # Use IST or your server's local time as per project convention
-    # For now using UTC but formatting to YYYY-MM-DD
-    today_str = datetime.datetime.now(pytz.UTC).strftime("%Y-%m-%d")
+    # Use IST (Asia/Kolkata) for local consistency
+    tz = pytz.timezone("Asia/Kolkata")
+    now_ist = datetime.datetime.now(tz)
+    today_str = now_ist.strftime("%Y-%m-%d")
     
-    print(f"⏰ [Scheduler] Checking for special days on {today_str}...")
+    print(f"⏰ [Scheduler] Checking for special days on {today_str} (IST)...")
     
-    special_day = await db.special_days.find_one({"date": today_str, "is_active": True})
+    # Only find events that haven't been notified yet today
+    special_day = await db.special_days.find_one({
+        "date": today_str, 
+        "is_active": True,
+        "notification_sent": {"$ne": True}
+    })
     
     if special_day:
         title = f"Today's {special_day['type']}: {special_day['title']}"
@@ -21,43 +27,50 @@ async def check_and_notify_special_days(db):
         
         print(f"📢 [Scheduler] Found event: {special_day['title']}. Sending broadcast...")
         
-        await broadcast_notification(
-            db=db,
-            title=title,
-            message=message,
-            notification_type="special_day_reminder",
-            extra_data={"date": today_str, "type": special_day['type']}
-        )
+        try:
+            await broadcast_notification(
+                db=db,
+                title=title,
+                message=message,
+                notification_type="special_day_reminder",
+                extra_data={"date": today_str, "type": special_day['type']}
+            )
+            
+            # Mark as sent
+            await db.special_days.update_one(
+                {"_id": special_day["_id"]},
+                {"$set": {"notification_sent": True}}
+            )
+            print(f"✅ [Scheduler] Marked '{special_day['title']}' as notified.")
+            
+        except Exception as e:
+            print(f"❌ [Scheduler] Failed to broadcast: {e}")
     else:
-        print("ℹ️ [Scheduler] No special day found for today.")
+        print(f"ℹ️ [Scheduler] No unsent special day found for {today_str}.")
 
 async def start_special_day_scheduler(db):
     """
-    Starts a background loop that checks for special days once a day.
+    Starts a background loop that checks for special days at 8:00 AM IST.
     """
     print("🚀 [Scheduler] Special Day Background Service Started.")
+    tz = pytz.timezone("Asia/Kolkata")
     
     while True:
         try:
-            # Run the check
             await check_and_notify_special_days(db)
             
-            # Wait for 24 hours (86400 seconds)
-            # Alternatively, calculate time until 8:00 AM next day
-            # for now, simple 24h loop for demonstration/simplicity
-            # In production, you'd calculate: (next_8am - now).total_seconds()
-            
-            now = datetime.datetime.now(pytz.UTC)
-            # Target 8:00 AM UTC (adjust to IST if needed)
+            now = datetime.datetime.now(tz)
+            # Target 8:00 AM IST
             next_run = now.replace(hour=8, minute=0, second=0, microsecond=0)
+            
             if next_run <= now:
                 next_run += datetime.timedelta(days=1)
             
             sleep_duration = (next_run - now).total_seconds()
-            print(f"💤 [Scheduler] Sleeping for {sleep_duration/3600:.2f} hours until {next_run}...")
+            print(f"💤 [Scheduler] Sleeping until {next_run.strftime('%Y-%m-%d %H:%M:%S')} IST...")
             
             await asyncio.sleep(sleep_duration)
             
         except Exception as e:
             print(f"❌ [Scheduler] Error in background loop: {e}")
-            await asyncio.sleep(60) # Retry after 1 minute on error
+            await asyncio.sleep(60)

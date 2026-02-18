@@ -112,6 +112,12 @@ async def tutorials_page(request: Request):
     return templates.TemplateResponse("tutorials.html", {"request": request})
 
 
+@router.get("/special-days-page", response_class=HTMLResponse)
+async def special_days_page(request: Request):
+    """Special Days management page"""
+    return templates.TemplateResponse("special_days.html", {"request": request})
+
+
 # ==================== ANALYTICS MODULE ROUTES ====================
 
 @router.get("/analytics-dashboard-page", response_class=HTMLResponse)

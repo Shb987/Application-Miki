@@ -8,7 +8,9 @@ class Settings:
     # Database
     MONGO_URI: str = os.getenv("MONGO_URI")
     DB_NAME: str = os.getenv("DB_NAME")
-    
+    #Onesignal
+    ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID")
+    ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY")
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = os.getenv("ALGORITHM")

@@ -12,15 +12,24 @@ from app.routes import (
     user_futurestudy_routes, admin_quiz_routes, user_quiz_routes,
     companion_routes, chat_routes, ai_tutor_routes,
     admin_tutorial_routes, user_tutorial_routes,
-    user_analysis_routes, user_game_wordle, user_game_squares
+    user_analysis_routes, user_game_wordle, user_game_squares,
+    admin_special_day_routes, user_special_day_routes
 )
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
+from app.core.database import db
+from app.services.scheduler_service import start_special_day_scheduler
+import asyncio
 
 
 app = FastAPI(title="OTP & User Managements")
+
+@app.on_event("startup")
+async def startup_event():
+    # Start the background scheduler for Special Days
+    asyncio.create_task(start_special_day_scheduler(db))
 
 # ----------------------------------------
 # 🔥 FIREBASE INITIALIZATION
@@ -94,5 +103,9 @@ app.include_router(user_analysis_routes.router, prefix="/user", tags=["Analytics
 
 app.include_router(user_game_wordle.router, prefix="/user", tags=["Game - Wordle"])
 app.include_router(user_game_squares.router, prefix="/user", tags=["Game - Squares"])
+
+# Special Days
+app.include_router(admin_special_day_routes.router, prefix="/admin-panel", tags=["Special Days - Admin"])
+app.include_router(user_special_day_routes.router, prefix="/user", tags=["Special Days - User"])
 
 

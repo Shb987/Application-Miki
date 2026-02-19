@@ -20,10 +20,12 @@ class VoiceCompanionService:
     async def transcribe_audio(self, audio_file_path: str) -> str:
         """Transcribe audio file to text using Whisper."""
         try:
+            import os
+            filename = os.path.basename(audio_file_path)
             with open(audio_file_path, "rb") as audio_file:
                 transcript = await client.audio.transcriptions.create(
                     model=self.model_stt, 
-                    file=audio_file
+                    file=(filename, audio_file)
                 )
             return transcript.text
         except Exception as e:

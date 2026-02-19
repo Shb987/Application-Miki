@@ -26,9 +26,11 @@ async def voice_interact(
     3. Stream response audio directly from OpenAI.
     """
     session_id = str(uuid.uuid4())
-    input_filename = f"{session_id}_in.wav"
+    # Preserve the original extension
+    ext = os.path.splitext(audio.filename)[1] or ".wav"
+    input_filename = f"{session_id}_in{ext}"
     input_path = TEMP_AUDIO_DIR / input_filename
-
+    
     try:
         # Save uploaded audio
         with input_path.open("wb") as buffer:

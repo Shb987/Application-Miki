@@ -41,9 +41,12 @@ async def voice_interact(
         user_text = await voice_companion_service.transcribe_audio(str(input_path))
         if not user_text:
             raise HTTPException(status_code=400, detail="Could not transcribe audio.")
+        
+        print(f"🎙️ Transcribed User Voice: {user_text}")
 
         # 2. Get AI text response
         ai_text = await voice_companion_service.get_voice_response(student_id, user_text)
+        print(f"🤖 Miki Response: {ai_text}")
 
         # 3. Generate TTS
         success = await voice_companion_service.text_to_speech(ai_text, str(output_path))

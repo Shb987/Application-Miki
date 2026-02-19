@@ -8,12 +8,14 @@ from pathlib import Path
 # Initialize OpenAI Client
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+import asyncio
+
 class VoiceCompanionService:
     def __init__(self):
         self.voice = "nova"  # High-quality voice as requested
         self.model_stt = "whisper-1"
         self.model_tts = "tts-1"
-        self.model_chat = "gpt-4o"
+        self.model_chat = "gpt-4o-mini" # Faster model for voice interaction
 
     async def transcribe_audio(self, audio_file_path: str) -> str:
         """Transcribe audio file to text using Whisper."""
@@ -31,7 +33,10 @@ class VoiceCompanionService:
     async def get_voice_response(self, student_id: str, text: str) -> str:
         """Generate AI text response with Siri-like persona and history context."""
         try:
+            # Reverting back to sequential await for stability unless parallel is proven safe with this motor version
             student = await db.students.find_one({"_id": ObjectId(student_id)})
+            history_obj = await db.voice_companion_chats.find_one({"student_id": student_id})
+            
             student_name = student.get("student_name", "Student") if student else "Student"
             
             # System Prompt for Siri-like Persona
@@ -40,7 +45,7 @@ class VoiceCompanionService:
             Your persona is inspired by Siri: clear, structured, encouraging, and helpful.
             
             INSTRUCTIONS:
-            - Keep your responses concise and natural for verbal communication.
+            - Keep your responses VERY concise and natural for verbal communication.
             - Address the student as {student_name}.
             - Provide helpful academic and general guidance.
             - Use a conversational and energetic tone.
@@ -49,9 +54,8 @@ class VoiceCompanionService:
             messages = [{"role": "system", "content": system_prompt}]
 
             # Load recent voice chat history
-            history_obj = await db.voice_companion_chats.find_one({"student_id": student_id})
             if history_obj:
-                recent_msgs = history_obj.get("messages", [])[-10:] # Slightly longer history for voice
+                recent_msgs = history_obj.get("messages", [])[-6:] # Shorter history for speed
                 for m in recent_msgs:
                     messages.append({"role": m["role"], "content": m["content"]})
 
@@ -83,18 +87,19 @@ class VoiceCompanionService:
             print(f"Chat Error: {e}")
             return "I'm sorry, I hit a snag. Could you say that again?"
 
-    async def text_to_speech(self, text: str, output_path: str):
-        """Convert text to high-quality audio."""
+    async def stream_text_to_speech(self, text: str):
+        """Stream text to high-quality audio chunks."""
         try:
+            # Using the newer with_streaming_response or just iter_bytes
             response = await client.audio.speech.create(
                 model=self.model_tts,
                 voice=self.voice,
                 input=text
             )
-            response.stream_to_file(output_path)
-            return True
+            # OpenAI's response object from speech.create provides a stream
+            return response
         except Exception as e:
-            print(f"TTS Error: {e}")
-            return False
+            print(f"TTS Streaming Error: {e}")
+            return None
 
 voice_companion_service = VoiceCompanionService()

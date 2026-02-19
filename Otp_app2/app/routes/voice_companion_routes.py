@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from app.core.database import db
 from app.utils.user_auth import get_current_user
 from app.services.voice_companion_service import voice_companion_service
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 import os
 import uuid
 from pathlib import Path
@@ -20,17 +20,14 @@ async def voice_interact(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Siri-like interaction: 
+    Siri-like interaction with Streaming: 
     1. Transcribe incoming audio.
     2. Get AI response with persona and history.
-    3. Generate response audio using high-quality TTS.
-    4. Return the response audio.
+    3. Stream response audio directly from OpenAI.
     """
     session_id = str(uuid.uuid4())
     input_filename = f"{session_id}_in.wav"
     input_path = TEMP_AUDIO_DIR / input_filename
-    output_filename = f"{session_id}_out.mp3"
-    output_path = TEMP_AUDIO_DIR / output_filename
 
     try:
         # Save uploaded audio
@@ -48,49 +45,39 @@ async def voice_interact(
         ai_text = await voice_companion_service.get_voice_response(student_id, user_text)
         print(f"🤖 Miki Response: {ai_text}")
 
-        # 3. Generate TTS
-        success = await voice_companion_service.text_to_speech(ai_text, str(output_path))
-        if not success:
+        # 3. Stream TTS response
+        audio_stream = await voice_companion_service.stream_text_to_speech(ai_text)
+        if not audio_stream:
             raise HTTPException(status_code=500, detail="Failed to generate voice response.")
 
-        # 4. Return audio file
-        # Note: We avoid putting AI response text in headers directly because emojis cause latin-1 encoding errors.
-        return FileResponse(
-            path=output_path, 
-            media_type="audio/mpeg", 
-            filename="miki_response.mp3"
-        )
+        return StreamingResponse(audio_stream.iter_bytes(), media_type="audio/mpeg")
 
     except Exception as e:
         print(f"Interaction Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        # Cleanup input file immediately, output will be handled by FileResponse? 
-        # Actually FileResponse doesn't cleanup by default. 
-        # We might need a background task for cleanup if we want to be clean.
         if input_path.exists():
             os.remove(input_path)
 
 @router.post("/session/start")
 async def start_session(student_id: str, current_user: dict = Depends(get_current_user)):
-    """Initialize a 'Wake-up' event and return a greeting."""
+    """Initialize a 'Wake-up' event and stream a greeting."""
     greeting = f"Hello! Miki here, ready to help. What's on your mind today?"
-    output_path = TEMP_AUDIO_DIR / f"{uuid.uuid4()}_wake.mp3"
-    
-    success = await voice_companion_service.text_to_speech(greeting, str(output_path))
-    if not success:
+    audio_stream = await voice_companion_service.stream_text_to_speech(greeting)
+    if not audio_stream:
         return {"status": "success", "message": greeting}
         
-    return FileResponse(path=output_path, media_type="audio/mpeg", filename="greeting.mp3")
+    return StreamingResponse(audio_stream.iter_bytes(), media_type="audio/mpeg")
 
 @router.post("/session/end")
 async def end_session(student_id: str, current_user: dict = Depends(get_current_user)):
-    """Close the session with a goodbye."""
+    """Close the session with a goodbye stream."""
     goodbye = "Goodbye! I'll be here whenever you need me. Have a great day!"
-    output_path = TEMP_AUDIO_DIR / f"{uuid.uuid4()}_bye.mp3"
-    
-    success = await voice_companion_service.text_to_speech(goodbye, str(output_path))
-    if not success:
+    audio_stream = await voice_companion_service.stream_text_to_speech(goodbye)
+    if not audio_stream:
         return {"status": "success", "message": goodbye}
         
-    return FileResponse(path=output_path, media_type="audio/mpeg", filename="goodbye.mp3")
+    return StreamingResponse(audio_stream.iter_bytes(), media_type="audio/mpeg")
+    
+# Historical Cleanup (Optional but good practice)
+# We can add a background task to clean up old temp files if any remain.

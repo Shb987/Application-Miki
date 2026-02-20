@@ -68,8 +68,8 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                             await session.input_audio_buffer.append(audio=base64_audio)
                             
                         # Handle text trigger
-                        elif "text" in data:
-                            text_content = data["text"]
+                        elif "text" in msg:
+                            text_content = msg["text"]
                             # Use uvicorn logger for guaranteed terminal visibility
                             uv_logger = logging.getLogger("uvicorn.error")
                             print(f"🎙️ User Text Trigger: {text_content}", flush=True)
@@ -136,6 +136,8 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                         if text:
                                             print(f"✨ AI Response: {text}", flush=True)
                                             uv_logger.info(f"✨ AI Response: {text}")
+                                            # Also send text back to client for verification in test script
+                                            await websocket.send_text(f"AI: {text}")
                                             await save_chat_event(student_id, session_id, "assistant", text)
 
                         # 3. Capture and save User transcription (Whisper generated)

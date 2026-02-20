@@ -83,30 +83,58 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     logger.error(f"Error in receive_messages loop: {e}")
 
             async def send_events():
+                import traceback
+                import base64
                 try:
                     async for event in session:
+                        # Log every event type for deep debugging
+                        logger.info(f"OpenAI Event Received: {event.type}")
+
+                        # 0. Handle explicit error events from OpenAI
+                        if event.type == "error":
+                            logger.error(f"OpenAI Realtime Error detail: {getattr(event, 'error', 'No detail')}")
+                            continue
+
                         # 1. Stream audio delta back to client for instant playback
                         if event.type == "response.audio.delta":
-                            await websocket.send_bytes(event.delta)
+                            delta = getattr(event, "delta", None)
+                            if delta:
+                                try:
+                                    # Handle both raw bytes and base64 strings
+                                    if isinstance(delta, str):
+                                        await websocket.send_bytes(base64.b64decode(delta))
+                                    else:
+                                        await websocket.send_bytes(delta)
+                                except Exception as audio_err:
+                                    logger.error(f"Error sending audio delta: {audio_err}")
 
                         # 2. Capture and save Assistant response
                         if event.type == "response.done":
+                            resp = getattr(event, "response", None)
+                            if not resp or not hasattr(resp, "output"):
+                                continue
+                                
                             # Get the text from the response item
-                            for item in event.response.output:
-                                if item.type == "message":
-                                    for content in item.content:
-                                        if content.type == "text":
-                                            logger.info(f"AI Response: {content.text}")
-                                            await save_chat_event(student_id, session_id, "assistant", content.text)
+                            for item in resp.output:
+                                if getattr(item, "type", None) == "message":
+                                    content_list = getattr(item, "content", [])
+                                    for content in content_list:
+                                        if getattr(content, "type", None) == "text":
+                                            text = getattr(content, "text", "")
+                                            if text:
+                                                logger.info(f"AI Response: {text}")
+                                                await save_chat_event(student_id, session_id, "assistant", text)
 
                         # 3. Capture and save User transcription (Whisper)
                         if event.type == "conversation.item.input_audio_transcription.completed":
-                            user_text = event.transcript
-                            logger.info(f"User Speech: {user_text}")
-                            await save_chat_event(student_id, session_id, "user", user_text)
+                            user_text = getattr(event, "transcript", "")
+                            if user_text:
+                                logger.info(f"User Speech: {user_text}")
+                                await save_chat_event(student_id, session_id, "user", user_text)
 
                 except Exception as e:
-                    logger.error(f"Error handling OpenAI events: {e}")
+                    logger.error(f"FATAL Exception in OpenAI event loop ({type(e).__name__}): {e}")
+                    logger.error(traceback.format_exc())
 
             await asyncio.gather(
                 receive_messages(),

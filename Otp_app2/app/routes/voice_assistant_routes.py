@@ -68,9 +68,16 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                             await session.input_audio_buffer.append(audio=base64_audio)
                             
                         # Handle text trigger
-                        elif msg.get("text"):
-                            text_content = msg["text"]
-                            # If the client sends a text message, treat it as user input
+                        elif "text" in data:
+                            text_content = data["text"]
+                            # Use uvicorn logger for guaranteed terminal visibility
+                            uv_logger = logging.getLogger("uvicorn.error")
+                            print(f"🎙️ User Text Trigger: {text_content}", flush=True)
+                            uv_logger.info(f"🎙️ User Text Trigger: {text_content}")
+                            
+                            # SAVE User Text immediately
+                            await save_chat_event(student_id, session_id, "user", text_content)
+
                             await session.conversation.item.create(
                                 item={
                                     "type": "message",
@@ -100,7 +107,6 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                             delta = getattr(event, "delta", None)
                             if delta:
                                 try:
-                                    # Handle both raw bytes and base64 strings
                                     if isinstance(delta, str):
                                         await websocket.send_bytes(base64.b64decode(delta))
                                     else:
@@ -114,25 +120,28 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                             if not resp or not hasattr(resp, "output"):
                                 continue
                                 
-                            # Get the text from the response item
+                            uv_logger = logging.getLogger("uvicorn.error")
                             for item in resp.output:
                                 if getattr(item, "type", None) == "message":
                                     content_list = getattr(item, "content", [])
                                     for content in content_list:
-                                        if getattr(content, "type", None) == "text":
+                                        # Handle BOTH text and audio transcriptions
+                                        content_type = getattr(content, "type", None)
+                                        text = ""
+                                        if content_type == "text":
                                             text = getattr(content, "text", "")
-                                            if text:
-                                                # Use uvicorn logger for guaranteed terminal visibility
-                                                uv_logger = logging.getLogger("uvicorn.error")
-                                                print(f"✨ AI Response: {text}", flush=True)
-                                                uv_logger.info(f"✨ AI Response: {text}")
-                                                await save_chat_event(student_id, session_id, "assistant", text)
+                                        elif content_type == "audio":
+                                            text = getattr(content, "transcript", "")
+                                            
+                                        if text:
+                                            print(f"✨ AI Response: {text}", flush=True)
+                                            uv_logger.info(f"✨ AI Response: {text}")
+                                            await save_chat_event(student_id, session_id, "assistant", text)
 
-                        # 3. Capture and save User transcription (Whisper)
+                        # 3. Capture and save User transcription (Whisper generated)
                         if event.type == "conversation.item.input_audio_transcription.completed":
                             user_text = getattr(event, "transcript", "")
                             if user_text:
-                                # Use uvicorn logger for guaranteed terminal visibility
                                 uv_logger = logging.getLogger("uvicorn.error")
                                 print(f"🎙️ User Speech: {user_text}", flush=True)
                                 uv_logger.info(f"🎙️ User Speech: {user_text}")
@@ -158,6 +167,7 @@ async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: 
     # 1. Validate student_id
     try:
         s_oid = ObjectId(student_id)
+        print('asd')
     except:
         await websocket.accept()
         await websocket.send_text("Invalid student_id format.")
@@ -166,7 +176,9 @@ async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: 
 
     # 2. Verify student exists in DB
     student = await db.students.find_one({"_id": s_oid})
+    print(student)
     if not student:
+        print('not found')
         await websocket.accept()
         await websocket.send_text("Student not found.")
         await websocket.close(code=1003)

@@ -50,18 +50,37 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                 }
             )
 
-            async def receive_audio():
+            async def receive_messages():
                 try:
                     while True:
-                        audio_chunk = await websocket.receive_bytes()
-                        # Base64 encode the bytes because the SDK sends this as JSON
-                        import base64
-                        base64_audio = base64.b64encode(audio_chunk).decode("utf-8")
-                        await session.input_audio_buffer.append(audio=base64_audio)
-                except WebSocketDisconnect:
-                    logger.info(f"WebSocket disconnected for student {student_id}")
+                        msg = await websocket.receive()
+                        
+                        # Handle disconnection
+                        if msg["type"] == "websocket.disconnect":
+                            logger.info(f"WebSocket disconnected for student {student_id}")
+                            break
+                            
+                        # Handle binary audio
+                        if msg.get("bytes"):
+                            audio_chunk = msg["bytes"]
+                            import base64
+                            base64_audio = base64.b64encode(audio_chunk).decode("utf-8")
+                            await session.input_audio_buffer.append(audio=base64_audio)
+                            
+                        # Handle text trigger
+                        elif msg.get("text"):
+                            text_content = msg["text"]
+                            # If the client sends a text message, treat it as user input
+                            await session.conversation.item.create(
+                                item={
+                                    "type": "message",
+                                    "role": "user",
+                                    "content": [{"type": "input_text", "text": text_content}],
+                                }
+                            )
+                            await session.response.create()
                 except Exception as e:
-                    logger.error(f"Error receiving audio: {e}")
+                    logger.error(f"Error in receive_messages loop: {e}")
 
             async def send_events():
                 try:
@@ -90,7 +109,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     logger.error(f"Error handling OpenAI events: {e}")
 
             await asyncio.gather(
-                receive_audio(),
+                receive_messages(),
                 send_events()
             )
     except Exception as e:

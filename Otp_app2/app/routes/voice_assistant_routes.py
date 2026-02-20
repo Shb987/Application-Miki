@@ -122,16 +122,20 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                         if getattr(content, "type", None) == "text":
                                             text = getattr(content, "text", "")
                                             if text:
-                                                print(f"✨ AI Response: {text}")
-                                                logger.info(f"AI Response: {text}")
+                                                # Use uvicorn logger for guaranteed terminal visibility
+                                                uv_logger = logging.getLogger("uvicorn.error")
+                                                print(f"✨ AI Response: {text}", flush=True)
+                                                uv_logger.info(f"✨ AI Response: {text}")
                                                 await save_chat_event(student_id, session_id, "assistant", text)
 
                         # 3. Capture and save User transcription (Whisper)
                         if event.type == "conversation.item.input_audio_transcription.completed":
                             user_text = getattr(event, "transcript", "")
                             if user_text:
-                                print(f"🎙️ User Speech: {user_text}")
-                                logger.info(f"User Speech: {user_text}")
+                                # Use uvicorn logger for guaranteed terminal visibility
+                                uv_logger = logging.getLogger("uvicorn.error")
+                                print(f"🎙️ User Speech: {user_text}", flush=True)
+                                uv_logger.info(f"🎙️ User Speech: {user_text}")
                                 await save_chat_event(student_id, session_id, "user", user_text)
 
                 except Exception as e:

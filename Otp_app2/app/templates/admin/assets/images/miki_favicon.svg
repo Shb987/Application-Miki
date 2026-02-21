@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="miki-m-grad" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#00b3b3"/>
+      <stop offset="100%" stop-color="#004d4d"/>
+    </linearGradient>
+    <filter id="miki-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.25" flood-color="#004d4d"/>
+    </filter>
+  </defs>
+  
+  <!-- Sleek, bold M -->
+  <path d="M 15 85
+           L 15 25
+           C 15 20, 18 17, 23 17
+           L 35 17
+           C 38 17, 41 19, 43 22
+           L 50 42
+           L 57 22
+           C 59 19, 62 17, 65 17
+           L 77 17
+           C 82 17, 85 20, 85 25
+           L 85 85
+           C 85 88, 82 91, 79 91
+           L 68 91
+           C 65 91, 62 88, 62 85
+           L 62 48
+           L 54 68
+           C 52 72, 48 72, 46 68
+           L 38 48
+           L 38 85
+           C 38 88, 35 91, 32 91
+           L 21 91
+           C 18 91, 15 88, 15 85
+           Z" 
+        fill="url(#miki-m-grad)" 
+        filter="url(#miki-shadow)" />
+</svg>

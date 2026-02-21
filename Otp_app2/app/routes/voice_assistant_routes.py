@@ -6,7 +6,9 @@ from openai import AsyncOpenAI
 from app.core.database import db
 from app.core.settings import settings
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
+from app.services.ai_tutor_service import ai_tutor_service
 import logging
+import json
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -36,28 +38,69 @@ async def save_chat_event(student_id: str, session_id: str, role: str, content: 
     except Exception as e:
         logger.error(f"Error saving {role} event to MongoDB: {e}")
 
-async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_id: str):
+async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_id: str, student_data: dict):
+    student_name = student_data.get("student_name", "Student")
+    student_class = str(student_data.get("student_class", "general"))
+    
+    instructions = ai_tutor_service.get_persona_instructions(student_name, student_class)
+
     try:
         async with client.beta.realtime.connect(
             model="gpt-4o-realtime-preview"
         ) as session:
-            # Configure the session
+            print(f"🔗 Connected to OpenAI Realtime for student {student_id}", flush=True)
+            # Configure the session with tools
             await session.session.update(
                 session={
-                    "instructions": "You are a fast, intelligent student companion. You and the student must communicate ONLY in English. Respond briefly and encouragingly.",
+                    "instructions": instructions,
                     "modalities": ["audio", "text"],
-                    "input_audio_transcription": {"model": "whisper-1"} # Enable user transcription
+                    "input_audio_transcription": {"model": "whisper-1"},
+                    "tools": [
+                        {
+                            "type": "function",
+                            "name": "search_textbook",
+                            "description": "Search the student's textbook for academic information, definitions, or chapter content.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {"type": "string", "description": "The academic query to search for."}
+                                },
+                                "required": ["query"]
+                            }
+                        },
+                        {
+                            "type": "function",
+                            "name": "search_web",
+                            "description": "Search the web for current events, live data, or facts outside the textbook.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "query": {"type": "string", "description": "The search query."}
+                                },
+                                "required": ["query"]
+                            }
+                        }
+                    ],
+                    "tool_choice": "auto"
                 }
             )
+            print("⚙️ OpenAI session configured with tools.", flush=True)
+
+            session_ready = asyncio.Event()
 
             async def receive_messages():
                 try:
+                    # Wait for OpenAI session to be fully handshake-created
+                    print("⏳ Waiting for OpenAI 'session.created'...", flush=True)
+                    await session_ready.wait()
+                    print("✅ OpenAI session is ready for messages.", flush=True)
+
                     while True:
                         msg = await websocket.receive()
                         
                         # Handle disconnection
                         if msg["type"] == "websocket.disconnect":
-                            logger.info(f"WebSocket disconnected for student {student_id}")
+                            print(f"🔌 WebSocket disconnected for student {student_id}", flush=True)
                             break
                             
                         # Handle binary audio
@@ -69,11 +112,17 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                             
                         # Handle text trigger
                         elif "text" in msg:
-                            text_content = msg["text"]
-                            # Use uvicorn logger for guaranteed terminal visibility
-                            uv_logger = logging.getLogger("uvicorn.error")
-                            print(f"🎙️ User Text Trigger: {text_content}", flush=True)
-                            uv_logger.info(f"🎙️ User Text Trigger: {text_content}")
+                            text_raw = msg["text"]
+                            text_content = text_raw
+                            # Try to parse JSON in case the client sends {"text": "..."}
+                            try:
+                                data = json.loads(text_raw)
+                                if isinstance(data, dict):
+                                    text_content = data.get("text", data.get("message", text_raw))
+                            except:
+                                pass
+
+                            print(f"🎙️ Handled Text Trigger: {text_content}", flush=True)
                             
                             # SAVE User Text immediately
                             await save_chat_event(student_id, session_id, "user", text_content)
@@ -86,6 +135,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                 }
                             )
                             await session.response.create()
+                            print("📩 Response requested for text trigger.", flush=True)
                 except Exception as e:
                     logger.error(f"Error in receive_messages loop: {e}")
 
@@ -94,12 +144,17 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                 import base64
                 try:
                     async for event in session:
-                        # Log every event type for deep debugging
-                        logger.info(f"OpenAI Event Received: {event.type}")
+                        # Log full event for deep debugging (limited to 500 chars)
+                        event_str = str(event)
+                        print(f"🔹 OpenAI Event: {event.type} | DATA: {event_str[:500]}...", flush=True)
+
+                        # Signal that session is ready
+                        if event.type == "session.created":
+                            session_ready.set()
 
                         # 0. Handle explicit error events from OpenAI
                         if event.type == "error":
-                            logger.error(f"OpenAI Realtime Error detail: {getattr(event, 'error', 'No detail')}")
+                            print(f"❌ OpenAI Error: {getattr(event, 'error', 'No detail')}", flush=True)
                             continue
 
                         # 1. Stream audio delta back to client for instant playback
@@ -117,12 +172,20 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         # 2. Capture and save Assistant response
                         if event.type == "response.done":
                             resp = getattr(event, "response", None)
-                            if not resp or not hasattr(resp, "output"):
+                            if not resp:
+                                print("⚠️ response.done received but no response object found.", flush=True)
                                 continue
+                            
+                            # Check if the response was cancelled or failed
+                            status = getattr(resp, "status", "unknown")
+                            output_items = getattr(resp, "output", [])
+                            print(f"🏁 Response Done. Status: {status} | Output items: {len(output_items)}", flush=True)
                                 
-                            uv_logger = logging.getLogger("uvicorn.error")
-                            for item in resp.output:
-                                if getattr(item, "type", None) == "message":
+                            for item in output_items:
+                                item_type = getattr(item, "type", None)
+                                print(f"  - Item Type: {item_type}", flush=True)
+                                
+                                if item_type == "message":
                                     content_list = getattr(item, "content", [])
                                     for content in content_list:
                                         # Handle BOTH text and audio transcriptions
@@ -135,10 +198,14 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                             
                                         if text:
                                             print(f"✨ AI Response: {text}", flush=True)
-                                            uv_logger.info(f"✨ AI Response: {text}")
                                             # Also send text back to client for verification in test script
                                             await websocket.send_text(f"AI: {text}")
                                             await save_chat_event(student_id, session_id, "assistant", text)
+                                
+                                elif item_type == "function_call":
+                                    f_name = getattr(item, "name", "unknown")
+                                    f_args = getattr(item, "arguments", "{}")
+                                    print(f"  🛠️ Model requested function: {f_name}({f_args})", flush=True)
 
                         # 3. Capture and save User transcription (Whisper generated)
                         if event.type == "conversation.item.input_audio_transcription.completed":
@@ -149,6 +216,36 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                 uv_logger.info(f"🎙️ User Speech: {user_text}")
                                 await save_chat_event(student_id, session_id, "user", user_text)
 
+                        # 4. Handle Tool Calls (Tool Calling in Realtime API)
+                        if event.type == "response.function_call_arguments.done":
+                            tool_call_id = event.call_id
+                            function_name = event.name
+                            arguments = json.loads(event.arguments)
+                            
+                            uv_logger = logging.getLogger("uvicorn.error")
+                            print(f"🛠️ Tool Call: {function_name}({arguments})", flush=True)
+                            uv_logger.info(f"🛠️ Tool Call: {function_name}({arguments})")
+                            
+                            result = ""
+                            if function_name == "search_textbook":
+                                result = await ai_tutor_service.get_relevant_context(student_class, arguments["query"])
+                            elif function_name == "search_web":
+                                result = await ai_tutor_service.search_web(arguments["query"])
+                            
+                            # Log tool result
+                            # print(f"📝 Tool Result: {result[:100]}...", flush=True)
+                            
+                            # Provide the tool result back to the model
+                            await session.conversation.item.create(
+                                item={
+                                    "type": "function_call_output",
+                                    "call_id": tool_call_id,
+                                    "output": result or "No relevant information found."
+                                }
+                            )
+                            # Request a new response based on the tool output
+                            await session.response.create()
+
                 except Exception as e:
                     logger.error(f"FATAL Exception in OpenAI event loop ({type(e).__name__}): {e}")
                     logger.error(traceback.format_exc())
@@ -158,7 +255,9 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                 send_events()
             )
     except Exception as e:
-        logger.error(f"Realtime session error for student {student_id}: {e}")
+        print(f"❌ Realtime session error: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         try:
             await websocket.close(code=1011)
         except:
@@ -189,6 +288,6 @@ async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: 
     # 3. Accept connection and start the loop
     await websocket.accept()
     try:
-        await handle_realtime_voice(websocket, student_id, session_id)
+        await handle_realtime_voice(websocket, student_id, session_id, student)
     except Exception as e:
         logger.error(f"WebSocket endpoint error: {e}")

@@ -1,0 +1,108 @@
+import os
+import numpy as np
+import logging
+from datetime import datetime
+from bson import ObjectId
+from openai import AsyncOpenAI
+from duckduckgo_search import DDGS
+from app.core.database import db
+
+logger = logging.getLogger(__name__)
+
+class AITutorService:
+    def __init__(self):
+        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    async def search_web(self, query: str) -> str:
+        """Perform a web search for current events or general facts."""
+        logger.info(f"🌐 Searching Web for: {query}")
+        try:
+            results = DDGS().text(query, max_results=3)
+            if not results:
+                return ""
+            
+            context = ""
+            for r in results:
+                context += f"\n[WEB SOURCE: {r['title']}]\n{r['body']}\n"
+            return context
+        except Exception as e:
+            logger.error(f"Web Search Error: {e}")
+            return ""
+
+    async def get_relevant_context(self, student_class: str, query: str) -> str:
+        """Retrieves relevant textbook content using Vector Search."""
+        logger.info(f"🔍 Searching Textbook Context for Class {student_class}...")
+        
+        # 1. Generate Embedding
+        try:
+            response = await self.client.embeddings.create(
+                model="text-embedding-3-large",
+                input=query
+            )
+            query_vector = response.data[0].embedding
+        except Exception as e:
+            logger.error(f"Embedding Error: {e}")
+            return ""
+
+        # 2. Fetch Chapters
+        try:
+            cursor = db.textbook_chapters.find({"standard": str(student_class)})
+            chapters = await cursor.to_list(length=None)
+        except Exception as e:
+            logger.error(f"Database Error: {e}")
+            return ""
+
+        if not chapters:
+            return ""
+
+        # 3. Vector Similarity
+        def cosine_similarity(v1, v2):
+            return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+        scored_chapters = []
+        for ch in chapters:
+            if "vector" not in ch: continue
+            try:
+                score = cosine_similarity(query_vector, ch["vector"])
+                scored_chapters.append((score, ch))
+            except: continue
+
+        scored_chapters.sort(key=lambda x: x[0], reverse=True)
+        top_3 = scored_chapters[:3]
+
+        context_text = ""
+        for score, ch in top_3:
+            if score > 0.25:
+                snippet = ch.get('content', '')[:1500]
+                context_text += f"\n[TEXTBOOK: {ch.get('subject', 'General')} - {ch.get('chapter_title', '')}]\n{snippet}...\n"
+                
+        return context_text
+
+    def get_persona_instructions(self, student_name: str, student_class: str) -> str:
+        """Generate adaptive teacher instructions based on student grade."""
+        try:
+            class_num = int(student_class)
+        except:
+            class_num = 8
+
+        if class_num <= 5:
+            tone = "kind, energetic PRIMARY SCHOOL TEACHER. Use simple words, fun analogies, and emojis like 🌟. Keep it playful."
+        elif class_num <= 10:
+            tone = "helpful HIGH SCHOOL TEACHER. Be clear, structured, and informative. Encourage critical thinking."
+        else:
+            tone = "PROFESSOR / SENIOR TUTOR. Provide detailed academic answers. Focus on concepts and depth."
+
+        return f"""
+        {tone}
+        Your name is 'Miki'. 
+        Current Date & Time: {datetime.now().strftime('%A, %d %B %Y')}.
+        Student Name: {student_name}
+        Student Class: {student_class}
+        
+        STRICT RULES:
+        - You and the student must communicate ONLY in English.
+        - Respond briefly and encouragingly.
+        - Use the provided search tools if you need textbook or real-time information.
+        """
+
+ai_tutor_service = AITutorService()

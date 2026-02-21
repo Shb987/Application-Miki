@@ -27,7 +27,7 @@ from bson import ObjectId
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=20.0)
 router = APIRouter()
 
 

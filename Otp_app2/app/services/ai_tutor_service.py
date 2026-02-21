@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class AITutorService:
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=20.0)
 
     async def search_web(self, query: str) -> str:
         """Perform a web search for current events or general facts."""

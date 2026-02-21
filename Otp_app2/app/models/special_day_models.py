@@ -4,8 +4,8 @@ from datetime import datetime
 
 class SpecialDayBase(BaseModel):
     date: str = Field(..., description="Date in YYYY-MM-DD format")
-    title: str = Field(..., min_length=3, max_length=100)
-    description: str = Field(..., min_length=10)
+    title: str = Field(..., min_length=1, max_length=100)
+    description: str = Field(..., min_length=1)
     activity: Optional[str] = Field(None, description="Suggested activity for students")
     image_url: Optional[str] = None
     type: str = Field("Event", description="Holiday, Event, Exam, Celebration")

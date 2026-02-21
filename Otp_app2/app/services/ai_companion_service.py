@@ -7,7 +7,7 @@ from bson import ObjectId
 
 # Load environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=20.0)
 
 async def get_student_performance_context(student_id: str):
     """Fetches recent evaluations and scores to give the AI context."""

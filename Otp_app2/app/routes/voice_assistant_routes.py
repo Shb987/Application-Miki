@@ -17,7 +17,7 @@ router = APIRouter(prefix="/voice-assistant")
 
 # OpenAI client initialization
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=20.0)
 
 # MongoDB collection
 history_collection = db.voice_assistant_history

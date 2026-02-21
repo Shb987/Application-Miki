@@ -16,7 +16,7 @@ from typing import List
 from fastapi.responses import FileResponse
 import os
 from app.core.database import db
-from openai import OpenAI
+
 from app.utils.user_auth import get_current_user
 from fastapi import Depends
 

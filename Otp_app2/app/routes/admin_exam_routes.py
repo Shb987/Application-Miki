@@ -16,15 +16,15 @@ from datetime import datetime, timezone
 from app.utils.admin_auth import get_current_admin
 from fastapi import Depends
 from app.core.database import db
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 # --------------------------
 # CONFIGURATION / CONSTANTS
 # --------------------------
 
-# OpenAI Client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-print("OpenAI Client Initialized Successfully!")
+# OpenAI Client (Async — non-blocking event loop)
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+print("OpenAI AsyncClient Initialized Successfully!")
 
 router = APIRouter(tags=["Exam Module"])
 
@@ -204,7 +204,7 @@ Text to analyze:
 """
 
     try:
-        ai = client.chat.completions.create(
+        ai = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
         )
@@ -221,7 +221,7 @@ Text to analyze:
 
     for idx, ch in enumerate(chapters):
         try:
-            emb = client.embeddings.create(model="text-embedding-3-large", input=ch["content"])
+            emb = await client.embeddings.create(model="text-embedding-3-large", input=ch["content"])
             vector = emb.data[0].embedding
             chapter_doc = {
                 "textbook_id": textbook_id,
@@ -392,7 +392,7 @@ Respond with valid JSON only. No text outside JSON.
 }}
 """
 
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3

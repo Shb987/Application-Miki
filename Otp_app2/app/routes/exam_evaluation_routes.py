@@ -3,31 +3,25 @@ import os
 import re
 import datetime
 import base64
-from fastapi import APIRouter, UploadFile, File, Form,Query
+import asyncio
+from fastapi import APIRouter, UploadFile, File, Form, Query, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 import json
 from bson import ObjectId
 from app.core.database import db
 from typing import List
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
-from typing import List
-import os
-import uuid
-import datetime
 from app.utils.user_auth import get_current_user
 from app.services.notification_service import create_notification
-from bson import ObjectId
 
 
 # Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-client = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=20.0)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 router = APIRouter()
 
 
@@ -138,27 +132,39 @@ Return JSON only:
 }}
 """
 
-    try:
-        response = await client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            response_format={"type": "json_object"}
-        )
+    MAX_RETRIES = 2
+    last_error = None
 
-        # Log usage
-        if hasattr(response, 'usage') and response.usage:
-            from app.utils.ai_usage_logger import log_ai_usage
-            await log_ai_usage(student_id, "Exam Evaluation - Grading", "gpt-4o", response.usage)
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            response = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                response_format={"type": "json_object"}
+            )
 
-        message = response.choices[0].message.content
-        return json.loads(message)
-    except:
-        return {
-            "score": 0,
-            "feedback": "AI evaluation failed.",
-            "ideal_answer": ""
-        }
+            # Log usage
+            if hasattr(response, 'usage') and response.usage:
+                from app.utils.ai_usage_logger import log_ai_usage
+                await log_ai_usage(student_id, "Exam Evaluation - Grading", "gpt-4o", response.usage)
+
+            message = response.choices[0].message.content
+            return json.loads(message)
+
+        except Exception as e:
+            last_error = str(e)
+            print(f"[Grading] Attempt {attempt + 1} failed for question '{question[:60]}': {e}")
+            if attempt < MAX_RETRIES:
+                await asyncio.sleep(1.5 * (attempt + 1))  # 1.5s, then 3s backoff
+
+    print(f"[Grading] All {MAX_RETRIES + 1} attempts failed. Last error: {last_error}")
+    return {
+        "score": 0,
+        "feedback": f"AI evaluation failed after {MAX_RETRIES + 1} attempts.",
+        "ideal_answer": "",
+        "grading_error": True
+    }
 
 
 # ------------------------------
@@ -176,11 +182,6 @@ def serialize_mongo(document):
         return document
 
 
-# ------------------------------
-# 4. MAIN API
-# ------------------------------
-
-
 def clean_mongo(data):
     if isinstance(data, dict):
         return {k: clean_mongo(v) for k, v in data.items()}
@@ -190,6 +191,152 @@ def clean_mongo(data):
         return str(data)
     else:
         return data
+
+
+def _grade_from_pct(pct: float) -> str:
+    if pct >= 85: return "A"
+    if pct >= 70: return "B"
+    if pct >= 50: return "C"
+    return "D"
+
+
+def _question_status(score: float, max_marks: float, student_answer: str) -> str:
+    if student_answer == "[Not Attempted]":
+        return "not_attempted"
+    if score == max_marks:
+        return "correct"
+    if score > 0:
+        return "partial"
+    return "wrong"
+
+
+def calculate_section_performance(paper_sections: list, detailed_results: list) -> dict:
+    """
+    Groups detailed_results by section letter using paper_sections boundaries.
+    Returns per-section score, max, and percentage.
+    """
+    section_map = {}  # section_letter -> list of q_no
+    q_counter = 1
+    for sec in paper_sections:
+        letter = sec.get("section", "?")
+        marks_per_q = sec.get("marks_per_question", 0)
+        count = len(sec.get("questions", []))
+        section_map[letter] = {
+            "label": f"Section {letter}",
+            "marks_per_q": marks_per_q,
+            "q_nos": list(range(q_counter, q_counter + count)),
+            "score": 0.0,
+            "max": marks_per_q * count,
+            "pct": 0.0
+        }
+        q_counter += count
+
+    # Map q_no back to section and accumulate score
+    q_to_section = {}
+    for letter, info in section_map.items():
+        for qno in info["q_nos"]:
+            q_to_section[qno] = letter
+
+    for result in detailed_results:
+        qno = result.get("q_no")
+        sec_letter = q_to_section.get(qno)
+        if sec_letter and sec_letter in section_map:
+            section_map[sec_letter]["score"] += result.get("score", 0)
+
+    # Calculate percentages, drop internal q_nos list
+    output = {}
+    for letter, info in section_map.items():
+        max_val = info["max"]
+        score = round(info["score"], 2)
+        pct = round((score / max_val * 100) if max_val > 0 else 0.0, 1)
+        output[letter] = {
+            "label": info["label"],
+            "marks_per_q": info["marks_per_q"],
+            "score": score,
+            "max": max_val,
+            "pct": pct
+        }
+    return output
+
+
+async def analyze_topic_strengths(
+    detailed_results: list,
+    chapters_used: list,
+    subject: str,
+    student_id: str
+) -> dict:
+    """
+    Uses GPT-4o-mini to analyze strong/weak chapters and topics
+    from the evaluated questions. Chapters are the exact ones from the paper.
+    """
+    # Build compact Q&A summary for the prompt
+    qa_summary = ""
+    for r in detailed_results:
+        qa_summary += (
+            f"Q{r['q_no']} ({r['max_marks']}marks): {r['question']}\n"
+            f"  Score: {r['score']}/{r['max_marks']} | Answer: {r['student_answer'][:120]}\n\n"
+        )
+
+    chapters_list = "\n".join(f"- {c}" for c in chapters_used)
+
+    prompt = f"""
+You are an academic performance analyst for school students.
+
+Subject: {subject}
+Chapters covered in this exam:
+{chapters_list}
+
+Student's evaluated answers:
+{qa_summary}
+
+TASK:
+1. Map EACH question to the MOST LIKELY chapter from the list above (use exact chapter names).
+2. Calculate per-chapter performance (sum scores / sum max_marks for that chapter's questions).
+3. Identify specific sub-topics within chapters that are strong or weak.
+4. Identify the primary skill gap (recall / understanding / application / analysis).
+5. Give 2-3 specific, actionable recommendations.
+
+Return STRICT JSON only:
+{{
+  "chapter_performance": {{
+    "Chapter Name": {{"questions": [1,2,3], "score": 4.0, "max": 5, "pct": 80.0, "strength": "strong"}}
+  }},
+  "strong_areas": ["specific subtopic 1", "specific subtopic 2"],
+  "weak_areas": ["specific subtopic 3"],
+  "skill_gap": "one clear sentence describing the skill gap",
+  "recommendations": ["recommendation 1", "recommendation 2"]
+}}
+
+Strength classification: "strong" if pct >= 75, "average" if pct >= 50, "weak" if pct < 50.
+If all questions were "[Not Attempted]", reflect that honestly.
+"""
+
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            response_format={"type": "json_object"}
+        )
+        if hasattr(response, 'usage') and response.usage:
+            from app.utils.ai_usage_logger import log_ai_usage
+            await log_ai_usage(student_id, "Exam Evaluation - Topic Analysis", "gpt-4o-mini", response.usage)
+
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        print(f"[Topic Analysis] Failed: {e}")
+        return {
+            "chapter_performance": {},
+            "strong_areas": [],
+            "weak_areas": [],
+            "skill_gap": "Analysis unavailable.",
+            "recommendations": []
+        }
+
+
+# ------------------------------
+# 4. MAIN API
+# ------------------------------
 
 async def process_evaluation_background(eval_oid: str, paper_id: str, student_id: str, saved_file_paths: List[str]):
     evaluation_status = "FAILED"
@@ -233,45 +380,76 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
             for doc in chapter_docs
         ) or "Evaluate using general academic knowledge."
 
-        # 6. Evaluation
-        detailed_results = []
+        # 6. Evaluation — build task list for concurrent execution
+        grading_tasks = []
+        task_meta = []  # (q_number, question_text, student_ans, marks)
         q_number = 1
 
         for section in paper["sections"]:
             marks = section["marks_per_question"]
             for q in section["questions"]:
                 student_ans = student_answers.get(str(q_number), "[Not Attempted]")
-                eval_result = await evaluate_answer(
-                    q["question"], student_ans, marks, context_text, student_id
+                grading_tasks.append(
+                    evaluate_answer(q["question"], student_ans, marks, context_text, student_id)
                 )
-
-                score = float(str(eval_result.get("score", "0")).split("/")[0])
-                total_score += score
-                max_total += marks
-
-                detailed_results.append({
-                    "q_no": q_number,
-                    "question": q["question"],
-                    "student_answer": student_ans,
-                    "max_marks": marks,
-                    "score": score,
-                    "feedback": eval_result.get("feedback"),
-                    "ideal_answer": eval_result.get("ideal_answer")
-                })
-
+                task_meta.append((q_number, q["question"], student_ans, marks))
                 q_number += 1
 
-        evaluation_status = "COMPLETED"
+        # Fire all grading calls concurrently
+        print(f"[Evaluation] Grading {len(grading_tasks)} questions concurrently...")
+        eval_results = await asyncio.gather(*grading_tasks)
 
-        # Update the existing evaluation record
+        detailed_results = []
+        for (q_no, question_text, student_ans, marks), eval_result in zip(task_meta, eval_results):
+            score = float(str(eval_result.get("score", "0")).split("/")[0])
+            total_score += score
+            max_total += marks
+
+            detailed_results.append({
+                "q_no": q_no,
+                "question": question_text,
+                "student_answer": student_ans,
+                "max_marks": marks,
+                "score": score,
+                "pct": round((score / marks * 100) if marks > 0 else 0.0, 1),
+                "status": _question_status(score, marks, student_ans),
+                "feedback": eval_result.get("feedback"),
+                "ideal_answer": eval_result.get("ideal_answer"),
+                "grading_error": eval_result.get("grading_error", False)
+            })
+
+        evaluation_status = "COMPLETED"
+        score_pct = round((total_score / max_total * 100) if max_total > 0 else 0.0, 1)
+        grade = _grade_from_pct(score_pct)
+
+        # 7. Section performance (pure math, no AI)
+        section_performance = calculate_section_performance(
+            paper.get("sections", []), detailed_results
+        )
+
+        # 8. Topic & Chapter analysis (one GPT-4o-mini call)
+        chapters_used = paper.get("chapters_used", [])
+        subject = paper.get("subject", "")
+        topic_analysis = await analyze_topic_strengths(
+            detailed_results, chapters_used, subject, student_id
+        )
+
+        # Save full enriched evaluation record
         await db.evaluations.update_one(
             {"_id": ObjectId(eval_oid)},
             {
                 "$set": {
                     "status": evaluation_status,
+                    "subject": subject,
+                    "standard": paper.get("standard", ""),
+                    "chapters_used": chapters_used,
                     "total_score": total_score,
                     "max_total": max_total,
+                    "score_pct": score_pct,
+                    "grade": grade,
                     "detailed_results": detailed_results,
+                    "section_performance": section_performance,
+                    "topic_analysis": topic_analysis,
                     "completed_at": datetime.datetime.utcnow().isoformat()
                 }
             }
@@ -521,6 +699,7 @@ async def get_exam_history(
 async def get_evaluation_detail(evaluation_id: str, current_user: dict = Depends(get_current_user)):
     """
     Fetch full details of a specific exam evaluation.
+    Enriches older records (without topic_analysis) by looking up paper from generated_papers.
     """
     try:
         e_oid = ObjectId(evaluation_id)
@@ -528,18 +707,240 @@ async def get_evaluation_detail(evaluation_id: str, current_user: dict = Depends
         raise HTTPException(status_code=400, detail="Invalid evaluation ID format")
 
     evaluation = await db.evaluations.find_one({"_id": e_oid})
-    
+
     if not evaluation:
         raise HTTPException(status_code=404, detail="Evaluation not found")
 
-    # Enforce ownership: User can only see their own history or a parent can see their linked students
+    # 🔐 Ownership check
     user_student_id = current_user.get("student_id")
-    # If the user is a student, ensure they only access their own history
     if user_student_id and user_student_id != str(evaluation.get("student_id")):
         raise HTTPException(status_code=403, detail="Unauthorized access to evaluation details")
+
+    data = clean_mongo(evaluation)
+
+    # Enrich from generated_papers if subject/section_performance missing (legacy records)
+    if not data.get("subject") or not data.get("section_performance"):
+        paper_doc = await db.generated_papers.find_one({"paper.paper_id": data.get("paper_id")})
+        if paper_doc:
+            paper = paper_doc.get("paper", {})
+            if not data.get("subject"):
+                data["subject"] = paper.get("subject", "")
+                data["standard"] = paper.get("standard", "")
+                data["chapters_used"] = paper.get("chapters_used", [])
+            if not data.get("section_performance") and data.get("detailed_results"):
+                data["section_performance"] = calculate_section_performance(
+                    paper.get("sections", []), data["detailed_results"]
+                )
+
+    # Add score_pct and grade if missing
+    if not data.get("score_pct") and data.get("max_total"):
+        data["score_pct"] = round((data["total_score"] / data["max_total"] * 100), 1)
+        data["grade"] = _grade_from_pct(data["score_pct"])
+
+    # Add per-question status field if missing (legacy records)
+    for r in data.get("detailed_results", []):
+        if "status" not in r:
+            r["status"] = _question_status(
+                r.get("score", 0), r.get("max_marks", 0), r.get("student_answer", "")
+            )
+        if "pct" not in r and r.get("max_marks"):
+            r["pct"] = round((r["score"] / r["max_marks"] * 100), 1)
 
     return {
         "status": True,
         "message": "Evaluation details retrieved successfully.",
-        "data": clean_mongo(evaluation)
+        "data": data
+    }
+
+
+@router.get("/evaluation-insights/{student_id}")
+async def get_evaluation_insights(student_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Aggregated performance insights across ALL completed evaluations for a student.
+    Powers Flutter dashboard: score trend, subject radar, chapter trends, badges.
+    """
+    # 🔐 Ownership check
+    user_student_id = current_user.get("student_id")
+    if user_student_id and user_student_id != student_id:
+        raise HTTPException(status_code=403, detail="Unauthorized access to insights")
+
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    # Fetch all COMPLETED evaluations, oldest first (for trend)
+    evaluations = await db.evaluations.find(
+        {"student_id": s_oid, "status": "COMPLETED"}
+    ).sort("created_at", 1).to_list(None)
+
+    if not evaluations:
+        return {
+            "status": True,
+            "message": "No completed evaluations found.",
+            "data": {
+                "total_exams": 0,
+                "score_trend": [],
+                "subject_performance": {},
+                "section_avg": {},
+                "chapter_trends": {},
+                "persistent_weak_areas": [],
+                "persistent_strong_areas": [],
+                "question_accuracy": {"correct_pct": 0, "partial_pct": 0, "wrong_pct": 0, "not_attempted_pct": 0},
+                "performance_badge": "No Data",
+                "average_score_pct": 0,
+                "best_score_pct": 0,
+                "latest_score_pct": 0,
+                "improvement_pct": 0
+            }
+        }
+
+    # ── 1. Score Trend ──────────────────────────────────────────────
+    score_trend = []
+    all_score_pcts = []
+
+    for ev in evaluations:
+        total = ev.get("total_score", 0)
+        max_t = ev.get("max_total", 0)
+        pct = round((total / max_t * 100) if max_t > 0 else 0.0, 1)
+        ev["_score_pct"] = pct  # cache for later use
+        all_score_pcts.append(pct)
+        score_trend.append({
+            "date": ev.get("created_at", ""),
+            "subject": ev.get("subject", "Unknown"),
+            "standard": ev.get("standard", ""),
+            "score_pct": pct,
+            "grade": ev.get("grade") or _grade_from_pct(pct),
+            "evaluation_id": str(ev["_id"])
+        })
+
+    # ── 2. Subject Performance ──────────────────────────────────────
+    subject_map = {}
+    for ev in evaluations:
+        subj = ev.get("subject", "Unknown")
+        pct = ev["_score_pct"]
+        if subj not in subject_map:
+            subject_map[subj] = {"scores": [], "best": 0.0}
+        subject_map[subj]["scores"].append(pct)
+        subject_map[subj]["best"] = max(subject_map[subj]["best"], pct)
+
+    subject_performance = {
+        subj: {
+            "avg_pct": round(sum(d["scores"]) / len(d["scores"]), 1),
+            "best_pct": round(d["best"], 1),
+            "attempts": len(d["scores"])
+        }
+        for subj, d in subject_map.items()
+    }
+
+    # ── 3. Section Averages ─────────────────────────────────────────
+    section_sums = {}   # letter -> {total_score, total_max}
+    for ev in evaluations:
+        for letter, sp in (ev.get("section_performance") or {}).items():
+            if letter not in section_sums:
+                section_sums[letter] = {"score": 0.0, "max": 0.0}
+            section_sums[letter]["score"] += sp.get("score", 0)
+            section_sums[letter]["max"]   += sp.get("max", 0)
+
+    section_avg = {
+        letter: round((v["score"] / v["max"] * 100) if v["max"] > 0 else 0.0, 1)
+        for letter, v in section_sums.items()
+    }
+
+    # ── 4. Chapter Trends & Persistent Areas ───────────────────────
+    chapter_tracker = {}   # chapter_name -> {appearances, scores, weak_count, strong_count}
+    weak_topic_counts = {}
+    strong_topic_counts = {}
+
+    for ev in evaluations:
+        ta = ev.get("topic_analysis") or {}
+
+        # Chapter performance per eval
+        for ch_name, ch_data in (ta.get("chapter_performance") or {}).items():
+            if ch_name not in chapter_tracker:
+                chapter_tracker[ch_name] = {"appearances": 0, "scores": [], "strength_labels": []}
+            chapter_tracker[ch_name]["appearances"] += 1
+            chapter_tracker[ch_name]["scores"].append(ch_data.get("pct", 0))
+            chapter_tracker[ch_name]["strength_labels"].append(ch_data.get("strength", "average"))
+
+        # Sub-topic weak/strong counting
+        for topic in (ta.get("weak_areas") or []):
+            weak_topic_counts[topic] = weak_topic_counts.get(topic, 0) + 1
+        for topic in (ta.get("strong_areas") or []):
+            strong_topic_counts[topic] = strong_topic_counts.get(topic, 0) + 1
+
+    chapter_trends = {
+        ch: {
+            "appearances": d["appearances"],
+            "avg_pct": round(sum(d["scores"]) / len(d["scores"]), 1) if d["scores"] else 0.0,
+            "trend": (
+                "improving" if len(d["scores"]) >= 2 and d["scores"][-1] > d["scores"][0]
+                else "declining" if len(d["scores"]) >= 2 and d["scores"][-1] < d["scores"][0]
+                else "stable"
+            ),
+            "last_strength": d["strength_labels"][-1] if d["strength_labels"] else "average"
+        }
+        for ch, d in chapter_tracker.items()
+    }
+
+    # Persistent = appears weak/strong in >=2 evaluations
+    persistent_weak_areas   = [t for t, c in weak_topic_counts.items()   if c >= 2]
+    persistent_strong_areas = [t for t, c in strong_topic_counts.items() if c >= 2]
+
+    # ── 5. Question Accuracy Breakdown ─────────────────────────────
+    total_q = correct_q = partial_q = wrong_q = not_attempted_q = 0
+    for ev in evaluations:
+        for r in (ev.get("detailed_results") or []):
+            total_q += 1
+            st = r.get("status") or _question_status(
+                r.get("score", 0), r.get("max_marks", 0), r.get("student_answer", "")
+            )
+            if st == "correct":       correct_q += 1
+            elif st == "partial":     partial_q += 1
+            elif st == "wrong":       wrong_q += 1
+            else:                     not_attempted_q += 1
+
+    def _pct(n): return round(n / total_q * 100, 1) if total_q > 0 else 0.0
+    question_accuracy = {
+        "correct_pct":       _pct(correct_q),
+        "partial_pct":       _pct(partial_q),
+        "wrong_pct":         _pct(wrong_q),
+        "not_attempted_pct": _pct(not_attempted_q)
+    }
+
+    # ── 6. Overall Stats & Badge ────────────────────────────────────
+    avg_score_pct    = round(sum(all_score_pcts) / len(all_score_pcts), 1)
+    best_score_pct   = round(max(all_score_pcts), 1)
+    latest_score_pct = all_score_pcts[-1]
+    first_score_pct  = all_score_pcts[0]
+    improvement_pct  = round(latest_score_pct - first_score_pct, 1)
+
+    # Badge logic
+    if len(all_score_pcts) < 2:
+        badge = "New"
+    elif improvement_pct >= 10:
+        badge = "Improving"
+    elif abs(improvement_pct) < 10:
+        badge = "Consistent"
+    else:
+        badge = "Needs Attention"
+
+    return {
+        "status": True,
+        "message": "Evaluation insights retrieved successfully.",
+        "data": {
+            "total_exams": len(evaluations),
+            "average_score_pct": avg_score_pct,
+            "best_score_pct": best_score_pct,
+            "latest_score_pct": latest_score_pct,
+            "improvement_pct": improvement_pct,
+            "performance_badge": badge,
+            "score_trend": score_trend,
+            "subject_performance": subject_performance,
+            "section_avg": section_avg,
+            "chapter_trends": chapter_trends,
+            "persistent_weak_areas": persistent_weak_areas,
+            "persistent_strong_areas": persistent_strong_areas,
+            "question_accuracy": question_accuracy
+        }
     }

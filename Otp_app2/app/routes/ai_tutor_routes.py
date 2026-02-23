@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 import os
 from openai import AsyncOpenAI
 from bson import ObjectId
+from app.utils.ai_usage_logger import log_ai_usage
+from fastapi import BackgroundTasks
 
 from duckduckgo_search import DDGS
 import numpy as np
@@ -134,7 +136,7 @@ async def get_relevant_context(student_class: str, query: str) -> str:
 # 💬 CHAT ENDPOINT
 # -----------------------------------------------------------------------------
 @router.post("/chat")
-async def chat_with_tutor(payload: TutorChatRequest, current_user: dict = Depends(get_current_user)):
+async def chat_with_tutor(payload: TutorChatRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     """
     Hybrid Agent Miki:
     - Routes to [Textbook RAG] vs [Web Search] vs [Chat]
@@ -248,6 +250,17 @@ async def chat_with_tutor(payload: TutorChatRequest, current_user: dict = Depend
             temperature=0.7
         )
         ai_reply = response.choices[0].message.content
+        
+        # Log Token Usage
+        if hasattr(response, 'usage') and response.usage:
+            background_tasks.add_task(
+                log_ai_usage,
+                student_id=student_id,
+                action_type="AI Tutor",
+                model="gpt-4o",
+                usage_obj=response.usage
+            )
+            
     except Exception as e:
         print(f"AI Error: {e}")
         ai_reply = "I'm having a bit of trouble connecting to my brain right now. Can you try again?"

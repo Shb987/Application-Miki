@@ -130,3 +130,8 @@ async def analytics_dashboard_page(request: Request):
 async def student_analytics_page(request: Request):
     """Individual student analytics page"""
     return templates.TemplateResponse("student_analytics.html", {"request": request})
+
+@router.get("/ai-usage-dashboard-page", response_class=HTMLResponse)
+async def ai_usage_dashboard_page(request: Request):
+    """AI Usage dashboard page"""
+    return templates.TemplateResponse("admin_ai_dashboard.html", {"request": request})

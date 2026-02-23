@@ -38,7 +38,7 @@ def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
-async def extract_answers_with_vision(image_paths, question_paper_text):
+async def extract_answers_with_vision(image_paths, question_paper_text, student_id: str):
     """
     Sends images to GPT-4o to extract handwritten answers directly into JSON.
     """
@@ -94,6 +94,11 @@ async def extract_answers_with_vision(image_paths, question_paper_text):
             response_format={"type": "json_object"}
         )
         
+        # Log usage
+        if hasattr(response, 'usage') and response.usage:
+            from app.utils.ai_usage_logger import log_ai_usage
+            await log_ai_usage(student_id, "Exam Evaluation - OCR", "gpt-4o", response.usage)
+            
         result = response.choices[0].message.content
         return json.loads(result)
     except Exception as e:
@@ -103,7 +108,7 @@ async def extract_answers_with_vision(image_paths, question_paper_text):
 # --------------------------------
 # 2. EVALUATE ONE QUESTION (RAG)
 # --------------------------------
-async def evaluate_answer(question, student_answer, max_marks, context_text):
+async def evaluate_answer(question, student_answer, max_marks, context_text, student_id: str):
     prompt = f"""
 You are an expert academic evaluator.
 
@@ -140,6 +145,11 @@ Return JSON only:
             temperature=0.3,
             response_format={"type": "json_object"}
         )
+
+        # Log usage
+        if hasattr(response, 'usage') and response.usage:
+            from app.utils.ai_usage_logger import log_ai_usage
+            await log_ai_usage(student_id, "Exam Evaluation - Grading", "gpt-4o", response.usage)
 
         message = response.choices[0].message.content
         return json.loads(message)
@@ -205,7 +215,8 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
         # 4. OCR
         student_answers_json = await extract_answers_with_vision(
             saved_file_paths,
-            question_paper_text
+            question_paper_text,
+            student_id
         )
 
         student_answers = {str(k): v for k, v in student_answers_json.items()}
@@ -231,7 +242,7 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
             for q in section["questions"]:
                 student_ans = student_answers.get(str(q_number), "[Not Attempted]")
                 eval_result = await evaluate_answer(
-                    q["question"], student_ans, marks, context_text
+                    q["question"], student_ans, marks, context_text, student_id
                 )
 
                 score = float(str(eval_result.get("score", "0")).split("/")[0])

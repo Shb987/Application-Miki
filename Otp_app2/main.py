@@ -12,7 +12,7 @@ from app.routes import (
     user_futurestudy_routes, admin_quiz_routes, user_quiz_routes,
     companion_routes, chat_routes, ai_tutor_routes,
     admin_tutorial_routes, user_tutorial_routes,
-    user_analysis_routes, user_game_wordle, user_game_squares,
+    user_analysis_routes, admin_analysis_routes, user_game_wordle, user_game_squares,
     admin_special_day_routes, user_special_day_routes, voice_assistant_routes
 )
 from fastapi.responses import JSONResponse
@@ -98,8 +98,8 @@ app.include_router(admin_tutorial_routes.router, tags=["Admin Tutorial"])
 app.include_router(user_tutorial_routes.router, tags=["User Tutorial"])
 
 # Analytics Module routes
+app.include_router(admin_analysis_routes.router, prefix="/admin-panel", tags=["Analytics Module - Admin"])
 app.include_router(user_analysis_routes.router, prefix="/user", tags=["Analytics Module - User"])
-# router = APIRouter(tags=["Exam Module11"])
 
 app.include_router(user_game_wordle.router, prefix="/user", tags=["Game - Wordle"])
 app.include_router(user_game_squares.router, prefix="/user", tags=["Game - Squares"])

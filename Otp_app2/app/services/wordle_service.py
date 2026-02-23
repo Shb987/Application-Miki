@@ -118,16 +118,19 @@ class WordleService:
         level_to_play = current_student_level
         
         if selected_level is not None:
-            # Validate selected level
             if selected_level < 1 or selected_level > total_max_levels:
                 return {"error": f"Invalid level. Must be between 1 and {total_max_levels}"}
             
             if selected_level > current_student_level:
                 return {"error": f"Level {selected_level} is locked. You can only play up to level {current_student_level}"}
             
-            # Practice mode
-            mode = "practice"
             level_to_play = selected_level
+            
+            # Only practice if user chooses a PREVIOUS level
+            if selected_level < current_student_level:
+                mode = "practice"
+            else:
+                mode = "progression"
         
         if level_to_play > total_max_levels:
             level_to_play = total_max_levels

@@ -9,7 +9,7 @@ from bson import ObjectId
 from app.utils.ai_usage_logger import log_ai_usage
 from fastapi import BackgroundTasks
 
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 import numpy as np
 
 router = APIRouter(prefix="/ai-tutor", tags=["AI Tutor"])

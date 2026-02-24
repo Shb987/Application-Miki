@@ -107,6 +107,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                 nonlocal state, assistant_speaking
 
                 await session_ready.wait()
+                print(f"✅ Voice Assistant session active for Student: {student_id}", flush=True)
 
                 while True:
                     msg = await websocket.receive()
@@ -124,6 +125,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                         # 🔥 BARGE-IN HANDLING
                         if assistant_speaking:
+                            print("⚡ Barge-in detected: Interrupting Assistant.", flush=True)
                             await session.response.cancel()
                             assistant_speaking = False
                             state = "interrupted"
@@ -144,8 +146,18 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     # 📝 TEXT INPUT
                     # =============================
                     elif "text" in msg:
-                        text_content = msg["text"]
+                        text_raw = msg["text"]
+                        print(f"DEBUG: Raw WebSocket text received: {text_raw}", flush=True)
+                        text_content = text_raw
+                        try:
+                            # If it's a JSON string, extract the 'text' or 'message' field
+                            data = json.loads(text_raw)
+                            if isinstance(data, dict):
+                                text_content = data.get("text", data.get("message", text_raw))
+                        except Exception as e:
+                            print(f"DEBUG: JSON parse failed: {e}", flush=True)
 
+                        print(f"👤 User (Text): {text_content}", flush=True)
                         await save_chat_event(student_id, session_id, "user", text_content)
 
                         await session.conversation.item.create(
@@ -204,7 +216,10 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                             # HARD TOKEN SAFETY
                             if resp.usage.total_tokens > 3000:
+                                print(f"⚠️ Safety Guard: Response cancelled due to high token count ({resp.usage.total_tokens}).", flush=True)
                                 await session.response.cancel()
+                            else:
+                                print(f"📊 Usage Summary: {resp.usage.total_tokens} tokens | Status: {getattr(resp, 'status', 'done')}", flush=True)
 
                         for item in getattr(resp, "output", []):
                             if item.type == "message":
@@ -216,6 +231,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                         text = content.transcript
 
                                     if text:
+                                        print(f"🤖 Miki: {text}", flush=True)
                                         await websocket.send_text(f"AI: {text}")
                                         await save_chat_event(student_id, session_id, "assistant", text)
 
@@ -223,6 +239,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     if event.type == "conversation.item.input_audio_transcription.completed":
                         user_text = getattr(event, "transcript", "")
                         if user_text:
+                            print(f"👤 User (Speech): {user_text}", flush=True)
                             await save_chat_event(student_id, session_id, "user", user_text)
 
                     # 🛠 TOOL CALL
@@ -231,6 +248,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         tool_call_id = event.call_id
                         function_name = event.name
                         arguments = json.loads(event.arguments)
+                        print(f"🛠️ Tool Call: {function_name}({arguments})", flush=True)
 
                         result = ""
 
@@ -248,6 +266,11 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         # 🔥 TOOL OUTPUT LIMIT (CRITICAL)
                         MAX_TOOL_CHARS = 4000
                         result = (result or "")[:MAX_TOOL_CHARS]
+                        
+                        if result:
+                            print(f"📝 Tool Result (Truncated): {result[:100]}...", flush=True)
+                        else:
+                            print("⚠️ Tool returned NO results.", flush=True)
 
                         await session.conversation.item.create(
                             item={

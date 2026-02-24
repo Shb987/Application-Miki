@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from bson import ObjectId
 from openai import AsyncOpenAI
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from app.core.database import db
 
 logger = logging.getLogger(__name__)
@@ -17,13 +17,16 @@ class AITutorService:
         """Perform a web search for current events or general facts."""
         logger.info(f"🌐 Searching Web for: {query}")
         try:
-            results = DDGS().text(query, max_results=3)
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=3))
+            
             if not results:
+                logger.warning(f"No results found for query: {query}")
                 return ""
             
             context = ""
             for r in results:
-                context += f"\n[WEB SOURCE: {r['title']}]\n{r['body']}\n"
+                context += f"\n[WEB SOURCE: {r['title']}]\n{r.get('body', r.get('snippet', ''))}\n"
             return context
         except Exception as e:
             logger.error(f"Web Search Error: {e}")

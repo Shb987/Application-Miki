@@ -70,7 +70,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     "modalities": ["audio", "text"],
                     "input_audio_transcription": {"model": "whisper-1"},
                     "temperature": 0.6,
-                    "max_response_output_tokens": 400,  # 🔥 COST CONTROL
+                    "max_response_output_tokens": 1200,  # 🔥 INCREASED FOR BETTER ANSWERS
                     "turn_detection": {
                         "type": "server_vad",
                         "threshold": 0.5,
@@ -150,26 +150,54 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     # =============================
                     # 🛑 SIGNALS (FALLBACK)
                     # =============================
-                    elif msg.get("text") == "_END_OF_SPEECH_":
-                        # With server_vad enabled, we usually ignore this to avoid double responses.
-                        # But we'll keep the state update for UI sync.
-                        state = "thinking"
-                        continue
-
-                    # =============================
-                    # 📝 TEXT INPUT
-                    # =============================
                     elif "text" in msg:
                         text_raw = msg["text"]
+                        
+                        # 🔥 1. ROBUST SIGNAL PARSING (Fix _END_OF_SPEECH_)
+                        if text_raw == "_END_OF_SPEECH_":
+                            # Only trigger if we aren't already processing something
+                            if state == "listening":
+                                print("🤫 Silence signal: Commit & Create Response.", flush=True)
+                                await session.input_audio_buffer.commit()
+                                await session.response.create()
+                                state = "thinking"
+                            continue
+
                         print(f"DEBUG: Raw WebSocket text received: {text_raw}", flush=True)
+
+                        # 🔥 2. HANDLE JSON CONTROL SIGNALS
+                        try:
+                            control_data = json.loads(text_raw)
+                            if isinstance(control_data, dict) and control_data.get("type") == "control":
+                                control_val = control_data.get("value")
+                                
+                                if control_val == "INTERRUPT":
+                                    if assistant_speaking:
+                                        print("⚡ Remote INTERRUPT signal received.", flush=True)
+                                        await session.response.cancel()
+                                        assistant_speaking = False
+                                        state = "interrupted"
+                                continue # Skip logic for control signals
+
+                            if isinstance(control_data, dict) and control_data.get("event") == "end_of_speech":
+                                # Already handled by server_vad or _END_OF_SPEECH_ string
+                                if state == "listening":
+                                    state = "thinking"
+                                continue 
+                        except json.JSONDecodeError:
+                            # Not JSON, proceed with normal text processing
+                            pass
+
+                        # Normal Text Input Logic
                         text_content = text_raw
                         try:
                             # If it's a JSON string, extract the 'text' or 'message' field
                             data = json.loads(text_raw)
                             if isinstance(data, dict):
                                 text_content = data.get("text", data.get("message", text_raw))
-                        except Exception as e:
-                            print(f"DEBUG: JSON parse failed: {e}", flush=True)
+                        except:
+                            # Not JSON or missing fields, keep text_raw as content
+                            pass
 
                         print(f"👤 User (Text): {text_content}", flush=True)
                         await save_chat_event(student_id, session_id, "user", text_content)
@@ -232,10 +260,13 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                 usage_obj=resp.usage
                             )
 
-                            # HARD TOKEN SAFETY
-                            if resp.usage.total_tokens > 3000:
+                            # HARD TOKEN SAFETY (Raised to allow long answers)
+                            if resp.usage.total_tokens > 5000:
                                 print(f"⚠️ Safety Guard: Response cancelled due to high token count ({resp.usage.total_tokens}).", flush=True)
-                                await session.response.cancel()
+                                try:
+                                    await session.response.cancel()
+                                except:
+                                    pass
                             else:
                                 print(f"📊 Usage Summary: {resp.usage.total_tokens} tokens | Status: {getattr(resp, 'status', 'done')}", flush=True)
 
@@ -324,7 +355,13 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
     except Exception as e:
         logger.error(f"Realtime session error: {e}")
-        await websocket.close(code=1011)
+    finally:
+        try:
+            # Only close if the client hasn't already disconnected
+            if websocket.client_state.name != "DISCONNECTED":
+                await websocket.close()
+        except:
+            pass # Already closed or terminating
 
 
 

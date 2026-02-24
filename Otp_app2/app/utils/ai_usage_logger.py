@@ -32,6 +32,12 @@ PRICING = {
         "completion": 20.00,  # Text output
         "audio_prompt": 40.00, 
         "audio_completion": 80.00
+    },
+    "gpt-4o-mini-realtime-preview": {
+        "prompt": 0.60,       # Text input
+        "completion": 2.40,   # Text output
+        "audio_prompt": 10.00, 
+        "audio_completion": 20.00
     }
 }
 
@@ -61,13 +67,31 @@ async def log_ai_usage(student_id: str, action_type: str, model: str, usage_obj)
             total_tokens = getattr(usage_obj, "total_tokens", prompt_tokens + completion_tokens)
             
         # Calculate Estimated Cost in USD
-        # Default to 0 if model is not in pricing table
         rates = PRICING.get(model, {"prompt": 0, "completion": 0})
         
-        # Calculate cost (price is per 1 million tokens)
+        # 1. Standard Text Costs (Usage object usually has prompt_tokens and completion_tokens)
         prompt_cost = (prompt_tokens / 1000000) * rates.get("prompt", 0)
         completion_cost = (completion_tokens / 1000000) * rates.get("completion", 0)
-        total_cost_usd = prompt_cost + completion_cost
+        
+        # 2. Realtime Audio Specific Costs (if usage object contains audio breakdown)
+        # Note: Some OpenAI SDK versions put these in 'prompt_tokens_details' or similar sub-objects
+        audio_prompt_tokens = 0
+        audio_completion_tokens = 0
+        
+        if not isinstance(usage_obj, dict):
+            # Try to find audio token counts in response details (SDK specific)
+            prompt_details = getattr(usage_obj, "prompt_tokens_details", None)
+            if prompt_details:
+                audio_prompt_tokens = getattr(prompt_details, "audio_tokens", 0)
+            
+            comp_details = getattr(usage_obj, "completion_tokens_details", None)
+            if comp_details:
+                audio_completion_tokens = getattr(comp_details, "audio_tokens", 0)
+        
+        audio_prompt_cost = (audio_prompt_tokens / 1000000) * rates.get("audio_prompt", 0)
+        audio_comp_cost = (audio_completion_tokens / 1000000) * rates.get("audio_completion", 0)
+        
+        total_cost_usd = prompt_cost + completion_cost + audio_prompt_cost + audio_comp_cost
         
         # Insert into MongoDB
         log_entry = {

@@ -46,7 +46,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
     try:
         async with client.beta.realtime.connect(
-            model="gpt-4o-realtime-preview"
+            model="gpt-4o-mini-realtime-preview"
         ) as session:
             print(f"🔗 Connected to OpenAI Realtime for student {student_id}", flush=True)
             # Configure the session with tools

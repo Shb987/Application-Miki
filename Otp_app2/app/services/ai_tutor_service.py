@@ -56,6 +56,7 @@ class AITutorService:
             return ""
 
         if not chapters:
+            logger.warning(f"No chapters found for standard {student_class}")
             return ""
 
         # 3. Vector Similarity
@@ -63,19 +64,26 @@ class AITutorService:
             return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
         scored_chapters = []
+        vectors_missing = 0
         for ch in chapters:
-            if "vector" not in ch: continue
+            if "vector" not in ch:
+                vectors_missing += 1
+                continue
             try:
                 score = cosine_similarity(query_vector, ch["vector"])
                 scored_chapters.append((score, ch))
             except: continue
+
+        if vectors_missing > 0:
+            logger.warning(f"{vectors_missing} chapters in standard {student_class} are missing vectors.")
 
         scored_chapters.sort(key=lambda x: x[0], reverse=True)
         top_3 = scored_chapters[:3]
 
         context_text = ""
         for score, ch in top_3:
-            if score > 0.25:
+            logger.info(f"📄 Chapter Match: {ch.get('chapter_title')} | Score: {score:.4f}")
+            if score > 0.15: # Lowered threshold for better coverage
                 snippet = ch.get('content', '')[:1500]
                 context_text += f"\n[TEXTBOOK: {ch.get('subject', 'General')} - {ch.get('chapter_title', '')}]\n{snippet}...\n"
                 

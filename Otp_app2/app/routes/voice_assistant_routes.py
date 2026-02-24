@@ -45,6 +45,15 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
     student_name = student_data.get("student_name", "Student")
     student_class = str(student_data.get("student_class", "general"))
     instructions = ai_tutor_service.get_persona_instructions(student_name, student_class)
+    
+    # 🔥 PREMIUM VOICE POLISH
+    instructions += """
+    - Be extremely CONVERSATIONAL and BRIEF. 
+    - Avoid using markdown like **bold**, # headers, or long lists. 
+    - Use natural phrasing like you're talking face-to-face.
+    - If you are interrupted, acknowledge it naturally in your next turn.
+    - If a search tool returns no results, state it simply and offer alternative help.
+    """
 
     # 🔥 TURN STATE MACHINE
     state = "listening"  # listening | thinking | speaking | interrupted
@@ -123,9 +132,14 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         import base64
                         base64_audio = base64.b64encode(audio_chunk).decode("utf-8")
 
-                        # 🔥 BARGE-IN HANDLING
+                        # 🔥 PREMIUM BARGE-IN HANDLING
                         if assistant_speaking:
                             print("⚡ Barge-in detected: Interrupting Assistant.", flush=True)
+                            try:
+                                # Tell client to stop playing current audio
+                                await websocket.send_text(json.dumps({"type": "stop_audio"}))
+                            except: pass
+                            
                             await session.response.cancel()
                             assistant_speaking = False
                             state = "interrupted"
@@ -134,13 +148,13 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         state = "listening"
 
                     # =============================
-                    # 🛑 END OF SPEECH SIGNAL
+                    # 🛑 SIGNALS (FALLBACK)
                     # =============================
-                    elif msg.get("text") == "__END_OF_SPEECH__":
-                        # Client should send this after silence detection
-                        await session.input_audio_buffer.commit()
-                        await session.response.create()
+                    elif msg.get("text") == "_END_OF_SPEECH_":
+                        # With server_vad enabled, we usually ignore this to avoid double responses.
+                        # But we'll keep the state update for UI sync.
                         state = "thinking"
+                        continue
 
                     # =============================
                     # 📝 TEXT INPUT
@@ -190,10 +204,14 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                         delta = getattr(event, "delta", None)
                         if delta:
-                            if isinstance(delta, str):
-                                await websocket.send_bytes(base64.b64decode(delta))
-                            else:
-                                await websocket.send_bytes(delta)
+                            try:
+                                if isinstance(delta, str):
+                                    await websocket.send_bytes(base64.b64decode(delta))
+                                else:
+                                    await websocket.send_bytes(delta)
+                            except Exception as e:
+                                logger.error(f"Error sending audio delta: {e}")
+                                break # Break the event loop on send error
 
                     # 🧠 RESPONSE COMPLETE
                     if event.type == "response.done":
@@ -232,7 +250,10 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                                     if text:
                                         print(f"🤖 Miki: {text}", flush=True)
-                                        await websocket.send_text(f"AI: {text}")
+                                        try:
+                                            await websocket.send_text(f"AI: {text}")
+                                        except:
+                                            pass
                                         await save_chat_event(student_id, session_id, "assistant", text)
 
                     # 🎙 USER TRANSCRIPTION COMPLETE
@@ -282,10 +303,24 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                         await session.response.create()
 
-            await asyncio.gather(
-                receive_messages(),
-                send_events()
+            # =========================================
+            # 🔥 ROBUST TASK COORDINATION
+            # =========================================
+            receive_task = asyncio.create_task(receive_messages())
+            send_task = asyncio.create_task(send_events())
+
+            done, pending = await asyncio.wait(
+                [receive_task, send_task],
+                return_when=asyncio.FIRST_COMPLETED
             )
+
+            # Clean up: Cancel the other task if one finishes (disconnect or error)
+            for task in pending:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
     except Exception as e:
         logger.error(f"Realtime session error: {e}")

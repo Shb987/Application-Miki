@@ -70,7 +70,8 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
 
     payload = {
         "app_id": ONESIGNAL_APP_ID,
-        "include_external_user_ids": target_ids, 
+        "include_external_user_ids": target_ids,
+        "channel_for_external_user_ids": "push",
         "headings": {"en": title},
         "contents": {"en": message},
         "data": onesignal_data
@@ -162,7 +163,8 @@ async def broadcast_notification(db, title: str, message: str, notification_type
 
     payload = {
         "app_id": ONESIGNAL_APP_ID,
-        "include_external_user_ids": target_ids, 
+        "include_external_user_ids": target_ids,
+        "channel_for_external_user_ids": "push",
         "headings": {"en": title},
         "contents": {"en": message},
         "data": onesignal_data

@@ -55,6 +55,9 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
     state = "listening"
     assistant_speaking = False
     last_valid_user_transcript = ""
+    last_barge_in_time = 0.0
+    last_silence_time = 0.0
+    DEBOUNCE_SECONDS = 0.5
 
     try:
         async with client.beta.realtime.connect(
@@ -84,10 +87,11 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
             # RECEIVE LOOP
             # ==============================
             async def receive_messages():
-                nonlocal state, assistant_speaking
+                nonlocal state, assistant_speaking, last_barge_in_time, last_silence_time
+                import time
 
                 await session_ready.wait()
-                print(f"✅ Voice Assistant active for Student: {student_id}", flush=True)
+                print(f"✅ Voice Assistant session active for Student: {student_id}", flush=True)
 
                 while True:
                     msg = await websocket.receive()
@@ -97,24 +101,40 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                     if msg.get("bytes"):
                         import base64
-                        base64_audio = base64.b64encode(msg["bytes"]).decode("utf-8")
+                        audio_bytes = msg["bytes"]
 
-                        # 🔥 BARGE-IN SAFE
+                        # ── Control signals (e.g., barge-in / silence) are tiny (<= 4 bytes) ──
+                        if len(audio_bytes) <= 4:
+                            now = time.monotonic()
+
+                            # Treat as silence commit signal
+                            if not assistant_speaking:
+                                if now - last_silence_time >= DEBOUNCE_SECONDS:
+                                    last_silence_time = now
+                                    print("🤫 Silence signal: Commit & Create Response.", flush=True)
+                            else:
+                                # Barge-in: debounce and cancel current response
+                                if now - last_barge_in_time >= DEBOUNCE_SECONDS:
+                                    last_barge_in_time = now
+                                    print("⚡ Barge-in detected: Interrupting Assistant.", flush=True)
+                                    try:
+                                        await websocket.send_text(json.dumps({"type": "stop_audio"}))
+                                    except:
+                                        pass
+                                    try:
+                                        await session.response.cancel()
+                                    except:
+                                        pass
+                                    assistant_speaking = False
+                                    state = "interrupted"
+                            continue  # Never send control bytes to OpenAI
+
+                        # ── Real audio chunk ──
+                        # 🔥 FIX 1: Block loopback — do NOT append audio while assistant is speaking
                         if assistant_speaking:
-                            print("⚡ Barge-in detected", flush=True)
-                            try:
-                                await websocket.send_text(json.dumps({"type": "stop_audio"}))
-                            except:
-                                pass
+                            continue
 
-                            try:
-                                await session.response.cancel()
-                            except:
-                                pass
-
-                            assistant_speaking = False
-                            state = "interrupted"
-
+                        base64_audio = base64.b64encode(audio_bytes).decode("utf-8")
                         await session.input_audio_buffer.append(audio=base64_audio)
                         state = "listening"
 
@@ -166,6 +186,12 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         state = "listening"
 
                         resp = getattr(event, "response", None)
+
+                        # 🔥 FIX 3: Skip cancelled / incomplete responses
+                        resp_status = getattr(resp, "status", None)
+                        if resp_status != "completed":
+                            print(f"⚠️ Response skipped (status={resp_status}).", flush=True)
+                            continue
 
                         # 🔥 BLOCK EMPTY MODEL RESPONSES
                         if not resp or not getattr(resp, "output", None):

@@ -45,19 +45,18 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
     student_class = str(student_data.get("student_class", "general"))
     instructions = ai_tutor_service.get_persona_instructions(student_name, student_class)
 
+    # 🎙 Conversational-mode instructions — plain speech, no markdown
     instructions += """
     - Be extremely conversational and brief.
-    - Avoid markdown formatting.
-    - Speak naturally like a human tutor.
-    - If interrupted, continue naturally.
+    - NEVER use markdown: no asterisks, no bullet points, no numbered lists, no bold.
+    - Speak in plain natural sentences exactly like you are talking out loud in a phone call.
+    - Keep responses short and to the point — 1 to 3 sentences unless the topic truly needs more.
+    - If the student interrupts, stop and address what they said immediately.
     """
 
     state = "listening"
     assistant_speaking = False
     last_valid_user_transcript = ""
-    last_barge_in_time = 0.0
-    last_silence_time = 0.0
-    DEBOUNCE_SECONDS = 0.5
 
     try:
         async with client.beta.realtime.connect(
@@ -73,9 +72,9 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     "max_response_output_tokens": 1200,
                     "turn_detection": {
                         "type": "server_vad",
-                        "threshold": 0.65,              # 🔥 stricter
+                        "threshold": 0.65,
                         "prefix_padding_ms": 300,
-                        "silence_duration_ms": 1200     # 🔥 longer silence required
+                        "silence_duration_ms": 800   # Faster response — feels more natural
                     },
                     "tool_choice": "auto"
                 }
@@ -87,8 +86,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
             # RECEIVE LOOP
             # ==============================
             async def receive_messages():
-                nonlocal state, assistant_speaking, last_barge_in_time, last_silence_time
-                import time
+                nonlocal state
 
                 await session_ready.wait()
                 print(f"✅ Voice Assistant session active for Student: {student_id}", flush=True)
@@ -103,37 +101,13 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         import base64
                         audio_bytes = msg["bytes"]
 
-                        # ── Control signals (e.g., barge-in / silence) are tiny (<= 4 bytes) ──
+                        # Drop stray tiny packets (not real audio)
                         if len(audio_bytes) <= 4:
-                            now = time.monotonic()
-
-                            # Treat as silence commit signal
-                            if not assistant_speaking:
-                                if now - last_silence_time >= DEBOUNCE_SECONDS:
-                                    last_silence_time = now
-                                    print("🤫 Silence signal: Commit & Create Response.", flush=True)
-                            else:
-                                # Barge-in: debounce and cancel current response
-                                if now - last_barge_in_time >= DEBOUNCE_SECONDS:
-                                    last_barge_in_time = now
-                                    print("⚡ Barge-in detected: Interrupting Assistant.", flush=True)
-                                    try:
-                                        await websocket.send_text(json.dumps({"type": "stop_audio"}))
-                                    except:
-                                        pass
-                                    try:
-                                        await session.response.cancel()
-                                    except:
-                                        pass
-                                    assistant_speaking = False
-                                    state = "interrupted"
-                            continue  # Never send control bytes to OpenAI
-
-                        # ── Real audio chunk ──
-                        # 🔥 FIX 1: Block loopback — do NOT append audio while assistant is speaking
-                        if assistant_speaking:
                             continue
 
+                        # ✅ Always stream audio to OpenAI — barge-in is handled natively
+                        # by server VAD via `input_audio_buffer.speech_started` event.
+                        # Flutter MUST have echoCancellation:true to prevent loopback.
                         base64_audio = base64.b64encode(audio_bytes).decode("utf-8")
                         await session.input_audio_buffer.append(audio=base64_audio)
                         state = "listening"
@@ -150,7 +124,24 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     if event.type == "session.created":
                         session_ready.set()
 
-                    # 🔊 STREAM AUDIO
+                    # ⚡ BARGE-IN — OpenAI server VAD fires this the moment it
+                    # detects the user's voice while the assistant is still speaking.
+                    # No custom control signals needed from Flutter.
+                    if event.type == "input_audio_buffer.speech_started":
+                        if assistant_speaking:
+                            print("⚡ Barge-in: User started speaking — cancelling assistant.", flush=True)
+                            try:
+                                await websocket.send_text(json.dumps({"type": "stop_audio"}))
+                            except:
+                                pass
+                            try:
+                                await session.response.cancel()
+                            except:
+                                pass
+                            assistant_speaking = False
+                            state = "listening"
+
+                    # 🔊 STREAM AUDIO TO FLUTTER
                     if event.type == "response.audio.delta":
                         assistant_speaking = True
                         state = "speaking"
@@ -165,18 +156,16 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                             except:
                                 break
 
-                    # 🎙 TRANSCRIPTION COMPLETE
+                    # 🎙 USER TRANSCRIPTION COMPLETE
                     if event.type == "conversation.item.input_audio_transcription.completed":
                         user_text = getattr(event, "transcript", "")
 
-                        # 🔥 BLOCK EMPTY / NOISE
                         if not user_text or len(user_text.strip()) < 3:
                             print("⚠️ Ignoring empty/noise transcript.", flush=True)
                             continue
 
                         last_valid_user_transcript = user_text.strip()
-
-                        print(f"👤 User: {last_valid_user_transcript}", flush=True)
+                        print(f"👤 User (Speech): {last_valid_user_transcript}", flush=True)
                         await save_chat_event(student_id, session_id, "user", last_valid_user_transcript)
 
                     # 🧠 RESPONSE COMPLETE
@@ -187,18 +176,17 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                         resp = getattr(event, "response", None)
 
-                        # 🔥 FIX 3: Skip cancelled / incomplete responses
+                        # Skip cancelled / incomplete responses (e.g. interrupted by barge-in)
                         resp_status = getattr(resp, "status", None)
                         if resp_status != "completed":
                             print(f"⚠️ Response skipped (status={resp_status}).", flush=True)
                             continue
 
-                        # 🔥 BLOCK EMPTY MODEL RESPONSES
                         if not resp or not getattr(resp, "output", None):
                             print("⚠️ Empty response ignored.", flush=True)
                             continue
 
-                        # 🔥 BLOCK RESPONSE IF NO VALID USER INPUT
+                        # Skip if no user ever spoke (e.g. echo-triggered response)
                         if not last_valid_user_transcript:
                             print("⚠️ No valid user transcript — skipping response.", flush=True)
                             continue
@@ -214,17 +202,14 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                         text = content.transcript
 
                                     if text and text.strip():
-
                                         print(f"🤖 Miki: {text}", flush=True)
-
                                         try:
                                             await websocket.send_text(f"AI: {text}")
                                         except:
                                             pass
-
                                         await save_chat_event(student_id, session_id, "assistant", text.strip())
 
-                        # 🔥 Reset transcript tracker
+                        # Reset after a full completed turn
                         last_valid_user_transcript = ""
 
             receive_task = asyncio.create_task(receive_messages())

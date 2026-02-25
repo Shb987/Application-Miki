@@ -141,10 +141,13 @@ async def get_generated_question_paper(
 
     # Step 2: Using task_id, find the generated question paper
     # Note: admin_routes stores the task_oid as 'task_id' in generated_papers
-    paper_doc = await db.generated_papers.find_one({
-        "task_id": task_id
-    })
+    pipeline = [
+        {"$match": {"task_id": task_id}},
+        {"$sample": {"size": 1}}
+    ]
 
+    papers = await db.generated_papers.aggregate(pipeline).to_list(1)
+    paper_doc = papers[0] if papers else None
     if not paper_doc:
         return {
             "status": False,

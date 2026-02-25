@@ -74,9 +74,10 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         "type": "server_vad",
                         "threshold": 0.65,
                         "prefix_padding_ms": 300,
-                        "silence_duration_ms": 800   # Faster response — feels more natural
-                    },
-                    "tool_choice": "auto"
+                        "silence_duration_ms": 800
+                    }
+                    # No tool_choice — no tools are registered for this realtime session.
+                    # Setting tool_choice:auto with no tools causes status=failed responses.
                 }
             )
 
@@ -179,7 +180,9 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         # Skip cancelled / incomplete responses (e.g. interrupted by barge-in)
                         resp_status = getattr(resp, "status", None)
                         if resp_status != "completed":
-                            print(f"⚠️ Response skipped (status={resp_status}).", flush=True)
+                            # Log the full error detail so we can debug failures
+                            status_detail = getattr(resp, "status_details", None)
+                            print(f"⚠️ Response skipped (status={resp_status}, detail={status_detail}).", flush=True)
                             continue
 
                         if not resp or not getattr(resp, "output", None):

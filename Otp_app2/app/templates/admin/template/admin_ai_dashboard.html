@@ -132,6 +132,69 @@
             transition: opacity 0.3s ease;
         }
 
+        .search-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            z-index: 1050;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+        }
+
+        .search-result-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background: #f8fafc;
+        }
+
+        .search-result-item.active {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+        }
+
+        .search-result-item .student-icon {
+            width: 32px;
+            height: 32px;
+            background: #667eea20;
+            color: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .search-result-item .student-info {
+            flex: 1;
+        }
+
+        .search-result-item .student-name {
+            font-weight: 600;
+            display: block;
+            color: #1e293b;
+        }
+
+        .search-result-item .student-class {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
         canvas {
             filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
         }
@@ -252,11 +315,39 @@
                         <i class="fa fa-exclamation-triangle"></i>
                         <span id="error-text">Error loading data</span>
                     </div>
-                    <div class="row mb-4">
-                        <div class="col-md-4">
-                            <select id="studentSelect" class="form-control">
-                                <option value="">Select Student</option>
+                    <div class="row mb-4 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label font-weight-bold f-14 mb-2"><i
+                                    class="fa fa-filter text-primary me-2"></i>Filter by Class:</label>
+                            <select id="classFilter" class="form-select border-2"
+                                style="border-radius: 12px; height: 48px; font-weight: 500;">
+                                <option value="">Global Analytics</option>
                             </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label font-weight-bold f-14 mb-2"><i
+                                    class="fa fa-user text-primary me-2"></i>Search Student:</label>
+                            <div class="search-container position-relative">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"
+                                        style="border-radius: 12px 0 0 12px; border: 2px solid #e2e8f0; border-right: none;">
+                                        <i class="fa fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" id="studentSearchInput"
+                                        class="form-control border-start-0 ps-0 border-2"
+                                        style="border-radius: 0 12px 12px 0; height: 48px; font-weight: 500; border-color: #e2e8f0;"
+                                        placeholder="Search student in this class..." autocomplete="off">
+                                    <button class="btn btn-outline-secondary" type="button" id="clearSearch"
+                                        style="display: none; border-radius: 0 12px 12px 0; border: 2px solid #e2e8f0; border-left: none;">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </div>
+                                <div id="studentSearchResults" class="search-results-dropdown shadow-lg mt-1"
+                                    style="display: none;">
+                                    <!-- Results injected via JS -->
+                                </div>
+                            </div>
+                            <input type="hidden" id="selectedStudentId" value="">
                         </div>
                     </div>
                     <h5 id="selectedStudentName" class="mb-3 text-primary">
@@ -336,8 +427,8 @@
                                         Cost by Application Module (USD)
                                     </h5>
                                 </div>
-                                <div class="card-body">
-                                    <canvas id="moduleCostChart" height="100"></canvas>
+                                <div class="card-body" style="height: 350px;">
+                                    <canvas id="moduleCostChart"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -351,7 +442,8 @@
                                         Token Usage by AI Model
                                     </h5>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body"
+                                    style="height: 350px; display: flex; align-items: center; justify-content: center;">
                                     <canvas id="modelUsageChart"></canvas>
                                 </div>
                             </div>
@@ -413,6 +505,9 @@
             }
         }
 
+        let allStudents = [];
+        let uniqueClasses = [];
+
         async function loadStudents() {
             try {
                 const res = await fetch(`${API_BASE}/admin-panel/ai-stats/get_students`, {
@@ -420,21 +515,153 @@
                 });
 
                 const result = await res.json();
-                const students = result.students || [];
-                const select = document.getElementById('studentSelect');
+                allStudents = result.students || [];
 
-                select.innerHTML = '<option value="">All Platform Usage</option>';
+                // Extract unique classes
+                uniqueClasses = [...new Set(allStudents.map(s => s.class).filter(Boolean))].sort();
 
-                students.forEach(student => {
-                    const option = document.createElement('option');
-                    option.value = student.id;
-                    option.textContent = `${student.name} (Class ${student.class})`;
-                    select.appendChild(option);
+                // Populate class filter
+                const classSelect = document.getElementById('classFilter');
+                uniqueClasses.forEach(cls => {
+                    const opt = document.createElement('option');
+                    opt.value = cls;
+                    opt.textContent = `Class ${cls}`;
+                    classSelect.appendChild(opt);
                 });
+
+                // Initialize searchable logic
+                initStudentSearch();
 
             } catch (err) {
                 console.error('Error loading students:', err);
             }
+        }
+
+        function initStudentSearch() {
+            const input = document.getElementById('studentSearchInput');
+            const resultsDiv = document.getElementById('studentSearchResults');
+            const clearBtn = document.getElementById('clearSearch');
+            const classFilter = document.getElementById('classFilter');
+
+            classFilter.addEventListener('change', function () {
+                const selectedClass = this.value;
+                input.value = ''; // Clear search when class changes
+                document.getElementById('selectedStudentId').value = '';
+
+                if (selectedClass) {
+                    loadClassAIUsage(selectedClass);
+                } else {
+                    loadAIUsageAnalytics();
+                }
+            });
+
+            input.addEventListener('input', function () {
+                const query = this.value.toLowerCase().trim();
+                const selectedClass = classFilter.value;
+
+                if (query.length < 1) {
+                    resultsDiv.style.display = 'none';
+                    clearBtn.style.display = 'none';
+                    return;
+                }
+
+                let filtered = allStudents;
+                if (selectedClass) {
+                    filtered = filtered.filter(s => s.class == selectedClass);
+                }
+
+                filtered = filtered.filter(s =>
+                    s.name.toLowerCase().includes(query)
+                );
+
+                renderSearchResults(filtered);
+                clearBtn.style.display = 'block';
+            });
+
+            input.addEventListener('focus', function () {
+                const selectedClass = classFilter.value;
+                let filtered = allStudents;
+                if (selectedClass) filtered = filtered.filter(s => s.class == selectedClass);
+
+                if (this.value.trim().length === 0) {
+                    renderSearchResults(filtered.slice(0, 10)); // Show some hints
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                input.value = '';
+                document.getElementById('selectedStudentId').value = '';
+                resultsDiv.style.display = 'none';
+                clearBtn.style.display = 'none';
+
+                const selectedClass = classFilter.value;
+                if (selectedClass) {
+                    loadClassAIUsage(selectedClass);
+                } else {
+                    loadAIUsageAnalytics();
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-container')) {
+                    resultsDiv.style.display = 'none';
+                }
+            });
+        }
+
+        async function loadClassAIUsage(className) {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('stats-cards').style.opacity = '0.5';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/ai-stats/class/${className}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error("Failed to fetch class AI usage");
+                const result = await res.json();
+                const data = result.data;
+
+                document.getElementById('selectedStudentName').innerHTML = `<i class="fa fa-users me-2"></i> Class AI Usage: ${className}`;
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats-cards').style.opacity = '1';
+
+                updateDashboardCards(data);
+
+            } catch (error) {
+                showError("Error loading class stats: " + error.message);
+            }
+        }
+
+        function renderSearchResults(filtered) {
+            const resultsDiv = document.getElementById('studentSearchResults');
+            resultsDiv.innerHTML = '';
+
+            if (filtered.length === 0) {
+                resultsDiv.innerHTML = '<div class="p-3 text-muted text-center">No students found</div>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            filtered.forEach(student => {
+                const item = document.createElement('div');
+                item.className = 'search-result-item';
+                item.innerHTML = `
+                    <div class="student-icon"><i class="fa fa-user"></i></div>
+                    <div class="student-info">
+                        <span class="student-name">${student.name} ${student.class ? `(Class ${student.class})` : ''}</span>
+                        <span class="student-class">Student ID: ${student.id.substring(0, 8)}...</span>
+                    </div>
+                `;
+                item.onclick = () => {
+                    document.getElementById('studentSearchInput').value = student.name;
+                    document.getElementById('selectedStudentId').value = student.id;
+                    resultsDiv.style.display = 'none';
+                    loadStudentAIUsage(student.id);
+                };
+                resultsDiv.appendChild(item);
+            });
+            resultsDiv.style.display = 'block';
         }
 
         // Fetch AI Usage data for platform summary
@@ -452,7 +679,7 @@
                 const result = await response.json();
                 const data = result.data;
 
-                document.getElementById('selectedStudentName').innerText = 'Overall Platform Usage';
+                document.getElementById('selectedStudentName').innerHTML = '<i class="fa fa-globe me-2"></i> Overall Platform Usage';
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('stats-cards').style.opacity = '1';
 
@@ -548,18 +775,33 @@
                         backgroundColor: 'rgba(102, 126, 234, 0.7)',
                         borderColor: '#667eea',
                         borderWidth: 1,
-                        borderRadius: 6
+                        borderRadius: 8,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: { padding: { top: 20, bottom: 10, left: 10, right: 20 } },
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (context) { return `Cost: $${context.raw.toFixed(4)}`; }
+                            }
+                        }
                     },
                     scales: {
-                        y: { beginAtZero: true, grid: { display: false } },
-                        x: { grid: { display: false } }
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
+                            ticks: { callback: value => '$' + value, font: { weight: '600' } }
+                        },
+                        x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
                     }
                 }
             });
@@ -607,16 +849,8 @@
             loadAdminProfile();
             loadAIUsageAnalytics();
             loadStudents();
-
-            document.getElementById('studentSelect').addEventListener('change', function () {
-                const studentId = this.value;
-                if (studentId) {
-                    loadStudentAIUsage(studentId);
-                } else {
-                    loadAIUsageAnalytics();
-                }
-            });
         });
+    </script>
     </script>
 </body>
 

@@ -216,6 +216,103 @@ async def get_student_ai_summary(
 
 
 
+@router.get("/ai-stats/class/{class_name}", response_model=Dict[str, Any])
+async def get_class_ai_summary(
+    class_name: str,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """
+    Returns AI usage analytics for all students in a specific class (last 30 days)
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
+
+        # 1. Get all student IDs in this class
+        cursor = db.students.find({"student_class": class_name}, {"_id": 1})
+        students = await cursor.to_list(length=None)
+        student_ids = [str(s["_id"]) for s in students]
+
+        if not student_ids:
+            return {
+                "status": "success",
+                "data": {
+                    "total_tokens": 0, "total_calls": 0, "total_cost_usd": 0.0,
+                    "module_costs": {"labels": [], "costs": []},
+                    "model_tokens": {"labels": [], "tokens": []}
+                }
+            }
+
+        base_match = {
+            "student_id": {"$in": student_ids},
+            "timestamp": {"$gte": thirty_days_ago}
+        }
+
+        # Aggregation logic (same as summary but filtered by class)
+        async def total_tokens():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": None, "total": {"$sum": "$tokens_used"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return result[0]["total"] if result else 0
+
+        async def total_calls():
+            return await db.ai_usage_logs.count_documents(base_match)
+
+        async def total_cost():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": None, "total": {"$sum": "$estimated_cost_usd"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return round(result[0]["total"], 4) if result else 0.0
+
+        async def module_costs():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": "$module", "cost": {"$sum": "$estimated_cost_usd"}}}
+            ]
+            results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
+            return {
+                "labels": [r["_id"] if r["_id"] else "Other" for r in results],
+                "costs": [round(r["cost"], 4) for r in results]
+            }
+
+        async def model_tokens():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": "$model", "tokens": {"$sum": "$tokens_used"}}}
+            ]
+            results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
+            return {
+                "labels": [r["_id"] if r["_id"] else "Other" for r in results],
+                "tokens": [r["tokens"] for r in results]
+            }
+
+        (tokens, calls, cost, module_data, model_data) = await asyncio.gather(
+            total_tokens(),
+            total_calls(),
+            total_cost(),
+            module_costs(),
+            model_tokens()
+        )
+
+        return {
+            "status": "success",
+            "data": {
+                "class_name": class_name,
+                "total_tokens": tokens,
+                "total_calls": calls,
+                "total_cost_usd": cost,
+                "module_costs": module_data,
+                "model_tokens": model_data
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/ai-stats/summary", response_model=Dict[str, Any])
 async def get_ai_usage_summary(current_admin: dict = Depends(get_current_admin)):
     """

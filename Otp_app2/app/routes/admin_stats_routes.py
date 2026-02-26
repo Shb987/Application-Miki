@@ -105,7 +105,7 @@ async def get_student_ai_summary(
         async def total_tokens():
             pipeline = [
                 {"$match": base_match},
-                {"$group": {"_id": None, "total": {"$sum": "$tokens_used"}}}
+                {"$group": {"_id": None, "total": {"$sum": "$total_tokens"}}}
             ]
             result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
             return result[0]["total"] if result else 0
@@ -136,7 +136,7 @@ async def get_student_ai_summary(
                 {"$match": base_match},
                 {
                     "$group": {
-                        "_id": "$module",
+                        "_id": "$action_type",
                         "cost": {"$sum": "$estimated_cost_usd"}
                     }
                 }
@@ -157,8 +157,8 @@ async def get_student_ai_summary(
                 {"$match": base_match},
                 {
                     "$group": {
-                        "_id": "$model",
-                        "tokens": {"$sum": "$tokens_used"}
+                        "_id": "$model_used",
+                        "tokens": {"$sum": "$total_tokens"}
                     }
                 }
             ]
@@ -176,7 +176,7 @@ async def get_student_ai_summary(
         async def student_info():
             return await db.students.find_one(
                 {"_id": student_id},
-                {"name": 1}
+                {"student_name": 1}
             )
 
         (
@@ -199,7 +199,7 @@ async def get_student_ai_summary(
             "status": "success",
             "data": {
                 "student_id": student_id,
-                "student_name": student.get("name", "Unknown")
+                "student_name": student.get("student_name", "Unknown")
                 if student else "Unknown",
                 "total_tokens": tokens,
                 "total_calls": calls,
@@ -252,7 +252,7 @@ async def get_class_ai_summary(
         async def total_tokens():
             pipeline = [
                 {"$match": base_match},
-                {"$group": {"_id": None, "total": {"$sum": "$tokens_used"}}}
+                {"$group": {"_id": None, "total": {"$sum": "$total_tokens"}}}
             ]
             result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
             return result[0]["total"] if result else 0
@@ -271,7 +271,7 @@ async def get_class_ai_summary(
         async def module_costs():
             pipeline = [
                 {"$match": base_match},
-                {"$group": {"_id": "$module", "cost": {"$sum": "$estimated_cost_usd"}}}
+                {"$group": {"_id": "$action_type", "cost": {"$sum": "$estimated_cost_usd"}}}
             ]
             results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
             return {
@@ -282,7 +282,7 @@ async def get_class_ai_summary(
         async def model_tokens():
             pipeline = [
                 {"$match": base_match},
-                {"$group": {"_id": "$model", "tokens": {"$sum": "$tokens_used"}}}
+                {"$group": {"_id": "$model_used", "tokens": {"$sum": "$total_tokens"}}}
             ]
             results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
             return {
@@ -332,7 +332,7 @@ async def get_ai_usage_summary(current_admin: dict = Depends(get_current_admin))
         async def total_tokens():
             pipeline = [
                 {"$match": base_match},
-                {"$group": {"_id": None, "total": {"$sum": "$tokens_used"}}}
+                {"$group": {"_id": None, "total": {"$sum": "$total_tokens"}}}
             ]
             result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
             return result[0]["total"] if result else 0
@@ -360,7 +360,7 @@ async def get_ai_usage_summary(current_admin: dict = Depends(get_current_admin))
         async def module_costs():
             pipeline = [
                 {"$match": base_match},
-                {"$group": {"_id": "$module", "cost": {"$sum": "$estimated_cost_usd"}}}
+                {"$group": {"_id": "$action_type", "cost": {"$sum": "$estimated_cost_usd"}}}
             ]
             results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
             labels = [r["_id"] if r["_id"] else "Other" for r in results]
@@ -373,7 +373,7 @@ async def get_ai_usage_summary(current_admin: dict = Depends(get_current_admin))
         async def model_tokens():
             pipeline = [
                 {"$match": base_match},
-                {"$group": {"_id": "$model", "tokens": {"$sum": "$tokens_used"}}}
+                {"$group": {"_id": "$model_used", "tokens": {"$sum": "$total_tokens"}}}
             ]
             results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
             labels = [r["_id"] if r["_id"] else "Other" for r in results]

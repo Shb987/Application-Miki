@@ -33,63 +33,107 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
         .analytics-card {
-            border-radius: 10px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 16px;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             border: none;
-            overflow: hidden;
             background: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         .analytics-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         .stat-card-header {
-            padding: 20px;
+            padding: 24px;
+            background: transparent;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 10px 0;
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin: 8px 0;
+            letter-spacing: -0.025em;
         }
 
         .stat-label {
-            font-size: 0.875rem;
-            color: #6c757d;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.1em;
         }
 
         .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
         .chart-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #2c3e50;
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #studentSelect {
+            height: 48px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            padding: 0 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        #studentSelect:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         }
 
         .loading-spinner {
             text-align: center;
-            padding: 50px;
+            padding: 80px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            width: 100%;
         }
 
         .spinner-border-custom {
-            width: 3rem;
-            height: 3rem;
-            border-width: 0.3em;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-width: 0.35em;
+            color: #667eea !important;
+        }
+
+        #stats-cards {
+            transition: opacity 0.3s ease;
+        }
+
+        canvas {
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
         }
     </style>
 </head>
@@ -208,7 +252,16 @@
                         <i class="fa fa-exclamation-triangle"></i>
                         <span id="error-text">Error loading data</span>
                     </div>
-
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <select id="studentSelect" class="form-control">
+                                <option value="">Select Student</option>
+                            </select>
+                        </div>
+                    </div>
+                    <h5 id="selectedStudentName" class="mb-3 text-primary">
+                        Overall Platform Usage
+                    </h5>
                     <!-- Stats Cards Row -->
                     <div class="row" id="stats-cards">
                         <!-- Stat Card 1 -->
@@ -360,45 +413,129 @@
             }
         }
 
-        // Fetch AI Usage data
-        async function loadAIUsageAnalytics() {
+        async function loadStudents() {
             try {
-                // Fetch real data from the backend API
+                const res = await fetch(`${API_BASE}/admin-panel/ai-stats/get_students`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const result = await res.json();
+                const students = result.students || [];
+                const select = document.getElementById('studentSelect');
+
+                select.innerHTML = '<option value="">All Platform Usage</option>';
+
+                students.forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.id;
+                    option.textContent = `${student.name} (Class ${student.class})`;
+                    select.appendChild(option);
+                });
+
+            } catch (err) {
+                console.error('Error loading students:', err);
+            }
+        }
+
+        // Fetch AI Usage data for platform summary
+        async function loadAIUsageAnalytics() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('stats-cards').style.opacity = '0.5';
+
+            try {
                 const response = await fetch(`${API_BASE}/admin-panel/ai-stats/summary`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                if (!response.ok) {
-                    throw new Error("Failed to fetch AI usage stats");
-                }
+                if (!response.ok) throw new Error("Failed to fetch AI usage stats");
 
                 const result = await response.json();
                 const data = result.data;
 
-                // Hide loading spinner
+                document.getElementById('selectedStudentName').innerText = 'Overall Platform Usage';
                 document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats-cards').style.opacity = '1';
 
-                // Update Hero Counters
-                document.getElementById('totalTokens').innerText = data.total_tokens.toLocaleString();
-                document.getElementById('totalCalls').innerText = data.total_calls.toLocaleString();
-                document.getElementById('totalCost').innerText = `$${data.total_cost_usd.toFixed(2)}`;
-
-                // Render Module Cost Bar Chart
-                createModuleCostChart(data.module_costs);
-
-                // Render Model Tokens Doughnut Chart
-                createModelUsageChart(data.model_tokens);
+                updateDashboardCards(data);
 
             } catch (error) {
-                console.error('Error loading AI stats:', error);
+                showError("Error loading platform stats: " + error.message);
             }
         }
 
-        // Module Cost Chart
+        // Fetch AI Usage for specific student
+        async function loadStudentAIUsage(studentId) {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('stats-cards').style.opacity = '0.5';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/ai-stats/student/${studentId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error("Failed to fetch student AI usage");
+
+                const result = await res.json();
+                const data = result.data;
+
+                document.getElementById('selectedStudentName').innerText = `AI Usage: ${data.student_name}`;
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats-cards').style.opacity = '1';
+
+                updateDashboardCards(data);
+
+            } catch (error) {
+                showError("Error loading student stats: " + error.message);
+            }
+        }
+
+        function updateDashboardCards(data) {
+            // Update Text Stats
+            animateValue("totalTokens", data.total_tokens);
+            animateValue("totalCalls", data.total_calls);
+            animateValue("totalCost", data.total_cost_usd, true);
+
+            // Refresh Charts
+            createModuleCostChart(data.module_costs);
+            createModelUsageChart(data.model_tokens);
+        }
+
+        function animateValue(id, value, isCurrency = false) {
+            const obj = document.getElementById(id);
+            const start = parseFloat(obj.innerText.replace(/[^0-9.-]+/g, "")) || 0;
+            const duration = 800;
+            let startTimestamp = null;
+
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const current = progress * (value - start) + start;
+
+                if (isCurrency) {
+                    obj.innerText = `$${current.toFixed(2)}`;
+                } else {
+                    obj.innerText = Math.floor(current).toLocaleString();
+                }
+
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function showError(msg) {
+            document.getElementById('loading').style.display = 'none';
+            const errorDiv = document.getElementById('error-message');
+            document.getElementById('error-text').innerText = msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+
+        // Charts Logic
         let moduleCostChartInstance = null;
         function createModuleCostChart(chartData) {
             const ctx = document.getElementById('moduleCostChart').getContext('2d');
-
             if (moduleCostChartInstance) moduleCostChartInstance.destroy();
 
             moduleCostChartInstance = new Chart(ctx, {
@@ -406,41 +543,31 @@
                 data: {
                     labels: chartData.labels,
                     datasets: [{
-                        label: 'Estimated Cost (USD)',
+                        label: 'Cost (USD)',
                         data: chartData.costs,
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                        borderColor: '#667eea',
                         borderWidth: 1,
-                        borderRadius: 4
+                        borderRadius: 6
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return `$${context.raw.toFixed(2)}`;
-                                }
-                            }
-                        }
+                        legend: { display: false }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'USD ($)' }
-                        }
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
                     }
                 }
             });
         }
 
-        // Model Usage Doughnut Chart
         let modelUsageChartInstance = null;
         function createModelUsageChart(chartData) {
             const ctx = document.getElementById('modelUsageChart').getContext('2d');
-
             if (modelUsageChartInstance) modelUsageChartInstance.destroy();
 
             modelUsageChartInstance = new Chart(ctx, {
@@ -448,43 +575,47 @@
                 data: {
                     labels: chartData.labels,
                     datasets: [{
-                        label: 'Tokens Used',
                         data: chartData.tokens,
                         backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)', // gpt-4o (Red)
-                            'rgba(75, 192, 192, 0.7)', // gpt-4o-mini (Teal)
-                            'rgba(255, 206, 86, 0.7)',  // embeddings (Yellow)
-                            'rgba(153, 102, 255, 0.7)' // realtime (Purple)
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(139, 92, 246, 0.8)'
                         ],
-                        borderWidth: 1
+                        hoverOffset: 15,
+                        borderColor: '#ffffff',
+                        borderWidth: 3
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { position: 'bottom' },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return `${context.raw.toLocaleString()} tokens`;
-                                }
-                            }
-                        }
-                    }
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }
+                    },
+                    cutout: '70%'
                 }
             });
         }
 
-        // Logout function
         function logout() {
             localStorage.removeItem('admin_token');
             window.location.replace('/admin-panel/login');
         }
 
-        // Load on page ready
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', () => {
             loadAdminProfile();
             loadAIUsageAnalytics();
+            loadStudents();
+
+            document.getElementById('studentSelect').addEventListener('change', function () {
+                const studentId = this.value;
+                if (studentId) {
+                    loadStudentAIUsage(studentId);
+                } else {
+                    loadAIUsageAnalytics();
+                }
+            });
         });
     </script>
 </body>

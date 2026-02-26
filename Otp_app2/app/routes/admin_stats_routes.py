@@ -1,0 +1,331 @@
+from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Any
+import asyncio
+
+from app.core.database import db
+from app.utils.admin_auth import get_current_admin
+
+router = APIRouter(tags=["Admin Stats"])
+
+
+@router.get("/stats/summary", response_model=Dict[str, Any])
+async def get_dashboard_summary(current_admin: dict = Depends(get_current_admin)):
+    """
+    Returns aggregated KPI stats for the admin dashboard.
+    All 6 queries run in parallel for performance.
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        thirty_days_ago = now - timedelta(days=30)
+
+        async def count_students():
+            return await db.students.count_documents({})
+
+        async def count_parents():
+            return await db.usertable.count_documents({"usertype": "parent"})
+
+        async def count_active_users():
+            # Users who have an OTP record updated in last 30 days (proxy for logins)
+            return await db.otps.count_documents({
+                "created_at": {"$gte": thirty_days_ago}
+            })
+
+        async def count_exams_generated():
+            return await db.generated_papers.count_documents({})
+
+        async def count_quiz_questions():
+            return await db.quiz_questions.count_documents({"is_active": True})
+
+        async def get_ai_cost_this_month():
+            pipeline = [
+                {"$match": {"timestamp": {"$gte": start_of_month}}},
+                {"$group": {"_id": None, "total": {"$sum": "$estimated_cost_usd"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return round(result[0]["total"], 4) if result else 0.0
+
+        # Run all queries in parallel
+        (
+            total_students,
+            total_parents,
+            active_users_30d,
+            total_exams_generated,
+            total_quiz_questions,
+            ai_cost_this_month_usd
+        ) = await asyncio.gather(
+            count_students(),
+            count_parents(),
+            count_active_users(),
+            count_exams_generated(),
+            count_quiz_questions(),
+            get_ai_cost_this_month()
+        )
+
+        return {
+            "status": "success",
+            "data": {
+                "total_students": total_students,
+                "total_parents": total_parents,
+                "active_users_30d": active_users_30d,
+                "total_exams_generated": total_exams_generated,
+                "total_quiz_questions": total_quiz_questions,
+                "ai_cost_this_month_usd": ai_cost_this_month_usd
+            }
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+@router.get("/ai-stats/student/{student_id}", response_model=Dict[str, Any])
+async def get_student_ai_summary(
+    student_id: str,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """
+    Returns AI usage analytics for a single student (last 30 days)
+    """
+
+    try:
+        now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
+
+        base_match = {
+            "student_id": student_id,
+            "timestamp": {"$gte": thirty_days_ago}
+        }
+
+        # -----------------------------
+        # TOTAL TOKENS
+        # -----------------------------
+        async def total_tokens():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": None, "total": {"$sum": "$tokens_used"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return result[0]["total"] if result else 0
+
+        # -----------------------------
+        # TOTAL CALLS
+        # -----------------------------
+        async def total_calls():
+            return await db.ai_usage_logs.count_documents(base_match)
+
+        # -----------------------------
+        # TOTAL COST
+        # -----------------------------
+        async def total_cost():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": None,
+                            "total": {"$sum": "$estimated_cost_usd"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return round(result[0]["total"], 4) if result else 0.0
+
+        # -----------------------------
+        # COST BY MODULE
+        # -----------------------------
+        async def module_costs():
+            pipeline = [
+                {"$match": base_match},
+                {
+                    "$group": {
+                        "_id": "$module",
+                        "cost": {"$sum": "$estimated_cost_usd"}
+                    }
+                }
+            ]
+
+            results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
+
+            return {
+                "labels": [r["_id"] for r in results],
+                "costs": [round(r["cost"], 4) for r in results]
+            }
+
+        # -----------------------------
+        # TOKENS BY MODEL
+        # -----------------------------
+        async def model_tokens():
+            pipeline = [
+                {"$match": base_match},
+                {
+                    "$group": {
+                        "_id": "$model",
+                        "tokens": {"$sum": "$tokens_used"}
+                    }
+                }
+            ]
+
+            results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
+
+            return {
+                "labels": [r["_id"] for r in results],
+                "tokens": [r["tokens"] for r in results]
+            }
+
+        # -----------------------------
+        # STUDENT INFO
+        # -----------------------------
+        async def student_info():
+            return await db.students.find_one(
+                {"_id": student_id},
+                {"name": 1}
+            )
+
+        (
+            tokens,
+            calls,
+            cost,
+            module_data,
+            model_data,
+            student
+        ) = await asyncio.gather(
+            total_tokens(),
+            total_calls(),
+            total_cost(),
+            module_costs(),
+            model_tokens(),
+            student_info()
+        )
+
+        return {
+            "status": "success",
+            "data": {
+                "student_id": student_id,
+                "student_name": student.get("name", "Unknown")
+                if student else "Unknown",
+                "total_tokens": tokens,
+                "total_calls": calls,
+                "total_cost_usd": cost,
+                "module_costs": module_data,
+                "model_tokens": model_data
+            }
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+
+@router.get("/ai-stats/summary", response_model=Dict[str, Any])
+async def get_ai_usage_summary(current_admin: dict = Depends(get_current_admin)):
+    """
+    Returns platform-wide AI usage analytics (last 30 days)
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
+
+        base_match = {
+            "timestamp": {"$gte": thirty_days_ago}
+        }
+
+        # -----------------------------
+        # TOTAL TOKENS
+        # -----------------------------
+        async def total_tokens():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": None, "total": {"$sum": "$tokens_used"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return result[0]["total"] if result else 0
+
+        # -----------------------------
+        # TOTAL CALLS
+        # -----------------------------
+        async def total_calls():
+            return await db.ai_usage_logs.count_documents(base_match)
+
+        # -----------------------------
+        # TOTAL COST
+        # -----------------------------
+        async def total_cost():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": None, "total": {"$sum": "$estimated_cost_usd"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return round(result[0]["total"], 4) if result else 0.0
+
+        # -----------------------------
+        # COST BY MODULE
+        # -----------------------------
+        async def module_costs():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": "$module", "cost": {"$sum": "$estimated_cost_usd"}}}
+            ]
+            results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
+            labels = [r["_id"] if r["_id"] else "Other" for r in results]
+            costs = [round(r["cost"], 4) for r in results]
+            return {"labels": labels, "costs": costs}
+
+        # -----------------------------
+        # TOKENS BY MODEL
+        # -----------------------------
+        async def model_tokens():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": "$model", "tokens": {"$sum": "$tokens_used"}}}
+            ]
+            results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
+            labels = [r["_id"] if r["_id"] else "Other" for r in results]
+            tokens = [r["tokens"] for r in results]
+            return {"labels": labels, "tokens": tokens}
+
+        (tokens, calls, cost, module_data, model_data) = await asyncio.gather(
+            total_tokens(),
+            total_calls(),
+            total_cost(),
+            module_costs(),
+            model_tokens()
+        )
+
+        return {
+            "status": "success",
+            "data": {
+                "total_tokens": tokens,
+                "total_calls": calls,
+                "total_cost_usd": cost,
+                "module_costs": module_data,
+                "model_tokens": model_data
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def serialize_student(doc):
+    return {
+        "id": str(doc["_id"]),
+        "name": doc.get("student_name", "Unnamed Student"),
+        "class": doc.get("student_class"),
+        "image_url": doc.get("image_url")
+    }
+
+
+@router.get("/ai-stats/get_students")
+async def get_students(admin=Depends(get_current_admin)):
+
+    cursor = db.students.find({})
+    students = await cursor.to_list(length=None)
+
+    serialized_students = [
+        serialize_student(student)
+        for student in students
+    ]
+
+    return {
+        "status": "success",
+        "students": serialized_students
+    }

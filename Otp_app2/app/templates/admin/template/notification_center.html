@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miki - Notification Center</title>
+    <link rel="icon" href="/assets/images/miki_favicon.svg" type="image/svg+xml">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/font-awesome.css">
+    <link rel="stylesheet" href="/assets/css/vendors/feather-icon.css">
+    <link rel="stylesheet" href="/assets/css/vendors/scrollbar.css">
+    <link rel="stylesheet" href="/assets/css/vendors/bootstrap.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/color-1.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    <style>
+        .nc-stat {
+            border-radius: 14px;
+            padding: 16px 20px;
+            color: #fff;
+        }
+
+        .nc-stat h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .nc-stat p {
+            font-size: 0.8rem;
+            margin: 0;
+            opacity: .85;
+        }
+
+        #toast-nc {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            min-width: 220px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loader-wrapper">
+        <div class="loader">
+            <div class="loader4"></div>
+        </div>
+    </div>
+    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
+    <div class="page-wrapper compact-wrapper" id="pageWrapper">
+        <div class="page-header">
+            <div class="header-wrapper row m-0">
+                <div class="header-logo-wrapper col-auto p-0">
+                    <a href="/admin-panel/dashboard"
+                        style="text-decoration:none;display:flex;align-items:center;gap:10px;padding:8px;">
+                        <div
+                            style="background:white;padding:4px 6px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.1);">
+                            <img src="/assets/images/logo/miki_logo.png" alt="Miki" style="height:24px;">
+                        </div>
+                        <span
+                            style="font-family:Montserrat,sans-serif;font-weight:700;font-size:1.3rem;color:#006666;">Miki</span>
+                    </a>
+                </div>
+                <div class="nav-right col ms-auto d-flex align-items-center justify-content-end pe-3 gap-2">
+                    <a href="/admin-panel/dashboard" class="btn btn-sm btn-outline-secondary"
+                        style="border-radius:20px;">Dashboard</a>
+                    <a class="btn btn-sm btn-outline-danger" style="border-radius:20px;" href="#"
+                        onclick="logout()">Logout</a>
+                </div>
+            </div>
+        </div>
+        <script src="/admin-panel/config.js"></script>
+        <div class="page-body-wrapper">
+            {% include "sidebar.html" %}
+            <div class="page-body">
+                <div class="container-fluid">
+                    <div class="page-title">
+                        <div class="row">
+                            <div class="col-6">
+                                <h4>Notification Center</h4>
+                            </div>
+                            <div class="col-6">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg
+                                                class="stroke-icon">
+                                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                                            </svg></a></li>
+                                    <li class="breadcrumb-item active">Notifications</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="nc-stat" style="background:linear-gradient(135deg,#f73164,#ff9f40);">
+                                <h3 id="stat-today">—</h3>
+                                <p>Broadcasts Today</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="nc-stat" style="background:linear-gradient(135deg,#7366ff,#6610f2);">
+                                <h3 id="stat-week">—</h3>
+                                <p>This Week</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="nc-stat" style="background:linear-gradient(135deg,#13c9ca,#54ba4a);">
+                                <h3 id="stat-month">—</h3>
+                                <p>This Month</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Compose -->
+                        <div class="col-lg-5 mb-4">
+                            <div class="card" style="border-radius:16px;">
+                                <div class="card-header"
+                                    style="background:linear-gradient(135deg,#7366ff,#f73164);color:#fff;border-radius:16px 16px 0 0;">
+                                    <h6 class="mb-0">Compose Notification</h6>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:.85rem;font-weight:600;">Title
+                                            *</label>
+                                        <input id="nc-title" type="text" class="form-control" style="border-radius:8px;"
+                                            placeholder="Notification title...">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:.85rem;font-weight:600;">Message
+                                            *</label>
+                                        <textarea id="nc-message" class="form-control" rows="4"
+                                            style="border-radius:8px;" placeholder="Write your message..."></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label"
+                                            style="font-size:.85rem;font-weight:600;">Target</label>
+                                        <select id="nc-target" class="form-select" style="border-radius:8px;"
+                                            onchange="toggleClass()">
+                                            <option value="all">All Users</option>
+                                            <option value="class">Specific Class</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3" id="nc-class-row" style="display:none;">
+                                        <label class="form-label"
+                                            style="font-size:.85rem;font-weight:600;">Class</label>
+                                        <select id="nc-class" class="form-select" style="border-radius:8px;"></select>
+                                    </div>
+                                    <button class="btn btn-primary w-100" style="border-radius:8px;font-weight:600;"
+                                        onclick="openConfirm()">Send Notification</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- History -->
+                        <div class="col-lg-7 mb-4">
+                            <div class="card" style="border-radius:16px;">
+                                <div class="card-header d-flex align-items-center justify-content-between">
+                                    <h6 class="mb-0">Broadcast History</h6>
+                                    <button class="btn btn-sm btn-outline-primary" style="border-radius:8px;"
+                                        onclick="loadHistory()">Refresh</button>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div id="nc-history-wrapper" class="table-responsive">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Confirm Modal -->
+            <div class="modal fade" id="confirmModal" tabindex="-1">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content" style="border-radius:16px;">
+                        <div class="modal-header bg-primary text-white" style="border-radius:16px 16px 0 0;">
+                            <h6 class="modal-title">Confirm Send</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" id="confirm-body"></div>
+                        <div class="modal-footer">
+                            <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button class="btn btn-sm btn-primary" onclick="doSend()" id="do-send-btn">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="toast-nc" class="toast align-items-center text-white border-0" style="display:none;">
+                <div class="d-flex">
+                    <div class="toast-body" id="toast-nc-msg"></div>
+                </div>
+            </div>
+
+            <footer class="footer">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12 footer-copyright text-center">
+                            <p class="mb-0">Copyright &copy; 2024 Miki Assessment Portal</p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
+    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
+    <script src="/assets/js/scrollbar/simplebar.js"></script>
+    <script src="/assets/js/scrollbar/custom.js"></script>
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/sidebar-menu.js"></script>
+    <script src="/assets/js/sidebar-pin.js"></script>
+    <script src="/assets/js/script.js"></script>
+    <script>
+        const token = localStorage.getItem("admin_token");
+        const API_BASE = window.API_BASE;
+        if (!token) window.location.replace("/admin-panel/login");
+        let pendingPayload = null;
+
+        function toggleClass() {
+            document.getElementById("nc-class-row").style.display = document.getElementById("nc-target").value === "class" ? "" : "none";
+        }
+
+        async function loadClasses() {
+            const res = await fetch(`${API_BASE}/admin-panel/notifications/classes`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            const sel = document.getElementById("nc-class");
+            sel.innerHTML = (json.classes || []).map(c => `<option value="${c}">Class ${c}</option>`).join("");
+        }
+
+        async function loadStats() {
+            const res = await fetch(`${API_BASE}/admin-panel/notifications/stats`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            if (json.data) {
+                document.getElementById("stat-today").textContent = json.data.today;
+                document.getElementById("stat-week").textContent = json.data.this_week;
+                document.getElementById("stat-month").textContent = json.data.this_month;
+            }
+        }
+
+        async function loadHistory() {
+            document.getElementById("nc-history-wrapper").innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
+            const res = await fetch(`${API_BASE}/admin-panel/notifications/history?limit=30`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            if (!json.data || !json.data.length) {
+                document.getElementById("nc-history-wrapper").innerHTML = `<div class="text-center text-muted py-4">No broadcasts sent yet</div>`;
+                return;
+            }
+            let html = `<table class="table table-hover mb-0" style="font-size:.82rem;"><thead class="table-light"><tr><th>Title</th><th>Target</th><th>Recipients</th><th>Date</th></tr></thead><tbody>`;
+            json.data.forEach(log => {
+                const date = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
+                html += `<tr><td><strong>${log.title}</strong></td>
+          <td>${log.target === "class" ? `<span class="badge" style="background:#13c9ca;">Class ${log.target_class}</span>` : `<span class="badge bg-primary">All</span>`}</td>
+          <td><span class="badge bg-info">${log.recipient_count || 0}</span></td>
+          <td style="font-size:.75rem;">${date}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById("nc-history-wrapper").innerHTML = html;
+        }
+
+        function openConfirm() {
+            const title = document.getElementById("nc-title").value.trim();
+            const message = document.getElementById("nc-message").value.trim();
+            const target = document.getElementById("nc-target").value;
+            const cls = document.getElementById("nc-class").value;
+            if (!title || !message) { showToast("Title and message are required", "danger"); return; }
+            if (target === "class" && !cls) { showToast("Select a class", "danger"); return; }
+            pendingPayload = { title, message, type: "announcement", _target: target };
+            if (target === "class") pendingPayload.student_class = cls;
+            const targetLabel = target === "class" ? `Class <strong>${cls}</strong>` : "<strong>All Users</strong>";
+            document.getElementById("confirm-body").innerHTML = `<p>Send <strong>"${title}"</strong> to ${targetLabel}?</p>`;
+            new bootstrap.Modal(document.getElementById("confirmModal")).show();
+        }
+
+        async function doSend() {
+            const btn = document.getElementById("do-send-btn");
+            btn.disabled = true; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+            bootstrap.Modal.getInstance(document.getElementById("confirmModal")).hide();
+            const url = pendingPayload._target === "class"
+                ? `${API_BASE}/admin-panel/notifications/broadcast-class`
+                : `${API_BASE}/admin-panel/notifications/broadcast`;
+            const body = { ...pendingPayload };
+            delete body._target;
+            const res = await fetch(url, { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+            const json = await res.json();
+            btn.disabled = false; btn.innerHTML = "Send";
+            if (res.ok) {
+                showToast(`Sent to ${json.recipient_count} recipients!`, "success");
+                document.getElementById("nc-title").value = "";
+                document.getElementById("nc-message").value = "";
+                loadStats(); loadHistory();
+            } else {
+                showToast(json.detail || "Send failed", "danger");
+            }
+        }
+
+        function showToast(msg, type = "success") {
+            const el = document.getElementById("toast-nc");
+            el.className = `toast align-items-center text-white border-0 bg-${type}`;
+            document.getElementById("toast-nc-msg").textContent = msg;
+            el.style.display = "block";
+            setTimeout(() => { el.style.display = "none"; }, 4000);
+        }
+        function logout() { localStorage.removeItem("admin_token"); window.location.replace("/admin-panel/login"); }
+        document.addEventListener("DOMContentLoaded", () => { loadClasses(); loadStats(); loadHistory(); });
+    </script>
+</body>
+
+</html>

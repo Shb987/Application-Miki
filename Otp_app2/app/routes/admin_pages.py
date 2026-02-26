@@ -135,3 +135,24 @@ async def student_analytics_page(request: Request):
 async def ai_usage_dashboard_page(request: Request):
     """AI Usage dashboard page"""
     return templates.TemplateResponse("admin_ai_dashboard.html", {"request": request})
+
+
+# ==================== NEW FEATURE ROUTES ====================
+
+@router.get("/user-management-page", response_class=HTMLResponse)
+async def user_management_page(request: Request):
+    """User Management page — search, filter, delete students & parents"""
+    return templates.TemplateResponse("user_management.html", {"request": request})
+
+
+@router.get("/notification-center-page", response_class=HTMLResponse)
+async def notification_center_page(request: Request):
+    """Notification Center — compose & broadcast push notifications"""
+    return templates.TemplateResponse("notification_center.html", {"request": request})
+
+
+@router.get("/games-management-page", response_class=HTMLResponse)
+async def games_management_page(request: Request):
+    """Games Management — Wordle & Squares admin UI"""
+    return templates.TemplateResponse("games_management.html", {"request": request})
+

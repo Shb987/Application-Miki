@@ -607,6 +607,8 @@ async def get_students(admin=Depends(get_current_admin)):
     }
 
 
+
+
 @router.get("/student-detail/{student_id}")
 async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
     try:

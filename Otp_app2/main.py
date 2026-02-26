@@ -13,7 +13,9 @@ from app.routes import (
     companion_routes, chat_routes, ai_tutor_routes,
     admin_tutorial_routes, user_tutorial_routes,
     user_analysis_routes, admin_analysis_routes, user_game_wordle, user_game_squares,
-    admin_special_day_routes, user_special_day_routes, voice_assistant_routes
+    admin_special_day_routes, user_special_day_routes, voice_assistant_routes,
+    admin_stats_routes, admin_user_management_routes,
+    admin_notification_routes, admin_games_routes
 )
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
@@ -107,5 +109,11 @@ app.include_router(user_game_squares.router, prefix="/user", tags=["Game - Squar
 # Special Days
 app.include_router(admin_special_day_routes.router, prefix="/admin-panel", tags=["Special Days - Admin"])
 app.include_router(user_special_day_routes.router, prefix="/user", tags=["Special Days - User"])
+
+# New Admin Features
+app.include_router(admin_stats_routes.router, prefix="/admin-panel", tags=["Admin Stats"])
+app.include_router(admin_user_management_routes.router, prefix="", tags=["User Management - Admin"])
+app.include_router(admin_notification_routes.router, prefix="", tags=["Notifications - Admin"])
+app.include_router(admin_games_routes.router, prefix="", tags=["Games - Admin"])
 
 app.include_router(voice_assistant_routes.router,prefix="/user",tags=["Voice Assistant"])

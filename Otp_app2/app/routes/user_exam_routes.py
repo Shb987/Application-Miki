@@ -120,29 +120,27 @@ async def get_generated_question_paper(
     # Convert comma-separated string to list
     chapter_list = [c.strip() for c in chapters.split(",")]
 
-    # Step 1: Find the task from question_jobs collection based on filters
-    task_doc = await db.question_tasks.find_one({
+    # Step 1: Find all tasks from question_tasks collection based on filters
+    tasks = await db.question_tasks.find({
         "standard": standard,
         "subject": subject,
-        "chapters": {"$in": chapter_list},   # <-- supports single/multiple
+        "chapters": {"$in": chapter_list},
         "marks": marks
-    })
+    }).to_list(None)
 
-    if not task_doc:
+    if not tasks:
         return {
             "status": False,
             "message": "No question task found for the given standard, subject, chapters and marks.",
             "data": None
         }
 
-    # task_id = task_doc.get("task_id")
-    # UPDATED: Use the MongoDB _id string as task_id
-    task_id = str(task_doc["_id"])
+    # Extract all matching task IDs
+    task_ids = [str(t["_id"]) for t in tasks]
 
-    # Step 2: Using task_id, find the generated question paper
-    # Note: admin_routes stores the task_oid as 'task_id' in generated_papers
+    # Step 2: Find a random paper from any of these tasks
     pipeline = [
-        {"$match": {"task_id": task_id}},
+        {"$match": {"task_id": {"$in": task_ids}}},
         {"$sample": {"size": 1}}
     ]
 
@@ -151,20 +149,21 @@ async def get_generated_question_paper(
     if not paper_doc:
         return {
             "status": False,
-            "message": "Generated question paper not found for the given task_id.",
+            "message": "Generated question paper not found for the given task IDs.",
             "data": None
         }
 
     # Extract the nested paper object
     paper = paper_doc.get("paper", {})
+    actual_task_id = paper_doc.get("task_id", task_ids[0])
 
     # Step 3: Return combined response
     return {
         "status": True,
         "message": "Question paper retrieved successfully.",
         "data": {
-            "task_id": task_id,
-            "paper_oid": str(paper_doc["_id"]),  # NEW: MongoDB ID for download
+            "task_id": actual_task_id,
+            "paper_oid": str(paper_doc["_id"]),
             "paper_id": paper.get("paper_id"),
             "standard": paper.get("standard"),
             "subject": paper.get("subject"),

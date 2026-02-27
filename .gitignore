@@ -13,3 +13,4 @@ Otp_app2/analyze_quiz_db.py
 Otp_app2/verify_wordle.py
 Otp_app2/test_openai_billing.py
 Otp_app2/*.md
+Otp_app2/verify_randomization.py

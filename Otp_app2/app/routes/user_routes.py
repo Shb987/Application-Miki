@@ -8,6 +8,7 @@ from bson import ObjectId
 from typing import Dict, List, Optional
 import re
 import os
+import random
 import shutil
 import uuid
 from app.utils.user_auth import get_current_user, admin_or_user, create_user_token
@@ -403,6 +404,16 @@ async def set_usertype(
 # --------------------- Questions by Age -------------------------
 @router.get("/student_questions")
 async def get_questions_by_age(age: int = Query(...)):
+    # Determine max questions per category based on age (Universal Model)
+    if age <= 6:
+        max_questions = 5
+    elif age <= 11:
+        max_questions = 7
+    elif age <= 14:
+        max_questions = 10
+    else:
+        max_questions = 12
+
     # Find questions where age_min <= age <= age_max
     query = {
         "$and": [
@@ -414,45 +425,47 @@ async def get_questions_by_age(age: int = Query(...)):
     cursor = db.questions.find(query)
     questions = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
 
-    grouped: Dict[str, List[dict]] = {}
-
+    # Group by category first
+    category_map: Dict[str, List[dict]] = {}
     for q in questions:
         cat = q.get("category", "uncategorized")
+        category_map.setdefault(cat, []).append(q)
 
-        # Detect type of question
-        is_image_question = "image_options" in q and q["image_options"]
+    final_grouped: Dict[str, List[dict]] = {}
 
-        # Build question payload
-        question_data = {
-        "id": q["_id"],
-        "text": q.get("text"),
-        }
+    for cat, cat_questions in category_map.items():
+        # 1. Randomize questions in this category
+        random.shuffle(cat_questions)
+        
+        # 2. Slice to limit
+        selected_questions = cat_questions[:max_questions]
+        
+        for q in selected_questions:
+            # Build question payload (as per original logic)
+            question_data = {
+                "id": q["_id"],
+                "text": q.get("text"),
+            }
 
-        if q.get("type") == "image":
-           question_data["type"] = "image"
-           question_data["options"] = q.get("image_options", [])  # list of image URLs
-           question_data["correct_index"] = q.get("correct_index")
+            if q.get("type") == "image":
+                question_data["type"] = "image"
+                question_data["options"] = q.get("image_options", [])
+                question_data["correct_index"] = q.get("correct_index")
+            elif q.get("type") == "rating":
+                question_data["type"] = "rating"
+                question_data["age_min"] = q.get("age_min")
+                question_data["age_max"] = q.get("age_max")
+            else:
+                question_data["type"] = "text"
+                question_data["options"] = q.get("options", [])
+                question_data["correct_answer"] = q.get("correct_answer")
 
-        elif q.get("type") == "rating":
-    # ⭐ Text-based Rating (no options)
-           question_data["type"] = "rating"
-    # Only text, min_age, max_age (if available)
-           question_data["age_min"] = q.get("age_min")
-           question_data["age_max"] = q.get("age_max")
-
-        else:
-    # 📝 Text-based MCQ
-           question_data["type"] = "text"
-           question_data["options"] = q.get("options", [])
-           question_data["correct_answer"] = q.get("correct_answer")
-
-        # Group by category
-        grouped.setdefault(cat, []).append(question_data)
+            final_grouped.setdefault(cat, []).append(question_data)
 
     return {
         "status_code": 200,
         "age": age,
-        "categories": grouped
+        "categories": final_grouped
     }
 
 # --------------------- Save Answer -------------------------

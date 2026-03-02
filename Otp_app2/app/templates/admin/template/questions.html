@@ -41,17 +41,111 @@
   <!-- Responsive css-->
   <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
   <style>
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .analytics-card {
+      border-radius: 16px;
+      transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+      border: none;
+      background: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      margin-bottom: 30px;
+    }
+
+    .analytics-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header-premium {
+      padding: 20px 25px;
+      background: transparent;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title-premium {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .question-card {
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      padding: 15px;
+      margin-bottom: 15px;
+      transition: all 0.3s ease;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .question-card:hover {
+      border-color: #667eea;
+      background: #f8faff;
+    }
+
+    .question-meta {
+      font-size: 0.85rem;
+      color: #64748b;
+      display: flex;
+      gap: 15px;
+    }
+
+    .question-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .form-label-premium {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #475569;
+      margin-bottom: 10px;
+    }
+
+    .premium-input {
+      border-radius: 10px;
+      border: 2px solid #e2e8f0;
+      padding: 10px 15px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .premium-input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
     /* Page-specific fix for logo container */
     .header-logo-wrapper {
       display: flex !important;
       align-items: center !important;
-      /* vertically center */
       justify-content: flex-start !important;
-      /* keep original alignment */
       position: relative !important;
-      /* ensure it’s not collapsed */
       height: auto !important;
-      /* allow container to grow */
     }
 
     .header-logo-wrapper .logo-wrapper {
@@ -63,7 +157,6 @@
     .header-logo-wrapper .logo-wrapper a img {
       display: block !important;
       max-height: 60px;
-      /* adjust to fit header */
     }
   </style>
 
@@ -477,317 +570,500 @@
           </div>
 
           <!-- Add Question Form -->
-          <div class="card mb-3 p-3">
-            <h5>Add New Questions</h5>
-            <!-- Question type selector -->
-            <div class="mb-3">
-              <label class="form-label">Question Type</label>
-              <select id="question-type" class="form-select" onchange="toggleQuestionType()">
-                <option value="text">Text-based MCQ</option>
-                <option value="image">Image-based MCQ</option>
-                <option value="rating">Text-based Rating</option>
-              </select>
+          <div class="card analytics-card">
+            <div class="card-header-premium">
+              <h5 class="card-title-premium">
+                <i class="fa fa-plus-circle text-primary"></i> Add New Question
+              </h5>
             </div>
-
-            <!-- Common fields -->
-            <input type="text" id="new-question-text" class="form-control mb-2" placeholder="Enter question text" />
-
-            <div class="row">
-              <div class="col-md-6 mb-2">
-                <input type="number" id="new-question-age-min" class="form-control" placeholder="Minimum Age" />
-              </div>
-              <div class="col-md-6 mb-2">
-                <input type="number" id="new-question-age-max" class="form-control" placeholder="Maximum Age" />
-              </div>
-            </div>
-
-            <!-- 🔹 Text-based MCQ fields -->
-
-            <div id="text-options" class="mb-3">
-              <h6>Text Options</h6>
-              <input type="text" class="form-control mb-2" id="option1" placeholder="Option 1" />
-              <input type="text" class="form-control mb-2" id="option2" placeholder="Option 2" />
-              <input type="text" class="form-control mb-2" id="option3" placeholder="Option 3" />
-              <input type="text" class="form-control mb-2" id="option4" placeholder="Option 4" />
-              <input type="text" class="form-control" id="correct-answer"
-                placeholder="Correct Answer (must match one option)" />
-            </div>
-
-            <!-- 🔹 Image-based MCQ fields -->
-            <div id="image-options" class="mb-3" style="display: none;">
-              <h6>Image Options</h6>
-              <input type="file" class="form-control mb-2" id="img1" accept="image/*" />
-              <input type="file" class="form-control mb-2" id="img2" accept="image/*" />
-              <input type="file" class="form-control mb-2" id="img3" accept="image/*" />
-              <input type="file" class="form-control mb-2" id="img4" accept="image/*" />
-              <label>Select correct image (1–4):</label>
-              <input type="number" class="form-control" id="correct-index" min="1" max="4" />
-            </div>
-
-            <!-- ⭐ Text-based Rating fields (no options) -->
-            <div id="rating-section" class="mb-3" style="display: none;">
-              <h6>Rating Question</h6>
-              <p class="text-muted">
-                This question type has no options — only question text and age range will be saved.
-              </p>
-            </div>
-
-            <button class="btn btn-primary mt-3" onclick="addQuestion()">➕ Add Question</button>
-
-
-
-            <!-- Questions List -->
-            <ul class="list-group" id="questions-list">
-              {% for q in questions %}
-              <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ q._id }}">
-                <span class="question-text">{{ q.text }} ({{ q.age_min }}-{{ q.age_max }} yrs)</span>
-                <div>
-                  <button class="btn btn-sm btn-warning"
-                    onclick="editQuestion('{{ q._id }}', {{ q.age_min }}, {{ q.age_max }})">✏️</button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteQuestion('{{ q._id }}')">🗑️</button>
+            <div class="card-body p-4">
+              <div class="row g-3">
+                <!-- Question type selector -->
+                <div class="col-md-4">
+                  <label class="form-label-premium">Question Type</label>
+                  <select id="question-type" class="form-select premium-input" onchange="toggleQuestionType()">
+                    <option value="text">Text-based MCQ</option>
+                    <option value="image">Image-based MCQ</option>
+                    <option value="rating">Text-based Rating</option>
+                  </select>
                 </div>
-              </li>
-              {% else %}
-              <li class="list-group-item">No questions yet in this category.</li>
-              {% endfor %}
-            </ul>
 
-          </div> <!-- container-fluid -->
-        </div> <!-- page-body -->
+                <!-- Common fields -->
+                <div class="col-md-8">
+                  <label class="form-label-premium">Question Text</label>
+                  <input type="text" id="new-question-text" class="form-control premium-input"
+                    placeholder="Enter question text" />
+                </div>
 
-      </div> <!-- page-body-wrapper -->
-    </div> <!-- page-wrapper -->
+                <div class="col-md-6">
+                  <label class="form-label-premium">Minimum Age</label>
+                  <input type="number" id="new-question-age-min" class="form-control premium-input"
+                    placeholder="Age Min" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label-premium">Maximum Age</label>
+                  <input type="number" id="new-question-age-max" class="form-control premium-input"
+                    placeholder="Age Max" />
+                </div>
 
-    <!-- latest jquery-->
-    <script src="/assets/js/jquery.min.js"></script>
+                <!-- 🔹 Text-based MCQ fields -->
+                <div id="text-options" class="col-12">
+                  <label class="form-label-premium">Options & Correct Answer</label>
+                  <div class="row g-2">
+                    <div class="col-md-6"><input type="text" class="form-control premium-input mb-2" id="option1"
+                        placeholder="Option 1" /></div>
+                    <div class="col-md-6"><input type="text" class="form-control premium-input mb-2" id="option2"
+                        placeholder="Option 2" /></div>
+                    <div class="col-md-6"><input type="text" class="form-control premium-input mb-2" id="option3"
+                        placeholder="Option 3" /></div>
+                    <div class="col-md-6"><input type="text" class="form-control premium-input mb-2" id="option4"
+                        placeholder="Option 4" /></div>
+                    <div class="col-12 mt-3">
+                      <input type="text" class="form-control premium-input" id="correct-answer"
+                        placeholder="Correct Answer (must match one option)" />
+                    </div>
+                  </div>
+                </div>
 
-    <!-- Bootstrap js-->
-    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
+                <!-- 🔹 Image-based MCQ fields -->
+                <div id="image-options" class="col-12" style="display: none;">
+                  <label class="form-label-premium">Image Options</label>
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <input type="file" class="form-control premium-input" id="img1" accept="image/*" />
+                    </div>
+                    <div class="col-md-6">
+                      <input type="file" class="form-control premium-input" id="img2" accept="image/*" />
+                    </div>
+                    <div class="col-md-6">
+                      <input type="file" class="form-control premium-input" id="img3" accept="image/*" />
+                    </div>
+                    <div class="col-md-6">
+                      <input type="file" class="form-control premium-input" id="img4" accept="image/*" />
+                    </div>
+                    <div class="col-md-12">
+                      <label class="form-label-premium">Select correct image (1–4)</label>
+                      <input type="number" class="form-control premium-input" id="correct-index" min="1" max="4" />
+                    </div>
+                  </div>
+                </div>
 
-    <!-- feather icon js-->
-    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
+                <!-- ⭐ Text-based Rating fields -->
+                <div id="rating-section" class="col-12" style="display: none;">
+                  <div class="alert alert-light border-2">
+                    <i class="fa fa-info-circle text-primary me-2"></i> Only question text and age range required.
+                  </div>
+                </div>
 
-    <!-- scrollbar js-->
-    <script src="/assets/js/scrollbar/simplebar.js"></script>
-    <script src="/assets/js/scrollbar/custom.js"></script>
+                <div class="col-12 text-end">
+                  <button class="btn btn-primary px-4 py-2" style="border-radius: 10px;" onclick="addQuestion()">
+                    <i class="fa fa-plus me-2"></i> Add Question
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
-    <!-- Sidebar jquery-->
-    <script src="/assets/js/config.js"></script>
+          <!-- Questions List -->
+          <div class="card analytics-card">
+            <div class="card-header-premium">
+              <h5 class="card-title-premium">
+                <i class="fa fa-list-ul text-primary"></i> Current Questions
+              </h5>
+              <div class="badge bg-primary rounded-pill px-3" id="questions-count">{{ questions|length }}</div>
+            </div>
+            <div class="card-body p-4" id="questions-grid">
+              <div class="row g-3">
+                {% for q in questions %}
+                <div class="col-12 question-item" data-id="{{ q._id }}">
+                  <div class="question-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="flex-grow-1">
+                        <h6 class="mb-2 question-text-display">{{ q.text }}</h6>
+                        <div class="question-meta">
+                          <span><i class="fa fa-user-circle me-1"></i> Age: {{ q.age_min }}-{{ q.age_max }}</span>
+                          <span class="badge bg-light text-dark">{{ q.type|default('text')|upper }}</span>
+                        </div>
+                      </div>
+                      <div class="question-actions">
+                        <button class="btn btn-warning btn-action text-white"
+                          onclick='openEditModal("{{ q._id }}", {{ q.text|tojson|forceescape }}, {{ q.age_min }}, {{ q.age_max }})'>
+                          <i class="fa fa-pencil"></i>
+                        </button>
+                        <button class="btn btn-danger btn-action" onclick="deleteQuestion('{{ q._id }}')">
+                          <i class="fa fa-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% else %}
+                <div class="col-12 no-questions text-center p-5">
+                  <img src="/assets/images/other-images/no-data.png" alt="No data"
+                    style="max-width: 150px; opacity: 0.5;">
+                  <p class="text-muted mt-3">No questions yet in this category.</p>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
 
-    <!-- Plugins JS start-->
-    <script src="/assets/js/sidebar-menu.js"></script>
-    <script src="/assets/js/sidebar-pin.js"></script>
-    <script src="/assets/js/slick/slick.min.js"></script>
-    <script src="/assets/js/slick/slick.js"></script>
-    <script src="/assets/js/header-slick.js"></script>
-    <script src="/assets/js/chart/apex-chart/apex-chart.js"></script>
-    <script src="/assets/js/chart/apex-chart/stock-prices.js"></script>
-    <script src="/assets/js/chart/apex-chart/moment.min.js"></script>
-    <script src="/assets/js/chart/echart/config.js"></script>
-    <script src="/assets/js/chart/echart/pie-chart/facePrint.js"></script>
-    <script src="/assets/js/chart/echart/pie-chart/testHelper.js"></script>
-    <script src="/assets/js/chart/echart/pie-chart/custom-transition-texture.js"></script>
-    <script src="/assets/js/chart/echart/data/symbols.js"></script>
+        </div> <!-- container-fluid -->
+      </div> <!-- page-body -->
 
-    <!-- calendar js-->
-    <script src="/assets/js/datepicker/date-picker/datepicker.js"></script>
-    <script src="/assets/js/datepicker/date-picker/datepicker.en.js"></script>
-    <script src="/assets/js/datepicker/date-picker/datepicker.custom.js"></script>
+      <!-- Edit Modal -->
+      <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content analytics-card" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header border-0 p-4">
+              <h5 class="modal-title f-w-700">Edit Question</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pt-0">
+              <input type="hidden" id="edit-question-id">
+              <div class="mb-3">
+                <label class="form-label-premium">Question Text</label>
+                <textarea id="edit-question-text" class="form-control premium-input" rows="3"></textarea>
+              </div>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label-premium">Min Age</label>
+                  <input type="number" id="edit-age-min" class="form-control premium-input">
+                </div>
+                <div class="col-6">
+                  <label class="form-label-premium">Max Age</label>
+                  <input type="number" id="edit-age-max" class="form-control premium-input">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer border-0 p-4">
+              <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary px-4" onclick="saveEdit()">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <script src="/assets/js/dashboard/dashboard_3.js"></script>
-    <!-- Plugins JS Ends-->
+      <!-- Delete Confirmation Modal -->
+      <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content analytics-card" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-body p-4 text-center">
+              <div class="mb-3">
+                <i class="fa fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+              </div>
+              <h5 class="f-w-700">Are you sure?</h5>
+              <p class="text-muted">This action cannot be undone.</p>
+              <input type="hidden" id="delete-question-id">
+              <div class="d-flex gap-2 justify-content-center mt-4">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger px-4" onclick="confirmDelete()">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- Theme js-->
-    <script src="/assets/js/script.js"></script>
-    <script src="/assets/js/theme-customizer/customizer.js"></script>
+    </div> <!-- page-body-wrapper -->
+  </div> <!-- page-wrapper -->
 
-    <script>
-      /* ------------------------------------------
-            GLOBAL VARIABLES
-      ------------------------------------------- */
+  <!-- latest jquery-->
+  <script src="/assets/js/jquery.min.js"></script>
 
-      const API_BASE = "/admin-panel/questions";
-      const category = "{{ category }}";
-      const token = localStorage.getItem("admin_token");
-      console.log(token);
+  <!-- Bootstrap js-->
+  <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
 
+  <!-- feather icon js-->
+  <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
+  <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
 
-      /* ------------------------------------------
-            REDIRECT IF NOT LOGGED IN
-      ------------------------------------------- */
-      if (!token) {
-        window.location.replace("/admin-panel/login");
-      }
+  <!-- scrollbar js-->
+  <script src="/assets/js/scrollbar/simplebar.js"></script>
+  <script src="/assets/js/scrollbar/custom.js"></script>
 
+  <!-- Sidebar jquery-->
+  <script src="/assets/js/config.js"></script>
 
-      /* ------------------------------------------
-            LOAD ADMIN PROFILE
-      ------------------------------------------- */
-      async function loadAdminProfile() {
-        try {
-          const res = await fetch(`${window.API_BASE}/admin-panel/get_details`, {
-            headers: { "Authorization": "Bearer " + token }
-          });
+  <!-- Plugins JS start-->
+  <script src="/assets/js/sidebar-menu.js"></script>
+  <script src="/assets/js/sidebar-pin.js"></script>
+  <script src="/assets/js/slick/slick.min.js"></script>
+  <script src="/assets/js/slick/slick.js"></script>
+  <script src="/assets/js/header-slick.js"></script>
+  <script src="/assets/js/chart/apex-chart/apex-chart.js"></script>
+  <script src="/assets/js/chart/apex-chart/stock-prices.js"></script>
+  <script src="/assets/js/chart/apex-chart/moment.min.js"></script>
+  <script src="/assets/js/chart/echart/config.js"></script>
+  <script src="/assets/js/chart/echart/pie-chart/facePrint.js"></script>
+  <script src="/assets/js/chart/echart/pie-chart/testHelper.js"></script>
+  <script src="/assets/js/chart/echart/pie-chart/custom-transition-texture.js"></script>
+  <script src="/assets/js/chart/echart/data/symbols.js"></script>
 
-          if (!res.ok) {
-            localStorage.removeItem("admin_token");
-            window.location.replace("/admin-panel/login");
-            return;
-          }
+  <!-- calendar js-->
+  <script src="/assets/js/datepicker/date-picker/datepicker.js"></script>
+  <script src="/assets/js/datepicker/date-picker/datepicker.en.js"></script>
+  <script src="/assets/js/datepicker/date-picker/datepicker.custom.js"></script>
 
-          const data = await res.json();
-          document.getElementById("admin-name").innerText = data.username;
+  <script src="/assets/js/dashboard/dashboard_3.js"></script>
+  <!-- Plugins JS Ends-->
 
-        } catch (err) {
-          console.error("Error loading profile:", err);
-          document.getElementById("admin-name").innerText = "Admin";
-        }
-      }
+  <!-- Theme js-->
+  <script src="/assets/js/script.js"></script>
+  <script src="/assets/js/theme-customizer/customizer.js"></script>
 
+  <script>
+    /* ------------------------------------------
+          GLOBAL VARIABLES
+    ------------------------------------------- */
+    const API_BASE = "/admin-panel/questions";
+    const category = "{{ category }}";
+    const token = localStorage.getItem("admin_token");
 
-      /* ------------------------------------------
-            TOGGLE QUESTION TYPE SECTIONS
-      ------------------------------------------- */
-      function toggleQuestionType() {
-        const type = document.getElementById("question-type").value;
+    /* ------------------------------------------
+          REDIRECT IF NOT LOGGED IN
+    ------------------------------------------- */
+    if (!token) {
+      window.location.replace("/admin-panel/login");
+    }
 
-        document.getElementById("text-options").style.display =
-          type === "text" ? "block" : "none";
+    /* ------------------------------------------
+          LOAD ADMIN PROFILE
+    ------------------------------------------- */
+    async function loadAdminProfile() {
+      try {
+        const res = await fetch(`/admin-panel/get_details`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
 
-        document.getElementById("image-options").style.display =
-          type === "image" ? "block" : "none";
-
-        document.getElementById("rating-options").style.display =
-          type === "rating" ? "block" : "none";
-      }
-
-
-      /* ------------------------------------------
-            ADD QUESTION
-      ------------------------------------------- */
-      async function addQuestion() {
-        const type = document.getElementById("question-type").value;
-        const text = document.getElementById("new-question-text").value.trim();
-        const age_min = parseInt(document.getElementById("new-question-age-min").value);
-        const age_max = parseInt(document.getElementById("new-question-age-max").value);
-
-        if (!text || isNaN(age_min) || isNaN(age_max)) {
-          alert("Please fill question text and age range.");
+        if (!res.ok) {
+          localStorage.removeItem("admin_token");
+          window.location.replace("/admin-panel/login");
           return;
         }
 
-        const formData = new FormData();
-        formData.append("category", category);
-        formData.append("text", text);
-        formData.append("age_min", age_min);
-        formData.append("age_max", age_max);
-        formData.append("type", type);
+        const data = await res.json();
+        document.getElementById("admin-name").innerText = data.username;
+      } catch (err) {
+        console.error("Error loading profile:", err);
+        document.getElementById("admin-name").innerText = "Admin";
+      }
+    }
 
-        let res;
+    /* ------------------------------------------
+          TOGGLE QUESTION TYPE SECTIONS
+    ------------------------------------------- */
+    function toggleQuestionType() {
+      const type = document.getElementById("question-type").value;
+      document.getElementById("text-options").style.display = type === "text" ? "block" : "none";
+      document.getElementById("image-options").style.display = type === "image" ? "block" : "none";
+      document.getElementById("rating-section").style.display = type === "rating" ? "block" : "none";
+    }
 
-        if (type === "text") {
-          formData.append(
-            "options",
-            JSON.stringify([
-              document.getElementById("option1").value.trim(),
-              document.getElementById("option2").value.trim(),
-              document.getElementById("option3").value.trim(),
-              document.getElementById("option4").value.trim()
-            ].filter(Boolean))
-          );
 
-          formData.append(
-            "correct_answer",
-            document.getElementById("correct-answer").value.trim()
-          );
+    /* ------------------------------------------
+          HELPER: CREATE QUESTION HTML
+    ------------------------------------------- */
+    function createQuestionCardHtml(q) {
+      return `
+        <div class="col-12 question-item" data-id="${q._id}">
+          <div class="question-card">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="flex-grow-1">
+                <h6 class="mb-2 question-text-display">${q.text}</h6>
+                <div class="question-meta">
+                  <span><i class="fa fa-user-circle me-1"></i> Age: ${q.age_min}-${q.age_max}</span>
+                  <span class="badge bg-light text-dark">${(q.type || 'text').toUpperCase()}</span>
+                </div>
+              </div>
+              <div class="question-actions">
+                <button class="btn btn-warning btn-action text-white" 
+                  onclick='openEditModal("${q._id}", ${JSON.stringify(q.text).replace(/"/g, '&quot;')}, ${q.age_min}, ${q.age_max})'>
+                  <i class="fa fa-pencil"></i>
+                </button>
+                <button class="btn btn-danger btn-action" onclick="deleteQuestion('${q._id}')">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
-          res = await fetch(API_BASE, {
-            method: "POST",
-            headers: { "Authorization": "Bearer " + token },
-            body: formData
-          });
+    /* ------------------------------------------
+          ADD QUESTION
+    ------------------------------------------- */
+    async function addQuestion() {
+      const type = document.getElementById("question-type").value;
+      const text = document.getElementById("new-question-text").value.trim();
+      const age_min = parseInt(document.getElementById("new-question-age-min").value);
+      const age_max = parseInt(document.getElementById("new-question-age-max").value);
 
-        } else if (type === "image") {
-          const correct_index = parseInt(document.getElementById("correct-index").value);
+      if (!text || isNaN(age_min) || isNaN(age_max)) {
+        alert("Please fill question text and age range.");
+        return;
+      }
 
-          if (isNaN(correct_index) || correct_index < 1 || correct_index > 4) {
-            alert("Please enter a valid image number (1–4).");
-            return;
-          }
+      const formData = new FormData();
+      formData.append("category", category);
+      formData.append("text", text);
+      formData.append("age_min", age_min);
+      formData.append("age_max", age_max);
+      formData.append("type", type);
 
-          formData.append("correct_index", correct_index - 1);
-
-          ["img1", "img2", "img3", "img4"].forEach((id, i) => {
-            const file = document.getElementById(id).files[0];
-            if (file) formData.append(`option${i + 1}`, file);
-          });
-
-          res = await fetch(API_BASE, {
-            method: "POST",
-            headers: { "Authorization": "Bearer " + token },
-            body: formData
-          });
-
-        } else if (type === "rating") {
-          res = await fetch(API_BASE, {
-            method: "POST",
-            headers: { "Authorization": "Bearer " + token },
-            body: formData
-          });
+      if (type === "text") {
+        formData.append("options", JSON.stringify([
+          document.getElementById("option1").value.trim(),
+          document.getElementById("option2").value.trim(),
+          document.getElementById("option3").value.trim(),
+          document.getElementById("option4").value.trim()
+        ].filter(Boolean)));
+        formData.append("correct_answer", document.getElementById("correct-answer").value.trim());
+      } else if (type === "image") {
+        const correct_index = parseInt(document.getElementById("correct-index").value);
+        if (isNaN(correct_index) || correct_index < 1 || correct_index > 4) {
+          alert("Please enter a valid image number (1–4).");
+          return;
         }
+        formData.append("correct_index", correct_index - 1);
+        ["img1", "img2", "img3", "img4"].forEach((id, i) => {
+          const file = document.getElementById(id).files[0];
+          if (file) formData.append(`option${i + 1}`, file);
+        });
+      }
+
+      try {
+        const res = await fetch(API_BASE, {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          body: formData
+        });
 
         const data = await res.json();
         if (res.ok) {
-          alert("Question added successfully!");
-          location.reload();
+          const grid = document.querySelector("#questions-grid .row");
+          const noData = document.querySelector(".no-questions");
+          if (noData) noData.remove();
+
+          const newQuestion = {
+            _id: data.id || data._id,
+            text: text,
+            age_min: age_min,
+            age_max: age_max,
+            type: type
+          };
+
+          grid.insertAdjacentHTML('afterbegin', createQuestionCardHtml(newQuestion));
+
+          const countBadge = document.getElementById("questions-count");
+          countBadge.innerText = parseInt(countBadge.innerText) + 1;
+
+          document.getElementById("new-question-text").value = "";
+          ["option1", "option2", "option3", "option4", "correct-answer", "correct-index"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+          });
+          ["img1", "img2", "img3", "img4"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = null;
+          });
+
+          const btn = document.querySelector("button[onclick='addQuestion()']");
+          const originalText = btn.innerHTML;
+          btn.innerHTML = '<i class="fa fa-check me-2"></i> Added!';
+          btn.classList.replace("btn-primary", "btn-success");
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.replace("btn-success", "btn-primary");
+          }, 2000);
         } else {
           alert(data.detail || "Error adding question");
         }
+      } catch (err) {
+        console.error("Add Error:", err);
+      }
+    }
+
+
+    /* ------------------------------------------
+          MODAL HANDLING
+    ------------------------------------------- */
+    function openEditModal(id, text, min, max) {
+      document.getElementById("edit-question-id").value = id;
+      document.getElementById("edit-question-text").value = text;
+      document.getElementById("edit-age-min").value = min;
+      document.getElementById("edit-age-max").value = max;
+      const modal = new bootstrap.Modal(document.getElementById('editModal'));
+      modal.show();
+    }
+
+    async function saveEdit() {
+      const id = document.getElementById("edit-question-id").value;
+      const text = document.getElementById("edit-question-text").value.trim();
+      const age_min = document.getElementById("edit-age-min").value;
+      const age_max = document.getElementById("edit-age-max").value;
+
+      if (!text || !age_min || !age_max) {
+        alert("Please fill all fields.");
+        return;
       }
 
+      const formData = new FormData();
+      formData.append("text", text);
+      formData.append("category", category);
+      formData.append("age_min", age_min);
+      formData.append("age_max", age_max);
 
-      /* ------------------------------------------
-            EDIT QUESTION
-      ------------------------------------------- */
-      async function editQuestion(id, currentAgeMin, currentAgeMax) {
-        const li = document.querySelector(`li[data-id='${id}']`);
-        const currentText = li.querySelector(".question-text").innerText.split(' (')[0];
-
-        const newText = prompt("Edit question:", currentText);
-        const newAgeMin = parseInt(prompt("Minimum Age:", currentAgeMin));
-        const newAgeMax = parseInt(prompt("Maximum Age:", currentAgeMax));
-
-        if (!newText || isNaN(newAgeMin) || isNaN(newAgeMax)) return;
-
+      try {
         const res = await fetch(`${API_BASE}/${id}`, {
           method: "PUT",
           headers: {
-            "Content-Type": "application/json",
             "Authorization": "Bearer " + token
           },
-          body: JSON.stringify({
-            text: newText,
-            category,
-            age_min: newAgeMin,
-            age_max: newAgeMax
-          })
+          body: formData
         });
 
         if (res.ok) {
-          li.querySelector(".question-text").innerText = `${newText} (${newAgeMin}-${newAgeMax} yrs)`;
+          const item = document.querySelector(`.question-item[data-id='${id}']`);
+          if (item) {
+            item.querySelector(".question-text-display").innerText = text;
+            item.querySelector(".question-meta span").innerHTML = `<i class="fa fa-user-circle me-1"></i> Age: ${age_min}-${age_max}`;
+
+            // Also update the onclick handler for the edit button to reflect new values
+            const editBtn = item.querySelector(".btn-warning");
+            editBtn.setAttribute("onclick", `openEditModal("${id}", ${JSON.stringify(text).replace(/"/g, '&quot;')}, ${age_min}, ${age_max})`);
+          }
+          bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
         } else {
           const data = await res.json();
           alert(data.detail || "Error updating question");
         }
+      } catch (err) {
+        console.error("Save Error:", err);
       }
+    }
 
+    /* ------------------------------------------
+          DELETE QUESTION
+    ------------------------------------------- */
+    let deleteModalInstance = null;
 
-      /* ------------------------------------------
-            DELETE QUESTION
-      ------------------------------------------- */
-      async function deleteQuestion(id) {
-        if (!confirm("Are you sure you want to delete this question?")) return;
+    function deleteQuestion(id) {
+      document.getElementById("delete-question-id").value = id;
+      if (!deleteModalInstance) {
+        deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteModal'));
+      }
+      deleteModalInstance.show();
+    }
+
+    async function confirmDelete() {
+      const id = document.getElementById("delete-question-id").value;
+      const btn = document.querySelector("#deleteModal .btn-danger");
+      const originalHtml = btn.innerHTML;
+
+      try {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i> Deleting...';
 
         const res = await fetch(`${API_BASE}/${id}`, {
           method: "DELETE",
@@ -795,30 +1071,61 @@
         });
 
         if (res.ok) {
-          document.querySelector(`li[data-id='${id}']`).remove();
+          const item = document.querySelector(`.question-item[data-id='${id}']`);
+          if (item) {
+            item.style.opacity = '0';
+            item.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+              item.remove();
+              checkEmptyGrid();
+            }, 300);
+          }
+
+          const countBadge = document.getElementById("questions-count");
+          countBadge.innerText = Math.max(0, parseInt(countBadge.innerText) - 1);
+
+          deleteModalInstance.hide();
         } else {
           const data = await res.json();
           alert(data.detail || "Error deleting question");
         }
+      } catch (err) {
+        console.error("Delete Error:", err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
       }
+    }
 
-
-      /* ------------------------------------------
-            LOGOUT
-      ------------------------------------------- */
-      if (typeof window.logout !== "function") {
-        window.logout = function () {
-          localStorage.removeItem("admin_token");
-          window.location.href = "/admin-panel/login";
-        };
+    function checkEmptyGrid() {
+      const grid = document.querySelector("#questions-grid .row");
+      if (grid.querySelectorAll(".question-item").length === 0) {
+        grid.innerHTML = `
+          <div class="col-12 no-questions text-center p-5">
+            <img src="/assets/images/other-images/no-data.png" alt="No data" style="max-width: 150px; opacity: 0.5;">
+            <p class="text-muted mt-3">No questions yet in this category.</p>
+          </div>
+        `;
       }
+    }
 
-      /* ------------------------------------------
-            INIT
-      ------------------------------------------- */
-      loadAdminProfile();
 
-    </script>
+    /* ------------------------------------------
+          LOGOUT
+    ------------------------------------------- */
+    if (typeof window.logout !== "function") {
+      window.logout = function () {
+        localStorage.removeItem("admin_token");
+        window.location.href = "/admin-panel/login";
+      };
+    }
+
+    /* ------------------------------------------
+          INIT
+    ------------------------------------------- */
+    loadAdminProfile();
+
+  </script>
 </body>
 
 </html>

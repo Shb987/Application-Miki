@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 import json
 from bson import ObjectId
+import difflib
 from app.core.database import db
 from typing import List
 from app.utils.user_auth import get_current_user
@@ -850,14 +851,28 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
     }
 
     # ── 4. Chapter Trends & Persistent Areas ───────────────────────
-    chapter_tracker = {}   # chapter_name -> {appearances, scores, weak_count, strong_count}
-    weak_topic_counts = {}
-    strong_topic_counts = {}
+    chapter_tracker = {}   # chapter_name -> {appearances, scores, labels, weak_count, strong_count}
+    
+    # Fuzzy Match Helper for Topics
+    def get_fuzzy_topic_group(topic, topic_groups, threshold=0.6):
+        """Finds or creates a fuzzy group for a topic name."""
+        topic_clean = topic.lower().strip()
+        for group_name in topic_groups.keys():
+            if difflib.SequenceMatcher(None, topic_clean, group_name.lower()).ratio() > threshold:
+                return group_name
+        return topic # New group
+    
+    weak_topic_counts = {}   # Resolved Topic -> Frequency
+    strong_topic_counts = {} # Resolved Topic -> Frequency
+    
+    # Recent items for new students (Fall-back)
+    recent_weak = []
+    recent_strong = []
 
     for ev in evaluations:
         ta = ev.get("topic_analysis") or {}
 
-        # Chapter performance per eval
+        # Chapter-level tracking
         for ch_name, ch_data in (ta.get("chapter_performance") or {}).items():
             if ch_name not in chapter_tracker:
                 chapter_tracker[ch_name] = {"appearances": 0, "scores": [], "strength_labels": []}
@@ -865,12 +880,24 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
             chapter_tracker[ch_name]["scores"].append(ch_data.get("pct", 0))
             chapter_tracker[ch_name]["strength_labels"].append(ch_data.get("strength", "average"))
 
-        # Sub-topic weak/strong counting
-        for topic in (ta.get("weak_areas") or []):
-            weak_topic_counts[topic] = weak_topic_counts.get(topic, 0) + 1
-        for topic in (ta.get("strong_areas") or []):
-            strong_topic_counts[topic] = strong_topic_counts.get(topic, 0) + 1
+        # Topic-level tracking with Fuzzy Matching
+        curr_weak = ta.get("weak_areas") or []
+        curr_strong = ta.get("strong_areas") or []
+        
+        # Track recent items for students with 1-2 exams
+        if ev == evaluations[-1]:
+            recent_weak = curr_weak
+            recent_strong = curr_strong
 
+        for topic in curr_weak:
+            resolved = get_fuzzy_topic_group(topic, weak_topic_counts)
+            weak_topic_counts[resolved] = weak_topic_counts.get(resolved, 0) + 1
+            
+        for topic in curr_strong:
+            resolved = get_fuzzy_topic_group(topic, strong_topic_counts)
+            strong_topic_counts[resolved] = strong_topic_counts.get(resolved, 0) + 1
+
+    # Chapter Trends
     chapter_trends = {
         ch: {
             "appearances": d["appearances"],
@@ -885,9 +912,32 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
         for ch, d in chapter_tracker.items()
     }
 
-    # Persistent = appears weak/strong in >=2 evaluations
-    persistent_weak_areas   = [t for t, c in weak_topic_counts.items()   if c >= 2]
-    persistent_strong_areas = [t for t, c in strong_topic_counts.items() if c >= 2]
+    # PERSISTENCE LOGIC
+    # If student has < 3 exams, we show "Recent Areas" to avoid empty lists.
+    # If student has >= 3 exams, we only show "Persistent" (Repeated) areas.
+    
+    if len(evaluations) < 3:
+        # Show all topics from most recent eval, plus any that actually repeated
+        persistent_weak_areas = list(set(recent_weak + [t for t, c in weak_topic_counts.items() if c >= 2]))
+        persistent_strong_areas = list(set(recent_strong + [t for t, c in strong_topic_counts.items() if c >= 2]))
+    else:
+        # Strict Persistence (Repeated topics)
+        persistent_weak_areas = [t for t, c in weak_topic_counts.items() if c >= 2]
+        persistent_strong_areas = [t for t, c in strong_topic_counts.items() if c >= 2]
+        
+    # CHAPTER PERSISTENCE (Bonus Layer)
+    # If a chapter appears as "weak" in last 2 exams, add it to weak list if not there
+    for ch, d in chapter_tracker.items():
+        if d["appearances"] >= 2:
+            last_two = d["strength_labels"][-2:]
+            if all(s == "weak" for s in last_two):
+                ch_label = f"Chapter: {ch}"
+                if ch_label not in persistent_weak_areas:
+                    persistent_weak_areas.append(ch_label)
+            elif all(s == "strong" for s in last_two):
+                ch_label = f"Chapter: {ch}"
+                if ch_label not in persistent_strong_areas:
+                    persistent_strong_areas.append(ch_label)
 
     # ── 5. Question Accuracy Breakdown ─────────────────────────────
     total_q = correct_q = partial_q = wrong_q = not_attempted_q = 0

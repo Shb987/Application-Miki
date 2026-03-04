@@ -60,38 +60,47 @@ async def log_ai_usage(student_id: str, action_type: str, model: str, usage_obj)
             logger.warning(f"No usage object provided for {action_type} using {model}")
             return
             
-        # Extract tokens gracefully from the object (handles both object attributes and dicts)
+        # Extract tokens gracefully from the object (handles both object attributes, dicts, and Realtime API naming)
         if isinstance(usage_obj, dict):
-            prompt_tokens = usage_obj.get("prompt_tokens", 0)
-            completion_tokens = usage_obj.get("completion_tokens", 0)
+            # Handle prompt/input tokens
+            prompt_tokens = usage_obj.get("prompt_tokens") or usage_obj.get("input_tokens") or 0
+            # Handle completion/output tokens
+            completion_tokens = usage_obj.get("completion_tokens") or usage_obj.get("output_tokens") or 0
             total_tokens = usage_obj.get("total_tokens", prompt_tokens + completion_tokens)
+            
+            # Realtime Audio Specific Extraction (Dict)
+            input_details = usage_obj.get("input_token_details", usage_obj.get("prompt_tokens_details", {}))
+            audio_prompt_tokens = input_details.get("audio_tokens", 0)
+            
+            output_details = usage_obj.get("output_token_details", usage_obj.get("completion_tokens_details", {}))
+            audio_completion_tokens = output_details.get("audio_tokens", 0)
         else:
-            prompt_tokens = getattr(usage_obj, "prompt_tokens", 0)
-            completion_tokens = getattr(usage_obj, "completion_tokens", 0)
+            # Handle prompt/input tokens
+            prompt_tokens = getattr(usage_obj, "prompt_tokens", getattr(usage_obj, "input_tokens", 0))
+            # Handle completion/output tokens
+            completion_tokens = getattr(usage_obj, "completion_tokens", getattr(usage_obj, "output_tokens", 0))
             total_tokens = getattr(usage_obj, "total_tokens", prompt_tokens + completion_tokens)
             
+            # Realtime Audio Specific Extraction (Object)
+            audio_prompt_tokens = 0
+            audio_completion_tokens = 0
+            
+            input_details = getattr(usage_obj, "input_token_details", getattr(usage_obj, "prompt_tokens_details", None))
+            if input_details:
+                audio_prompt_tokens = getattr(input_details, "audio_tokens", 0)
+            
+            output_details = getattr(usage_obj, "output_token_details", getattr(usage_obj, "completion_tokens_details", None))
+            if output_details:
+                audio_completion_tokens = getattr(output_details, "audio_tokens", 0)
+        
         # Calculate Estimated Cost in USD
         rates = PRICING.get(model, {"prompt": 0, "completion": 0})
         
-        # 1. Standard Text Costs (Usage object usually has prompt_tokens and completion_tokens)
+        # 1. Standard Text Costs
         prompt_cost = (prompt_tokens / 1000000) * rates.get("prompt", 0)
         completion_cost = (completion_tokens / 1000000) * rates.get("completion", 0)
         
-        # 2. Realtime Audio Specific Costs (if usage object contains audio breakdown)
-        # Note: Some OpenAI SDK versions put these in 'prompt_tokens_details' or similar sub-objects
-        audio_prompt_tokens = 0
-        audio_completion_tokens = 0
-        
-        if not isinstance(usage_obj, dict):
-            # Try to find audio token counts in response details (SDK specific)
-            prompt_details = getattr(usage_obj, "prompt_tokens_details", None)
-            if prompt_details:
-                audio_prompt_tokens = getattr(prompt_details, "audio_tokens", 0)
-            
-            comp_details = getattr(usage_obj, "completion_tokens_details", None)
-            if comp_details:
-                audio_completion_tokens = getattr(comp_details, "audio_tokens", 0)
-        
+        # 2. Realtime Audio Specific Costs
         audio_prompt_cost = (audio_prompt_tokens / 1000000) * rates.get("audio_prompt", 0)
         audio_comp_cost = (audio_completion_tokens / 1000000) * rates.get("audio_completion", 0)
         

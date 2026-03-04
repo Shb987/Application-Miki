@@ -80,7 +80,7 @@ async def extract_answers_with_vision(image_paths, question_paper_text, student_
 
     try:
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "user", "content": content_payload}
             ],
@@ -102,7 +102,7 @@ async def extract_answers_with_vision(image_paths, question_paper_text, student_
 # --------------------------------
 # 2. EVALUATE ONE QUESTION (RAG)
 # --------------------------------
-async def evaluate_answer(question, student_answer, max_marks, context_text, student_id: str):
+async def evaluate_answer(question, student_answer, max_marks, context_text, student_id: str, model: str = "gpt-4o-mini"):
     prompt = f"""
 You are an expert academic evaluator.
 
@@ -138,7 +138,7 @@ Return JSON only:
     for attempt in range(MAX_RETRIES + 1):
         try:
             response = await client.chat.completions.create(
-                model="gpt-4o",
+                model=model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"}
@@ -147,7 +147,7 @@ Return JSON only:
             # Log usage
             if hasattr(response, 'usage') and response.usage:
                 from app.utils.ai_usage_logger import log_ai_usage
-                await log_ai_usage(student_id, "Exam Evaluation - Grading", "gpt-4o", response.usage)
+                await log_ai_usage(student_id, "Exam Evaluation - Grading", model, response.usage)
 
             message = response.choices[0].message.content
             return json.loads(message)
@@ -338,7 +338,7 @@ If all questions were "[Not Attempted]", reflect that honestly.
 # 4. MAIN API
 # ------------------------------
 
-async def process_evaluation_background(eval_oid: str, paper_id: str, student_id: str, saved_file_paths: List[str]):
+async def process_evaluation_background(eval_oid: str, paper_id: str, student_id: str, saved_file_paths: List[str], model: str = "gpt-4o-mini"):
     evaluation_status = "FAILED"
     total_score = 0
     max_total = 0
@@ -390,7 +390,7 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
             for q in section["questions"]:
                 student_ans = student_answers.get(str(q_number), "[Not Attempted]")
                 grading_tasks.append(
-                    evaluate_answer(q["question"], student_ans, marks, context_text, student_id)
+                    evaluate_answer(q["question"], student_ans, marks, context_text, student_id, model)
                 )
                 task_meta.append((q_number, q["question"], student_ans, marks))
                 q_number += 1
@@ -507,6 +507,7 @@ async def evaluate_answersheet(
     student_id: str = Form(...),
     paper_id: str = Form(...),
     files: List[UploadFile] = File(...),
+    model: str = Form("gpt-4o-mini"),
     current_user: dict = Depends(get_current_user)
 ):
     saved_file_paths = []
@@ -542,7 +543,8 @@ async def evaluate_answersheet(
             eval_oid,
             paper_id,
             str(s_oid), # Convert ObjectId to str for safety in background task args
-            saved_file_paths
+            saved_file_paths,
+            model
         )
 
         return JSONResponse(

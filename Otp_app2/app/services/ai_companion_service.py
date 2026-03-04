@@ -38,7 +38,7 @@ async def ai_companion_guide_homework(student_id: str, subject: str, homework_te
     user_prompt = f"Student ID: {student_id}\nHomework Task: {homework_text}"
     
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
@@ -62,7 +62,7 @@ async def ai_mentor_advice(student_id: str):
     user_prompt = f"Student Performance Context:\n{performance_context}"
     
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
@@ -85,7 +85,7 @@ async def ai_parent_insights(student_id: str):
     user_prompt = f"Child's (Student ID: {student_id}) Performance Context:\n{performance_context}"
     
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}

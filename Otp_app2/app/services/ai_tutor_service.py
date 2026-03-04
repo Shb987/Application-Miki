@@ -43,6 +43,12 @@ class AITutorService:
                 input=query
             )
             query_vector = response.data[0].embedding
+            
+            # Log usage
+            if hasattr(response, 'usage') and response.usage:
+                from app.utils.ai_usage_logger import log_ai_usage
+                # Using ADMIN or student_id if available, but for now tutor service doesn't have student_id in context
+                await log_ai_usage("SYSTEM", "AI Tutor - Embedding", "text-embedding-3-large", response.usage)
         except Exception as e:
             logger.error(f"Embedding Error: {e}")
             return ""

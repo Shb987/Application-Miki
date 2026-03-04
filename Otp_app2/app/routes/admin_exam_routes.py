@@ -208,6 +208,11 @@ Text to analyze:
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}]
         )
+        # Log usage
+        if hasattr(ai, 'usage') and ai.usage:
+            from app.utils.ai_usage_logger import log_ai_usage
+            await log_ai_usage("ADMIN", "Textbook Extraction", "gpt-4o-mini", ai.usage)
+
         raw = ai.choices[0].message.content
         cleaned = raw.replace("```json", "").replace("```", "").strip()
         chapters = json.loads(cleaned)
@@ -223,6 +228,11 @@ Text to analyze:
         try:
             emb = await client.embeddings.create(model="text-embedding-3-large", input=ch["content"])
             vector = emb.data[0].embedding
+            
+            # Log usage
+            if hasattr(emb, 'usage') and emb.usage:
+                from app.utils.ai_usage_logger import log_ai_usage
+                await log_ai_usage("ADMIN", "Textbook Embedding", "text-embedding-3-large", emb.usage)
             chapter_doc = {
                 "textbook_id": textbook_id,
                 "board": textbook["board"],
@@ -399,6 +409,11 @@ Respond with valid JSON only. No text outside JSON.
         )
 
         content = response.choices[0].message.content
+        
+        # Log usage
+        if hasattr(response, 'usage') and response.usage:
+            from app.utils.ai_usage_logger import log_ai_usage
+            await log_ai_usage("ADMIN", "Question Generation", "gpt-4o-mini", response.usage)
         cleaned = content.replace("```json", "").replace("```", "").strip()
 
         try:

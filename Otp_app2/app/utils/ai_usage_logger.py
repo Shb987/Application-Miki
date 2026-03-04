@@ -38,6 +38,10 @@ PRICING = {
         "completion": 2.40,   # Text output
         "audio_prompt": 10.00, 
         "audio_completion": 20.00
+    },
+    "gpt-4.1-mini": { # Custom/Legacy model name
+        "prompt": 0.150,
+        "completion": 0.600
     }
 }
 

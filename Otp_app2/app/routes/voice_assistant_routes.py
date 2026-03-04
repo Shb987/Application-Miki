@@ -212,6 +212,11 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                             pass
                                         await save_chat_event(student_id, session_id, "assistant", text.strip())
 
+                        # Log usage
+                        if resp and hasattr(resp, 'usage') and resp.usage:
+                            from app.utils.ai_usage_logger import log_ai_usage
+                            await log_ai_usage(student_id, "Voice Assistant", "gpt-4o-mini-realtime-preview", resp.usage)
+
                         # Reset after a full completed turn
                         last_valid_user_transcript = ""
 

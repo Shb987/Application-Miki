@@ -91,7 +91,7 @@ async def extract_answers_with_vision(image_paths, question_paper_text, student_
         # Log usage
         if hasattr(response, 'usage') and response.usage:
             from app.utils.ai_usage_logger import log_ai_usage
-            await log_ai_usage(student_id, "Exam Evaluation - OCR", "gpt-4o", response.usage)
+            await log_ai_usage(student_id, "Exam Evaluation - OCR", "gpt-4o-mini", response.usage)
             
         result = response.choices[0].message.content
         return json.loads(result)

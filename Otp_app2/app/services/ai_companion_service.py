@@ -46,6 +46,11 @@ async def ai_companion_guide_homework(student_id: str, subject: str, homework_te
         temperature=0.7
     )
     
+    # Log usage
+    if hasattr(response, 'usage') and response.usage:
+        from app.utils.ai_usage_logger import log_ai_usage
+        await log_ai_usage(student_id, "Companion - Homework Guide", "gpt-4o-mini", response.usage)
+
     return response.choices[0].message.content
 
 async def ai_mentor_advice(student_id: str):
@@ -70,6 +75,11 @@ async def ai_mentor_advice(student_id: str):
         temperature=0.8
     )
     
+    # Log usage
+    if hasattr(response, 'usage') and response.usage:
+        from app.utils.ai_usage_logger import log_ai_usage
+        await log_ai_usage(student_id, "Companion - Mentor Advice", "gpt-4o-mini", response.usage)
+
     return response.choices[0].message.content
 
 async def ai_parent_insights(student_id: str):
@@ -93,6 +103,11 @@ async def ai_parent_insights(student_id: str):
         temperature=0.7
     )
     
+    # Log usage
+    if hasattr(response, 'usage') and response.usage:
+        from app.utils.ai_usage_logger import log_ai_usage
+        await log_ai_usage(student_id, "Companion - Parent Insights", "gpt-4o-mini", response.usage)
+
     return response.choices[0].message.content
 
 async def ai_coach_tasks(student_id: str):
@@ -118,4 +133,9 @@ async def ai_coach_tasks(student_id: str):
         response_format={"type": "json_object"}
     )
     
+    # Log usage
+    if hasattr(response, 'usage') and response.usage:
+        from app.utils.ai_usage_logger import log_ai_usage
+        await log_ai_usage(student_id, "Companion - Coach Tasks", "gpt-4o-mini", response.usage)
+        
     return json.loads(response.choices[0].message.content)

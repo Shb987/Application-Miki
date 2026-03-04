@@ -106,6 +106,13 @@ RETURN STRICT JSON ONLY:
         model="gpt-4.1-mini",
         input=prompt
     )
+    
+    # Log usage
+    if hasattr(response, 'usage') and response.usage:
+        from app.utils.ai_usage_logger import log_ai_usage
+        # Note: Future study currently uses synchronous client, but logger is async. 
+        # However, it's called in an async context here.
+        await log_ai_usage(student_id, "Future Study - Resources", "gpt-4.1-mini", response.usage)
 
     ai_text = response.output[0].content[0].text
     ai_data = extract_json(ai_text)

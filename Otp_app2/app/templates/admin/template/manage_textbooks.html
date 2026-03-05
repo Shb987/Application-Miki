@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Riho admin is super flexible, powerful, clean &amp; modern responsive bootstrap 5 admin template with unlimited possibilities.">
+    <meta name="keywords"
+        content="admin template, Riho admin template, dashboard template, flat admin template, responsive admin template, web app">
+    <meta name="author" content="pixelstrap">
+    <link rel="icon" href="/assets/images/favicon.png" type="image/x-icon">
+    <link rel="shortcut icon" href="/assets/images/favicon.png" type="image/x-icon">
+    <title>Manage Textbooks - Rihos Premium Admin Template</title>
+    <!-- Google font-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700;800&amp;display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome.css">
+    <!-- ico-font-->
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/icofont.css">
+    <!-- Themify icon-->
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/themify.css">
+    <!-- Flag icon-->
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/flag-icon.css">
+    <!-- Feather icon-->
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/feather-icon.css">
+    <!-- Plugins css start-->
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/slick.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/slick-theme.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/scrollbar.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/animate.css">
+    <!-- Bootstrap css-->
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/bootstrap.css">
+    <!-- App css-->
+    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
+    <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
+    <!-- Responsive css-->
+    <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
+</head>
+
+<body>
+    <!-- loader starts-->
+    <div class="loader-wrapper">
+        <div class="loader">
+            <div class="loader4"></div>
+        </div>
+    </div>
+    <!-- loader ends-->
+    <!-- tap on top starts-->
+    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
+    <!-- tap on tap ends-->
+    <!-- page-wrapper Start-->
+    <div class="page-wrapper compact-wrapper" id="pageWrapper">
+        <!-- Page Header Start-->
+        {% include "header.html" ignore missing %}
+        <!-- Page Header Ends-->
+        <!-- Page Body Start-->
+        <div class="page-body-wrapper">
+            <!-- Page Sidebar Start-->
+            {% include "sidebar.html" %}
+            <!-- Page Sidebar Ends-->
+            <div class="page-body">
+                <div class="container-fluid">
+                    <div class="page-title">
+                        <div class="row">
+                            <div class="col-6">
+                                <h4>Manage Textbooks</h4>
+                            </div>
+                            <div class="col-6">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard">
+                                            <svg class="stroke-icon">
+                                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                                            </svg></a></li>
+                                    <li class="breadcrumb-item">Exam Module</li>
+                                    <li class="breadcrumb-item active">Manage Textbooks</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Container-fluid starts-->
+                <div class="container-fluid">
+                    <!-- Premium Filter Bar -->
+                    <div class="card shadow-sm border-0 mb-4 filter-container-glass">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary p-2 rounded shadow-sm me-3 text-white">
+                                    <i data-feather="filter" style="width: 18px; height: 18px;"></i>
+                                </div>
+                                <h6 class="mb-0 text-dark fw-bold">Quick Search & Filter</h6>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i data-feather="layers"
+                                                class="text-muted" style="width: 14px;"></i></span>
+                                        <select id="filter-board" class="form-select border-start-0 ps-0"
+                                            onchange="applyFilters()">
+                                            <option value="">All Boards</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i data-feather="monitor"
+                                                class="text-muted" style="width: 14px;"></i></span>
+                                        <select id="filter-standard" class="form-select border-start-0 ps-0"
+                                            onchange="applyFilters()">
+                                            <option value="">All Standards</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i data-feather="book-open"
+                                                class="text-muted" style="width: 14px;"></i></span>
+                                        <select id="filter-subject" class="form-select border-start-0 ps-0"
+                                            onchange="applyFilters()">
+                                            <option value="">All Subjects</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <button
+                                        class="btn btn-primary btn-sm w-100 shadow-sm d-flex align-items-center justify-content-center gap-2"
+                                        onclick="resetFilters()">
+                                        <i data-feather="refresh-ccw" style="width: 14px;"></i> Reset Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manage Uploaded Textbooks Section -->
+                    <div class="card shadow-sm border-0 mt-4">
+                        <div
+                            class="card-header bg-white border-bottom d-flex justify-content-between align-items-center pb-3">
+                            <h5 class="mb-0 text-primary fw-bold">
+                                <i data-feather="book-open" class="me-2 pb-1"></i> Uploaded Textbooks & Chapters
+                            </h5>
+                            <button class="btn btn-primary btn-sm rounded-pill shadow-sm px-3"
+                                onclick="loadTextbooks()">
+                                <i data-feather="refresh-cw" class="me-1" style="width: 14px; height: 14px;"></i>
+                                Refresh
+                            </button>
+                        </div>
+                        <div class="card-body bg-light">
+                            <div id="textbooks-container">
+                                <div class="text-center text-muted py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="mt-2">Loading textbooks...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Container-fluid Ends-->
+            </div>
+            <!-- footer start-->
+            <footer class="footer">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12 footer-copyright text-center">
+                            <p class="mb-0">Copyright 2024 © Riho theme by pixelstrap</p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <!-- latest jquery-->
+    <script src="/assets/js/jquery.min.js"></script>
+    <!-- Bootstrap js-->
+    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
+    <!-- feather icon js-->
+    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
+    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
+    <!-- scrollbar js-->
+    <script src="/assets/js/scrollbar/simplebar.js"></script>
+    <script src="/assets/js/scrollbar/custom.js"></script>
+    <!-- Sidebar jquery-->
+    <script src="/assets/js/config.js"></script>
+    <script src="/admin-panel/config.js"></script>
+    <!-- Plugins JS start-->
+    <script src="/assets/js/sidebar-menu.js"></script>
+    <!-- Theme js-->
+    <script src="/assets/js/script.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const token = localStorage.getItem("admin_token");
+            if (!token) {
+                window.location.replace("/admin-panel/login");
+                return;
+            }
+
+            let allTextbooks = [];
+
+            // -------------------------
+            // Textbook Management (List & Delete Chapters)
+            // -------------------------
+            window.loadTextbooks = async function () {
+                const container = document.getElementById("textbooks-container");
+                container.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="mt-2 text-primary fw-medium">Fetching textbooks...</div>
+                </div>`;
+
+                try {
+                    const res = await fetch("/admin-panel/textbooks", {
+                        headers: { "Authorization": "Bearer " + token }
+                    });
+                    if (!res.ok) throw new Error("Failed to load textbooks");
+
+                    const data = await res.json();
+                    allTextbooks = data.textbooks || [];
+
+                    populateFilterOptions();
+                    renderTextbooks(allTextbooks);
+
+                } catch (err) {
+                    container.innerHTML = `<div class="alert alert-danger shadow-sm"><i class="icofont icofont-exclamation-circle"></i> Error: ${err.message}</div>`;
+                }
+            }
+
+            function populateFilterOptions() {
+                const boards = [...new Set(allTextbooks.map(tb => tb.board))].sort();
+                const standards = [...new Set(allTextbooks.map(tb => tb.standard))].sort((a, b) => parseInt(a) - parseInt(b));
+                const subjects = [...new Set(allTextbooks.map(tb => tb.subject))].sort();
+
+                updateSelect("filter-board", boards, "All Boards");
+                updateSelect("filter-standard", standards, "All Standards");
+                updateSelect("filter-subject", subjects, "All Subjects");
+            }
+
+            function updateSelect(id, items, defaultText) {
+                const sel = document.getElementById(id);
+                const currentVal = sel.value;
+                sel.innerHTML = `<option value="">${defaultText}</option>` +
+                    items.map(item => `<option value="${item}" ${item === currentVal ? 'selected' : ''}>${item}</option>`).join('');
+            }
+
+            window.applyFilters = function () {
+                const board = document.getElementById("filter-board").value;
+                const standard = document.getElementById("filter-standard").value;
+                const subject = document.getElementById("filter-subject").value;
+
+                const filtered = allTextbooks.filter(tb => {
+                    return (!board || tb.board === board) &&
+                        (!standard || tb.standard === standard) &&
+                        (!subject || tb.subject === subject);
+                });
+
+                renderTextbooks(filtered);
+            }
+
+            window.resetFilters = function () {
+                document.getElementById("filter-board").value = "";
+                document.getElementById("filter-standard").value = "";
+                document.getElementById("filter-subject").value = "";
+                renderTextbooks(allTextbooks);
+            }
+
+            function renderTextbooks(textbooks) {
+                const container = document.getElementById("textbooks-container");
+
+                if (textbooks.length === 0) {
+                    container.innerHTML = `
+                    <div class="alert alert-light text-center border p-5 bg-white">
+                        <i data-feather="search" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
+                        <h5 class="text-muted">No textbooks match these filters.</h5>
+                        <button class="btn btn-outline-primary mt-3" onclick="resetFilters()">Clear Filters</a>
+                    </div>`;
+                    feather.replace();
+                    return;
+                }
+
+                let html = '<div class="accordion border-0" id="textbookAccordion">';
+
+                textbooks.forEach((tb, index) => {
+                    const tbId = tb._id;
+                    const title = `${tb.standard} Std - ${tb.subject} (${tb.board} - ${tb.state})`;
+                    const chapters = tb.chapters || [];
+
+                    let statusBadge = '';
+                    if (tb.status === 'completed') {
+                        statusBadge = '<span class="badge rounded-pill badge-success text-white py-2 px-3"><i class="icofont icofont-check-circled me-1"></i> Completed</span>';
+                    } else if (tb.status === 'extracting' || tb.status === 'embedding') {
+                        statusBadge = `<span class="badge rounded-pill bg-warning text-dark py-2 px-3"><i class="icofont icofont-spinner fa-spin me-1"></i> ${tb.status}</span>`;
+                    } else {
+                        statusBadge = `<span class="badge rounded-pill bg-info text-white py-2 px-3">${tb.status}</span>`;
+                    }
+
+                    html += `
+                    <div class="accordion-item mb-3 bg-white rounded border shadow-sm overflow-hidden">
+                        <h2 class="accordion-header" id="heading${index}">
+                            <button class="accordion-button bg-white text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}">
+                                <div class="d-flex justify-content-between align-items-center w-100 pe-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-light-primary p-2 rounded me-3 text-primary">
+                                            <i data-feather="book"></i>
+                                        </div>
+                                        <span class="f-16">${title}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="text-muted f-12 fw-normal"><i class="icofont icofont-clock-time"></i> ${new Date(tb.created_at).toLocaleDateString()}</span>
+                                        ${statusBadge}
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#textbookAccordion">
+                            <div class="accordion-body bg-light border-top p-0">
+                                <div class="p-3 bg-white border-bottom custom-info-bar">
+                                    <div class="row align-items-center">
+                                        <div class="col-8">
+                                            <span class="text-muted fw-bold me-2">ID:</span> <span class="badge bg-light text-dark font-monospace">${tbId}</span>
+                                        </div>
+                                        <div class="col-4 text-end">
+                                            <span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span>
+                                        </div>
+                                    </div>
+                                </div>
+                `;
+
+                    if (chapters.length === 0) {
+                        html += `
+                        <div class="text-center p-5">
+                            <i data-feather="file-text" class="text-muted mb-3" style="width: 32px; height: 32px;"></i>
+                            <p class="text-muted mb-0">No chapters have been extracted yet.</p>
+                            ${tb.status === 'completed' ? '<p class="text-danger small mt-2"><i class="icofont icofont-warning"></i> Note: AI found no valid chapters matching criteria.</p>' : '<p class="text-info small mt-2"><i class="icofont icofont-spinner fa-spin"></i> Processing is still ongoing...</p>'}
+                        </div>`;
+                    } else {
+                        html += `<ul class="list-group list-group-flush">`;
+                        chapters.forEach((chap, cIdx) => {
+                            const safeChap = chap.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            html += `
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-white hover-light">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-primary rounded-circle text-white me-3" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;">${cIdx + 1}</span>
+                                    <span class="fw-medium text-dark f-14">${chap}</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="deleteChapter('${tbId}', '${safeChap}')" title="Delete Chapter">
+                                    <i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete
+                                </button>
+                            </li>
+                        `;
+                        });
+                        html += `</ul>`;
+                    }
+
+                    html += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+                feather.replace();
+            }
+
+            window.deleteChapter = async function (textbookId, chapterName) {
+                if (!confirm(`Are you sure you want to permanently delete chapter: "${chapterName}"?\nThis will remove all its AI passages from the database!`)) {
+                    return;
+                }
+
+                try {
+                    // Change cursor to progress
+                    document.body.style.cursor = 'wait';
+
+                    const res = await fetch(`/admin-panel/textbook/${textbookId}/chapter/${encodeURIComponent(chapterName)}`, {
+                        method: "DELETE",
+                        headers: { "Authorization": "Bearer " + token }
+                    });
+
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result.detail || "Error deleting chapter");
+
+                    document.body.style.cursor = 'default';
+
+                    // Show success somewhat dynamically (e.g. reload accordion)
+                    alert(`✓ ${result.message}\nDeleted ${result.deleted_passages_count} vector passages.`);
+                    loadTextbooks();
+                } catch (e) {
+                    document.body.style.cursor = 'default';
+                    alert(`Error: ${e.message}`);
+                }
+            };
+
+            // Initialize lists on load
+            loadTextbooks();
+        });
+    </script>
+    <style>
+        .hover-light:hover {
+            background-color: #f8f9fa !important;
+        }
+
+        .hover-danger-filled:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .bg-light-primary {
+            background-color: rgba(69, 43, 144, 0.1);
+        }
+
+        .custom-info-bar {
+            background: #fafbfc;
+        }
+
+        .accordion-button:focus {
+            box-shadow: none;
+            border-color: rgba(69, 43, 144, 0.2);
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: #ffffff;
+            color: #452b90;
+            box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .125);
+        }
+
+        .filter-container-glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid #452b9011;
+            border-radius: 12px;
+        }
+
+        .input-group-text {
+            border-radius: 8px 0 0 8px !important;
+            border-color: #dee2e6;
+        }
+
+        .form-select {
+            border-radius: 0 8px 8px 0 !important;
+            border-color: #dee2e6;
+        }
+
+        .btn-primary.btn-sm {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+    </style>
+</body>
+
+</html>

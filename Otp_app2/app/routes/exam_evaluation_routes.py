@@ -374,12 +374,24 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
             "standard": str(paper.get("standard")),
             "subject": paper.get("subject"),
             "chapter_title": {"$in": paper.get("chapters_used", [])}
-        }).to_list(None)
+        }).sort("passage_index", 1).to_list(None)
 
-        context_text = "".join(
-            f"\n=== {doc.get('chapter_title')} ===\n{doc.get('content','')[:50000]}"
-            for doc in chapter_docs
-        ) or "Evaluate using general academic knowledge."
+        # Group by chapter title
+        chapter_map = {}
+        for doc in chapter_docs:
+            title = doc.get("chapter_title")
+            content = doc.get("content", "")
+            if title not in chapter_map:
+                chapter_map[title] = []
+            chapter_map[title].append(content)
+
+        context_text = ""
+        for title, contents in chapter_map.items():
+            full_context = "\n".join(contents)
+            context_text += f"\n=== {title} ===\n{full_context[:100000]}\n"
+        
+        if not context_text:
+            context_text = "Evaluate using general academic knowledge."
 
         # 6. Evaluation — build task list for concurrent execution
         grading_tasks = []

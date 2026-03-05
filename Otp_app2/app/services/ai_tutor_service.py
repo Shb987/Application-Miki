@@ -84,14 +84,15 @@ class AITutorService:
             logger.warning(f"{vectors_missing} chapters in standard {student_class} are missing vectors.")
 
         scored_chapters.sort(key=lambda x: x[0], reverse=True)
-        top_3 = scored_chapters[:3]
+        top_k = scored_chapters[:5]  # Increased to top 5 passages
 
         context_text = ""
-        for score, ch in top_3:
-            logger.info(f"📄 Chapter Match: {ch.get('chapter_title')} | Score: {score:.4f}")
-            if score > 0.15: # Lowered threshold for better coverage
-                snippet = ch.get('content', '')[:1500]
-                context_text += f"\n[TEXTBOOK: {ch.get('subject', 'General')} - {ch.get('chapter_title', '')}]\n{snippet}...\n"
+        for score, ch in top_k:
+            logger.info(f"📄 Chapter Match: {ch.get('chapter_title')} | Passage: {ch.get('passage_index', 0)} | Score: {score:.4f}")
+            if score > 0.30: # Slightly higher threshold for better precision with smaller chunks
+                # Use the full passage content (usually ~4000 chars)
+                snippet = ch.get('content', '')
+                context_text += f"\n[TEXTBOOK: {ch.get('subject', 'General')} - {ch.get('chapter_title', '')}]\n{snippet}\n"
                 
         return context_text
 

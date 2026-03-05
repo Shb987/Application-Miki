@@ -1,9 +1,6 @@
-# exam_module.py
 
-from fastapi import APIRouter, UploadFile, File, Form, Body, HTTPException, Request
-from fastapi.templating import Jinja2Templates
-from fastapi import BackgroundTasks
-from datetime import datetime
+from fastapi import APIRouter, UploadFile, File, Form, Body, HTTPException, Request, BackgroundTasks
+from datetime import datetime, timezone
 from typing import List, Optional
 from bson import ObjectId
 import pdfplumber
@@ -12,7 +9,6 @@ import json
 import os
 import asyncio
 from app.report.scert_pdf_professional import save_scert_question_paper
-from datetime import datetime, timezone
 from app.utils.admin_auth import get_current_admin
 from fastapi import Depends
 from app.core.database import db
@@ -35,7 +31,6 @@ GENERATED_PDF_DIR = "app/static/generated_papers"
 os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
 
 
-templates = Jinja2Templates(directory="../new/admin/template")
 
 # --------------------------
 # EXAM BLUEPRINTS
@@ -76,6 +71,24 @@ def get_exam_structure(standard: int, total: int):
         return HIGH_SCHOOL.get(total)
     return PLUS_TWO.get(total)
 
+def normalize_text(text: str) -> str:
+    """Collapses characters separated by spaces and artifacts like 'WWeeaatthheerr'."""
+    if not text: return ""
+    import re
+    # 1. Collapse characters separated by spaces (G e n e t i c s -> Genetics)
+    text = re.sub(r'(?<=\b[A-Za-z]) (?=[A-Za-z]\b)', '', text)
+    # 2. Handle "1 1" -> "1" (common PDF artifact for numbers)
+    text = re.sub(r'(\b\d)\s+(\d\b)', r'\1\2', text)
+    # 3. Handle doubled letters (WWeeaatthheerr -> Weather)
+    def de_double(m):
+        s = m.group(0)
+        if len(s) >= 4 and all(s[i] == s[i+1] for i in range(0, len(s), 2)):
+            fixed = "".join([s[i] for i in range(0, len(s), 2)])
+            return fixed
+        return s
+    text = re.sub(r'([A-Za-z])\1([A-Za-z])\2', de_double, text)
+    return text
+
 def validate_fix_marks(paper: dict, required_total: int):
     total = sum(q.get("marks", 0) for q in paper["questions"])
     diff = required_total - total
@@ -83,174 +96,159 @@ def validate_fix_marks(paper: dict, required_total: int):
         paper["questions"][-1]["marks"] += diff
     return paper
 
-# # --------------------------
-# # ROUTES - PAGE TEMPLATES
-# # --------------------------
 
-# @router.get("/exam_module-page")
-# async def exam_module_page(request: Request):
-#     return templates.TemplateResponse("Exammodule.html", {"request": request})
-
-# @router.get("/question_generation-page")
-# async def question_generation_page(request: Request):
-#     return templates.TemplateResponse("question_generation.html", {"request": request})
-
-# @router.get("/generated-question_view-page")
-# async def generated_question_page(request: Request):
-#     return templates.TemplateResponse("view_questions.html", {"request": request})
-
-# --------------------------
-# ROUTES - SYLLABUS
-# --------------------------
-
-
-@router.post("/upload-textbook", dependencies=[Depends(get_current_admin)])
-async def upload_textbook(
-    textbook_board: str = Form(...),
+@router.post("/upload-chapter", dependencies=[Depends(get_current_admin)])
+async def upload_chapter_endpoint(
+    background_tasks: BackgroundTasks,
+    board: str = Form(...),
     standard: str = Form(...),
     state: str = Form(...),
     subject: str = Form(...),
-    count: int = Form(...),
-    textbook_pdf: UploadFile = File(...)
+    chapter_name: str = Form(...),
+    chapter_number: str = Form(...),
+    file: UploadFile = File(...)
 ):
-    if textbook_pdf.content_type != "application/pdf":
-        raise HTTPException(status_code=400, detail="Only PDF allowed")
+    """
+    Handle single chapter PDF upload. Immediately saves metadata and triggers
+    background processing (extraction + embedding).
+    """
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
+    # 1. Save PDF
     file_id = str(uuid.uuid4())
-    filename = f"{file_id}.pdf"
+    filename = f"ch_{chapter_number}_{file_id}.pdf"
     file_path = os.path.join(UPLOAD_DIR, filename)
+    
     with open(file_path, "wb") as f:
-        f.write(await textbook_pdf.read())
+        f.write(await file.read())
 
-    text_content = ""
+    # 2. Prepare Chapter Record in 'textbook' collection
+    textbook_query = {
+        "board": board,
+        "standard": standard,
+        "state": state,
+        "subject": subject
+    }
+    
+    full_chapter_title = f"{chapter_number} {chapter_name}".strip()
+    
+    # Update/Reset chapter status in parent textbook
+    await db.textbook.update_one(
+        textbook_query,
+        {
+            "$addToSet": {"chapters": full_chapter_title},
+            "$setOnInsert": {
+                "created_at": datetime.now(timezone.utc),
+                "processed": True,
+                "status": "completed",
+                "progress": 100
+            }
+        },
+        upsert=True
+    )
+    
+    # 3. Queue Background Processing
+    background_tasks.add_task(
+        process_chapter_worker,
+        textbook_query=textbook_query,
+        full_chapter_title=full_chapter_title,
+        file_path=file_path,
+        original_filename=file.filename
+    )
+
+    return {
+        "status": "processing",
+        "message": f"Chapter '{full_chapter_title}' received. Processing started in background.",
+    }
+
+async def process_chapter_worker(textbook_query, full_chapter_title, file_path, original_filename):
+    """Background worker to extract text and generate embeddings for a single chapter."""
     try:
+        print(f"[BG-CHAPTER] Processing: {full_chapter_title} ({original_filename})")
+        
+        # 1. Extract Text
+        text_content = ""
         with pdfplumber.open(file_path) as pdf:
             for page in pdf.pages:
                 text_content += (page.extract_text() or "") + "\n"
-    except:
-        text_content = ""
+        
+        text_content = normalize_text(text_content)
+        if not text_content.strip():
+            print(f"[BG-CHAPTER] Error: No text extracted from {file_path}")
+            return
 
-    data = {
-        "board": textbook_board,
-        "standard": standard,
-        "state": state,
-        "subject": subject,
-        "question_count": count,
-        "file_path": file_path,
-        "text_content": text_content,
-        "processed": False,
-        "status": "queued",
-        "progress": 0,
-        "created_at": datetime.now(timezone.utc)
-    }
+        # 2. Get Textbook ID
+        textbook_doc = await db.textbook.find_one(textbook_query)
+        if not textbook_doc:
+            print(f"[BG-CHAPTER] Error: Textbook container not found for {textbook_query}")
+            return
+        textbook_id = str(textbook_doc["_id"])
 
-    result = await db.textbook.insert_one(data)
-    return {"status": "uploaded", "textbook_id": str(result.inserted_id)}
+        # 3. Generate Embeddings & Save Passages
+        PASSAGE_SIZE = 4000
+        PASSAGE_OVERLAP = 400
+        passages = []
+        
+        if len(text_content) <= PASSAGE_SIZE:
+            passages.append(text_content)
+        else:
+            for i in range(0, len(text_content), PASSAGE_SIZE - PASSAGE_OVERLAP):
+                passages.append(text_content[i:i + PASSAGE_SIZE])
 
-@router.post("/process-textbook/{textbook_id}", dependencies=[Depends(get_current_admin)])
-async def process_textbook_trigger(textbook_id: str):
-    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
-    if not textbook:
-        raise HTTPException(status_code=404, detail="Textbook not found")
+        valid_docs = []
+        for p_idx, passage in enumerate(passages):
+            try:
+                emb = await client.embeddings.create(model="text-embedding-3-large", input=passage)
+                vector = emb.data[0].embedding
+                
+                # Log usage
+                if hasattr(emb, 'usage') and emb.usage:
+                    from app.utils.ai_usage_logger import log_ai_usage
+                    await log_ai_usage("ADMIN", f"Async Ch Upload ({full_chapter_title})", "text-embedding-3-large", emb.usage)
+                
+                valid_docs.append({
+                    "textbook_id": textbook_id,
+                    "board": textbook_query["board"],
+                    "standard": textbook_query["standard"],
+                    "state": textbook_query["state"],
+                    "subject": textbook_query["subject"],
+                    "chapter_title": full_chapter_title,
+                    "content": passage.strip(),
+                    "passage_index": p_idx,
+                    "vector": vector,
+                    "created_at": datetime.now(timezone.utc),
+                })
+            except Exception as e:
+                print(f"[BG-CHAPTER] Embedding error [P{p_idx}]: {e}")
 
-    asyncio.create_task(process_textbook_worker(textbook_id))
-    return {"status": "started", "message": "Processing started in background", "textbook_id": textbook_id}
-
-@router.get("/textbook/status/{textbook_id}", dependencies=[Depends(get_current_admin)])
-async def textbook_status(textbook_id: str):
-    data = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
-    if not data:
-        raise HTTPException(status_code=404, detail="Invalid ID")
-    data["_id"] = str(data["_id"])
-    return data
-
-# --------------------------
-# BACKGROUND WORKERS
-# --------------------------
-
-async def process_textbook_worker(textbook_id: str):
-    await db.textbook.update_one(
-        {"_id": ObjectId(textbook_id)},
-        {"$set": {"status": "extracting", "progress": 10}}
-    )
-
-    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
-    text = textbook.get("text_content", "")
-
-    prompt = f"""
-You are an expert textbook analyzer for Kerala SCERT textbooks.
-Your task is to extract accurate chapter titles and content from the provided textbook text.
-
-IMPORTANT:
-- IGNORE front matter and back matter such as:
-  - "The National Anthem"
-  - "Pledge"
-  - "Constitution of India"
-  - "Preface", "Foreword", "Teachers' Note"
-  - "Dear Students", "Instructions"
-- Extract ONLY the actual educational chapters (e.g., "Chapter 1: ...", "Unit 1: ...", "1. ...").
-- If a chapter has a number and a title, combine them (e.g., "Chapter 1: The Dawn of History").
-
-Return STRICT VALID JSON ONLY in this format:
-[
-  {{
-    "chapter": "Exact Chapter Name",
-    "content": "Full combined content of the chapter"
-  }}
-]
-
-Text to analyze:
-{text}
-"""
-
-    try:
-        ai = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        # Log usage
-        if hasattr(ai, 'usage') and ai.usage:
-            from app.utils.ai_usage_logger import log_ai_usage
-            await log_ai_usage("ADMIN", "Textbook Extraction", "gpt-4o-mini", ai.usage)
-
-        raw = ai.choices[0].message.content
-        cleaned = raw.replace("```json", "").replace("```", "").strip()
-        chapters = json.loads(cleaned)
-        chapter_titles = [c["chapter"].strip() for c in chapters]
-        await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"chapters": chapter_titles}})
-    except Exception:
-        await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"status": "failed", "progress": 0}})
-        return
-
-    await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"status": "embedding", "progress": 40}})
-
-    for idx, ch in enumerate(chapters):
-        try:
-            emb = await client.embeddings.create(model="text-embedding-3-large", input=ch["content"])
-            vector = emb.data[0].embedding
-            
-            # Log usage
-            if hasattr(emb, 'usage') and emb.usage:
-                from app.utils.ai_usage_logger import log_ai_usage
-                await log_ai_usage("ADMIN", "Textbook Embedding", "text-embedding-3-large", emb.usage)
-            chapter_doc = {
+        if valid_docs:
+            # Atomic update: clear old and insert new
+            await db.textbook_chapters.delete_many({
                 "textbook_id": textbook_id,
-                "board": textbook["board"],
-                "standard": textbook["standard"],
-                "state": textbook["state"],
-                "subject": textbook["subject"],
-                "chapter_title": ch["chapter"].strip(),
-                "content": ch["content"].strip(),
-                "vector": vector,
-                "created_at": datetime.utcnow(),
-            }
-            await db.textbook_chapters.insert_one(chapter_doc)
-            progress = 40 + int((idx + 1) / len(chapters) * 55)
-            await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"progress": progress}})
-        except:
-            pass
+                "chapter_title": full_chapter_title
+            })
+            await db.textbook_chapters.insert_many(valid_docs)
+            print(f"[BG-CHAPTER] SUCCESS: '{full_chapter_title}' processed with {len(valid_docs)} passages.")
 
-    await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"status": "completed", "processed": True, "progress": 100}})
+    except Exception as e:
+        print(f"[BG-CHAPTER] CRITICAL WORKER ERROR: {e}")
+    finally:
+        # Auto-Cleanup: Delete the PDF after processing (success or failure)
+        file_abspath = os.path.abspath(file_path)
+        print(f"[BG-DEBUG] Checking file for cleanup: {file_abspath}")
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print(f"[BG-DEBUG] Cleanup SUCCESS: Deleted temporary file {file_path}")
+            except Exception as e:
+                print(f"[BG-DEBUG] Cleanup FAILED: Could not delete {file_path}. Error: {e}")
+        else:
+            print(f"[BG-DEBUG] Cleanup SKIPPED: File already gone or doesn't exist at {file_path}")
+        
+        print(f"[BG-DEBUG] Worker finished for {full_chapter_title}")
+
+# LEGACY TEXTBOOK SPLITTER REMOVED - Using Per-Chapter Uploads
 
 # --------------------------
 # ROUTES - STANDARDS / SUBJECTS / CHAPTERS
@@ -288,6 +286,43 @@ async def get_chapters(standard: str, subject: str):
             if title and title not in chapter_set:
                 chapter_set.append(title)
     return {"chapters": chapter_set}
+
+# --------------------------
+# ROUTES - TEXTBOOK & CHAPTER MANAGEMENT
+# --------------------------
+
+@router.get("/textbooks", dependencies=[Depends(get_current_admin)])
+async def get_all_textbooks():
+    """Fetch all uploaded textbooks and their generated chapters."""
+    textbooks = await db.textbook.find({}).sort("created_at", -1).to_list(None)
+    for t in textbooks:
+        t["_id"] = str(t["_id"])
+    return {"textbooks": textbooks}
+
+@router.delete("/textbook/{textbook_id}/chapter/{chapter_name}", dependencies=[Depends(get_current_admin)])
+async def delete_textbook_chapter(textbook_id: str, chapter_name: str):
+    """Delete a specific chapter and its passages from a textbook."""
+    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
+    if not textbook:
+        raise HTTPException(status_code=404, detail="Textbook not found")
+        
+    # Delete passages from vector db
+    del_result = await db.textbook_chapters.delete_many({
+        "textbook_id": textbook_id,
+        "chapter_title": chapter_name
+    })
+
+    # Remove chapter from the textbook's chapter list
+    await db.textbook.update_one(
+        {"_id": ObjectId(textbook_id)},
+        {"$pull": {"chapters": chapter_name}}
+    )
+    
+    return {
+        "status": "success", 
+        "message": f"Deleted chapter '{chapter_name}' successfully",
+        "deleted_passages_count": del_result.deleted_count
+    }
 
 # --------------------------
 # ROUTES - QUESTION GENERATION
@@ -345,28 +380,88 @@ async def generate_questions_worker(task_id: str):
     generated_ids = []
 
     # --- RAG: Fetch Chapter Content ---
-    # We query by standard (as string) because upload saves it as string
     chapter_docs = await db.textbook_chapters.find({
         "standard": str(std),
         "subject": subject,
         "chapter_title": {"$in": chapters}
-    }).to_list(None)
+    }).sort("passage_index", 1).to_list(None)
+
+    # Group passages by chapter title
+    chapter_content_map = {}
+    for doc in chapter_docs:
+        title = doc.get("chapter_title")
+        content = doc.get("content", "")
+        if title not in chapter_content_map:
+            chapter_content_map[title] = []
+        chapter_content_map[title].append(content)
 
     context_text = ""
-    for doc in chapter_docs:
-        # Limit content to avoid token overflow (approx 3000 words per chapter)
-        # UPDATED: Increased to 100,000 chars to cover full chapters
-        content_snippet = doc.get("content", "")[:100000]
-        context_text += f"\n=== CHAPTER: {doc.get('chapter_title')} ===\n{content_snippet}\n"
+
+    for title, contents in chapter_content_map.items():
+
+        total_passages = len(contents)
+
+        print(f"\n[DEBUG] Processing Chapter: {title}")
+        print(f"[DEBUG] Total passages available: {total_passages}")
+
+        # Dynamic passage selection
+        if total_passages <= 10:
+            selected_passages = contents
+            strategy = "ALL_PASSAGES"
+
+        elif total_passages <= 30:
+            step = max(1, total_passages // 8)
+            selected_passages = contents[::step][:8]
+            strategy = f"SAMPLING_STEP_{step}_LIMIT_8"
+
+        elif total_passages <= 60:
+            step = max(1, total_passages // 12)
+            selected_passages = contents[::step][:12]
+            strategy = f"SAMPLING_STEP_{step}_LIMIT_12"
+
+        else:
+            step = max(1, total_passages // 15)
+            selected_passages = contents[::step][:15]
+            strategy = f"SAMPLING_STEP_{step}_LIMIT_15"
+
+        print(f"[DEBUG] Selection strategy: {strategy}")
+        print(f"[DEBUG] Selected passages count: {len(selected_passages)}")
+
+        # Debug preview of passages
+        for i, passage in enumerate(selected_passages[:3]):
+            preview = passage[:120].replace("\n", " ")
+            print(f"[DEBUG] Passage {i+1} preview: {preview}...")
+
+        chapter_text = "\n".join(selected_passages)
+
+        context_text += f"""
+    === CHAPTER: {title} ===
+    {chapter_text}
+    """
+
+    print("\n[DEBUG] Final context length sent to AI:", len(context_text))
 
     if not context_text:
         context_text = "No specific textbook content found. Generate based on general knowledge of these chapters."
 
+    used_questions = []  # Accumulate all questions used across papers to avoid repetition
+
     for p in range(papers):
         section_text = "\n".join([f"Section {key}: {val[0]} mark questions × {val[1]}" for key, val in sections.items()])
 
+        # Build the exclusion block — grows with each paper generated
+        if used_questions:
+            exclusion_block = (
+                "\n### PREVIOUSLY USED QUESTIONS (DO NOT REPEAT OR REPHRASE ANY OF THESE) ###\n"
+                + "\n".join(f"- {q}" for q in used_questions)
+                + "\n### END EXCLUSION LIST ###\n"
+                + "\nIMPORTANT: Every question in this paper MUST be completely different in both topic angle and phrasing from the above list.\n"
+            )
+        else:
+            exclusion_block = ""
+
         prompt = f"""
-Kerala SCERT Board Exam Question Paper Generator
+Kerala SCERT Board Exam Question Paper Generator — Paper {p + 1} of {papers}
 
 Standard: {std}
 Subject: {subject}
@@ -378,11 +473,12 @@ Allowed Question Types: {allowed_types}
 Use the following content to generate relevant questions. Do NOT ask questions outside this scope if possible.
 {context_text}
 ### END CONTENT ###
-
+{exclusion_block}
 ### QUESTION STRUCTURE REQUIREMENTS ###
 1. Generate questions STRICTLY grouped by sections.
 2. Follow EXACT question counts specified below.
 3. **CRITICAL**: Ensure questions are distributed EVENLY across all provided chapters/topics. Do not focus only on the first few pages. Cover the entire provided content.
+4. **UNIQUENESS**: Since this is paper {p + 1} of {papers}, generate FRESH questions that approach different concepts, facts, and angles from the chapter content. Avoid redundant or trivially rephrased questions.
 
 {section_text}
 
@@ -405,7 +501,7 @@ Respond with valid JSON only. No text outside JSON.
         response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
+            temperature=0.7  # Higher temperature = more creative variation across papers
         )
 
         content = response.choices[0].message.content
@@ -420,6 +516,13 @@ Respond with valid JSON only. No text outside JSON.
             paper_json = json.loads(cleaned)
         except Exception:
             paper_json = {"paper_id": f"{task_id}-{p+1}", "sections": []}
+
+        # Collect all question texts from this paper to exclude from next papers
+        for section in paper_json.get("sections", []):
+            for q in section.get("questions", []):
+                q_text = q.get("question") or q.get("text") or ""
+                if q_text:
+                    used_questions.append(q_text.strip())
 
         # Insert JSON into DB
         # We store 'task_id' (which is the task's ObjectId string) for linking

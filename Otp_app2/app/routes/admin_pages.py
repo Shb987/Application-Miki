@@ -64,6 +64,10 @@ async def questions_page(request: Request):
 async def exam_module_page(request: Request):
     return templates.TemplateResponse("Exammodule.html", {"request": request})
 
+@router.get("/manage-textbooks-page")
+async def manage_textbooks_page(request: Request):
+    return templates.TemplateResponse("manage_textbooks.html", {"request": request})
+
 @router.get("/question_generation-page")
 async def question_generation_page(request: Request):
     return templates.TemplateResponse("question_generation.html", {"request": request})

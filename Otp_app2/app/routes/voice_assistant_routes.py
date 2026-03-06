@@ -63,6 +63,34 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
             model="gpt-4o-mini-realtime-preview"
         ) as session:
 
+            # Define tools for the Realtime session
+            tools = [
+                {
+                    "type": "function",
+                    "name": "web_search",
+                    "description": "Perform a web search for current events, facts, or news.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "The search query."}
+                        },
+                        "required": ["query"]
+                    }
+                },
+                {
+                    "type": "function",
+                    "name": "textbook_search",
+                    "description": "Search for academic information in the student's textbooks.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "The concept or topic to search for."}
+                        },
+                        "required": ["query"]
+                    }
+                }
+            ]
+
             await session.session.update(
                 session={
                     "instructions": instructions,
@@ -75,9 +103,9 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         "threshold": 0.65,
                         "prefix_padding_ms": 300,
                         "silence_duration_ms": 800
-                    }
-                    # No tool_choice — no tools are registered for this realtime session.
-                    # Setting tool_choice:auto with no tools causes status=failed responses.
+                    },
+                    "tools": tools,
+                    "tool_choice": "auto"
                 }
             )
 
@@ -87,7 +115,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
             # RECEIVE LOOP
             # ==============================
             async def receive_messages():
-                nonlocal state
+                nonlocal state, last_valid_user_transcript
 
                 await session_ready.wait()
                 print(f"✅ Voice Assistant session active for Student: {student_id}", flush=True)
@@ -98,6 +126,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     if msg["type"] == "websocket.disconnect":
                         break
 
+                    # 🔊 Audio chunks from Flutter
                     if msg.get("bytes"):
                         import base64
                         audio_bytes = msg["bytes"]
@@ -112,6 +141,23 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         base64_audio = base64.b64encode(audio_bytes).decode("utf-8")
                         await session.input_audio_buffer.append(audio=base64_audio)
                         state = "listening"
+
+                    # ⌨️ Text triggers (for testing or UI buttons)
+                    elif msg.get("text"):
+                        text_content = msg.get("text")
+                        print(f"👤 User (Text): {text_content}", flush=True)
+                        
+                        # Add a text item to the conversation and request a response
+                        last_valid_user_transcript = text_content
+                        await session.conversation.item.create(
+                            item={
+                                "type": "message",
+                                "role": "user",
+                                "content": [{"type": "input_text", "text": text_content}]
+                            }
+                        )
+                        await session.response.create()
+                        await save_chat_event(student_id, session_id, "user", text_content)
 
             # ==============================
             # SEND LOOP
@@ -161,8 +207,8 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     if event.type == "conversation.item.input_audio_transcription.completed":
                         user_text = getattr(event, "transcript", "")
 
-                        if not user_text or len(user_text.strip()) < 3:
-                            print("⚠️ Ignoring empty/noise transcript.", flush=True)
+                        if not user_text or not user_text.strip():
+                            print("⚠️ Ignoring noise transcript.", flush=True)
                             continue
 
                         last_valid_user_transcript = user_text.strip()
@@ -176,23 +222,31 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         state = "listening"
 
                         resp = getattr(event, "response", None)
-
-                        # Skip cancelled / incomplete responses (e.g. interrupted by barge-in)
+                        if not resp:
+                            continue
+                            
                         resp_status = getattr(resp, "status", None)
+
+                        # Log skipped responses for debugging
                         if resp_status != "completed":
-                            # Log the full error detail so we can debug failures
                             status_detail = getattr(resp, "status_details", None)
-                            print(f"⚠️ Response skipped (status={resp_status}, detail={status_detail}).", flush=True)
+                            if resp_status != "cancelled": # Don't spam for normal barge-ins
+                                print(f"⚠️ Response {resp.id} skipped (status={resp_status}, detail={status_detail}).", flush=True)
                             continue
 
-                        if not resp or not getattr(resp, "output", None):
-                            print("⚠️ Empty response ignored.", flush=True)
+                        # Check if this response has any content
+                        outputs = getattr(resp, "output", [])
+                        if not outputs:
+                            # print(f"ℹ️ Response {resp.id} completed with no output.", flush=True)
                             continue
 
-                        # Skip if no user ever spoke (e.g. echo-triggered response)
+                        # Final safety check: if we have zero user input context, 
+                        # we only proceed if there's actually a message or tool call to show.
                         if not last_valid_user_transcript:
-                            print("⚠️ No valid user transcript — skipping response.", flush=True)
-                            continue
+                            has_substantive_output = any(item.type in ["message", "function_call"] for item in outputs)
+                            if not has_substantive_output:
+                                print(f"⚠️ Skipping response {resp.id} - no user transcript and no substantive output.", flush=True)
+                                continue
 
                         for item in resp.output:
                             if item.type == "message":
@@ -207,18 +261,50 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                     if text and text.strip():
                                         print(f"🤖 Miki: {text}", flush=True)
                                         try:
-                                            await websocket.send_text(f"AI: {text}")
+                                            # Send back text to Flutter for UI update
+                                            await websocket.send_text(json.dumps({"type": "text_response", "text": text}))
                                         except:
                                             pass
                                         await save_chat_event(student_id, session_id, "assistant", text.strip())
+
+                        # Handle Tool Calls
+                        has_tool_call = False
+                        for item in resp.output:
+                            if item.type == "function_call":
+                                has_tool_call = True
+                                tool_name = item.name
+                                tool_call_id = item.call_id
+                                args = json.loads(item.arguments)
+                                
+                                print(f"🛠 Tool Call: {tool_name}({args})", flush=True)
+                                
+                                result = ""
+                                if tool_name == "web_search":
+                                    result = await ai_tutor_service.search_web(args.get("query", ""))
+                                elif tool_name == "textbook_search":
+                                    result = await ai_tutor_service.get_relevant_context(student_class, args.get("query", ""))
+                                
+                                # Send tool result back to session
+                                await session.conversation.item.create(
+                                    item={
+                                        "type": "function_call_output",
+                                        "call_id": tool_call_id,
+                                        "output": result or "No information found."
+                                    }
+                                )
+                                # Request a response based on the tool output
+                                await session.response.create()
 
                         # Log usage
                         if resp and hasattr(resp, 'usage') and resp.usage:
                             from app.utils.ai_usage_logger import log_ai_usage
                             await log_ai_usage(student_id, "Voice Assistant", "gpt-4o-mini-realtime-preview", resp.usage)
 
-                        # Reset after a full completed turn
-                        last_valid_user_transcript = ""
+                        # Reset after a full completed turn (only if no tool calls are pending)
+                        if not has_tool_call:
+                            if last_valid_user_transcript:
+                                # print(f"✅ Turn completed for: {last_valid_user_transcript[:30]}...", flush=True)
+                                last_valid_user_transcript = ""
 
             receive_task = asyncio.create_task(receive_messages())
             send_task = asyncio.create_task(send_events())

@@ -155,10 +155,29 @@ def save_scert_question_paper(json_paper: dict, filename: str):
             story.append(Spacer(1, 6))
 
         for q in sec.get("questions", []):
+            # Defensive check: in case AI returns a string instead of a dictionary
+            if not isinstance(q, dict):
+                q = {"question": str(q), "type": "SHORT", "marks": marks_per_q}
+
             qtext = q.get("question", "").strip()
             qtype = (q.get("type") or "").upper()
             q_marks = q.get("marks", marks_per_q)
-            story.append(Paragraph(f"{qnum}. {qtext}", q_style))
+            q_marks_str = f" ({q_marks} mark{'s' if q_marks > 1 else ''})" if q_marks else ""
+            story.append(Paragraph(f"{qnum}. {qtext}<b>{q_marks_str}</b>", q_style))
+
+            # Picture-based placeholder
+            if qtype == "PICTUREBASED":
+                story.append(Spacer(1, 6))
+                box = Table([[" [ SPACE FOR IMAGE / PICTURE ] "]], colWidths=[16*cm], rowHeights=[4*cm])
+                box.setStyle(TableStyle([
+                    ("BOX", (0,0), (-1,-1), 0.6, colors.black),
+                    ("ALIGN", (0,0), (-1,-1), "CENTER"),
+                    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                    ("FONTSIZE", (0,0), (-1,-1), 10),
+                    ("TEXTCOLOR", (0,0), (-1,-1), colors.grey)
+                ]))
+                story.append(box)
+                story.append(Spacer(1, 6))
 
             # MCQ Options
             if qtype == "MCQ":
@@ -235,7 +254,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
 # -------------------
 # EXAMPLE USAGE
 # -------------------
-if __name__ == "_main_":
+if __name__ == "__main__":
     example_file = "paper.json"   # replace with your actual file path
     output_pdf = "Class10_Biology_Paper_Professional.pdf"
     with open(example_file, "r", encoding="utf-8") as f:

@@ -14,3 +14,4 @@ Otp_app2/verify_wordle.py
 Otp_app2/test_openai_billing.py
 Otp_app2/*.md
 Otp_app2/verify_randomization.py
+Otp_app2/migrate_ai_logs.py

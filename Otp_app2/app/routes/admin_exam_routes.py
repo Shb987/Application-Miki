@@ -391,76 +391,78 @@ async def generate_questions_worker(task_id: str):
     for doc in chapter_docs:
         title = doc.get("chapter_title")
         content = doc.get("content", "")
+        vector = doc.get("vector", [])
         if title not in chapter_content_map:
             chapter_content_map[title] = []
-        chapter_content_map[title].append(content)
+        # Store both content and vector
+        chapter_content_map[title].append({"content": content, "vector": vector})
 
-    context_text = ""
-
-    for title, contents in chapter_content_map.items():
-
-        total_passages = len(contents)
-
-        print(f"\n[DEBUG] Processing Chapter: {title}")
-        print(f"[DEBUG] Total passages available: {total_passages}")
-
-        # Dynamic passage selection
-        if total_passages <= 10:
-            selected_passages = contents
-            strategy = "ALL_PASSAGES"
-
-        elif total_passages <= 30:
-            step = max(1, total_passages // 8)
-            selected_passages = contents[::step][:8]
-            strategy = f"SAMPLING_STEP_{step}_LIMIT_8"
-
-        elif total_passages <= 60:
-            step = max(1, total_passages // 12)
-            selected_passages = contents[::step][:12]
-            strategy = f"SAMPLING_STEP_{step}_LIMIT_12"
-
-        else:
-            step = max(1, total_passages // 15)
-            selected_passages = contents[::step][:15]
-            strategy = f"SAMPLING_STEP_{step}_LIMIT_15"
-
-        print(f"[DEBUG] Selection strategy: {strategy}")
-        print(f"[DEBUG] Selected passages count: {len(selected_passages)}")
-
-        # Debug preview of passages
-        for i, passage in enumerate(selected_passages[:3]):
-            preview = passage[:120].replace("\n", " ")
-            print(f"[DEBUG] Passage {i+1} preview: {preview}...")
-
-        chapter_text = "\n".join(selected_passages)
-
-        context_text += f"""
-    === CHAPTER: {title} ===
-    {chapter_text}
-    """
-
-    print("\n[DEBUG] Final context length sent to AI:", len(context_text))
-
-    if not context_text:
-        context_text = "No specific textbook content found. Generate based on general knowledge of these chapters."
+    # Helper for Python-based Cosine Similarity
+    import numpy as np
+    def cosine_similarity(v1, v2):
+        if not v1 or not v2: return 0.0
+        return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
     used_questions = []  # Accumulate all questions used across papers to avoid repetition
 
-    for p in range(papers):
-        section_text = "\n".join([f"Section {key}: {val[0]} mark questions × {val[1]}" for key, val in sections.items()])
+    try:
+        for p in range(papers):
+            section_text = "\n".join([f"Section {key}: {val[0]} mark questions × {val[1]}" for key, val in sections.items()])
 
-        # Build the exclusion block — grows with each paper generated
-        if used_questions:
-            exclusion_block = (
-                "\n### PREVIOUSLY USED QUESTIONS (DO NOT REPEAT OR REPHRASE ANY OF THESE) ###\n"
-                + "\n".join(f"- {q}" for q in used_questions)
-                + "\n### END EXCLUSION LIST ###\n"
-                + "\nIMPORTANT: Every question in this paper MUST be completely different in both topic angle and phrasing from the above list.\n"
-            )
-        else:
-            exclusion_block = ""
+            # Build the exclusion block — grows with each paper generated
+            if used_questions:
+                exclusion_block = (
+                    "\n### PREVIOUSLY USED QUESTIONS (DO NOT REPEAT OR REPHRASE ANY OF THESE) ###\n"
+                    + "\n".join(f"- {q}" for q in used_questions)
+                    + "\n### END EXCLUSION LIST ###\n"
+                    + "\nIMPORTANT: Every question in this paper MUST be completely different in both topic angle and phrasing from the above list.\n"
+                )
+            else:
+                exclusion_block = ""
+                
+            # --- ITERATIVE CONCEPT EXHAUSTION (DYNAMIC SEMANTIC SEARCH) ---
+            context_text = ""
+            for title, passages_data in chapter_content_map.items():
+                total_passages = len(passages_data)
+                
+                if total_passages <= 10:
+                    selected_passages_texts = [p["content"] for p in passages_data]
+                    strategy = "ALL_PASSAGES (Short Chapter)"
+                else:
+                    strategy = f"SEMANTIC_SEARCH_TOP_10_ITERATION_{p+1}"
+                    # Evolve the query based on the paper index
+                    if p == 0:
+                        synthetic_query = f"Core concepts, important definitions, main historical events, standard formulas, and comprehensive summary of chapter: {title}"
+                    elif p == 1:
+                        synthetic_query = f"Secondary topics, nuanced edge cases, minor definitions, and application examples of chapter: {title}"
+                    else:
+                        synthetic_query = f"Obscure facts, deep corners, minor historical figures, complex tricky application examples, and rarely tested areas of chapter: {title}"
+                        
+                    try:
+                        emb_res = await client.embeddings.create(model="text-embedding-3-large", input=synthetic_query)
+                        query_vector = emb_res.data[0].embedding
+                        if hasattr(emb_res, 'usage') and emb_res.usage:
+                            from app.utils.ai_usage_logger import log_ai_usage
+                            await log_ai_usage("ADMIN", "Question Gen - Context Search", "text-embedding-3-large", emb_res.usage)
+                        
+                        scored_passages = []
+                        for passage in passages_data:
+                            score = cosine_similarity(query_vector, passage["vector"])
+                            scored_passages.append((score, passage["content"]))
+                            
+                        scored_passages.sort(key=lambda x: x[0], reverse=True)
+                        selected_passages_texts = [content for score, content in scored_passages[:10]]
+                    except Exception as e:
+                        print(f"[DEBUG] Semantic Search Failed for {title}, iteration {p+1}: {e}")
+                        step = max(1, total_passages // 10)
+                        selected_passages_texts = [psg["content"] for psg in passages_data[::step][:10]]
+                        strategy = f"FALLBACK_UNIFORM_SAMPLING_LIMIT_10"
+                
+                print(f"[DEBUG] Paper {p+1} - Strategy: {strategy} for chapter: {title}")
+                chapter_text = "\n".join(selected_passages_texts)
+                context_text += f"\n=== CHAPTER: {title} ===\n{chapter_text}\n"
 
-        prompt = f"""
+            prompt = f"""
 Kerala SCERT Board Exam Question Paper Generator — Paper {p + 1} of {papers}
 
 Standard: {std}
@@ -498,59 +500,78 @@ Respond with valid JSON only. No text outside JSON.
 }}
 """
 
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7  # Higher temperature = more creative variation across papers
-        )
-
-        content = response.choices[0].message.content
-        
-        # Log usage
-        if hasattr(response, 'usage') and response.usage:
-            from app.utils.ai_usage_logger import log_ai_usage
-            await log_ai_usage("ADMIN", "Question Generation", "gpt-4o-mini", response.usage)
-        cleaned = content.replace("```json", "").replace("```", "").strip()
-
-        try:
-            paper_json = json.loads(cleaned)
-        except Exception:
-            paper_json = {"paper_id": f"{task_id}-{p+1}", "sections": []}
-
-        # Collect all question texts from this paper to exclude from next papers
-        for section in paper_json.get("sections", []):
-            for q in section.get("questions", []):
-                q_text = q.get("question") or q.get("text") or ""
-                if q_text:
-                    used_questions.append(q_text.strip())
-
-        # Insert JSON into DB
-        # We store 'task_id' (which is the task's ObjectId string) for linking
-        result = await db.generated_papers.insert_one({
-            "task_id": task_id,
-            "paper_index": p + 1,
-            "paper": paper_json,
-            "created_at": datetime.utcnow(),
-        })
-        generated_ids.append(str(result.inserted_id))
-
-        # --- PDF Generation ---
-        try:
-            paper_filename = f"{GENERATED_PDF_DIR}/{paper_json['paper_id']}.pdf"
-            save_scert_question_paper(paper_json, paper_filename)
-            # Update DB with PDF path
-            await db.generated_papers.update_one(
-                {"_id": result.inserted_id},
-                {"$set": {"pdf_path": paper_filename}}
+            response = await client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7  # Higher temperature = more creative variation across papers
             )
-        except Exception as e:
-            print(f"Failed to generate PDF for paper {paper_json.get('paper_id')}: {e}")
 
-        # Update progress
+            content = response.choices[0].message.content
+            
+            # Log usage
+            if hasattr(response, 'usage') and response.usage:
+                from app.utils.ai_usage_logger import log_ai_usage
+                await log_ai_usage("ADMIN", "Question Generation", "gpt-4o-mini", response.usage)
+            cleaned = content.replace("```json", "").replace("```", "").strip()
+
+            try:
+                paper_json = json.loads(cleaned)
+            except Exception:
+                paper_json = {"paper_id": f"{task_id}-{p+1}", "sections": []}
+
+            # Collect all question texts from this paper to exclude from next papers
+            for section in paper_json.get("sections", []):
+                for q in section.get("questions", []):
+                    # Defensive check: AI might return strings instead of objects
+                    if isinstance(q, dict):
+                        q_text = q.get("question") or q.get("text") or ""
+                    else:
+                        q_text = str(q)
+                    
+                    if q_text:
+                        used_questions.append(q_text.strip())
+
+            # Insert JSON into DB
+            # We store 'task_id' (which is the task's ObjectId string) for linking
+            result = await db.generated_papers.insert_one({
+                "task_id": task_id,
+                "paper_index": p + 1,
+                "paper": paper_json,
+                "created_at": datetime.utcnow(),
+            })
+            generated_ids.append(str(result.inserted_id))
+
+            # --- PDF Generation ---
+            try:
+                # Inject metadata for PDF header
+                paper_json["marks"] = total_marks
+                paper_json["standard"] = str(std)
+                paper_json["subject"] = subject
+                paper_json["time"] = "TIME - 90 MINUTES" if total_marks >= 50 else "TIME - 45 MINUTES"
+
+                paper_filename = f"{GENERATED_PDF_DIR}/{paper_json['paper_id']}.pdf"
+                save_scert_question_paper(paper_json, paper_filename)
+                # Update DB with PDF path
+                await db.generated_papers.update_one(
+                    {"_id": result.inserted_id},
+                    {"$set": {"pdf_path": paper_filename}}
+                )
+            except Exception as e:
+                print(f"Failed to generate PDF for paper {paper_json.get('paper_id')}: {e}")
+
+            # Update progress
+            await db.question_tasks.update_one(
+                {"_id": ObjectId(task_id)},
+                {"$set": {"progress": int((p + 1) / papers * 100)}}
+            )
+
+    except Exception as e:
+        print(f"CRITICAL: Question Generation Worker Failed for task {task_id}: {e}")
         await db.question_tasks.update_one(
             {"_id": ObjectId(task_id)},
-            {"$set": {"progress": int((p + 1) / papers * 100)}}
+            {"$set": {"status": "failed", "message": str(e)}}
         )
+        return
 
     # Mark job completed
     await db.question_tasks.update_one(

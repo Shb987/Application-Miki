@@ -134,16 +134,6 @@ async def get_student_ai_summary(
         async def module_costs():
             pipeline = [
                 {"$match": base_match},
-                # Normalize legacy "Async Ch Upload (...)" entries into a single clean label
-                {"$addFields": {
-                    "action_type": {
-                        "$cond": {
-                            "if": {"$regexMatch": {"input": {"$ifNull": ["$action_type", ""]}, "regex": "^Async Ch Upload"}},
-                            "then": "Chapter Upload - Embedding",
-                            "else": "$action_type"
-                        }
-                    }
-                }},
                 {
                     "$group": {
                         "_id": "$action_type",
@@ -155,7 +145,7 @@ async def get_student_ai_summary(
             results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
 
             return {
-                "labels": [r["_id"] for r in results],
+                "labels": [r["_id"] if r["_id"] else "Other" for r in results],
                 "costs": [round(r["cost"], 4) for r in results]
             }
 
@@ -281,16 +271,6 @@ async def get_class_ai_summary(
         async def module_costs():
             pipeline = [
                 {"$match": base_match},
-                # Normalize legacy "Async Ch Upload (...)" entries into a single clean label
-                {"$addFields": {
-                    "action_type": {
-                        "$cond": {
-                            "if": {"$regexMatch": {"input": {"$ifNull": ["$action_type", ""]}, "regex": "^Async Ch Upload"}},
-                            "then": "Chapter Upload - Embedding",
-                            "else": "$action_type"
-                        }
-                    }
-                }},
                 {"$group": {"_id": "$action_type", "cost": {"$sum": "$estimated_cost_usd"}}}
             ]
             results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
@@ -374,22 +354,9 @@ async def get_ai_usage_summary(current_admin: dict = Depends(get_current_admin))
             result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
             return round(result[0]["total"], 4) if result else 0.0
 
-        # -----------------------------
-        # COST BY MODULE
-        # -----------------------------
         async def module_costs():
             pipeline = [
                 {"$match": base_match},
-                # Normalize legacy "Async Ch Upload (...)" entries into a single clean label
-                {"$addFields": {
-                    "action_type": {
-                        "$cond": {
-                            "if": {"$regexMatch": {"input": {"$ifNull": ["$action_type", ""]}, "regex": "^Async Ch Upload"}},
-                            "then": "Chapter Upload - Embedding",
-                            "else": "$action_type"
-                        }
-                    }
-                }},
                 {"$group": {"_id": "$action_type", "cost": {"$sum": "$estimated_cost_usd"}}}
             ]
             results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)

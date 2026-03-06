@@ -587,13 +587,13 @@
           <td><span class="badge ${isActive ? "bg-success" : "bg-secondary"}">${isActive ? "Active" : "Inactive"}</span></td>
           <td>
             <button class="btn btn-sm btn-outline-primary action-btn me-1" onclick="viewProfile('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')">
-              <i data-feather="eye" style="width:12px;height:12px;"></i> View
+              <i class="fa fa-eye" style="font-size:12px;"></i> View
             </button>
-            <button class="btn btn-sm btn-outline-warning action-btn me-1" onclick="deactivateStudent('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')">
-              <i data-feather="user-x" style="width:12px;height:12px;"></i>
+            <button class="btn btn-sm btn-outline-warning action-btn me-1" onclick="deactivateStudent('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')" title="Deactivate">
+              <i class="fa fa-ban" style="font-size:12px;"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger action-btn" onclick="promptDelete('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')">
-              <i data-feather="trash-2" style="width:12px;height:12px;"></i>
+            <button class="btn btn-sm btn-outline-danger action-btn" onclick="promptDelete('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')" title="Delete">
+              <i class="fa fa-trash" style="font-size:12px;"></i>
             </button>
           </td>
         </tr>`;
@@ -717,7 +717,7 @@
           <td>${date}</td>
           <td>
             <button class="btn btn-sm btn-outline-danger action-btn" onclick="deleteParent('${p.mobile_number}')">
-              <i data-feather="trash-2" style="width:12px;height:12px;"></i> Remove
+              <i class="fa fa-trash" style="font-size:12px;"></i> Remove
             </button>
           </td>
         </tr>`;

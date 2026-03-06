@@ -145,6 +145,23 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     # ⌨️ Text triggers (for testing or UI buttons)
                     elif msg.get("text"):
                         text_content = msg.get("text")
+                        
+                        # Handle explicit interrupt from Flutter UI
+                        if text_content.strip() == "_INTERRUPT_":
+                            print("⚡ Barge-in: Manual _INTERRUPT_ signal received from UI.", flush=True)
+                            if assistant_speaking:
+                                try:
+                                    await websocket.send_text(json.dumps({"type": "stop_audio"}))
+                                except:
+                                    pass
+                                try:
+                                    await session.response.cancel()
+                                except:
+                                    pass
+                                assistant_speaking = False
+                                state = "listening"
+                            continue
+                            
                         print(f"👤 User (Text): {text_content}", flush=True)
                         
                         # Add a text item to the conversation and request a response

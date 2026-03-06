@@ -205,7 +205,7 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
                 # Log usage
                 if hasattr(emb, 'usage') and emb.usage:
                     from app.utils.ai_usage_logger import log_ai_usage
-                    await log_ai_usage("ADMIN", f"Async Ch Upload ({full_chapter_title})", "text-embedding-3-large", emb.usage)
+                    await log_ai_usage("ADMIN", "Chapter Upload - Embedding", "text-embedding-3-large", emb.usage)
                 
                 valid_docs.append({
                     "textbook_id": textbook_id,

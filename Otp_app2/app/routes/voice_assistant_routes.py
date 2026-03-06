@@ -130,7 +130,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
             # RECEIVE LOOP
             # ==============================
             async def receive_messages():
-                nonlocal state, last_valid_user_transcript, mute_until
+                nonlocal state, last_valid_user_transcript, mute_until, assistant_speaking
 
                 await session_ready.wait()
                 print(f"✅ Voice Assistant session active for Student: {student_id}", flush=True)
@@ -179,6 +179,15 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                 assistant_speaking = False
                                 state = "listening"
                             continue
+
+                        # Handle end-of-session signal from Flutter
+                        if text_content.strip() == "_END_OF_SPEECH_":
+                            print("🔌 _END_OF_SPEECH_ received — closing session.", flush=True)
+                            try:
+                                await websocket.close()
+                            except:
+                                pass
+                            break
                             
                         print(f"👤 User (Text): {text_content}", flush=True)
                         

@@ -1,6 +1,8 @@
 import os
 import asyncio
+import time
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 from bson import ObjectId
 from openai import AsyncOpenAI
 from app.core.database import db
@@ -57,6 +59,19 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
     state = "listening"
     assistant_speaking = False
     last_valid_user_transcript = ""
+    last_assistant_text = ""       # For echo detection
+    mute_until = 0.0               # Epoch time until which audio is muted
+    MUTE_COOLDOWN_S = 1.5          # Seconds to mute mic after Miki stops talking
+
+    def _is_echo(user_text: str, assistant_text: str) -> bool:
+        """Return True if user_text is suspiciously similar to what Miki just said."""
+        if not assistant_text or not user_text:
+            return False
+        # Normalise both sides
+        u = user_text.lower().strip()
+        a = assistant_text.lower().strip()
+        ratio = SequenceMatcher(None, u, a).ratio()
+        return ratio > 0.60  # 60% similarity → likely echo
 
     try:
         async with client.beta.realtime.connect(
@@ -115,7 +130,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
             # RECEIVE LOOP
             # ==============================
             async def receive_messages():
-                nonlocal state, last_valid_user_transcript
+                nonlocal state, last_valid_user_transcript, mute_until
 
                 await session_ready.wait()
                 print(f"✅ Voice Assistant session active for Student: {student_id}", flush=True)
@@ -135,9 +150,12 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         if len(audio_bytes) <= 4:
                             continue
 
-                        # ✅ Always stream audio to OpenAI — barge-in is handled natively
-                        # by server VAD via `input_audio_buffer.speech_started` event.
-                        # Flutter MUST have echoCancellation:true to prevent loopback.
+                        # 🔇 MUTE WINDOW: Don't forward audio to OpenAI while
+                        # Miki is speaking or shortly after (echo cooldown).
+                        # This is the most reliable server-side echo mitigation.
+                        if time.monotonic() < mute_until:
+                            continue
+
                         base64_audio = base64.b64encode(audio_bytes).decode("utf-8")
                         await session.input_audio_buffer.append(audio=base64_audio)
                         state = "listening"
@@ -180,7 +198,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
             # SEND LOOP
             # ==============================
             async def send_events():
-                nonlocal state, assistant_speaking, last_valid_user_transcript
+                nonlocal state, assistant_speaking, last_valid_user_transcript, last_assistant_text, mute_until
                 import base64
 
                 async for event in session:
@@ -209,6 +227,8 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                     if event.type == "response.audio.delta":
                         assistant_speaking = True
                         state = "speaking"
+                        # Keep extending the mute window with each new audio chunk
+                        mute_until = time.monotonic() + MUTE_COOLDOWN_S
 
                         delta = getattr(event, "delta", None)
                         if delta:
@@ -228,7 +248,15 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                             print("⚠️ Ignoring noise transcript.", flush=True)
                             continue
 
-                        last_valid_user_transcript = user_text.strip()
+                        clean_text = user_text.strip()
+
+                        # 🔁 ECHO DETECTION: Discard transcripts that closely
+                        # match what Miki just said — those are speaker echoes.
+                        if _is_echo(clean_text, last_assistant_text):
+                            print(f"🔁 Echo detected and discarded: '{clean_text[:60]}'", flush=True)
+                            continue
+
+                        last_valid_user_transcript = clean_text
                         print(f"👤 User (Speech): {last_valid_user_transcript}", flush=True)
                         await save_chat_event(student_id, session_id, "user", last_valid_user_transcript)
 
@@ -277,6 +305,9 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                                     if text and text.strip():
                                         print(f"🤖 Miki: {text}", flush=True)
+                                        last_assistant_text = text.strip()  # Track for echo detection
+                                        # Extend mute window when the response text is finalised
+                                        mute_until = time.monotonic() + MUTE_COOLDOWN_S
                                         try:
                                             # Send back text to Flutter for UI update
                                             await websocket.send_text(json.dumps({"type": "text_response", "text": text}))

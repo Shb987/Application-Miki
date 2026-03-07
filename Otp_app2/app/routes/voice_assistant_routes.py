@@ -165,6 +165,22 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         text_content = msg.get("text")
                         
                         # Handle explicit interrupt from Flutter UI
+                        
+                        is_control_signal = False
+                        
+                        # Check if the text is a JSON control signal 
+                        try:
+                            data = json.loads(text_content)
+                            if isinstance(data, dict) and "type" in data:
+                                if data["type"] == "interrupt":
+                                    text_content = "_INTERRUPT_"
+                                    is_control_signal = True
+                                elif data["type"] == "end_of_speech":
+                                    text_content = "_END_OF_SPEECH_"
+                                    is_control_signal = True
+                        except json.JSONDecodeError:
+                            pass # Not a JSON, treat as normal text / legacy string signal
+                            
                         if text_content.strip() == "_INTERRUPT_":
                             print("⚡ Barge-in: Manual _INTERRUPT_ signal received from UI.", flush=True)
                             if assistant_speaking:
@@ -188,6 +204,10 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                             except:
                                 pass
                             break
+                            
+                        # If it was a JSON control object but unhandled type, just ignore it
+                        if is_control_signal:
+                            continue
                             
                         print(f"👤 User (Text): {text_content}", flush=True)
                         

@@ -11,6 +11,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from app.services.ai_tutor_service import ai_tutor_service
 import logging
 import json
+import base64
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -143,7 +144,6 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
                     # 🔊 Audio chunks from Flutter
                     if msg.get("bytes"):
-                        import base64
                         audio_bytes = msg["bytes"]
 
                         # Drop stray tiny packets (not real audio)
@@ -228,7 +228,6 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
             # ==============================
             async def send_events():
                 nonlocal state, assistant_speaking, last_valid_user_transcript, last_assistant_text, mute_until
-                import base64
 
                 async for event in session:
 
@@ -369,8 +368,10 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                                         "output": result or "No information found."
                                     }
                                 )
-                                # Request a response based on the tool output
-                                await session.response.create()
+                        
+                        if has_tool_call:
+                            # Request a single response after all tool outputs are processed
+                            await session.response.create()
 
                         # Log usage
                         if resp and hasattr(resp, 'usage') and resp.usage:

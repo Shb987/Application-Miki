@@ -85,16 +85,15 @@ async def broadcast_to_class(
     if not students:
         raise HTTPException(status_code=404, detail=f"No students found in class {student_class}")
 
-    # Send individual notifications (reuse create_notification which handles OneSignal targeting)
-    for student in students:
-        await create_notification(
-            db,
-            user_id=str(student["_id"]),
-            title=title,
-            message=message,
-            notification_type=notification_type,
-            priority=priority
-        )
+    # Send broadcast (handles deduplication and priority)
+    await broadcast_notification(
+        db, 
+        title, 
+        message, 
+        notification_type, 
+        priority=priority, 
+        student_ids=[str(s["_id"]) for s in students]
+    )
 
     recipient_count = len(students)
 

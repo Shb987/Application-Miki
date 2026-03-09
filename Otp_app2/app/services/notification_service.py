@@ -90,15 +90,17 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
 
     return notification
 
-async def broadcast_notification(db, title: str, message: str, notification_type: str, extra_data: dict = None, priority: int = 10):
+async def broadcast_notification(db, title: str, message: str, notification_type: str, extra_data: dict = None, priority: int = 10, student_ids: list = None):
     """
-    Broadcasts a notification to ALL students in DB but deduplicates push notifications by Parent (Phone).
+    Broadcasts a notification to a specific list of students (or ALL if none provided)
+    while deduplicating push notifications by Parent (Phone).
     """
     
-    # 1. Fetch all student IDs
-    cursor = db.students.find({}, {"_id": 1})
-    students = await cursor.to_list(length=None)
-    student_ids = [str(s["_id"]) for s in students]
+    # 1. Fetch student IDs if not provided
+    if student_ids is None:
+        cursor = db.students.find({}, {"_id": 1})
+        students = await cursor.to_list(length=None)
+        student_ids = [str(s["_id"]) for s in students]
 
     if not student_ids:
         print("⚠️ No students found to notify.")

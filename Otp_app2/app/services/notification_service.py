@@ -9,7 +9,7 @@ from app.core.settings import settings
 ONESIGNAL_APP_ID = settings.ONESIGNAL_APP_ID
 ONESIGNAL_API_KEY = settings.ONESIGNAL_API_KEY
 
-async def create_notification(db, user_id: str, title: str, message: str, notification_type: str, extra_data: dict = None):
+async def create_notification(db, user_id: str, title: str, message: str, notification_type: str, extra_data: dict = None, priority: int = 10):
     """
     Creates a notification in MongoDB (per student) and sends it via OneSignal (targeting parent).
     """
@@ -74,6 +74,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
         "channel_for_external_user_ids": "push",
         "headings": {"en": title},
         "contents": {"en": message},
+        "priority": priority,
         "data": onesignal_data
     }
     
@@ -89,7 +90,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
 
     return notification
 
-async def broadcast_notification(db, title: str, message: str, notification_type: str, extra_data: dict = None):
+async def broadcast_notification(db, title: str, message: str, notification_type: str, extra_data: dict = None, priority: int = 10):
     """
     Broadcasts a notification to ALL students in DB but deduplicates push notifications by Parent (Phone).
     """
@@ -167,6 +168,7 @@ async def broadcast_notification(db, title: str, message: str, notification_type
         "channel_for_external_user_ids": "push",
         "headings": {"en": title},
         "contents": {"en": message},
+        "priority": priority,
         "data": onesignal_data
     }
     

@@ -26,6 +26,7 @@ async def broadcast_to_all(
     title = payload.get("title", "").strip()
     message = payload.get("message", "").strip()
     notification_type = payload.get("type", "broadcast")
+    priority = payload.get("priority", 10)
 
     if not title or not message:
         raise HTTPException(status_code=400, detail="title and message are required")
@@ -34,7 +35,7 @@ async def broadcast_to_all(
     student_count = await db.students.count_documents({})
 
     # Fire broadcast (saves to MongoDB + sends OneSignal push)
-    await broadcast_notification(db, title, message, notification_type)
+    await broadcast_notification(db, title, message, notification_type, priority=priority)
 
     # Log the broadcast
     await db.broadcast_logs.insert_one({
@@ -72,6 +73,7 @@ async def broadcast_to_class(
     message = payload.get("message", "").strip()
     notification_type = payload.get("type", "class_broadcast")
     student_class = payload.get("student_class", "").strip()
+    priority = payload.get("priority", 10)
 
     if not title or not message or not student_class:
         raise HTTPException(status_code=400, detail="title, message and student_class are required")
@@ -90,7 +92,8 @@ async def broadcast_to_class(
             user_id=str(student["_id"]),
             title=title,
             message=message,
-            notification_type=notification_type
+            notification_type=notification_type,
+            priority=priority
         )
 
     recipient_count = len(students)

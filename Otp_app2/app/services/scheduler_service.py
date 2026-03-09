@@ -33,7 +33,8 @@ async def check_and_notify_special_days(db):
                 title=title,
                 message=message,
                 notification_type="special_day_reminder",
-                extra_data={"date": today_str, "type": special_day['type']}
+                extra_data={"date": today_str, "type": special_day['type']},
+                priority=5
             )
             
             # Mark as sent

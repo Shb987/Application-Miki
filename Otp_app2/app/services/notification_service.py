@@ -79,6 +79,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
     }
     
     try:
+        print(f"📦 [OneSignal] Sending Notification | Priority: {priority} | Type: {notification_type}")
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
             if response.status_code == 200:
@@ -175,6 +176,7 @@ async def broadcast_notification(db, title: str, message: str, notification_type
     }
     
     try:
+        print(f"📦 [OneSignal] Sending Broadcast | Priority: {priority} | Type: {notification_type}")
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
             if response.status_code == 200:

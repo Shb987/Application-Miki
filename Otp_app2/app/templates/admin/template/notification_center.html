@@ -154,7 +154,8 @@
 
 {% block scripts %}
 <script>
-    const token = localStorage.getItem("admin_token");
+    const token = window.token || localStorage.getItem("admin_token");
+    const API_BASE = window.API_BASE;
     let pendingPayload = null;
 
     function toggleClass() {

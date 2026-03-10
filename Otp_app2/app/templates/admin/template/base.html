@@ -172,10 +172,10 @@
     <script src="/assets/js/script.js"></script>
 
     <script>
-        const token = localStorage.getItem("admin_token");
-        const API_BASE = window.API_BASE;
+        window.token = localStorage.getItem("admin_token");
+        window.API_BASE = window.API_BASE || "{{ API_BASE }}";
 
-        if (!token) {
+        if (!window.token) {
             window.location.replace("/admin-panel/login");
         }
 

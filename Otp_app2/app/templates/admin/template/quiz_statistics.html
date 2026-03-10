@@ -148,7 +148,8 @@
 {% block scripts %}
 <script src="/assets/js/chart/apex-chart/apex-chart.js"></script>
 <script>
-    const token = localStorage.getItem("admin_token");
+    const token = window.token || localStorage.getItem("admin_token");
+    const API_BASE = window.API_BASE;
     async function loadStatistics() {
         try {
             const res = await fetch(`${API_BASE}/admin-panel/quiz/statistics`, { headers: { "Authorization": "Bearer " + token } });

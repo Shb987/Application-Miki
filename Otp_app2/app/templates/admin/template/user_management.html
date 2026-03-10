@@ -354,6 +354,8 @@
 
 {% block scripts %}
 <script>
+    const token = window.token || localStorage.getItem("admin_token");
+    const API_BASE = window.API_BASE;
     let currentTab = 'overview';
     let studentSkip = 0;
     const studentLimit = 20;

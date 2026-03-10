@@ -181,19 +181,44 @@ async def deactivate_student(
 
 @router.get("/admin-panel/users/parents")
 async def list_parents(
+    search: Optional[str] = Query(None, description="Search by parent mobile"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     current_admin: dict = Depends(get_current_admin)
 ):
-    """List all parents with their linked student count."""
-    total = await db.usertable.count_documents({"usertype": "parent"})
-    cursor = db.usertable.find({"usertype": "parent"}).sort("created_at", -1).skip(skip).limit(limit)
+    """List all parents with their linked student names and join dates."""
+    query = {"usertype": "parent"}
+    if search:
+        query["mobile_number"] = {"$regex": search, "$options": "i"}
+
+    total = await db.usertable.count_documents(query)
+    cursor = db.usertable.find(query).sort("created_at", -1).skip(skip).limit(limit)
     parents = await cursor.to_list(length=limit)
 
+    # 1️⃣ Collect all student IDs for bulk fetch
+    all_student_ids = []
+    for p in parents:
+        all_student_ids.extend(p.get("student_ids", []))
+    
+    # Remove duplicates
+    all_student_ids = list(set(all_student_ids))
+
+    # 2️⃣ Fetch student names
+    student_map = {}
+    if all_student_ids:
+        s_cursor = db.students.find({"_id": {"$in": all_student_ids}}, {"_id": 1, "student_name": 1})
+        async for s in s_cursor:
+            student_map[str(s["_id"])] = s.get("student_name", "Unknown")
+
+    # 3️⃣ Build result
     result = []
     for p in parents:
         p_data = serialize(p)
-        p_data["student_count"] = len(p.get("student_ids", []))
+        
+        # Resolve student names
+        s_ids = p.get("student_ids", [])
+        p_data["student_names"] = [student_map.get(str(sid), "Unknown") for sid in s_ids]
+        p_data["student_count"] = len(s_ids)
         result.append(p_data)
 
     return {

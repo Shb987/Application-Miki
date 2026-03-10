@@ -5,15 +5,30 @@
 {% block head %}
 <style>
     .game-tab-btn {
-        border-radius: 20px;
-        font-size: .83rem;
+        border-radius: 12px;
+        font-size: .85rem;
         font-weight: 600;
-        padding: 6px 20px;
+        padding: 8px 24px;
+        transition: all 0.3s;
+        border: 2px solid #eee;
+        background: #fff;
+        color: #666;
     }
 
-    .game-tab-btn.active {
-        background: #54ba4a;
-        color: #fff;
+    .game-tab-btn:hover {
+        background: #f8f9fa;
+        transform: translateY(-1px);
+    }
+
+    .game-tab-btn.active[id="tab-wordle"] {
+        background: rgba(115, 102, 255, 0.1);
+        color: #7366ff;
+        border-color: #7366ff;
+    }
+
+    .game-tab-btn.active[id="tab-squares"] {
+        background: rgba(84, 186, 74, 0.1);
+        color: #54ba4a;
         border-color: #54ba4a;
     }
 
@@ -27,9 +42,46 @@
     }
 
     .stat-mini {
-        border-radius: 10px;
-        padding: 10px 14px;
-        font-size: .82rem;
+        border-radius: 12px;
+        padding: 15px 20px;
+        background: #fff;
+        border: 1px solid #eee;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+    }
+
+    .stat-label {
+        color: #777;
+        font-weight: 500;
+    }
+
+    .stat-value {
+        color: #2c3e50;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .stat-icon {
+        width: 18px;
+        height: 18px;
+        color: #7366ff;
+    }
+
+    .divider {
+        width: 1px;
+        height: 20px;
+        background: #eee;
     }
 
     #toast-gm {
@@ -137,21 +189,35 @@
 
 <!-- Modals -->
 <div class="modal fade" id="wordleModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header bg-success text-white" style="border-radius:16px 16px 0 0;">
+            <div class="modal-header bg-primary text-white" style="border-radius:16px 16px 0 0;">
                 <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="wordle-edit-id">
-                <div class="mb-3"><label class="form-label">Word *</label><input id="w-word" type="text"
-                        class="form-control" style="text-transform:uppercase;"></div>
-                <div class="mb-3"><label class="form-label">Hint *</label><input id="w-hint" type="text"
-                        class="form-control"></div>
-                <div class="mb-3"><label class="form-label">Level *</label><input id="w-level" type="number"
-                        class="form-control"></div>
-                <div class="mb-3"><label class="form-label">Class Range *</label>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Word *</label>
+                        <input id="w-word" type="text" class="form-control" style="text-transform:uppercase;"
+                            placeholder="E.G. APPLE">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Level *</label>
+                        <input id="w-level" type="number" class="form-control">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Difficulty *</label>
+                        <select id="w-difficulty" class="form-select">
+                            <option value="Easy">Easy</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Hard">Hard</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Class Range *</label>
                     <select id="w-range" class="form-select">
                         <option value="">Select...</option>
                         <option value="1-3">Class 1-3</option>
@@ -161,41 +227,116 @@
                         <option value="11-12">Class 11-12</option>
                     </select>
                 </div>
+                <hr>
+                <h6>Hints (Up to 5)</h6>
+                <div id="wordle-hints-container">
+                    <div class="mb-2"><input type="text" class="form-control w-hint-input"
+                            placeholder="Hint 1 (Most obscure)"></div>
+                    <div class="mb-2"><input type="text" class="form-control w-hint-input" placeholder="Hint 2"></div>
+                    <div class="mb-2"><input type="text" class="form-control w-hint-input" placeholder="Hint 3"></div>
+                    <div class="mb-2"><input type="text" class="form-control w-hint-input" placeholder="Hint 4"></div>
+                    <div class="mb-2"><input type="text" class="form-control w-hint-input"
+                            placeholder="Hint 5 (Most obvious)"></div>
+                </div>
             </div>
-            <div class="modal-footer"><button class="btn btn-outline-secondary"
-                    data-bs-dismiss="modal">Cancel</button><button class="btn btn-success" onclick="saveWord()">Save
-                    Word</button></div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="saveWord()">Save Word</button>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="squaresModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header bg-primary text-white" style="border-radius:16px 16px 0 0;">
+            <div class="modal-header bg-success text-white" style="border-radius:16px 16px 0 0;">
                 <h6 class="modal-title" id="squares-modal-title">Add Squares Level</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="squares-edit-id">
-                <div class="mb-3"><label class="form-label">Level Number *</label><input id="sq-level" type="number"
-                        class="form-control"></div>
-                <div class="mb-3"><label class="form-label">Class Range *</label>
-                    <select id="sq-range" class="form-select">
-                        <option value="">Select...</option>
-                        <option value="1-3">Class 1-3</option>
-                        <option value="3-5">Class 3-5</option>
-                        <option value="6-8">Class 6-8</option>
-                        <option value="9-10">Class 9-10</option>
-                        <option value="11-12">Class 11-12</option>
-                    </select>
+                <div class="row">
+                    <div class="col-xl-4 col-lg-5">
+                        <div class="mb-3">
+                            <label class="form-label">Level Number *</label>
+                            <input id="sq-level" type="number" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Class Range *</label>
+                            <select id="sq-range" class="form-select">
+                                <option value="">Select...</option>
+                                <option value="1-3">Class 1-3</option>
+                                <option value="3-5">Class 3-5</option>
+                                <option value="6-8">Class 6-8</option>
+                                <option value="9-10">Class 9-10</option>
+                                <option value="11-12">Class 11-12</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Topic Hint *</label>
+                            <input id="sq-hint" type="text" class="form-control" placeholder="E.G. Animals, Space...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Main Words (comma-separated) *</label>
+                            <textarea id="sq-main-words" class="form-control" rows="3"
+                                style="text-transform:uppercase;"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Bonus Words (optional)</label>
+                            <textarea id="sq-bonus-words" class="form-control" rows="2"
+                                style="text-transform:uppercase;"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-xl-8 col-lg-7">
+                        <label class="form-label d-block text-center">4x4 Grid Board *</label>
+                        <div class="squares-grid-editor mx-auto mb-3"
+                            style="width:280px; display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;">
+                            <!-- JS will populate 16 inputs -->
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                            <input type="text" maxlength="1" class="form-control text-center sq-grid-cell"
+                                style="aspect-ratio:1; font-weight:700; font-size:1.2rem; text-transform:uppercase;">
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted">Enter the letters exactly as they appear in the 4x4 grid
+                                board.</small>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3"><label class="form-label">Words (comma-separated) *</label><input id="sq-words"
-                        type="text" class="form-control" style="text-transform:uppercase;"></div>
             </div>
-            <div class="modal-footer"><button class="btn btn-outline-secondary"
-                    data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="saveSquares()">Save
-                    Level</button></div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-success" onclick="saveSquares()">Save Level</button>
+            </div>
         </div>
     </div>
 </div>
@@ -210,13 +351,15 @@
 
 {% block scripts %}
 <script>
-    const token = localStorage.getItem("admin_token");
+    const token = window.token || localStorage.getItem("admin_token");
+    const API_BASE = window.API_BASE;
     function switchTab(tab) {
         document.getElementById("panel-wordle").style.display = tab === "wordle" ? "" : "none";
         document.getElementById("panel-squares").style.display = tab === "squares" ? "" : "none";
-        document.getElementById("tab-wordle").className = "btn game-tab-btn" + (tab === "wordle" ? " active" : " btn-outline-secondary");
-        document.getElementById("tab-squares").className = "btn game-tab-btn" + (tab === "squares" ? " active" : " btn-outline-secondary");
+        document.getElementById("tab-wordle").className = "btn game-tab-btn" + (tab === "wordle" ? " active" : "");
+        document.getElementById("tab-squares").className = "btn game-tab-btn" + (tab === "squares" ? " active" : "");
         if (tab === "squares") { loadSquares(); loadSquaresStats(); }
+        else { loadWordle(); loadWordleStats(); }
     }
 
     async function loadWordle() {
@@ -226,35 +369,96 @@
         const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
         document.getElementById("wordle-count").textContent = `${json.total || 0} words`;
-        let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Word</th><th>Hint</th><th>Level</th><th>Class Range</th><th>Actions</th></tr></thead><tbody>`;
+        let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Word</th><th>Difficulty</th><th>Level</th><th>Class Range</th><th>Hints</th><th>Actions</th></tr></thead><tbody>`;
         (json.data || []).forEach((w, i) => {
-            html += `<tr><td>${i + 1}</td><td><strong>${w.word}</strong></td><td>${w.hint || "—"}</td><td>${w.level}</td><td><span class="range-badge">${w.class_range}</span></td>
-            <td><button class="btn btn-sm btn-outline-primary" onclick="editWord('${w.id}','${w.word}','${(w.hint || "").replace(/'/g, "\\'")}',${w.level},'${w.class_range}')">Edit</button>
-            <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteWord('${w.id}','${w.word}')">Delete</button></td></tr>`;
+            const hintsStr = JSON.stringify(w.hints || []).replace(/'/g, "\\'");
+            html += `<tr><td>${i + 1}</td><td><strong>${w.word}</strong></td><td><span class="badge ${w.difficulty === 'Easy' ? 'bg-success' : w.difficulty === 'Medium' ? 'bg-warning' : 'bg-danger'}">${w.difficulty}</span></td>
+            <td>${w.level}</td><td><span class="range-badge">${w.class_range}</span></td><td><small>${w.hints ? w.hints.length : 0} hints</small></td>
+            <td><button class="btn btn-sm btn-outline-primary" onclick='editWord("${w.id}","${w.word}",${hintsStr},${w.level},"${w.class_range}","${w.difficulty}")'>Edit</button>
+            <button class="btn btn-sm btn-outline-danger ms-1" onclick='deleteWord("${w.id}","${w.word}")'>Delete</button></td></tr>`;
         });
         document.getElementById("wordle-table-wrapper").innerHTML = html + `</tbody></table>`;
     }
 
     async function loadWordleStats() {
-        const res = await fetch(`${API_BASE}/admin-panel/games/wordle/stats`, { headers: { Authorization: "Bearer " + token } });
-        const json = await res.json(); if (!json.data) return;
-        const d = json.data, rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `<span class="me-3"><strong>${r}:</strong> ${c}</span>`).join("");
-        document.getElementById("wordle-stats-row").innerHTML = `<div class="col-12"><div class="stat-mini bg-light"><span class="me-4"><strong>Total Words:</strong> ${d.total_words}</span><span class="me-4"><strong>Sessions:</strong> ${d.total_sessions}</span>${rangeHtml}</div></div>`;
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/games/wordle/stats`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json(); if (!json.data) return;
+            const d = json.data;
+
+            let rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `
+                <div class="stat-item">
+                    <span class="range-badge">Class ${r}</span>
+                    <span class="stat-value">${c}</span>
+                </div>
+            `).join("");
+
+            document.getElementById("wordle-stats-row").innerHTML = `
+                <div class="col-12">
+                    <div class="stat-mini">
+                        <div class="stat-item">
+                            <i data-feather="grid" class="stat-icon" style="color:#54ba4a;"></i>
+                            <span class="stat-label">Total Words:</span>
+                            <span class="stat-value">${d.total_words}</span>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="stat-item">
+                            <i data-feather="play-circle" class="stat-icon" style="color:#7366ff;"></i>
+                            <span class="stat-label">Sessions:</span>
+                            <span class="stat-value">${d.total_sessions}</span>
+                        </div>
+                        <div class="divider"></div>
+                        ${rangeHtml}
+                    </div>
+                </div>`;
+            feather.replace();
+        } catch (err) { console.error(err); }
     }
 
-    function openWordleModal(id = "", word = "", hint = "", level = "", range = "") {
-        document.getElementById("wordle-edit-id").value = id; document.getElementById("w-word").value = word; document.getElementById("w-hint").value = hint;
-        document.getElementById("w-level").value = level; document.getElementById("w-range").value = range;
+    function openWordleModal(id = "", word = "", hints = [], level = "", range = "", difficulty = "Easy") {
+        document.getElementById("wordle-edit-id").value = id;
+        document.getElementById("w-word").value = word;
+        document.getElementById("w-level").value = level;
+        document.getElementById("w-range").value = range;
+        document.getElementById("w-difficulty").value = difficulty;
+
+        const inputs = document.querySelectorAll(".w-hint-input");
+        inputs.forEach((input, i) => {
+            input.value = hints[i] || "";
+        });
+
         document.getElementById("wordle-modal-title").innerText = id ? "Edit Word" : "Add Word";
-        new bootstrap.Modal(document.getElementById("wordleModal")).show();
+        const modal = new bootstrap.Modal(document.getElementById("wordleModal"));
+        modal.show();
     }
-    function editWord(id, word, hint, level, range) { openWordleModal(id, word, hint, level, range); }
+    function editWord(id, word, hints, level, range, diff) { openWordleModal(id, word, hints, level, range, diff); }
 
     async function saveWord() {
         const id = document.getElementById("wordle-edit-id").value;
-        const body = { word: document.getElementById("w-word").value.trim(), hint: document.getElementById("w-hint").value.trim(), level: parseInt(document.getElementById("w-level").value), class_range: document.getElementById("w-range").value };
-        const res = await fetch(id ? `${API_BASE}/admin-panel/games/wordle/words/${id}` : `${API_BASE}/admin-panel/games/wordle/words`, { method: id ? "PUT" : "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        if (res.ok) { bootstrap.Modal.getInstance(document.getElementById("wordleModal")).hide(); loadWordle(); loadWordleStats(); }
+        const hints = Array.from(document.querySelectorAll(".w-hint-input")).map(i => i.value.trim()).filter(v => v);
+
+        const body = {
+            word: document.getElementById("w-word").value.trim().toUpperCase(),
+            hints: hints,
+            difficulty: document.getElementById("w-difficulty").value,
+            level: parseInt(document.getElementById("w-level").value),
+            class_range: document.getElementById("w-range").value
+        };
+
+        if (!body.word || !body.level || !body.class_range || hints.length === 0) {
+            alert("Please fill all required fields and at least one hint.");
+            return;
+        }
+
+        const res = await fetch(id ? `${API_BASE}/admin-panel/games/wordle/words/${id}` : `${API_BASE}/admin-panel/games/wordle/words`, {
+            method: id ? "PUT" : "POST",
+            headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById("wordleModal")).hide();
+            loadWordle(); loadWordleStats();
+        }
     }
 
     async function deleteWord(id, w) { if (confirm(`Delete "${w}"?`)) { await fetch(`${API_BASE}/admin-panel/games/wordle/words/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } }); loadWordle(); loadWordleStats(); } }
@@ -264,33 +468,106 @@
         const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels?limit=100${range ? `&class_range=${range}` : ''}`, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
         document.getElementById("squares-count").textContent = `${json.total || 0} levels`;
-        let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Level</th><th>Class Range</th><th>Words</th><th>Actions</th></tr></thead><tbody>`;
+        let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Level</th><th>Range</th><th>Topic</th><th>Words (M/B)</th><th>Actions</th></tr></thead><tbody>`;
         (json.data || []).forEach((lv, i) => {
-            html += `<tr><td>${i + 1}</td><td>${lv.level}</td><td><span class="range-badge">${lv.class_range}</span></td><td><code>${(lv.words || []).join(", ")}</code></td>
-            <td><button class="btn btn-sm btn-outline-primary" onclick="editSquares('${lv.id}',${lv.level},'${lv.class_range}','${(lv.words || []).join(",")}')">Edit</button>
-            <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteSquares('${lv.id}',${lv.level})">Delete</button></td></tr>`;
+            const mWords = JSON.stringify(lv.main_words || []).replace(/'/g, "\\'");
+            const bWords = JSON.stringify(lv.bonus_words || []).replace(/'/g, "\\'");
+            const gridJson = JSON.stringify(lv.grid || []).replace(/'/g, "\\'");
+            const hint = (lv.hint || "").replace(/'/g, "\\'");
+
+            html += `<tr><td>${i + 1}</td><td>${lv.level}</td><td><span class="range-badge">${lv.class_range}</span></td><td>${lv.hint || "—"}</td>
+            <td><small>Main: ${lv.main_words.length}, Bonus: ${lv.bonus_words.length}</small></td>
+            <td><button class="btn btn-sm btn-outline-primary" onclick='editSquares("${lv.id}",${lv.level},"${lv.class_range}",${mWords},${bWords},${gridJson},"${hint}")'>Edit</button>
+            <button class="btn btn-sm btn-outline-danger ms-1" onclick='deleteSquares("${lv.id}",${lv.level})'>Delete</button></td></tr>`;
         });
         document.getElementById("squares-table-wrapper").innerHTML = html + `</tbody></table>`;
     }
 
     async function loadSquaresStats() {
-        const res = await fetch(`${API_BASE}/admin-panel/games/squares/stats`, { headers: { Authorization: "Bearer " + token } });
-        const json = await res.json(); if (!json.data) return;
-        const d = json.data, rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `<span class="me-3"><strong>${r}:</strong> ${c}</span>`).join("");
-        document.getElementById("squares-stats-row").innerHTML = `<div class="col-12"><div class="stat-mini bg-light"><span class="me-4"><strong>Total Levels:</strong> ${d.total_levels}</span><span class="me-4"><strong>Sessions:</strong> ${d.total_sessions}</span>${rangeHtml}</div></div>`;
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/games/squares/stats`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json(); if (!json.data) return;
+            const d = json.data;
+
+            let rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `
+                <div class="stat-item">
+                    <span class="range-badge">Class ${r}</span>
+                    <span class="stat-value">${c}</span>
+                </div>
+            `).join("");
+
+            document.getElementById("squares-stats-row").innerHTML = `
+                <div class="col-12">
+                    <div class="stat-mini">
+                        <div class="stat-item">
+                            <i data-feather="box" class="stat-icon" style="color:#13c9ca;"></i>
+                            <span class="stat-label">Total Levels:</span>
+                            <span class="stat-value">${d.total_levels}</span>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="stat-item">
+                            <i data-feather="play-circle" class="stat-icon" style="color:#7366ff;"></i>
+                            <span class="stat-label">Sessions:</span>
+                            <span class="stat-value">${d.total_sessions}</span>
+                        </div>
+                        <div class="divider"></div>
+                        ${rangeHtml}
+                    </div>
+                </div>`;
+            feather.replace();
+        } catch (err) { console.error(err); }
     }
 
-    function openSquaresModal(id = "", lv = "", rg = "", ws = "") {
-        document.getElementById("squares-edit-id").value = id; document.getElementById("sq-level").value = lv; document.getElementById("sq-range").value = rg; document.getElementById("sq-words").value = ws;
+    function openSquaresModal(id = "", lv = "", rg = "", mw = [], bw = [], grid = [], hint = "") {
+        document.getElementById("squares-edit-id").value = id;
+        document.getElementById("sq-level").value = lv;
+        document.getElementById("sq-range").value = rg;
+        document.getElementById("sq-hint").value = hint;
+        document.getElementById("sq-main-words").value = mw.join(", ");
+        document.getElementById("sq-bonus-words").value = bw.join(", ");
+
+        const cells = document.querySelectorAll(".sq-grid-cell");
+        const flatGrid = grid.flat();
+        cells.forEach((cell, i) => {
+            cell.value = flatGrid[i] || "";
+        });
+
+        document.getElementById("squares-modal-title").innerText = id ? "Edit Squares Level" : "Add Squares Level";
         new bootstrap.Modal(document.getElementById("squaresModal")).show();
     }
-    function editSquares(id, lv, rg, ws) { openSquaresModal(id, lv, rg, ws); }
+    function editSquares(id, lv, rg, mw, bw, grid, hint) { openSquaresModal(id, lv, rg, mw, bw, grid, hint); }
 
     async function saveSquares() {
         const id = document.getElementById("squares-edit-id").value;
-        const body = { level: parseInt(document.getElementById("sq-level").value), class_range: document.getElementById("sq-range").value, words: document.getElementById("sq-words").value.split(",").map(w => w.trim().toUpperCase()) };
-        const res = await fetch(id ? `${API_BASE}/admin-panel/games/squares/levels/${id}` : `${API_BASE}/admin-panel/games/squares/levels`, { method: id ? "PUT" : "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        if (res.ok) { bootstrap.Modal.getInstance(document.getElementById("squaresModal")).hide(); loadSquares(); loadSquaresStats(); }
+        const cells = Array.from(document.querySelectorAll(".sq-grid-cell")).map(c => c.value.trim().toUpperCase());
+
+        // Chunk flat array into 4x4
+        const grid = [];
+        for (let i = 0; i < 16; i += 4) grid.push(cells.slice(i, i + 4));
+
+        const body = {
+            level: parseInt(document.getElementById("sq-level").value),
+            class_range: document.getElementById("sq-range").value,
+            hint: document.getElementById("sq-hint").value.trim(),
+            main_words: document.getElementById("sq-main-words").value.split(",").map(w => w.trim().toUpperCase()).filter(v => v),
+            bonus_words: document.getElementById("sq-bonus-words").value.split(",").map(w => w.trim().toUpperCase()).filter(v => v),
+            grid: grid
+        };
+
+        if (!body.level || !body.class_range || body.main_words.length === 0 || cells.some(c => !c)) {
+            alert("Please fill all required fields and the entire 4x4 grid.");
+            return;
+        }
+
+        const res = await fetch(id ? `${API_BASE}/admin-panel/games/squares/levels/${id}` : `${API_BASE}/admin-panel/games/squares/levels`, {
+            method: id ? "PUT" : "POST",
+            headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById("squaresModal")).hide();
+            loadSquares(); loadSquaresStats();
+        }
     }
 
     async function deleteSquares(id, lv) { if (confirm(`Delete level ${lv}?`)) { await fetch(`${API_BASE}/admin-panel/games/squares/levels/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } }); loadSquares(); loadSquaresStats(); } }

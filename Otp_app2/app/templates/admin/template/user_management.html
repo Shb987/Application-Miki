@@ -9,12 +9,137 @@
         font-size: 0.82rem;
         font-weight: 600;
         padding: 6px 18px;
+        transition: all 0.3s ease;
     }
 
     .um-tab-btn.active {
-        background: #7366ff;
+        background: linear-gradient(135deg, #7366ff, #51bbfe);
         color: #fff;
+        border: none;
+        box-shadow: 0 4px 12px rgba(115, 102, 255, 0.3);
+    }
+
+    /* Glass Panels */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+        transition: transform 0.3s ease;
+    }
+
+    .glass-card:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Modern Rows */
+    .parent-row {
+        background: #fff;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        padding: 16px;
+        border: 1px solid #f0f0f0;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .parent-row:hover {
+        border-color: #7366ff44;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        background: #fafaff;
+    }
+
+    .parent-id-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7366ff, #bd5fff);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .parent-info-main {
+        flex: 2;
+    }
+
+    .parent-mobile-text {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2b2b2b;
+        margin-bottom: 2px;
+        display: block;
+    }
+
+    .parent-date-text {
+        font-size: 0.75rem;
+        color: #999;
+    }
+
+    .parent-students-area {
+        flex: 3;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .student-pill {
+        background: rgba(115, 102, 255, 0.08);
+        color: #7366ff;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        border: 1px solid rgba(115, 102, 255, 0.1);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .student-pill i {
+        width: 12px;
+        height: 12px;
+    }
+
+    .parent-actions {
+        flex: 0.5;
+        text-align: right;
+    }
+
+    /* Search Bar Design */
+    .search-container-premium {
+        position: relative;
+        max-width: 350px;
+    }
+
+    .search-input-premium {
+        border: 2px solid #eee;
+        border-radius: 30px;
+        padding: 10px 20px 10px 45px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        background: #fdfdfd;
+    }
+
+    .search-input-premium:focus {
         border-color: #7366ff;
+        box-shadow: 0 0 15px rgba(115, 102, 255, 0.15);
+        background: #fff;
+    }
+
+    .search-icon-pos {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #7366ff;
     }
 
     .profile-modal-score {
@@ -40,19 +165,16 @@
     }
 
     .action-btn {
-        border-radius: 6px;
+        border-radius: 10px;
         font-size: 0.75rem;
-        padding: 3px 10px;
+        padding: 6px 14px;
+        font-weight: 600;
     }
 
     .table th {
         font-size: 0.8rem;
         font-weight: 600;
-    }
-
-    .table td {
-        font-size: 0.82rem;
-        vertical-align: middle;
+        border-top: none !important;
     }
 
     .class-badge {
@@ -70,6 +192,7 @@
         right: 24px;
         z-index: 9999;
         min-width: 220px;
+        border-radius: 12px;
     }
 </style>
 {% endblock %}
@@ -287,14 +410,30 @@
 
     <!-- Parents Panel -->
     <div id="panel-parents" style="display:none;">
-        <div class="card" style="border-radius:12px;">
-            <div class="card-body">
-                <div class="d-flex align-items-center mb-3">
-                    <h6 class="mb-0 text-muted" id="parent-count"></h6>
+        <div class="card glass-card">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap gap-3 align-items-center mb-4">
+                    <div class="search-container-premium flex-grow-1">
+                        <i data-feather="search" class="search-icon-pos"></i>
+                        <input type="text" id="search-parent" class="form-control search-input-premium"
+                            placeholder="Find parent by mobile number...">
+                    </div>
+                    <button class="btn btn-primary d-flex align-items-center gap-2"
+                        style="border-radius:30px; padding: 10px 25px; font-weight: 600;" onclick="loadParents(true)">
+                        Search Results
+                    </button>
+                    <button class="btn btn-link text-muted" style="text-decoration:none;"
+                        onclick="clearParentSearch()">Clear</button>
+                    <div class="ms-md-auto text-end">
+                        <span class="badge bg-soft-primary text-primary" id="parent-count"
+                            style="font-size:0.85rem; padding: 8px 15px; border-radius: 10px; background: rgba(115,102,255,0.1);"></span>
+                    </div>
                 </div>
-                <div class="table-responsive" id="parents-table-wrapper">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary"></div>
+
+                <div id="parents-list-container">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+                        <p class="mt-3 text-muted">Curating parent directory...</p>
                     </div>
                 </div>
             </div>
@@ -372,7 +511,7 @@
         document.getElementById("tab-students").className = "btn um-tab-btn" + (tab === "students" ? " active" : " btn-outline-secondary");
         document.getElementById("tab-parents").className = "btn um-tab-btn" + (tab === "parents" ? " active" : " btn-outline-secondary");
         if (tab === "overview") loadKPIStats();
-        if (tab === "parents" && document.getElementById("parents-table-wrapper").innerHTML.includes("spinner-border")) loadParents();
+        if (tab === "parents" && document.getElementById("parents-list-container").innerHTML.includes("spinner-border")) loadParents();
         feather.replace();
     }
 
@@ -528,33 +667,70 @@
         else { showToast("Delete failed", "danger"); }
     }
 
-    async function loadParents() {
-        document.getElementById("parents-table-wrapper").innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
-        const res = await fetch(`${API_BASE}/admin-panel/users/parents?limit=100`, { headers: { Authorization: "Bearer " + token } });
-        const json = await res.json();
-        document.getElementById("parent-count").textContent = `${json.total || 0} parents registered`;
-        if (!json.data || !json.data.length) {
-            document.getElementById("parents-table-wrapper").innerHTML = `<div class="text-center text-muted py-4">No parents found</div>`;
-            return;
+    async function loadParents(reset = false) {
+        const search = document.getElementById("search-parent").value.trim();
+        let url = `${API_BASE}/admin-panel/users/parents?limit=100`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const container = document.getElementById("parents-list-container");
+        container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
+
+        try {
+            const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            const count = json.total || 0;
+            document.getElementById("parent-count").textContent = `${count} Registered Guardians`;
+
+            if (!json.data || !json.data.length) {
+                container.innerHTML = `<div class="text-center text-muted py-5">
+                    <i data-feather="user-x" style="width:48px;height:48px;margin-bottom:15px;opacity:0.2;"></i>
+                    <p>No guardians matched your search</p>
+                </div>`;
+                feather.replace();
+                return;
+            }
+
+            let html = ``;
+            json.data.forEach((p, i) => {
+                const students = (p.student_names || []).map(n => `
+                    <div class="student-pill">
+                        <i data-feather="user"></i> ${n}
+                    </div>
+                `).join("");
+
+                const date = p.created_at ? new Date(p.created_at).toLocaleDateString(undefined, {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                }) : "Legacy Account";
+
+                html += `
+                <div class="parent-row">
+                    <div class="parent-id-circle">${i + 1}</div>
+                    <div class="parent-info-main">
+                        <span class="parent-mobile-text">${p.mobile_number || "—"}</span>
+                        <span class="parent-date-text"><i data-feather="calendar" style="width:10px;height:10px;margin-right:4px;"></i>Member since ${date}</span>
+                    </div>
+                    <div class="parent-students-area">
+                        ${students || '<span class="text-muted" style="font-size:0.75rem;">No students linked</span>'}
+                    </div>
+                    <div class="parent-actions">
+                        <button class="btn btn-sm btn-outline-danger" style="border-radius:8px; width:36px; height:36px; padding:0;" 
+                                onclick="deleteParent('${p.mobile_number}')" title="Remove Guardian">
+                            <i data-feather="trash-2" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+            feather.replace();
+        } catch (err) {
+            container.innerHTML = `<div class="alert alert-danger">Error loading parents directory</div>`;
         }
-        let html = `<table class="table table-hover table-bordered">
-    <thead class="table-dark"><tr><th>#</th><th>Mobile</th><th>User Type</th><th>Students Linked</th><th>Actions</th></tr></thead><tbody>`;
-        json.data.forEach((p, i) => {
-            html += `<tr>
-        <td>${i + 1}</td>
-        <td>${p.mobile_number || "—"}</td>
-        <td><span class="badge bg-secondary">${p.usertype || "parent"}</span></td>
-        <td><span class="badge bg-primary">${p.student_count || 0}</span></td>
-        <td>
-        <button class="btn btn-sm btn-outline-danger action-btn" onclick="deleteParent('${p.mobile_number}')">
-            <i class="fa fa-trash" style="font-size:12px;"></i>
-        </button>
-        </td>
-    </tr>`;
-        });
-        html += `</tbody></table>`;
-        document.getElementById("parents-table-wrapper").innerHTML = html;
-        feather.replace();
+    }
+
+    function clearParentSearch() {
+        document.getElementById("search-parent").value = "";
+        loadParents(true);
     }
 
     async function deleteParent(mobile) {

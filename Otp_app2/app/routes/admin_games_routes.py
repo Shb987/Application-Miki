@@ -58,15 +58,16 @@ async def add_wordle_word(
 ):
     """
     Add a new Wordle word/level.
-    Body: { word, hint, level, class_range }
+    Body: { word, hints, difficulty, level, class_range }
     """
     word = payload.get("word", "").strip().upper()
-    hint = payload.get("hint", "").strip()
+    hints = payload.get("hints", []) # Expecting a list
+    difficulty = payload.get("difficulty", "Easy").strip()
     level = payload.get("level")
     class_range = payload.get("class_range", "").strip()
 
-    if not word or not hint or level is None or not class_range:
-        raise HTTPException(status_code=400, detail="word, hint, level, and class_range are required")
+    if not word or not hints or level is None or not class_range:
+        raise HTTPException(status_code=400, detail="word, hints, level, and class_range are required")
 
     if class_range not in CLASS_RANGES:
         raise HTTPException(status_code=400, detail=f"class_range must be one of {CLASS_RANGES}")
@@ -78,7 +79,8 @@ async def add_wordle_word(
 
     doc = {
         "word": word,
-        "hint": hint,
+        "hints": [h.strip() for h in hints if h.strip()],
+        "difficulty": difficulty,
         "level": int(level),
         "class_range": class_range,
         "created_at": datetime.utcnow(),
@@ -112,8 +114,10 @@ async def update_wordle_word(
     update_data: Dict[str, Any] = {}
     if "word" in payload and payload["word"]:
         update_data["word"] = payload["word"].strip().upper()
-    if "hint" in payload:
-        update_data["hint"] = payload["hint"].strip()
+    if "hints" in payload:
+        update_data["hints"] = [h.strip() for h in payload["hints"] if h.strip()]
+    if "difficulty" in payload:
+        update_data["difficulty"] = payload["difficulty"].strip()
     if "level" in payload:
         update_data["level"] = int(payload["level"])
     if "class_range" in payload:
@@ -206,15 +210,17 @@ async def add_squares_level(
 ):
     """
     Add a new Squares level.
-    Body: { level, class_range, words: [...], grid: [[...]] }
+    Body: { level, class_range, main_words: [...], bonus_words: [...], grid: [[...]], hint }
     """
     level = payload.get("level")
     class_range = payload.get("class_range", "").strip()
-    words = payload.get("words", [])
+    main_words = payload.get("main_words", [])
+    bonus_words = payload.get("bonus_words", [])
     grid = payload.get("grid", [])
+    hint = payload.get("hint", "").strip()
 
-    if level is None or not class_range or not words:
-        raise HTTPException(status_code=400, detail="level, class_range, and words are required")
+    if level is None or not class_range or not main_words or not grid:
+        raise HTTPException(status_code=400, detail="level, class_range, main_words, and grid are required")
 
     if class_range not in CLASS_RANGES:
         raise HTTPException(status_code=400, detail=f"class_range must be one of {CLASS_RANGES}")
@@ -226,8 +232,10 @@ async def add_squares_level(
     doc = {
         "level": int(level),
         "class_range": class_range,
-        "words": [w.strip().upper() for w in words if w.strip()],
+        "main_words": [w.strip().upper() for w in main_words if w.strip()],
+        "bonus_words": [w.strip().upper() for w in bonus_words if w.strip()],
         "grid": grid,
+        "hint": hint,
         "created_at": datetime.utcnow(),
         "created_by": current_admin.get("sub", "admin")
     }
@@ -257,8 +265,10 @@ async def update_squares_level(
         raise HTTPException(status_code=404, detail="Level not found")
 
     update_data: Dict[str, Any] = {}
-    if "words" in payload and payload["words"]:
-        update_data["words"] = [w.strip().upper() for w in payload["words"] if w.strip()]
+    if "main_words" in payload:
+        update_data["main_words"] = [w.strip().upper() for w in payload["main_words"] if w.strip()]
+    if "bonus_words" in payload:
+        update_data["bonus_words"] = [w.strip().upper() for w in payload["bonus_words"] if w.strip()]
     if "grid" in payload:
         update_data["grid"] = payload["grid"]
     if "level" in payload:
@@ -267,6 +277,8 @@ async def update_squares_level(
         if payload["class_range"] not in CLASS_RANGES:
             raise HTTPException(status_code=400, detail=f"class_range must be one of {CLASS_RANGES}")
         update_data["class_range"] = payload["class_range"]
+    if "hint" in payload:
+        update_data["hint"] = payload["hint"].strip()
 
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")

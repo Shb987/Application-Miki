@@ -75,6 +75,8 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
         "headings": {"en": title},
         "contents": {"en": message},
         "priority": priority,
+        "ios_interruption_level": "active" if priority == 10 else "passive",
+        "android_visibility": 1,
         "data": onesignal_data
     }
     
@@ -172,6 +174,8 @@ async def broadcast_notification(db, title: str, message: str, notification_type
         "headings": {"en": title},
         "contents": {"en": message},
         "priority": priority,
+        "ios_interruption_level": "active" if priority == 10 else "passive",
+        "android_visibility": 1,
         "data": onesignal_data
     }
     

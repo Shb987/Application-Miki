@@ -1,405 +1,190 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Quiz Statistics">
-    <link rel="icon" href="/assets/images/favicon.png" type="image/x-icon">
-    <link rel="shortcut icon" href="/assets/images/favicon.png" type="image/x-icon">
-    <title>Quiz Statistics - Admin Panel</title>
-    <!-- Google font-->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/icofont.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/themify.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/feather-icon.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/scrollbar.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
-    <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
-</head>
+{% block title %}Quiz Statistics - Admin Panel{% endblock %}
 
-<body>
-    <!-- loader starts-->
-    <div class="loader-wrapper">
-        <div class="loader">
-            <div class="loader4"></div>
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4>Quiz Statistics</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg class="stroke-icon">
+                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                            </svg></a></li>
+                    <li class="breadcrumb-item">Quiz Module</li>
+                    <li class="breadcrumb-item active">Statistics</li>
+                </ol>
+            </div>
         </div>
     </div>
-    <!-- loader ends-->
-    <!-- tap on top starts-->
-    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
-    <!-- tap on tap ends-->
-    <!-- page-wrapper Start-->
-    <div class="page-wrapper compact-wrapper" id="pageWrapper">
-        <!-- Page Header Start-->
-        <div class="page-header">
-            <div class="header-wrapper row m-0">
-                <div class="header-logo-wrapper col-auto p-0">
-                    <div class="logo-wrapper"> <a href="/admin-panel/dashboard"><img class="img-fluid for-light"
-                                src="/assets/images/logo/logo_dark.png" alt="logo-light"><img class="img-fluid for-dark"
-                                src="/assets/images/logo/logo.png" alt="logo-dark"></a></div>
-                    <div class="toggle-sidebar"> <i class="status_toggle middle sidebar-toggle"
-                            data-feather="align-center"></i></div>
-                </div>
-                <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
-                    <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
-                        <div class="d-flex align-items-center gap-2 ">
-                            <h4 class="f-w-600">Quiz Statistics</h4>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-xl-3 col-sm-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-primary rounded p-3"><svg class="stroke-icon"
+                                    style="width: 24px; height: 24px; stroke: white;">
+                                    <use href="/assets/svg/icon-sprite.svg#stroke-file"></use>
+                                </svg></div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">Total Questions</h6>
+                            <h3 class="mb-0" id="totalQuestions">0</h3>
                         </div>
                     </div>
-                </div>
-                <div class="nav-right col-xxl-7 col-xl-6 col-md-7 col-8 pull-right right-header p-0 ms-auto">
-                    <ul class="nav-menus">
-                        <li class="profile-nav onhover-dropdown">
-                            <div class="media profile-media"><img class="b-r-10"
-                                    src="/assets/images/dashboard/profile.png" alt="">
-                                <div class="media-body d-xxl-block d-none box-col-none">
-                                    <div class="d-flex align-items-center gap-2"> <span id="admin-name">Admin</span><i
-                                            class="middle fa fa-angle-down"> </i></div>
-                                    <p class="mb-0 font-roboto">Admin</p>
-                                </div>
-                            </div>
-                            <ul class="profile-dropdown onhover-show-div">
-                                <li><a href="#" onclick="logout()"><i data-feather="log-out"></i><span>Log
-                                            Out</span></a></li>
-                            </ul>
-                        </li>
-                    </ul>
                 </div>
             </div>
         </div>
-        <!-- Page Header Ends-->
-        <!-- Page Body Start-->
-        <div class="page-body-wrapper">
-            <!-- Page Sidebar Start-->
-            {% include "sidebar.html" %}
-            <!-- Page Sidebar Ends-->
-            <div class="page-body">
-                <div class="container-fluid">
-                    <div class="page-title">
-                        <div class="row">
-                            <div class="col-6">
-                                <h4>Quiz Statistics</h4>
-                            </div>
-                            <div class="col-6">
-                                <ol class="breadcrumb">
-                                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard">
-                                            <svg class="stroke-icon">
-                                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
-                                            </svg></a></li>
-                                    <li class="breadcrumb-item">Quiz Module</li>
-                                    <li class="breadcrumb-item active">Statistics</li>
-                                </ol>
-                            </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success rounded p-3"><svg class="stroke-icon"
+                                    style="width: 24px; height: 24px; stroke: white;">
+                                    <use href="/assets/svg/icon-sprite.svg#stroke-user"></use>
+                                </svg></div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">Total Submissions</h6>
+                            <h3 class="mb-0" id="totalSubmissions">0</h3>
                         </div>
                     </div>
                 </div>
-                <!-- Container-fluid starts-->
-                <div class="container-fluid">
-                    <!-- Summary Cards -->
-                    <div class="row">
-                        <div class="col-xl-3 col-sm-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="flex-shrink-0">
-                                            <div class="bg-primary rounded p-3">
-                                                <svg class="stroke-icon"
-                                                    style="width: 24px; height: 24px; stroke: white;">
-                                                    <use href="/assets/svg/icon-sprite.svg#stroke-file"></use>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-0">Total Questions</h6>
-                                            <h3 class="mb-0" id="totalQuestions">0</h3>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xl-3 col-sm-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="flex-shrink-0">
-                                            <div class="bg-success rounded p-3">
-                                                <svg class="stroke-icon"
-                                                    style="width: 24px; height: 24px; stroke: white;">
-                                                    <use href="/assets/svg/icon-sprite.svg#stroke-user"></use>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-0">Total Submissions</h6>
-                                            <h3 class="mb-0" id="totalSubmissions">0</h3>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xl-3 col-sm-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="flex-shrink-0">
-                                            <div class="bg-warning rounded p-3">
-                                                <svg class="stroke-icon"
-                                                    style="width: 24px; height: 24px; stroke: white;">
-                                                    <use href="/assets/svg/icon-sprite.svg#stroke-widget"></use>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-0">Total Domains</h6>
-                                            <h3 class="mb-0" id="totalDomains">0</h3>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-xl-3 col-sm-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="flex-shrink-0">
-                                            <div class="bg-info rounded p-3">
-                                                <svg class="stroke-icon"
-                                                    style="width: 24px; height: 24px; stroke: white;">
-                                                    <use href="/assets/svg/icon-sprite.svg#stroke-learning"></use>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-0">Question Types</h6>
-                                            <h3 class="mb-0" id="totalTypes">0</h3>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Charts Row -->
-                    <div class="row">
-                        <!-- Questions by Domain -->
-                        <div class="col-xl-6">
-                            <div class="card">
-                                <div class="card-header pb-0">
-                                    <h5>Questions by Domain</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div id="domainChart"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Questions by Difficulty -->
-                        <div class="col-xl-6">
-                            <div class="card">
-                                <div class="card-header pb-0">
-                                    <h5>Questions by Difficulty</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div id="difficultyChart"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Second Charts Row -->
-                    <div class="row">
-                        <!-- Questions by Class Range -->
-                        <div class="col-xl-6">
-                            <div class="card">
-                                <div class="card-header pb-0">
-                                    <h5>Questions by Class Range</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div id="classChart"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Questions by Type -->
-                        <div class="col-xl-6">
-                            <div class="card">
-                                <div class="card-header pb-0">
-                                    <h5>Questions by Type</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div id="typeChart"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Container-fluid Ends-->
             </div>
-            <!-- footer start-->
-            <footer class="footer">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-12 footer-copyright text-center">
-                            <p class="mb-0">Copyright 2024 © Quiz Management System</p>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning rounded p-3"><svg class="stroke-icon"
+                                    style="width: 24px; height: 24px; stroke: white;">
+                                    <use href="/assets/svg/icon-sprite.svg#stroke-widget"></use>
+                                </svg></div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">Total Domains</h6>
+                            <h3 class="mb-0" id="totalDomains">0</h3>
                         </div>
                     </div>
                 </div>
-            </footer>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="flex-shrink-0">
+                            <div class="bg-info rounded p-3"><svg class="stroke-icon"
+                                    style="width: 24px; height: 24px; stroke: white;">
+                                    <use href="/assets/svg/icon-sprite.svg#stroke-learning"></use>
+                                </svg></div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">Question Types</h6>
+                            <h3 class="mb-0" id="totalTypes">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="/admin-panel/config.js"></script>
-    <script src="/assets/js/jquery.min.js"></script>
-    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
-    <script src="/assets/js/scrollbar/simplebar.js"></script>
-    <script src="/assets/js/scrollbar/custom.js"></script>
-    <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/sidebar-menu.js"></script>
-    <script src="/assets/js/sidebar-pin.js"></script>
-    <!-- REMOVED Chart.js, ADDED ApexCharts -->
-    <script src="/assets/js/chart/apex-chart/apex-chart.js"></script>
-    <script src="/assets/js/script.js"></script>
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h5>Questions by Domain</h5>
+                </div>
+                <div class="card-body">
+                    <div id="domainChart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h5>Questions by Difficulty</h5>
+                </div>
+                <div class="card-body">
+                    <div id="difficultyChart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h5>Questions by Class Range</h5>
+                </div>
+                <div class="card-body">
+                    <div id="classChart"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h5>Questions by Type</h5>
+                </div>
+                <div class="card-body">
+                    <div id="typeChart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-    <script>
-        const token = localStorage.getItem("admin_token");
-        const API_BASE = window.API_BASE;
+{% block scripts %}
+<script src="/assets/js/chart/apex-chart/apex-chart.js"></script>
+<script>
+    const token = localStorage.getItem("admin_token");
+    async function loadStatistics() {
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/quiz/statistics`, { headers: { "Authorization": "Bearer " + token } });
+            const result = await res.json(); const data = result.data;
+            document.getElementById("totalQuestions").textContent = data.total_questions;
+            document.getElementById("totalSubmissions").textContent = data.total_submissions;
+            document.getElementById("totalDomains").textContent = Object.keys(data.by_domain).length;
+            document.getElementById("totalTypes").textContent = Object.keys(data.by_question_type).length;
+            renderBarChart("#domainChart", data.by_domain);
+            renderPieChart("#difficultyChart", data.by_difficulty, ["#006666", "#FE6A49", "#FFC107"]);
+            renderBarChart("#classChart", data.by_class_range);
+            renderDonutChart("#typeChart", data.by_question_type);
+        } catch (err) { console.error("Error:", err); }
+    }
 
-        if (!token) {
-            window.location.replace("/admin-panel/login");
-        }
+    function renderBarChart(selector, data) {
+        new ApexCharts(document.querySelector(selector), {
+            chart: { type: 'bar', height: 350 }, series: [{ name: 'Questions', data: Object.values(data) }],
+            xaxis: { categories: Object.keys(data) }, plotOptions: { bar: { horizontal: true, distributed: true } },
+            colors: ['#006666', '#FE6A49', '#4b9bfa', '#FFC107', '#6f42c1'], legend: { show: false }
+        }).render();
+    }
 
-        // Load statistics
-        async function loadStatistics() {
-            try {
-                const res = await fetch(`${API_BASE}/admin-panel/quiz/statistics`, {
-                    headers: { "Authorization": "Bearer " + token }
-                });
-                const result = await res.json();
-                const data = result.data;
+    function renderPieChart(selector, data, colors) {
+        new ApexCharts(document.querySelector(selector), {
+            chart: { type: 'pie', height: 350 }, series: Object.values(data), labels: Object.keys(data),
+            colors: colors || ['#006666', '#FE6A49', '#4b9bfa'], responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom' } } }]
+        }).render();
+    }
 
-                // Update summary cards
-                document.getElementById("totalQuestions").textContent = data.total_questions;
-                document.getElementById("totalSubmissions").textContent = data.total_submissions;
-                document.getElementById("totalDomains").textContent = Object.keys(data.by_domain).length;
-                document.getElementById("totalTypes").textContent = Object.keys(data.by_question_type).length;
-
-                // Create charts using ApexCharts
-                renderBarChart("#domainChart", data.by_domain, "Domain");
-                renderPieChart("#difficultyChart", data.by_difficulty, ["#006666", "#FE6A49", "#FFC107"]); // Teal, Orange, Muted Yellow
-                renderBarChart("#classChart", data.by_class_range, "Class");
-                renderDonutChart("#typeChart", data.by_question_type);
-
-            } catch (err) {
-                console.error("Error loading statistics:", err);
-                alert("Error loading statistics");
-            }
-        }
-
-        // Render Bar Chart
-        function renderBarChart(selector, data, label) {
-            const keys = Object.keys(data);
-            const values = Object.values(data);
-
-            var options = {
-                chart: {
-                    type: 'bar',
-                    height: 350
-                },
-                series: [{
-                    name: 'Questions',
-                    data: values
-                }],
-                xaxis: {
-                    categories: keys
-                },
-                plotOptions: {
-                    bar: {
-                        horizontal: true,
-                        distributed: true
-                    }
-                },
-                // Muted professional palette: Teal, Orange, Soft Blue, Yellow, Purple, Grey, Red
-                colors: ['#006666', '#FE6A49', '#4b9bfa', '#FFC107', '#6f42c1', '#6c757d', '#dc3545', '#20c997', '#0d6efd', '#d63384'],
-                legend: { show: false }
-            };
-
-            var chart = new ApexCharts(document.querySelector(selector), options);
-            chart.render();
-        }
-
-        // Render Pie Chart
-        function renderPieChart(selector, data, colors) {
-            const keys = Object.keys(data);
-            const values = Object.values(data);
-
-            var options = {
-                chart: {
-                    type: 'pie',
-                    height: 350
-                },
-                series: values,
-                labels: keys,
-                // Use passed colors or default to professional palette
-                colors: colors || ['#006666', '#FE6A49', '#4b9bfa', '#FFC107', '#6f42c1'],
-                responsive: [{
-                    breakpoint: 480,
-                    options: {
-                        chart: { width: 200 },
-                        legend: { position: 'bottom' }
-                    }
-                }]
-            };
-
-            var chart = new ApexCharts(document.querySelector(selector), options);
-            chart.render();
-        }
-
-        // Render Donut Chart
-        function renderDonutChart(selector, data) {
-            const keys = Object.keys(data);
-            const values = Object.values(data);
-
-            var options = {
-                chart: {
-                    type: 'donut',
-                    height: 350
-                },
-                series: values,
-                labels: keys,
-                // Muted professional palette
-                colors: ['#006666', '#FE6A49', '#4b9bfa', '#FFC107', '#6f42c1', '#6c757d', '#20c997', '#fd7e14', '#0dcaf0', '#6610f2'],
-                responsive: [{
-                    breakpoint: 480,
-                    options: {
-                        chart: { width: 200 },
-                        legend: { position: 'bottom' }
-                    }
-                }]
-            };
-
-            var chart = new ApexCharts(document.querySelector(selector), options);
-            chart.render();
-        }
-
-        function logout() {
-            localStorage.removeItem("admin_token");
-            window.location.replace("/admin-panel/login");
-        }
-
-        // Initialize
-        loadStatistics();
-    </script>
-</body>
-
-</html>
+    function renderDonutChart(selector, data) {
+        new ApexCharts(document.querySelector(selector), {
+            chart: { type: 'donut', height: 350 }, series: Object.values(data), labels: Object.keys(data),
+            colors: ['#006666', '#FE6A49', '#4b9bfa', '#FFC107'], responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom' } } }]
+        }).render();
+    }
+    loadStatistics();
+</script>
+{% endblock %}

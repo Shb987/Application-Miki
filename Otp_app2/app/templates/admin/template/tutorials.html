@@ -1,409 +1,167 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Tutorial Management">
-    <link rel="icon" href="/assets/images/favicon.png" type="image/x-icon">
-    <link rel="shortcut icon" href="/assets/images/favicon.png" type="image/x-icon">
-    <title>Tutorials - Admin Panel</title>
-    <!-- Google font-->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/icofont.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/themify.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/flag-icon.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/feather-icon.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/scrollbar.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/animate.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/datatables.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
-    <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
-    <style>
-        .video-card {
-            transition: transform 0.3s;
-            cursor: pointer;
-        }
+{% block title %}Tutorials - Admin Panel{% endblock %}
 
-        .video-card:hover {
-            transform: scale(1.02);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-    </style>
-</head>
+{% block head %}
+<style>
+    .video-card {
+        transition: transform 0.3s;
+        cursor: pointer;
+    }
 
-<body>
-    <!-- loader starts-->
-    <div class="loader-wrapper">
-        <div class="loader">
-            <div class="loader4"></div>
+    .video-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4>Tutorials</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg class="stroke-icon">
+                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                            </svg></a></li>
+                    <li class="breadcrumb-item">Tutorial Module</li>
+                    <li class="breadcrumb-item active">Manage Tutorials</li>
+                </ol>
+            </div>
         </div>
     </div>
-    <!-- loader ends-->
-    <!-- tap on top starts-->
-    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
-    <!-- tap on tap ends-->
-    <!-- page-wrapper Start-->
-    <div class="page-wrapper compact-wrapper" id="pageWrapper">
-        <!-- Page Header Start-->
-        <div class="page-header">
-            <div class="header-wrapper row m-0">
-                <div class="header-logo-wrapper col-auto p-0">
-                    <div class="logo-wrapper"> <a href="/admin-panel/dashboard"><img class="img-fluid for-light"
-                                src="/assets/images/logo/logo_dark.png" alt="logo-light"><img class="img-fluid for-dark"
-                                src="/assets/images/logo/logo.png" alt="logo-dark"></a></div>
-                    <div class="toggle-sidebar"> <i class="status_toggle middle sidebar-toggle"
-                            data-feather="align-center"></i></div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-12 col-md-4">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h5>Import YouTube Content</h5>
                 </div>
-                <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
-                    <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
-                        <div class="d-flex align-items-center gap-2 ">
-                            <h4 class="f-w-600">Tutorial Management</h4>
+                <div class="card-body">
+                    <form id="fetchForm" class="theme-form g-3">
+                        <div class="mb-3"><label class="form-label">YouTube URL (Channel, Playlist, or
+                                Handle)</label><input class="form-control" type="text" id="youtubeUrl"
+                                placeholder="https://..." required></div>
+                        <div class="mb-3"><label class="form-label">Student Class</label>
+                            <select class="form-select" id="studentClass" required>
+                                <option value="">Select Class</option>
+                                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">${c}th</option>
+                                `).join('')}
+                            </select>
                         </div>
+                        <div class="mb-3"><label class="form-label">Subject</label><input class="form-control"
+                                type="text" id="subject" placeholder="e.g. Mathematics" required></div>
+                        <div class="mb-3"><label class="form-label">Topic (Optional)</label><input class="form-control"
+                                type="text" id="topic" placeholder="e.g. Algebra"></div>
+                        <div class="mt-4"><button class="btn btn-primary w-100" type="submit" id="fetchBtn"><i
+                                    class="fa fa-download me-2"></i> Fetch & Save Links</button></div>
+                    </form>
+                    <div id="fetchStatus" class="mt-3" style="display: none;">
+                        <div class="progress mb-2">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated w-100"
+                                role="progressbar"></div>
+                        </div>
+                        <p class="text-center">Fetching from YouTube API...</p>
                     </div>
-                </div>
-                <div class="nav-right col-xxl-7 col-xl-6 col-md-7 col-8 pull-right right-header p-0 ms-auto">
-                    <ul class="nav-menus">
-                        <li class="profile-nav onhover-dropdown">
-                            <div class="media profile-media"><img class="b-r-10"
-                                    src="/assets/images/dashboard/profile.png" alt="">
-                                <div class="media-body d-xxl-block d-none box-col-none">
-                                    <div class="d-flex align-items-center gap-2"> <span id="admin-name">Admin</span><i
-                                            class="middle fa fa-angle-down"> </i></div>
-                                    <p class="mb-0 font-roboto">Admin</p>
-                                </div>
-                            </div>
-                            <ul class="profile-dropdown onhover-show-div">
-                                <li><a href="#" onclick="logout()"><i data-feather="log-out"></i><span>Log
-                                            Out</span></a></li>
-                            </ul>
-                        </li>
-                    </ul>
                 </div>
             </div>
         </div>
-        <!-- Page Header Ends-->
-        <!-- Page Body Start-->
-        <div class="page-body-wrapper">
-            <!-- Page Sidebar Start-->
-            {% include "sidebar.html" %}
-            <!-- Page Sidebar Ends-->
-            <div class="page-body">
-                <div class="container-fluid">
-                    <div class="page-title">
-                        <div class="row">
-                            <div class="col-6">
-                                <h4>Tutorials</h4>
-                            </div>
-                            <div class="col-6">
-                                <ol class="breadcrumb">
-                                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard">
-                                            <svg class="stroke-icon">
-                                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
-                                            </svg></a></li>
-                                    <li class="breadcrumb-item">Tutorial Module</li>
-                                    <li class="breadcrumb-item active">Manage Tutorials</li>
-                                </ol>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Container-fluid starts-->
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-sm-12 col-md-4">
-                            <!-- Add Tutorial Form -->
-                            <div class="card">
-                                <div class="card-header pb-0">
-                                    <h5>Import YouTube Content</h5>
-                                </div>
-                                <div class="card-body">
-                                    <form id="fetchForm" class="theme-form g-3">
-                                        <div class="mb-3">
-                                            <label class="form-label">YouTube URL (Channel, Playlist, or
-                                                @Handle)</label>
-                                            <input class="form-control" type="text" id="youtubeUrl"
-                                                placeholder="https://www.youtube.com/playlist?list=..." required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Student Class</label>
-                                            <select class="form-select" id="studentClass" required>
-                                                <option value="">Select Class</option>
-                                                <option value="1">1st</option>
-                                                <option value="2">2nd</option>
-                                                <option value="3">3rd</option>
-                                                <option value="4">4th</option>
-                                                <option value="5">5th</option>
-                                                <option value="6">6th</option>
-                                                <option value="7">7th</option>
-                                                <option value="8">8th</option>
-                                                <option value="9">9th</option>
-                                                <option value="10">10th</option>
-                                                <option value="11">11th</option>
-                                                <option value="12">12th</option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Subject</label>
-                                            <input class="form-control" type="text" id="subject"
-                                                placeholder="e.g. Mathematics" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Topic (Optional)</label>
-                                            <input class="form-control" type="text" id="topic"
-                                                placeholder="e.g. Algebra">
-                                        </div>
-                                        <div class="mt-4">
-                                            <button class="btn btn-primary w-100" type="submit" id="fetchBtn">
-                                                <i class="fa fa-download me-2"></i> Fetch & Save Links
-                                            </button>
-                                        </div>
-                                    </form>
-                                    <div id="fetchStatus" class="mt-3" style="display: none;">
-                                        <div class="progress mb-2">
-                                            <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                                role="progressbar" style="width: 100%"></div>
-                                        </div>
-                                        <p class="text-center">Fetching data from YouTube API...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="col-sm-12 col-md-8">
-                            <!-- Existing Tutorials List -->
-                            <div class="card">
-                                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-                                    <h5>Stored Tutorials</h5>
-                                    <div>
-                                        <button class="btn btn-outline-secondary btn-sm" onclick="loadTutorials()">
-                                            <i class="fa fa-refresh"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover" id="tutorialTable">
-                                            <thead>
-                                                <tr>
-                                                    <th>Class</th>
-                                                    <th>Subject</th>
-                                                    <th>Topic</th>
-                                                    <th>Videos</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="tutorialBody">
-                                                <tr>
-                                                    <td colspan="5" class="text-center">Loading tutorials...</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-sm-12 col-md-8">
+            <div class="card">
+                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                    <h5>Stored Tutorials</h5>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="loadTutorials()"><i
+                            class="fa fa-refresh"></i></button>
                 </div>
-                <!-- Container-fluid Ends-->
-            </div>
-            <!-- footer start-->
-            <footer class="footer">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-12 footer-copyright text-center">
-                            <p class="mb-0">Copyright 2024 © Tutorial Management System</p>
-                        </div>
-                    </div>
-                </div>
-            </footer>
-        </div>
-    </div>
-
-    <!-- View Tutorial Modal -->
-    <div class="modal fade" id="viewTutorialModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Tutorial Videos</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="videoContainer" class="row g-3">
-                        <!-- Videos will be loaded here -->
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tutorialTable">
+                            <thead>
+                                <tr>
+                                    <th>Class</th>
+                                    <th>Subject</th>
+                                    <th>Topic</th>
+                                    <th>Videos</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tutorialBody">
+                                <tr>
+                                    <td colspan="5" class="text-center">Loading tutorials...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Scripts -->
-    <script src="/admin-panel/config.js"></script>
-    <script src="/assets/js/jquery.min.js"></script>
-    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
-    <script src="/assets/js/scrollbar/simplebar.js"></script>
-    <script src="/assets/js/scrollbar/custom.js"></script>
-    <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/sidebar-menu.js"></script>
-    <script src="/assets/js/sidebar-pin.js"></script>
-    <script src="/assets/js/script.js"></script>
+<!-- View Tutorial Modal -->
+<div class="modal fade" id="viewTutorialModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Tutorial Videos</h5><button type="button" class="btn-close"
+                    data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="videoContainer" class="row g-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-    <script>
-        const token = localStorage.getItem("admin_token");
-        const API_BASE = window.API_BASE;
-
-        if (!token) {
-            window.location.replace("/admin-panel/login");
-        }
-
-        async function loadTutorials() {
-            try {
-                const res = await fetch(`${API_BASE}/admin/tutorials/`, {
-                    headers: { "Authorization": "Bearer " + token }
-                });
-                const data = await res.json();
-                displayTutorials(data);
-            } catch (err) {
-                console.error("Error loading tutorials:", err);
-                document.getElementById("tutorialBody").innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading data</td></tr>';
-            }
-        }
-
-        function displayTutorials(tutorials) {
+{% block scripts %}
+<script>
+    const token = localStorage.getItem("admin_token");
+    async function loadTutorials() {
+        try {
+            const res = await fetch(`${API_BASE}/admin/tutorials/`, { headers: { "Authorization": "Bearer " + token } });
+            const data = await res.json();
             const tbody = document.getElementById("tutorialBody");
-            if (!tutorials || tutorials.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No tutorials found</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = tutorials.map(t => `
-                <tr>
-                    <td><span class="badge badge-info">${t.student_class}</span></td>
-                    <td>${t.subject}</td>
-                    <td>${t.topic || '-'}</td>
-                    <td><span class="badge badge-secondary">${t.video_links.length} Videos</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="viewTutorial('${t._id}')" title="View Videos">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteTutorial('${t._id}')" title="Delete">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
+            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">No tutorials found</td></tr>'; return; }
+            tbody.innerHTML = data.map(t => `
+                <tr><td><span class="badge badge-info">${t.student_class}</span></td><td>${t.subject}</td><td>${t.topic || '-'}</td><td><span class="badge badge-secondary">${t.video_links.length} Videos</span></td>
+                <td><button class="btn btn-sm btn-primary" onclick="viewTutorial('${t._id}')"><i class="fa fa-eye"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="deleteTutorial('${t._id}')"><i class="fa fa-trash"></i></button></td></tr>
             `).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function viewTutorial(id) {
+        const res = await fetch(`${API_BASE}/admin/tutorials/`, { headers: { "Authorization": "Bearer " + token } });
+        const data = await res.json(); const t = data.find(x => x._id === id);
+        if (t) {
+            document.getElementById("modalTitle").innerText = `${t.subject} - ${t.topic || 'Videos'}`;
+            document.getElementById("videoContainer").innerHTML = t.video_links.map(v => `
+                <div class="col-md-4"><div class="card video-card h-100" onclick="window.open('${v.link}', '_blank')"><div class="card-body p-3"><h6 class="text-truncate" title="${v.title}">${v.title}</h6>
+                <p class="small text-muted mb-0">Published: ${new Date(v.published_at).toLocaleDateString()}</p><div class="mt-2 text-primary small"><i class="fa fa-youtube-play me-1"></i> Watch</div></div></div></div>
+            `).join('');
+            new bootstrap.Modal(document.getElementById('viewTutorialModal')).show();
         }
+    }
 
-        async function viewTutorial(id) {
-            try {
-                const res = await fetch(`${API_BASE}/admin/tutorials/`, {
-                    headers: { "Authorization": "Bearer " + token }
-                });
-                const tutorials = await res.json();
-                const tutorial = tutorials.find(t => t._id === id);
+    document.getElementById("fetchForm").addEventListener("submit", async e => {
+        e.preventDefault(); const btn = document.getElementById("fetchBtn"); const status = document.getElementById("fetchStatus");
+        const payload = { youtube_url: document.getElementById("youtubeUrl").value, student_class: document.getElementById("studentClass").value, subject: document.getElementById("subject").value, topic: document.getElementById("topic").value };
+        btn.disabled = true; status.style.display = "block";
+        const res = await fetch(`${API_BASE}/admin/tutorials/fetch-and-save`, { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        if (res.ok) { document.getElementById("fetchForm").reset(); loadTutorials(); }
+        btn.disabled = false; status.style.display = "none";
+    });
 
-                if (tutorial) {
-                    document.getElementById("modalTitle").innerText = `${tutorial.subject} - ${tutorial.topic || 'Videos'}`;
-                    const container = document.getElementById("videoContainer");
-                    container.innerHTML = tutorial.video_links.map(v => `
-                        <div class="col-md-4">
-                            <div class="card video-card h-100" onclick="window.open('${v.link}', '_blank')">
-                                <div class="card-body p-3">
-                                    <h6 class="text-truncate" title="${v.title}">${v.title}</h6>
-                                    <p class="small text-muted mb-0">Published: ${new Date(v.published_at).toLocaleDateString()}</p>
-                                    <div class="mt-2 text-primary small">
-                                        <i class="fa fa-youtube-play me-1"></i> Watch Video
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
+    async function deleteTutorial(id) { if (confirm("Delete this tutorial?")) { await fetch(`${API_BASE}/admin/tutorials/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } }); loadTutorials(); } }
 
-                    new bootstrap.Modal(document.getElementById('viewTutorialModal')).show();
-                }
-            } catch (err) {
-                alert("Error viewing tutorial");
-            }
-        }
-
-        document.getElementById("fetchForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById("fetchBtn");
-            const status = document.getElementById("fetchStatus");
-
-            const payload = {
-                youtube_url: document.getElementById("youtubeUrl").value,
-                student_class: document.getElementById("studentClass").value,
-                subject: document.getElementById("subject").value,
-                topic: document.getElementById("topic").value
-            };
-
-            btn.disabled = true;
-            status.style.display = "block";
-
-            try {
-                const res = await fetch(`${API_BASE}/admin/tutorials/fetch-and-save`, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": "Bearer " + token,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await res.json();
-                if (res.ok) {
-                    alert(`Success: ${result.message}\nFound ${result.count} videos.`);
-                    document.getElementById("fetchForm").reset();
-                    loadTutorials();
-                } else {
-                    alert("Error: " + (result.detail || "Unexpected error"));
-                }
-            } catch (err) {
-                alert("Request failed: " + err.message);
-            } finally {
-                btn.disabled = false;
-                status.style.display = "none";
-            }
-        });
-
-        async function deleteTutorial(id) {
-            if (!confirm("Are you sure you want to delete this tutorial?")) return;
-
-            try {
-                const res = await fetch(`${API_BASE}/admin/tutorials/${id}`, {
-                    method: "DELETE",
-                    headers: { "Authorization": "Bearer " + token }
-                });
-
-                if (res.ok) {
-                    alert("Tutorial deleted successfully");
-                    loadTutorials();
-                } else {
-                    const result = await res.json();
-                    alert("Error: " + (result.detail || "Deletion failed"));
-                }
-            } catch (err) {
-                alert("Request failed: " + err.message);
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem("admin_token");
-            window.location.replace("/admin-panel/login");
-        }
-
-        loadTutorials();
-    </script>
-</body>
-
-</html>
+    loadTutorials();
+</script>
+{% endblock %}

@@ -1,864 +1,588 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AI Usage Dashboard - Token and Cost Analytics">
-    <meta name="keywords" content="admin template, ai usage, dashboard, token analytics">
-    <meta name="author" content="Application Miki">
-    <link rel="icon" href="/assets/images/favicon.png" type="image/x-icon">
-    <link rel="shortcut icon" href="/assets/images/favicon.png" type="image/x-icon">
-    <title>AI Usage Dashboard - Application Miki</title>
+{% block title %}AI Usage Dashboard - Assessment Portal{% endblock %}
 
-    <!-- Google font-->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/icofont.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/themify.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/flag-icon.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/feather-icon.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/scrollbar.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/animate.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
-    <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
+{% block head %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
 
-    <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
+    .analytics-card {
+        border-radius: 16px;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        border: none;
+        background: #ffffff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
 
-        .analytics-card {
-            border-radius: 16px;
-            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-            border: none;
-            background: #ffffff;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
+    .analytics-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
 
-        .analytics-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
+    .stat-card-header {
+        padding: 24px;
+        background: transparent;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
 
-        .stat-card-header {
-            padding: 24px;
-            background: transparent;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
+    .stat-number {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin: 8px 0;
+        letter-spacing: -0.025em;
+    }
 
-        .stat-number {
-            font-size: 2.25rem;
-            font-weight: 800;
-            margin: 8px 0;
-            letter-spacing: -0.025em;
-        }
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
 
-        .stat-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
 
-        .stat-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
+    .chart-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-        .chart-title {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    #studentSelect {
+        height: 48px;
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        padding: 0 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
 
-        #studentSelect {
-            height: 48px;
-            border-radius: 12px;
-            border: 2px solid #e2e8f0;
-            padding: 0 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
+    #studentSelect:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
 
-        #studentSelect:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-        }
+    .loading-spinner {
+        text-align: center;
+        padding: 80px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 20px;
+        backdrop-filter: blur(4px);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 100;
+        width: 100%;
+    }
 
-        .loading-spinner {
-            text-align: center;
-            padding: 80px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 20px;
-            backdrop-filter: blur(4px);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 100;
-            width: 100%;
-        }
+    .spinner-border-custom {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-width: 0.35em;
+        color: #667eea !important;
+    }
 
-        .spinner-border-custom {
-            width: 3.5rem;
-            height: 3.5rem;
-            border-width: 0.35em;
-            color: #667eea !important;
-        }
+    #stats-cards {
+        transition: opacity 0.3s ease;
+    }
 
-        #stats-cards {
-            transition: opacity 0.3s ease;
-        }
+    .search-results-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        z-index: 1050;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+    }
 
-        .search-results-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border-radius: 12px;
-            z-index: 1050;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
-        }
+    .search-result-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
 
-        .search-result-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            transition: background 0.2s;
-            border-bottom: 1px solid #f1f5f9;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
 
-        .search-result-item:last-child {
-            border-bottom: none;
-        }
+    .search-result-item:hover {
+        background: #f8fafc;
+    }
 
-        .search-result-item:hover {
-            background: #f8fafc;
-        }
+    .search-result-item.active {
+        background: #f0f4ff;
+        border-left: 4px solid #667eea;
+    }
 
-        .search-result-item.active {
-            background: #f0f4ff;
-            border-left: 4px solid #667eea;
-        }
+    .search-result-item .student-icon {
+        width: 32px;
+        height: 32px;
+        background: #667eea20;
+        color: #667eea;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
 
-        .search-result-item .student-icon {
-            width: 32px;
-            height: 32px;
-            background: #667eea20;
-            color: #667eea;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-        }
+    .search-result-item .student-info {
+        flex: 1;
+    }
 
-        .search-result-item .student-info {
-            flex: 1;
-        }
+    .search-result-item .student-name {
+        font-weight: 600;
+        display: block;
+        color: #1e293b;
+    }
 
-        .search-result-item .student-name {
-            font-weight: 600;
-            display: block;
-            color: #1e293b;
-        }
+    .search-result-item .student-class {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
 
-        .search-result-item .student-class {
-            font-size: 0.75rem;
-            color: #64748b;
-        }
+    canvas {
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
+    }
+</style>
+{% endblock %}
 
-        canvas {
-            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
-        }
-    </style>
-</head>
-
-<body>
-    <!-- loader starts-->
-    <div class="loader-wrapper">
-        <div class="loader">
-            <div class="loader4"></div>
-        </div>
-    </div>
-    <!-- loader ends-->
-
-    <!-- tap on top starts-->
-    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
-    <!-- tap on tap ends-->
-
-    <!-- page-wrapper Start-->
-    <div class="page-wrapper compact-wrapper" id="pageWrapper">
-        <!-- Page Header Start-->
-        <div class="page-header">
-            <div class="header-wrapper row m-0">
-                <div class="header-logo-wrapper col-auto p-0">
-                    <div class="logo-wrapper">
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4>AI Usage Dashboard</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
                         <a href="/admin-panel/dashboard">
-                            <img class="img-fluid for-light" src="/assets/images/logo/logo_dark.png" alt="logo-light">
-                            <img class="img-fluid for-dark" src="/assets/images/logo/logo.png" alt="logo-dark">
+                            <svg class="stroke-icon">
+                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                            </svg>
                         </a>
-                    </div>
-                    <div class="toggle-sidebar">
-                        <i class="status_toggle middle sidebar-toggle" data-feather="align-center"></i>
-                    </div>
-                </div>
+                    </li>
+                    <li class="breadcrumb-item">Dashboard</li>
+                    <li class="breadcrumb-item active">AI Usage</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
 
-                <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
-                    <div>
-                        <a class="toggle-sidebar" href="#">
-                            <i class="iconly-Category icli"> </i>
-                        </a>
-                        <div class="d-flex align-items-center gap-2 ">
-                            <h4 class="f-w-600">AI Tokens & Usage</h4>
+<!-- Container-fluid starts-->
+<div class="container-fluid">
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading-spinner" style="display: none;">
+        <div class="spinner-border spinner-border-custom text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading AI usage data...</p>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error-message" style="display: none;" class="alert alert-danger">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span id="error-text">Error loading data</span>
+    </div>
+
+    <div class="row mb-4 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label font-weight-bold f-14 mb-2"><i class="fa fa-filter text-primary me-2"></i>Filter by
+                Class:</label>
+            <select id="classFilter" class="form-select border-2"
+                style="border-radius: 12px; height: 48px; font-weight: 500;">
+                <option value="">Global Analytics</option>
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label font-weight-bold f-14 mb-2"><i class="fa fa-user text-primary me-2"></i>Search
+                Student:</label>
+            <div class="search-container position-relative">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"
+                        style="border-radius: 12px 0 0 12px; border: 2px solid #e2e8f0; border-right: none;">
+                        <i class="fa fa-search text-muted"></i>
+                    </span>
+                    <input type="text" id="studentSearchInput" class="form-control border-start-0 ps-0 border-2"
+                        style="border-radius: 0 12px 12px 0; height: 48px; font-weight: 500; border-color: #e2e8f0;"
+                        placeholder="Search student in this class..." autocomplete="off">
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearch"
+                        style="display: none; border-radius: 0 12px 12px 0; border: 2px solid #e2e8f0; border-left: none;">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div id="studentSearchResults" class="search-results-dropdown shadow-lg mt-1" style="display: none;">
+                    <!-- Results injected via JS -->
+                </div>
+            </div>
+            <input type="hidden" id="selectedStudentId" value="">
+        </div>
+    </div>
+    <h5 id="selectedStudentName" class="mb-3 text-primary">
+        Overall Platform Usage
+    </h5>
+    <!-- Stats Cards Row -->
+    <div class="row" id="stats-cards">
+        <!-- Stat Card 1 -->
+        <div class="col-xl-4 col-md-6 col-sm-12">
+            <div class="card analytics-card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="stat-label">Total Tokens (30 Days)</div>
+                            <div class="stat-number" style="color: #667eea" id="totalTokens">0</div>
+                        </div>
+                        <div class="stat-icon" style="background-color: rgba(102, 126, 234, 0.1); color: #667eea">
+                            <i class="fa fa-database"></i>
                         </div>
                     </div>
-                </div>
-
-                <div class="nav-right col-xxl-7 col-xl-6 col-md-7 col-8 pull-right right-header p-0 ms-auto">
-                    <ul class="nav-menus">
-                        <li>
-                            <div class="mode"><i class="moon" data-feather="moon"> </i></div>
-                        </li>
-                        <li class="profile-nav onhover-dropdown">
-                            <div class="media profile-media">
-                                <img class="b-r-10" src="/assets/images/dashboard/profile.png" alt="">
-                                <div class="media-body d-xxl-block d-none box-col-none">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span id="admin-name">Admin</span>
-                                        <i class="middle fa fa-angle-down"> </i>
-                                    </div>
-                                    <p class="mb-0 font-roboto">Administrator</p>
-                                </div>
-                            </div>
-                            <ul class="profile-dropdown onhover-show-div">
-                                <li><a href="#" onclick="logout()"><i data-feather="log-out"></i><span>Log
-                                            Out</span></a></li>
-                            </ul>
-                        </li>
-                    </ul>
                 </div>
             </div>
         </div>
-        <!-- Page Header Ends-->
 
-        <!-- Page Body Start-->
-        <div class="page-body-wrapper">
-            <!-- Page Sidebar Start-->
-            {% include "sidebar.html" %}
-            <!-- Page Sidebar Ends-->
-
-            <div class="page-body">
-                <div class="container-fluid">
-                    <!-- Page Title -->
-                    <div class="page-title">
-                        <div class="row">
-                            <div class="col-6">
-                                <h4>AI Usage Dashboard</h4>
-                            </div>
-                            <div class="col-6">
-                                <ol class="breadcrumb">
-                                    <li class="breadcrumb-item">
-                                        <a href="/admin-panel/dashboard">
-                                            <svg class="stroke-icon">
-                                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
-                                            </svg>
-                                        </a>
-                                    </li>
-                                    <li class="breadcrumb-item">Dashboard</li>
-                                    <li class="breadcrumb-item active">AI Usage</li>
-                                </ol>
-                            </div>
+        <!-- Stat Card 2 -->
+        <div class="col-xl-4 col-md-6 col-sm-12">
+            <div class="card analytics-card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="stat-label">Total API Calls</div>
+                            <div class="stat-number" style="color: #10b981" id="totalCalls">0</div>
+                        </div>
+                        <div class="stat-icon" style="background-color: rgba(16, 185, 129, 0.1); color: #10b981">
+                            <i class="fa fa-server"></i>
                         </div>
                     </div>
                 </div>
-
-                <!-- Container-fluid starts-->
-                <div class="container-fluid">
-                    <!-- Loading Indicator -->
-                    <div id="loading" class="loading-spinner" style="display: none;">
-                        <div class="spinner-border spinner-border-custom text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-3 text-muted">Loading AI usage data...</p>
-                    </div>
-
-                    <!-- Error Message -->
-                    <div id="error-message" style="display: none;" class="alert alert-danger">
-                        <i class="fa fa-exclamation-triangle"></i>
-                        <span id="error-text">Error loading data</span>
-                    </div>
-                    <div class="row mb-4 align-items-end">
-                        <div class="col-md-3">
-                            <label class="form-label font-weight-bold f-14 mb-2"><i
-                                    class="fa fa-filter text-primary me-2"></i>Filter by Class:</label>
-                            <select id="classFilter" class="form-select border-2"
-                                style="border-radius: 12px; height: 48px; font-weight: 500;">
-                                <option value="">Global Analytics</option>
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label font-weight-bold f-14 mb-2"><i
-                                    class="fa fa-user text-primary me-2"></i>Search Student:</label>
-                            <div class="search-container position-relative">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0"
-                                        style="border-radius: 12px 0 0 12px; border: 2px solid #e2e8f0; border-right: none;">
-                                        <i class="fa fa-search text-muted"></i>
-                                    </span>
-                                    <input type="text" id="studentSearchInput"
-                                        class="form-control border-start-0 ps-0 border-2"
-                                        style="border-radius: 0 12px 12px 0; height: 48px; font-weight: 500; border-color: #e2e8f0;"
-                                        placeholder="Search student in this class..." autocomplete="off">
-                                    <button class="btn btn-outline-secondary" type="button" id="clearSearch"
-                                        style="display: none; border-radius: 0 12px 12px 0; border: 2px solid #e2e8f0; border-left: none;">
-                                        <i class="fa fa-times"></i>
-                                    </button>
-                                </div>
-                                <div id="studentSearchResults" class="search-results-dropdown shadow-lg mt-1"
-                                    style="display: none;">
-                                    <!-- Results injected via JS -->
-                                </div>
-                            </div>
-                            <input type="hidden" id="selectedStudentId" value="">
-                        </div>
-                    </div>
-                    <h5 id="selectedStudentName" class="mb-3 text-primary">
-                        Overall Platform Usage
-                    </h5>
-                    <!-- Stats Cards Row -->
-                    <div class="row" id="stats-cards">
-                        <!-- Stat Card 1 -->
-                        <div class="col-xl-4 col-md-6 col-sm-12">
-                            <div class="card analytics-card shadow-sm">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <div class="stat-label">Total Tokens (30 Days)</div>
-                                            <div class="stat-number" style="color: #667eea" id="totalTokens">
-                                                0
-                                            </div>
-                                        </div>
-                                        <div class="stat-icon"
-                                            style="background-color: rgba(102, 126, 234, 0.1); color: #667eea">
-                                            <i class="fa fa-database"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Stat Card 2 -->
-                        <div class="col-xl-4 col-md-6 col-sm-12">
-                            <div class="card analytics-card shadow-sm">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <div class="stat-label">Total API Calls</div>
-                                            <div class="stat-number" style="color: #10b981" id="totalCalls">
-                                                0
-                                            </div>
-                                        </div>
-                                        <div class="stat-icon"
-                                            style="background-color: rgba(16, 185, 129, 0.1); color: #10b981">
-                                            <i class="fa fa-server"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Stat Card 3 -->
-                        <div class="col-xl-4 col-md-12 col-sm-12">
-                            <div class="card analytics-card shadow-sm">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <div class="stat-label">Est. Cost (USD)</div>
-                                            <div class="stat-number" style="color: #ef4444" id="totalCost">
-                                                $0.00
-                                            </div>
-                                        </div>
-                                        <div class="stat-icon"
-                                            style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444">
-                                            <i class="fa fa-dollar"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Charts Row -->
-                    <div class="row">
-                        <!-- Cost by Module Chart -->
-                        <div class="col-lg-8 col-md-12">
-                            <div class="card analytics-card">
-                                <div class="card-header stat-card-header">
-                                    <h5 class="chart-title">
-                                        <i class="fa fa-bar-chart text-primary"></i>
-                                        Cost by Application Module (USD)
-                                    </h5>
-                                </div>
-                                <div class="card-body" style="height: 350px;">
-                                    <canvas id="moduleCostChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Usage by AI Model Chart -->
-                        <div class="col-lg-4 col-md-12">
-                            <div class="card analytics-card">
-                                <div class="card-header stat-card-header">
-                                    <h5 class="chart-title">
-                                        <i class="fa fa-pie-chart text-success"></i>
-                                        Token Usage by AI Model
-                                    </h5>
-                                </div>
-                                <div class="card-body" style="height: 350px; position: relative;">
-                                    <canvas id="modelUsageChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-                <!-- Container-fluid Ends-->
             </div>
+        </div>
 
-            <!-- footer start-->
-            <footer class="footer">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-12 footer-copyright text-center">
-                            <p class="mb-0">Copyright 2024 © Application Miki</p>
+        <!-- Stat Card 3 -->
+        <div class="col-xl-4 col-md-12 col-sm-12">
+            <div class="card analytics-card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="stat-label">Est. Cost (USD)</div>
+                            <div class="stat-number" style="color: #ef4444" id="totalCost">$0.00</div>
+                        </div>
+                        <div class="stat-icon" style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444">
+                            <i class="fa fa-dollar"></i>
                         </div>
                     </div>
                 </div>
-            </footer>
+            </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="/assets/js/jquery.min.js"></script>
-    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
-    <script src="/assets/js/scrollbar/simplebar.js"></script>
-    <script src="/assets/js/scrollbar/custom.js"></script>
-    <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/sidebar-menu.js"></script>
-    <script src="/assets/js/sidebar-pin.js"></script>
-    <script src="/assets/js/script.js"></script>
-    <script src="/admin-panel/config.js"></script>
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Cost by Module Chart -->
+        <div class="col-lg-8 col-md-12">
+            <div class="card analytics-card">
+                <div class="card-header stat-card-header">
+                    <h5 class="chart-title">
+                        <i class="fa fa-bar-chart text-primary"></i>
+                        Cost by Application Module (USD)
+                    </h5>
+                </div>
+                <div class="card-body" style="height: 350px;">
+                    <canvas id="moduleCostChart"></canvas>
+                </div>
+            </div>
+        </div>
 
-    <script>
-        // Get API base URL from config
-        const API_BASE = window.API_BASE || '';
-        const token = localStorage.getItem('admin_token');
+        <!-- Usage by AI Model Chart -->
+        <div class="col-lg-4 col-md-12">
+            <div class="card analytics-card">
+                <div class="card-header stat-card-header">
+                    <h5 class="chart-title">
+                        <i class="fa fa-pie-chart text-success"></i>
+                        Token Usage by AI Model
+                    </h5>
+                </div>
+                <div class="card-body" style="height: 350px; position: relative;">
+                    <canvas id="modelUsageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Container-fluid Ends-->
+{% endblock %}
 
-        // Redirect if not logged in
-        if (!token) {
-            window.location.replace('/admin-panel/login');
-        }
+{% block scripts %}
+<script>
+    let allStudents = [];
+    let uniqueClasses = [];
 
-        // Load admin profile
-        async function loadAdminProfile() {
-            try {
-                const res = await fetch(`${API_BASE}/admin-panel/get_details`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    document.getElementById('admin-name').innerText = data.username || 'Admin';
-                }
-            } catch (err) {
-                console.error('Error loading profile:', err);
-            }
-        }
-
-        let allStudents = [];
-        let uniqueClasses = [];
-
-        async function loadStudents() {
-            try {
-                const res = await fetch(`${API_BASE}/admin-panel/ai-stats/get_students`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                const result = await res.json();
-                allStudents = result.students || [];
-
-                // Extract unique classes
-                uniqueClasses = [...new Set(allStudents.map(s => s.class).filter(Boolean))].sort();
-
-                // Populate class filter
-                const classSelect = document.getElementById('classFilter');
-                uniqueClasses.forEach(cls => {
-                    const opt = document.createElement('option');
-                    opt.value = cls;
-                    opt.textContent = `Class ${cls}`;
-                    classSelect.appendChild(opt);
-                });
-
-                // Initialize searchable logic
-                initStudentSearch();
-
-            } catch (err) {
-                console.error('Error loading students:', err);
-            }
-        }
-
-        function initStudentSearch() {
-            const input = document.getElementById('studentSearchInput');
-            const resultsDiv = document.getElementById('studentSearchResults');
-            const clearBtn = document.getElementById('clearSearch');
-            const classFilter = document.getElementById('classFilter');
-
-            classFilter.addEventListener('change', function () {
-                const selectedClass = this.value;
-                input.value = ''; // Clear search when class changes
-                document.getElementById('selectedStudentId').value = '';
-
-                if (selectedClass) {
-                    loadClassAIUsage(selectedClass);
-                } else {
-                    loadAIUsageAnalytics();
-                }
+    async function loadStudentsStats() {
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/ai-stats/get_students`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-
-            input.addEventListener('input', function () {
-                const query = this.value.toLowerCase().trim();
-                const selectedClass = classFilter.value;
-
-                if (query.length < 1) {
-                    resultsDiv.style.display = 'none';
-                    clearBtn.style.display = 'none';
-                    return;
-                }
-
-                let filtered = allStudents;
-                if (selectedClass) {
-                    filtered = filtered.filter(s => s.class == selectedClass);
-                }
-
-                filtered = filtered.filter(s =>
-                    s.name.toLowerCase().includes(query)
-                );
-
-                renderSearchResults(filtered);
-                clearBtn.style.display = 'block';
+            const result = await res.json();
+            allStudents = result.students || [];
+            uniqueClasses = [...new Set(allStudents.map(s => s.class).filter(Boolean))].sort();
+            const classSelect = document.getElementById('classFilter');
+            uniqueClasses.forEach(cls => {
+                const opt = document.createElement('option');
+                opt.value = cls;
+                opt.textContent = `Class ${cls}`;
+                classSelect.appendChild(opt);
             });
+            initStudentSearch();
+        } catch (err) {
+            console.error('Error loading students:', err);
+        }
+    }
 
-            input.addEventListener('focus', function () {
-                const selectedClass = classFilter.value;
-                let filtered = allStudents;
-                if (selectedClass) filtered = filtered.filter(s => s.class == selectedClass);
+    function initStudentSearch() {
+        const input = document.getElementById('studentSearchInput');
+        const resultsDiv = document.getElementById('studentSearchResults');
+        const clearBtn = document.getElementById('clearSearch');
+        const classFilter = document.getElementById('classFilter');
 
-                if (this.value.trim().length === 0) {
-                    renderSearchResults(filtered.slice(0, 10)); // Show some hints
-                }
-            });
+        classFilter.addEventListener('change', function () {
+            const selectedClass = this.value;
+            input.value = '';
+            document.getElementById('selectedStudentId').value = '';
+            if (selectedClass) loadClassAIUsage(selectedClass);
+            else loadAIUsageAnalytics();
+        });
 
-            clearBtn.addEventListener('click', () => {
-                input.value = '';
-                document.getElementById('selectedStudentId').value = '';
+        input.addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            const selectedClass = classFilter.value;
+            if (query.length < 1) {
                 resultsDiv.style.display = 'none';
                 clearBtn.style.display = 'none';
-
-                const selectedClass = classFilter.value;
-                if (selectedClass) {
-                    loadClassAIUsage(selectedClass);
-                } else {
-                    loadAIUsageAnalytics();
-                }
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-container')) {
-                    resultsDiv.style.display = 'none';
-                }
-            });
-        }
-
-        async function loadClassAIUsage(className) {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('stats-cards').style.opacity = '0.5';
-
-            try {
-                const res = await fetch(`${API_BASE}/admin-panel/ai-stats/class/${className}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!res.ok) throw new Error("Failed to fetch class AI usage");
-                const result = await res.json();
-                const data = result.data;
-
-                document.getElementById('selectedStudentName').innerHTML = `<i class="fa fa-users me-2"></i> Class AI Usage: ${className}`;
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('stats-cards').style.opacity = '1';
-
-                updateDashboardCards(data);
-
-            } catch (error) {
-                showError("Error loading class stats: " + error.message);
-            }
-        }
-
-        function renderSearchResults(filtered) {
-            const resultsDiv = document.getElementById('studentSearchResults');
-            resultsDiv.innerHTML = '';
-
-            if (filtered.length === 0) {
-                resultsDiv.innerHTML = '<div class="p-3 text-muted text-center">No students found</div>';
-                resultsDiv.style.display = 'block';
                 return;
             }
-
-            filtered.forEach(student => {
-                const item = document.createElement('div');
-                item.className = 'search-result-item';
-                item.innerHTML = `
-                    <div class="student-icon"><i class="fa fa-user"></i></div>
-                    <div class="student-info">
-                        <span class="student-name">${student.name} ${student.class ? `(Class ${student.class})` : ''}</span>
-                        <span class="student-class">Student ID: ${student.id.substring(0, 8)}...</span>
-                    </div>
-                `;
-                item.onclick = () => {
-                    document.getElementById('studentSearchInput').value = student.name;
-                    document.getElementById('selectedStudentId').value = student.id;
-                    resultsDiv.style.display = 'none';
-                    loadStudentAIUsage(student.id);
-                };
-                resultsDiv.appendChild(item);
-            });
-            resultsDiv.style.display = 'block';
-        }
-
-        // Fetch AI Usage data for platform summary
-        async function loadAIUsageAnalytics() {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('stats-cards').style.opacity = '0.5';
-
-            try {
-                const response = await fetch(`${API_BASE}/admin-panel/ai-stats/summary`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!response.ok) throw new Error("Failed to fetch AI usage stats");
-
-                const result = await response.json();
-                const data = result.data;
-
-                document.getElementById('selectedStudentName').innerHTML = '<i class="fa fa-globe me-2"></i> Overall Platform Usage';
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('stats-cards').style.opacity = '1';
-
-                updateDashboardCards(data);
-
-            } catch (error) {
-                showError("Error loading platform stats: " + error.message);
-            }
-        }
-
-        // Fetch AI Usage for specific student
-        async function loadStudentAIUsage(studentId) {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('stats-cards').style.opacity = '0.5';
-
-            try {
-                const res = await fetch(`${API_BASE}/admin-panel/ai-stats/student/${studentId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!res.ok) throw new Error("Failed to fetch student AI usage");
-
-                const result = await res.json();
-                const data = result.data;
-
-                document.getElementById('selectedStudentName').innerText = `AI Usage: ${data.student_name}`;
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('stats-cards').style.opacity = '1';
-
-                updateDashboardCards(data);
-
-            } catch (error) {
-                showError("Error loading student stats: " + error.message);
-            }
-        }
-
-        function updateDashboardCards(data) {
-            // Update Text Stats
-            animateValue("totalTokens", data.total_tokens);
-            animateValue("totalCalls", data.total_calls);
-            animateValue("totalCost", data.total_cost_usd, true);
-
-            // Refresh Charts
-            createModuleCostChart(data.module_costs);
-            createModelUsageChart(data.model_tokens);
-        }
-
-        function animateValue(id, value, isCurrency = false) {
-            const obj = document.getElementById(id);
-            const start = parseFloat(obj.innerText.replace(/[^0-9.-]+/g, "")) || 0;
-            const duration = 800;
-            let startTimestamp = null;
-
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const current = progress * (value - start) + start;
-
-                if (isCurrency) {
-                    obj.innerText = `$${current.toFixed(2)}`;
-                } else {
-                    obj.innerText = Math.floor(current).toLocaleString();
-                }
-
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                }
-            };
-            window.requestAnimationFrame(step);
-        }
-
-        function showError(msg) {
-            document.getElementById('loading').style.display = 'none';
-            const errorDiv = document.getElementById('error-message');
-            document.getElementById('error-text').innerText = msg;
-            errorDiv.style.display = 'block';
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
-        }
-
-        // Charts Logic
-        let moduleCostChartInstance = null;
-        function createModuleCostChart(chartData) {
-            const ctx = document.getElementById('moduleCostChart').getContext('2d');
-            if (moduleCostChartInstance) moduleCostChartInstance.destroy();
-
-            moduleCostChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [{
-                        label: 'Cost (USD)',
-                        data: chartData.costs,
-                        backgroundColor: 'rgba(102, 126, 234, 0.7)',
-                        borderColor: '#667eea',
-                        borderWidth: 1,
-                        borderRadius: 8,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { top: 20, bottom: 10, left: 10, right: 20 } },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                            padding: 12,
-                            displayColors: false,
-                            callbacks: {
-                                label: function (context) { return `Cost: $${context.raw.toFixed(4)}`; }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
-                            ticks: { callback: value => '$' + value, font: { weight: '600' } }
-                        },
-                        x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
-                    }
-                }
-            });
-        }
-
-        let modelUsageChartInstance = null;
-        function createModelUsageChart(chartData) {
-            const ctx = document.getElementById('modelUsageChart').getContext('2d');
-            if (modelUsageChartInstance) modelUsageChartInstance.destroy();
-
-            modelUsageChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [{
-                        data: chartData.tokens,
-                        backgroundColor: [
-                            'rgba(102, 126, 234, 0.8)',
-                            'rgba(16, 185, 129, 0.8)',
-                            'rgba(245, 158, 11, 0.8)',
-                            'rgba(239, 68, 68, 0.8)',
-                            'rgba(139, 92, 246, 0.8)'
-                        ],
-                        hoverOffset: 15,
-                        borderColor: '#ffffff',
-                        borderWidth: 3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 15,
-                                usePointStyle: true,
-                                font: { size: 11 }
-                            }
-                        }
-                    },
-                    cutout: '65%'
-                }
-            });
-        }
-
-        function logout() {
-            localStorage.removeItem('admin_token');
-            window.location.replace('/admin-panel/login');
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAdminProfile();
-            loadAIUsageAnalytics();
-            loadStudents();
+            let filtered = allStudents;
+            if (selectedClass) filtered = filtered.filter(s => s.class == selectedClass);
+            filtered = filtered.filter(s => s.name.toLowerCase().includes(query));
+            renderSearchResults(filtered);
+            clearBtn.style.display = 'block';
         });
-    </script>
-    </script>
-</body>
 
-</html>
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            document.getElementById('selectedStudentId').value = '';
+            resultsDiv.style.display = 'none';
+            clearBtn.style.display = 'none';
+            const selectedClass = classFilter.value;
+            if (selectedClass) loadClassAIUsage(selectedClass);
+            else loadAIUsageAnalytics();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) resultsDiv.style.display = 'none';
+        });
+    }
+
+    async function loadClassAIUsage(className) {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('stats-cards').style.opacity = '0.5';
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/ai-stats/class/${className}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Failed to fetch class AI usage");
+            const result = await res.json();
+            const data = result.data;
+            document.getElementById('selectedStudentName').innerHTML = `<i class="fa fa-users me-2"></i> Class AI Usage: ${className}`;
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('stats-cards').style.opacity = '1';
+            updateDashboardCards(data);
+        } catch (error) {
+            showError("Error loading class stats: " + error.message);
+        }
+    }
+
+    function renderSearchResults(filtered) {
+        const resultsDiv = document.getElementById('studentSearchResults');
+        resultsDiv.innerHTML = '';
+        if (filtered.length === 0) {
+            resultsDiv.innerHTML = '<div class="p-3 text-muted text-center">No students found</div>';
+            resultsDiv.style.display = 'block';
+            return;
+        }
+        filtered.forEach(student => {
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            item.innerHTML = `
+                <div class="student-icon"><i class="fa fa-user"></i></div>
+                <div class="student-info">
+                    <span class="student-name">${student.name} ${student.class ? `(Class ${student.class})` : ''}</span>
+                    <span class="student-class">Student ID: ${student.id.substring(0, 8)}...</span>
+                </div>
+            `;
+            item.onclick = () => {
+                document.getElementById('studentSearchInput').value = student.name;
+                document.getElementById('selectedStudentId').value = student.id;
+                resultsDiv.style.display = 'none';
+                loadStudentAIUsage(student.id);
+            };
+            resultsDiv.appendChild(item);
+        });
+        resultsDiv.style.display = 'block';
+    }
+
+    async function loadAIUsageAnalytics() {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('stats-cards').style.opacity = '0.5';
+        try {
+            const response = await fetch(`${API_BASE}/admin-panel/ai-stats/summary`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error("Failed to fetch AI usage stats");
+            const result = await response.json();
+            const data = result.data;
+            document.getElementById('selectedStudentName').innerHTML = '<i class="fa fa-globe me-2"></i> Overall Platform Usage';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('stats-cards').style.opacity = '1';
+            updateDashboardCards(data);
+        } catch (error) {
+            showError("Error loading platform stats: " + error.message);
+        }
+    }
+
+    async function loadStudentAIUsage(studentId) {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('stats-cards').style.opacity = '0.5';
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/ai-stats/student/${studentId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Failed to fetch student AI usage");
+            const result = await res.json();
+            const data = result.data;
+            document.getElementById('selectedStudentName').innerText = `AI Usage: ${data.student_name}`;
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('stats-cards').style.opacity = '1';
+            updateDashboardCards(data);
+        } catch (error) {
+            showError("Error loading student stats: " + error.message);
+        }
+    }
+
+    function updateDashboardCards(data) {
+        animateValue("totalTokens", data.total_tokens);
+        animateValue("totalCalls", data.total_calls);
+        animateValue("totalCost", data.total_cost_usd, true);
+        createModuleCostChart(data.module_costs);
+        createModelUsageChart(data.model_tokens);
+    }
+
+    function animateValue(id, value, isCurrency = false) {
+        const obj = document.getElementById(id);
+        const start = parseFloat(obj.innerText.replace(/[^0-9.-]+/g, "")) || 0;
+        const duration = 800;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const current = progress * (value - start) + start;
+            if (isCurrency) obj.innerText = `$${current.toFixed(2)}`;
+            else obj.innerText = Math.floor(current).toLocaleString();
+            if (progress < 1) window.requestAnimationFrame(step);
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function showError(msg) {
+        document.getElementById('loading').style.display = 'none';
+        const errorDiv = document.getElementById('error-message');
+        document.getElementById('error-text').innerText = msg;
+        errorDiv.style.display = 'block';
+        setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+    }
+
+    let moduleCostChartInstance = null;
+    function createModuleCostChart(chartData) {
+        const ctx = document.getElementById('moduleCostChart').getContext('2d');
+        if (moduleCostChartInstance) moduleCostChartInstance.destroy();
+        moduleCostChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Cost (USD)',
+                    data: chartData.costs,
+                    backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                    borderColor: '#667eea',
+                    borderWidth: 1,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    let modelUsageChartInstance = null;
+    function createModelUsageChart(chartData) {
+        const ctx = document.getElementById('modelUsageChart').getContext('2d');
+        if (modelUsageChartInstance) modelUsageChartInstance.destroy();
+        modelUsageChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    data: chartData.tokens,
+                    backgroundColor: ['#667eea', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                cutout: '70%'
+            }
+        });
+    }
+
+    loadAIUsageAnalytics();
+    loadStudentsStats();
+</script>
+{% endblock %}

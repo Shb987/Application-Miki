@@ -1,491 +1,300 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Miki - Games Management</title>
-    <link rel="icon" href="/assets/images/miki_favicon.svg" type="image/svg+xml">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/css/font-awesome.css">
-    <link rel="stylesheet" href="/assets/css/vendors/feather-icon.css">
-    <link rel="stylesheet" href="/assets/css/vendors/scrollbar.css">
-    <link rel="stylesheet" href="/assets/css/vendors/bootstrap.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <link rel="stylesheet" href="/assets/css/color-1.css">
-    <link rel="stylesheet" href="/assets/css/responsive.css">
-    <style>
-        .game-tab-btn {
-            border-radius: 20px;
-            font-size: .83rem;
-            font-weight: 600;
-            padding: 6px 20px;
-        }
+{% block title %}Miki - Games Management{% endblock %}
 
-        .game-tab-btn.active {
-            background: #54ba4a;
-            color: #fff;
-            border-color: #54ba4a;
-        }
+{% block head %}
+<style>
+    .game-tab-btn {
+        border-radius: 20px;
+        font-size: .83rem;
+        font-weight: 600;
+        padding: 6px 20px;
+    }
 
-        .range-badge {
-            background: #7366ff22;
-            color: #7366ff;
-            border-radius: 10px;
-            padding: 2px 10px;
-            font-size: .74rem;
-            font-weight: 600;
-        }
+    .game-tab-btn.active {
+        background: #54ba4a;
+        color: #fff;
+        border-color: #54ba4a;
+    }
 
-        .stat-mini {
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: .82rem;
-        }
+    .range-badge {
+        background: #7366ff22;
+        color: #7366ff;
+        border-radius: 10px;
+        padding: 2px 10px;
+        font-size: .74rem;
+        font-weight: 600;
+    }
 
-        #toast-gm {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 9999;
-            min-width: 200px;
-        }
-    </style>
-</head>
+    .stat-mini {
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: .82rem;
+    }
 
-<body>
-    <div class="loader-wrapper">
-        <div class="loader">
-            <div class="loader4"></div>
-        </div>
-    </div>
-    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
-    <div class="page-wrapper compact-wrapper" id="pageWrapper">
-        <div class="page-header">
-            <div class="header-wrapper row m-0">
-                <div class="header-logo-wrapper col-auto p-0">
-                    <a href="/admin-panel/dashboard"
-                        style="text-decoration:none;display:flex;align-items:center;gap:10px;padding:8px;">
-                        <div
-                            style="background:white;padding:4px 6px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.1);">
-                            <img src="/assets/images/logo/miki_logo.png" alt="Miki" style="height:24px;">
-                        </div>
-                        <span
-                            style="font-family:Montserrat,sans-serif;font-weight:700;font-size:1.3rem;color:#006666;">Miki</span>
-                    </a>
-                </div>
-                <div class="nav-right col ms-auto d-flex align-items-center justify-content-end pe-3 gap-2">
-                    <a href="/admin-panel/dashboard" class="btn btn-sm btn-outline-secondary"
-                        style="border-radius:20px;">Dashboard</a>
-                    <a href="#" class="btn btn-sm btn-outline-danger" style="border-radius:20px;"
-                        onclick="logout()">Logout</a>
-                </div>
+    #toast-gm {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        min-width: 200px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4>Games Management</h4>
             </div>
-        </div>
-        <script src="/admin-panel/config.js"></script>
-        <div class="page-body-wrapper">
-            {% include "sidebar.html" %}
-            <div class="page-body">
-                <div class="container-fluid">
-                    <div class="page-title">
-                        <div class="row">
-                            <div class="col-6">
-                                <h4>Games Management</h4>
-                            </div>
-                            <div class="col-6">
-                                <ol class="breadcrumb">
-                                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg
-                                                class="stroke-icon">
-                                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
-                                            </svg></a></li>
-                                    <li class="breadcrumb-item active">Games</li>
-                                </ol>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tabs -->
-                    <div class="d-flex gap-2 mb-4">
-                        <button class="btn game-tab-btn active" id="tab-wordle" onclick="switchTab('wordle')">🔤
-                            Wordle</button>
-                        <button class="btn btn-outline-secondary game-tab-btn" id="tab-squares"
-                            onclick="switchTab('squares')">🟦 Squares</button>
-                    </div>
-
-                    <!-- WORDLE PANEL -->
-                    <div id="panel-wordle">
-                        <!-- Stats -->
-                        <div class="row mb-3" id="wordle-stats-row">
-                            <div class="col-12">
-                                <div class="stat-mini bg-light text-muted">Loading stats...</div>
-                            </div>
-                        </div>
-                        <div class="card" style="border-radius:14px;">
-                            <div class="card-body">
-                                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                                    <select id="wordle-filter-range" class="form-select"
-                                        style="max-width:160px;border-radius:8px;font-size:.85rem;"
-                                        onchange="loadWordle()">
-                                        <option value="">All Ranges</option>
-                                        <option value="1-3">Class 1-3</option>
-                                        <option value="3-5">Class 3-5</option>
-                                        <option value="6-8">Class 6-8</option>
-                                        <option value="9-10">Class 9-10</option>
-                                        <option value="11-12">Class 11-12</option>
-                                    </select>
-                                    <input type="text" id="wordle-search" class="form-control"
-                                        style="max-width:180px;border-radius:8px;font-size:.85rem;"
-                                        placeholder="Search word..." oninput="loadWordle()">
-                                    <button class="btn btn-success btn-sm ms-auto" style="border-radius:8px;"
-                                        onclick="openWordleModal()">+ Add Word</button>
-                                    <span class="text-muted" id="wordle-count" style="font-size:.82rem;"></span>
-                                </div>
-                                <div class="table-responsive" id="wordle-table-wrapper">
-                                    <div class="text-center py-4">
-                                        <div class="spinner-border text-success"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- SQUARES PANEL -->
-                    <div id="panel-squares" style="display:none;">
-                        <div class="row mb-3" id="squares-stats-row">
-                            <div class="col-12">
-                                <div class="stat-mini bg-light text-muted">Loading stats...</div>
-                            </div>
-                        </div>
-                        <div class="card" style="border-radius:14px;">
-                            <div class="card-body">
-                                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                                    <select id="squares-filter-range" class="form-select"
-                                        style="max-width:160px;border-radius:8px;font-size:.85rem;"
-                                        onchange="loadSquares()">
-                                        <option value="">All Ranges</option>
-                                        <option value="1-3">Class 1-3</option>
-                                        <option value="3-5">Class 3-5</option>
-                                        <option value="6-8">Class 6-8</option>
-                                        <option value="9-10">Class 9-10</option>
-                                        <option value="11-12">Class 11-12</option>
-                                    </select>
-                                    <button class="btn btn-success btn-sm ms-auto" style="border-radius:8px;"
-                                        onclick="openSquaresModal()">+ Add Level</button>
-                                    <span class="text-muted" id="squares-count" style="font-size:.82rem;"></span>
-                                </div>
-                                <div class="table-responsive" id="squares-table-wrapper">
-                                    <div class="text-center py-4">
-                                        <div class="spinner-border text-primary"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg class="stroke-icon">
+                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                            </svg></a></li>
+                    <li class="breadcrumb-item active">Games</li>
+                </ol>
             </div>
-
-            <!-- Wordle Add Modal -->
-            <div class="modal fade" id="wordleModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content" style="border-radius:16px;">
-                        <div class="modal-header"
-                            style="background:linear-gradient(135deg,#54ba4a,#13c9ca);color:#fff;border-radius:16px 16px 0 0;">
-                            <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word</h6>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <input type="hidden" id="wordle-edit-id">
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.85rem;font-weight:600;">Word *</label>
-                                <input id="w-word" type="text" class="form-control"
-                                    style="border-radius:8px;text-transform:uppercase;" placeholder="e.g. APPLE">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.85rem;font-weight:600;">Hint *</label>
-                                <input id="w-hint" type="text" class="form-control" style="border-radius:8px;"
-                                    placeholder="A sweet fruit">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.85rem;font-weight:600;">Level *</label>
-                                <input id="w-level" type="number" class="form-control" style="border-radius:8px;"
-                                    placeholder="e.g. 1">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.85rem;font-weight:600;">Class Range
-                                    *</label>
-                                <select id="w-range" class="form-select" style="border-radius:8px;">
-                                    <option value="">Select...</option>
-                                    <option value="1-3">Class 1-3</option>
-                                    <option value="3-5">Class 3-5</option>
-                                    <option value="6-8">Class 6-8</option>
-                                    <option value="9-10">Class 9-10</option>
-                                    <option value="11-12">Class 11-12</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                            <button class="btn btn-success btn-sm" onclick="saveWord()">Save Word</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Squares Add Modal -->
-            <div class="modal fade" id="squaresModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content" style="border-radius:16px;">
-                        <div class="modal-header"
-                            style="background:linear-gradient(135deg,#7366ff,#13c9ca);color:#fff;border-radius:16px 16px 0 0;">
-                            <h6 class="modal-title" id="squares-modal-title">Add Squares Level</h6>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <input type="hidden" id="squares-edit-id">
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.85rem;font-weight:600;">Level Number
-                                    *</label>
-                                <input id="sq-level" type="number" class="form-control" style="border-radius:8px;"
-                                    placeholder="e.g. 1">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.85rem;font-weight:600;">Class Range
-                                    *</label>
-                                <select id="sq-range" class="form-select" style="border-radius:8px;">
-                                    <option value="">Select...</option>
-                                    <option value="1-3">Class 1-3</option>
-                                    <option value="3-5">Class 3-5</option>
-                                    <option value="6-8">Class 6-8</option>
-                                    <option value="9-10">Class 9-10</option>
-                                    <option value="11-12">Class 11-12</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size:.85rem;font-weight:600;">Words
-                                    (comma-separated) *</label>
-                                <input id="sq-words" type="text" class="form-control"
-                                    style="border-radius:8px;text-transform:uppercase;"
-                                    placeholder="e.g. CAT, DOG, FISH">
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                            <button class="btn btn-primary btn-sm" onclick="saveSquares()">Save Level</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="toast-gm" class="toast align-items-center text-white border-0" style="display:none;">
-                <div class="d-flex">
-                    <div class="toast-body" id="toast-gm-msg"></div>
-                </div>
-            </div>
-
-            <footer class="footer">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-12 footer-copyright text-center">
-                            <p class="mb-0">Copyright &copy; 2024 Miki Assessment Portal</p>
-                        </div>
-                    </div>
-                </div>
-            </footer>
         </div>
     </div>
 
-    <script src="/assets/js/jquery.min.js"></script>
-    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
-    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
-    <script src="/assets/js/scrollbar/simplebar.js"></script>
-    <script src="/assets/js/scrollbar/custom.js"></script>
-    <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/sidebar-menu.js"></script>
-    <script src="/assets/js/sidebar-pin.js"></script>
-    <script src="/assets/js/script.js"></script>
-    <script>
-        const token = localStorage.getItem("admin_token");
-        const API_BASE = window.API_BASE;
-        if (!token) window.location.replace("/admin-panel/login");
+    <!-- Tabs -->
+    <div class="d-flex gap-2 mb-4">
+        <button class="btn game-tab-btn active" id="tab-wordle" onclick="switchTab('wordle')">🔤 Wordle</button>
+        <button class="btn btn-outline-secondary game-tab-btn" id="tab-squares" onclick="switchTab('squares')">🟦
+            Squares</button>
+    </div>
 
-        function switchTab(tab) {
-            document.getElementById("panel-wordle").style.display = tab === "wordle" ? "" : "none";
-            document.getElementById("panel-squares").style.display = tab === "squares" ? "" : "none";
-            document.getElementById("tab-wordle").className = "btn game-tab-btn" + (tab === "wordle" ? " active" : " btn-outline-secondary");
-            document.getElementById("tab-squares").className = "btn game-tab-btn" + (tab === "squares" ? " active" : " btn-outline-secondary");
-            if (tab === "squares") { loadSquares(); loadSquaresStats(); }
-        }
+    <!-- WORDLE PANEL -->
+    <div id="panel-wordle">
+        <div class="row mb-3" id="wordle-stats-row">
+            <div class="col-12">
+                <div class="stat-mini bg-light text-muted">Loading stats...</div>
+            </div>
+        </div>
+        <div class="card" style="border-radius:14px;">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <select id="wordle-filter-range" class="form-select"
+                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="loadWordle()">
+                        <option value="">All Ranges</option>
+                        <option value="1-3">Class 1-3</option>
+                        <option value="3-5">Class 3-5</option>
+                        <option value="6-8">Class 6-8</option>
+                        <option value="9-10">Class 9-10</option>
+                        <option value="11-12">Class 11-12</option>
+                    </select>
+                    <input type="text" id="wordle-search" class="form-control"
+                        style="max-width:180px;border-radius:8px;font-size:.85rem;" placeholder="Search word..."
+                        oninput="loadWordle()">
+                    <button class="btn btn-success btn-sm ms-auto" style="border-radius:8px;"
+                        onclick="openWordleModal()">+ Add Word</button>
+                    <span class="text-muted" id="wordle-count" style="font-size:.82rem;"></span>
+                </div>
+                <div class="table-responsive" id="wordle-table-wrapper">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-success"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // ── WORDLE ────────────────────────────────────────────────────
-        async function loadWordle() {
-            const range = document.getElementById("wordle-filter-range").value;
-            const search = document.getElementById("wordle-search").value.trim();
-            let url = `${API_BASE}/admin-panel/games/wordle/words?limit=100`;
-            if (range) url += `&class_range=${range}`;
-            if (search) url += `&search=${encodeURIComponent(search)}`;
-            document.getElementById("wordle-table-wrapper").innerHTML = `<div class="text-center py-3"><div class="spinner-border text-success"></div></div>`;
-            const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-            const json = await res.json();
-            document.getElementById("wordle-count").textContent = `${json.total || 0} words`;
-            if (!json.data || !json.data.length) { document.getElementById("wordle-table-wrapper").innerHTML = `<div class="text-center text-muted py-4">No words found</div>`; return; }
-            let html = `<table class="table table-hover table-bordered" style="font-size:.83rem;"><thead class="table-dark"><tr><th>#</th><th>Word</th><th>Hint</th><th>Level</th><th>Class Range</th><th>Actions</th></tr></thead><tbody>`;
-            json.data.forEach((w, i) => {
-                html += `<tr><td>${i + 1}</td><td><strong>${w.word}</strong></td><td>${w.hint || "—"}</td>
-          <td><span class="badge bg-secondary">${w.level}</span></td>
-          <td><span class="range-badge">${w.class_range}</span></td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary" style="font-size:.73rem;border-radius:6px;padding:2px 8px;" onclick="editWord('${w.id}','${w.word}','${(w.hint || "").replace(/'/g, "\\'")}',${w.level},'${w.class_range}')">Edit</button>
-            <button class="btn btn-sm btn-outline-danger ms-1" style="font-size:.73rem;border-radius:6px;padding:2px 8px;" onclick="deleteWord('${w.id}','${w.word}')">Delete</button>
-          </td></tr>`;
-            });
-            html += `</tbody></table>`;
-            document.getElementById("wordle-table-wrapper").innerHTML = html;
-        }
+    <!-- SQUARES PANEL -->
+    <div id="panel-squares" style="display:none;">
+        <div class="row mb-3" id="squares-stats-row">
+            <div class="col-12">
+                <div class="stat-mini bg-light text-muted">Loading stats...</div>
+            </div>
+        </div>
+        <div class="card" style="border-radius:14px;">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <select id="squares-filter-range" class="form-select"
+                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="loadSquares()">
+                        <option value="">All Ranges</option>
+                        <option value="1-3">Class 1-3</option>
+                        <option value="3-5">Class 3-5</option>
+                        <option value="6-8">Class 6-8</option>
+                        <option value="9-10">Class 9-10</option>
+                        <option value="11-12">Class 11-12</option>
+                    </select>
+                    <button class="btn btn-success btn-sm ms-auto" style="border-radius:8px;"
+                        onclick="openSquaresModal()">+ Add Level</button>
+                    <span class="text-muted" id="squares-count" style="font-size:.82rem;"></span>
+                </div>
+                <div class="table-responsive" id="squares-table-wrapper">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        async function loadWordleStats() {
-            const res = await fetch(`${API_BASE}/admin-panel/games/wordle/stats`, { headers: { Authorization: "Bearer " + token } });
-            const json = await res.json();
-            if (!json.data) return;
-            const d = json.data;
-            const rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `<span class="me-3"><strong>${r}:</strong> ${c} words</span>`).join("");
-            document.getElementById("wordle-stats-row").innerHTML = `<div class="col-12"><div class="stat-mini" style="background:#54ba4a15;border-radius:10px;padding:10px 16px;">
-        <span class="me-4"><strong>Total Words:</strong> ${d.total_words}</span>
-        <span class="me-4"><strong>Total Sessions:</strong> ${d.total_sessions}</span>
-        ${rangeHtml}
-      </div></div>`;
-        }
+<!-- Modals -->
+<div class="modal fade" id="wordleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header bg-success text-white" style="border-radius:16px 16px 0 0;">
+                <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word</h6><button type="button"
+                    class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="wordle-edit-id">
+                <div class="mb-3"><label class="form-label">Word *</label><input id="w-word" type="text"
+                        class="form-control" style="text-transform:uppercase;"></div>
+                <div class="mb-3"><label class="form-label">Hint *</label><input id="w-hint" type="text"
+                        class="form-control"></div>
+                <div class="mb-3"><label class="form-label">Level *</label><input id="w-level" type="number"
+                        class="form-control"></div>
+                <div class="mb-3"><label class="form-label">Class Range *</label>
+                    <select id="w-range" class="form-select">
+                        <option value="">Select...</option>
+                        <option value="1-3">Class 1-3</option>
+                        <option value="3-5">Class 3-5</option>
+                        <option value="6-8">Class 6-8</option>
+                        <option value="9-10">Class 9-10</option>
+                        <option value="11-12">Class 11-12</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-outline-secondary"
+                    data-bs-dismiss="modal">Cancel</button><button class="btn btn-success" onclick="saveWord()">Save
+                    Word</button></div>
+        </div>
+    </div>
+</div>
 
-        function openWordleModal(id = "", word = "", hint = "", level = "", range = "") {
-            document.getElementById("wordle-edit-id").value = id;
-            document.getElementById("w-word").value = word;
-            document.getElementById("w-hint").value = hint;
-            document.getElementById("w-level").value = level;
-            document.getElementById("w-range").value = range;
-            document.getElementById("wordle-modal-title").textContent = id ? "Edit Word" : "Add Wordle Word";
-            new bootstrap.Modal(document.getElementById("wordleModal")).show();
-        }
+<div class="modal fade" id="squaresModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header bg-primary text-white" style="border-radius:16px 16px 0 0;">
+                <h6 class="modal-title" id="squares-modal-title">Add Squares Level</h6><button type="button"
+                    class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="squares-edit-id">
+                <div class="mb-3"><label class="form-label">Level Number *</label><input id="sq-level" type="number"
+                        class="form-control"></div>
+                <div class="mb-3"><label class="form-label">Class Range *</label>
+                    <select id="sq-range" class="form-select">
+                        <option value="">Select...</option>
+                        <option value="1-3">Class 1-3</option>
+                        <option value="3-5">Class 3-5</option>
+                        <option value="6-8">Class 6-8</option>
+                        <option value="9-10">Class 9-10</option>
+                        <option value="11-12">Class 11-12</option>
+                    </select>
+                </div>
+                <div class="mb-3"><label class="form-label">Words (comma-separated) *</label><input id="sq-words"
+                        type="text" class="form-control" style="text-transform:uppercase;"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-outline-secondary"
+                    data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="saveSquares()">Save
+                    Level</button></div>
+        </div>
+    </div>
+</div>
 
-        function editWord(id, word, hint, level, range) { openWordleModal(id, word, hint, level, range); }
+<div id="toast-gm" class="toast align-items-center text-white border-0"
+    style="display:none; position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
+    <div class="d-flex">
+        <div class="toast-body" id="toast-gm-msg"></div>
+    </div>
+</div>
+{% endblock %}
 
-        async function saveWord() {
-            const id = document.getElementById("wordle-edit-id").value;
-            const body = {
-                word: document.getElementById("w-word").value.trim(),
-                hint: document.getElementById("w-hint").value.trim(),
-                level: parseInt(document.getElementById("w-level").value),
-                class_range: document.getElementById("w-range").value
-            };
-            if (!body.word || !body.hint || isNaN(body.level) || !body.class_range) { showToast("All fields required", "danger"); return; }
-            const url = id ? `${API_BASE}/admin-panel/games/wordle/words/${id}` : `${API_BASE}/admin-panel/games/wordle/words`;
-            const method = id ? "PUT" : "POST";
-            const res = await fetch(url, { method, headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-            const json = await res.json();
-            bootstrap.Modal.getInstance(document.getElementById("wordleModal")).hide();
-            if (res.ok) { showToast(id ? "Word updated!" : "Word added!", "success"); loadWordle(); loadWordleStats(); }
-            else { showToast(json.detail || "Error", "danger"); }
-        }
+{% block scripts %}
+<script>
+    const token = localStorage.getItem("admin_token");
+    function switchTab(tab) {
+        document.getElementById("panel-wordle").style.display = tab === "wordle" ? "" : "none";
+        document.getElementById("panel-squares").style.display = tab === "squares" ? "" : "none";
+        document.getElementById("tab-wordle").className = "btn game-tab-btn" + (tab === "wordle" ? " active" : " btn-outline-secondary");
+        document.getElementById("tab-squares").className = "btn game-tab-btn" + (tab === "squares" ? " active" : " btn-outline-secondary");
+        if (tab === "squares") { loadSquares(); loadSquaresStats(); }
+    }
 
-        async function deleteWord(id, word) {
-            if (!confirm(`Delete word "${word}"?`)) return;
-            const res = await fetch(`${API_BASE}/admin-panel/games/wordle/words/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
-            if (res.ok) { showToast("Word deleted", "success"); loadWordle(); loadWordleStats(); }
-            else { showToast("Delete failed", "danger"); }
-        }
-
-        // ── SQUARES ───────────────────────────────────────────────────
-        async function loadSquares() {
-            const range = document.getElementById("squares-filter-range").value;
-            let url = `${API_BASE}/admin-panel/games/squares/levels?limit=100`;
-            if (range) url += `&class_range=${range}`;
-            document.getElementById("squares-table-wrapper").innerHTML = `<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>`;
-            const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-            const json = await res.json();
-            document.getElementById("squares-count").textContent = `${json.total || 0} levels`;
-            if (!json.data || !json.data.length) { document.getElementById("squares-table-wrapper").innerHTML = `<div class="text-center text-muted py-4">No levels found</div>`; return; }
-            let html = `<table class="table table-hover table-bordered" style="font-size:.83rem;"><thead class="table-dark"><tr><th>#</th><th>Level</th><th>Class Range</th><th>Words</th><th>Actions</th></tr></thead><tbody>`;
-            json.data.forEach((lv, i) => {
-                const words = (lv.words || []).join(", ");
-                html += `<tr><td>${i + 1}</td>
-          <td><span class="badge bg-primary">${lv.level}</span></td>
-          <td><span class="range-badge">${lv.class_range}</span></td>
-          <td><code style="font-size:.75rem;">${words}</code></td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary" style="font-size:.73rem;border-radius:6px;padding:2px 8px;" onclick="editSquares('${lv.id}',${lv.level},'${lv.class_range}','${(lv.words || []).join(",")}')">Edit</button>
-            <button class="btn btn-sm btn-outline-danger ms-1" style="font-size:.73rem;border-radius:6px;padding:2px 8px;" onclick="deleteSquares('${lv.id}',${lv.level})">Delete</button>
-          </td></tr>`;
-            });
-            html += `</tbody></table>`;
-            document.getElementById("squares-table-wrapper").innerHTML = html;
-        }
-
-        async function loadSquaresStats() {
-            const res = await fetch(`${API_BASE}/admin-panel/games/squares/stats`, { headers: { Authorization: "Bearer " + token } });
-            const json = await res.json();
-            if (!json.data) return;
-            const d = json.data;
-            const rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `<span class="me-3"><strong>${r}:</strong> ${c} levels</span>`).join("");
-            document.getElementById("squares-stats-row").innerHTML = `<div class="col-12"><div class="stat-mini" style="background:#7366ff15;border-radius:10px;padding:10px 16px;">
-        <span class="me-4"><strong>Total Levels:</strong> ${d.total_levels}</span>
-        <span class="me-4"><strong>Total Sessions:</strong> ${d.total_sessions}</span>
-        ${rangeHtml}
-      </div></div>`;
-        }
-
-        function openSquaresModal(id = "", level = "", range = "", words = "") {
-            document.getElementById("squares-edit-id").value = id;
-            document.getElementById("sq-level").value = level;
-            document.getElementById("sq-range").value = range;
-            document.getElementById("sq-words").value = words;
-            document.getElementById("squares-modal-title").textContent = id ? "Edit Level" : "Add Squares Level";
-            new bootstrap.Modal(document.getElementById("squaresModal")).show();
-        }
-
-        function editSquares(id, level, range, words) { openSquaresModal(id, level, range, words); }
-
-        async function saveSquares() {
-            const id = document.getElementById("squares-edit-id").value;
-            const wordsStr = document.getElementById("sq-words").value;
-            const body = {
-                level: parseInt(document.getElementById("sq-level").value),
-                class_range: document.getElementById("sq-range").value,
-                words: wordsStr.split(",").map(w => w.trim().toUpperCase()).filter(w => w)
-            };
-            if (isNaN(body.level) || !body.class_range || !body.words.length) { showToast("All fields required", "danger"); return; }
-            const url = id ? `${API_BASE}/admin-panel/games/squares/levels/${id}` : `${API_BASE}/admin-panel/games/squares/levels`;
-            const method = id ? "PUT" : "POST";
-            const res = await fetch(url, { method, headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-            const json = await res.json();
-            bootstrap.Modal.getInstance(document.getElementById("squaresModal")).hide();
-            if (res.ok) { showToast(id ? "Level updated!" : "Level added!", "success"); loadSquares(); loadSquaresStats(); }
-            else { showToast(json.detail || "Error", "danger"); }
-        }
-
-        async function deleteSquares(id, level) {
-            if (!confirm(`Delete level ${level}?`)) return;
-            const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
-            if (res.ok) { showToast("Level deleted", "success"); loadSquares(); loadSquaresStats(); }
-            else { showToast("Delete failed", "danger"); }
-        }
-
-        function showToast(msg, type = "success") {
-            const el = document.getElementById("toast-gm");
-            el.className = `toast align-items-center text-white border-0 bg-${type}`;
-            document.getElementById("toast-gm-msg").textContent = msg;
-            el.style.display = "block";
-            setTimeout(() => { el.style.display = "none"; }, 3500);
-        }
-        function logout() { localStorage.removeItem("admin_token"); window.location.replace("/admin-panel/login"); }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            // Check for ?tab=squares URL param
-            const params = new URLSearchParams(window.location.search);
-            const tab = params.get("tab") || "wordle";
-            switchTab(tab);
-            loadWordle();
-            loadWordleStats();
+    async function loadWordle() {
+        const range = document.getElementById("wordle-filter-range").value, search = document.getElementById("wordle-search").value.trim();
+        let url = `${API_BASE}/admin-panel/games/wordle/words?limit=100`;
+        if (range) url += `&class_range=${range}`; if (search) url += `&search=${encodeURIComponent(search)}`;
+        const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+        const json = await res.json();
+        document.getElementById("wordle-count").textContent = `${json.total || 0} words`;
+        let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Word</th><th>Hint</th><th>Level</th><th>Class Range</th><th>Actions</th></tr></thead><tbody>`;
+        (json.data || []).forEach((w, i) => {
+            html += `<tr><td>${i + 1}</td><td><strong>${w.word}</strong></td><td>${w.hint || "—"}</td><td>${w.level}</td><td><span class="range-badge">${w.class_range}</span></td>
+            <td><button class="btn btn-sm btn-outline-primary" onclick="editWord('${w.id}','${w.word}','${(w.hint || "").replace(/'/g, "\\'")}',${w.level},'${w.class_range}')">Edit</button>
+            <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteWord('${w.id}','${w.word}')">Delete</button></td></tr>`;
         });
-    </script>
-</body>
+        document.getElementById("wordle-table-wrapper").innerHTML = html + `</tbody></table>`;
+    }
 
-</html>
+    async function loadWordleStats() {
+        const res = await fetch(`${API_BASE}/admin-panel/games/wordle/stats`, { headers: { Authorization: "Bearer " + token } });
+        const json = await res.json(); if (!json.data) return;
+        const d = json.data, rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `<span class="me-3"><strong>${r}:</strong> ${c}</span>`).join("");
+        document.getElementById("wordle-stats-row").innerHTML = `<div class="col-12"><div class="stat-mini bg-light"><span class="me-4"><strong>Total Words:</strong> ${d.total_words}</span><span class="me-4"><strong>Sessions:</strong> ${d.total_sessions}</span>${rangeHtml}</div></div>`;
+    }
+
+    function openWordleModal(id = "", word = "", hint = "", level = "", range = "") {
+        document.getElementById("wordle-edit-id").value = id; document.getElementById("w-word").value = word; document.getElementById("w-hint").value = hint;
+        document.getElementById("w-level").value = level; document.getElementById("w-range").value = range;
+        document.getElementById("wordle-modal-title").innerText = id ? "Edit Word" : "Add Word";
+        new bootstrap.Modal(document.getElementById("wordleModal")).show();
+    }
+    function editWord(id, word, hint, level, range) { openWordleModal(id, word, hint, level, range); }
+
+    async function saveWord() {
+        const id = document.getElementById("wordle-edit-id").value;
+        const body = { word: document.getElementById("w-word").value.trim(), hint: document.getElementById("w-hint").value.trim(), level: parseInt(document.getElementById("w-level").value), class_range: document.getElementById("w-range").value };
+        const res = await fetch(id ? `${API_BASE}/admin-panel/games/wordle/words/${id}` : `${API_BASE}/admin-panel/games/wordle/words`, { method: id ? "PUT" : "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        if (res.ok) { bootstrap.Modal.getInstance(document.getElementById("wordleModal")).hide(); loadWordle(); loadWordleStats(); }
+    }
+
+    async function deleteWord(id, w) { if (confirm(`Delete "${w}"?`)) { await fetch(`${API_BASE}/admin-panel/games/wordle/words/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } }); loadWordle(); loadWordleStats(); } }
+
+    async function loadSquares() {
+        const range = document.getElementById("squares-filter-range").value;
+        const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels?limit=100${range ? `&class_range=${range}` : ''}`, { headers: { Authorization: "Bearer " + token } });
+        const json = await res.json();
+        document.getElementById("squares-count").textContent = `${json.total || 0} levels`;
+        let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Level</th><th>Class Range</th><th>Words</th><th>Actions</th></tr></thead><tbody>`;
+        (json.data || []).forEach((lv, i) => {
+            html += `<tr><td>${i + 1}</td><td>${lv.level}</td><td><span class="range-badge">${lv.class_range}</span></td><td><code>${(lv.words || []).join(", ")}</code></td>
+            <td><button class="btn btn-sm btn-outline-primary" onclick="editSquares('${lv.id}',${lv.level},'${lv.class_range}','${(lv.words || []).join(",")}')">Edit</button>
+            <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteSquares('${lv.id}',${lv.level})">Delete</button></td></tr>`;
+        });
+        document.getElementById("squares-table-wrapper").innerHTML = html + `</tbody></table>`;
+    }
+
+    async function loadSquaresStats() {
+        const res = await fetch(`${API_BASE}/admin-panel/games/squares/stats`, { headers: { Authorization: "Bearer " + token } });
+        const json = await res.json(); if (!json.data) return;
+        const d = json.data, rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `<span class="me-3"><strong>${r}:</strong> ${c}</span>`).join("");
+        document.getElementById("squares-stats-row").innerHTML = `<div class="col-12"><div class="stat-mini bg-light"><span class="me-4"><strong>Total Levels:</strong> ${d.total_levels}</span><span class="me-4"><strong>Sessions:</strong> ${d.total_sessions}</span>${rangeHtml}</div></div>`;
+    }
+
+    function openSquaresModal(id = "", lv = "", rg = "", ws = "") {
+        document.getElementById("squares-edit-id").value = id; document.getElementById("sq-level").value = lv; document.getElementById("sq-range").value = rg; document.getElementById("sq-words").value = ws;
+        new bootstrap.Modal(document.getElementById("squaresModal")).show();
+    }
+    function editSquares(id, lv, rg, ws) { openSquaresModal(id, lv, rg, ws); }
+
+    async function saveSquares() {
+        const id = document.getElementById("squares-edit-id").value;
+        const body = { level: parseInt(document.getElementById("sq-level").value), class_range: document.getElementById("sq-range").value, words: document.getElementById("sq-words").value.split(",").map(w => w.trim().toUpperCase()) };
+        const res = await fetch(id ? `${API_BASE}/admin-panel/games/squares/levels/${id}` : `${API_BASE}/admin-panel/games/squares/levels`, { method: id ? "PUT" : "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        if (res.ok) { bootstrap.Modal.getInstance(document.getElementById("squaresModal")).hide(); loadSquares(); loadSquaresStats(); }
+    }
+
+    async function deleteSquares(id, lv) { if (confirm(`Delete level ${lv}?`)) { await fetch(`${API_BASE}/admin-panel/games/squares/levels/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } }); loadSquares(); loadSquaresStats(); } }
+
+    loadWordle(); loadWordleStats();
+</script>
+{% endblock %}

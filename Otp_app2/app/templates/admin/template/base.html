@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Miki Assessment Portal - Admin Dashboard">
+    <meta name="keywords" content="admin template, Miki admin template, dashboard, assessment platform, web app">
+    <meta name="author" content="Miki">
+
+    <!-- Standardized Branding -->
+    <link rel="icon" href="/assets/images/miki_favicon.svg" type="image/svg+xml">
+    <link rel="shortcut icon" href="/assets/images/miki_favicon.svg" type="image/svg+xml">
+
+    <title>Miki - {% block title %}Assessment Portal{% endblock %}</title>
+
+    <!-- Google font-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700;800&amp;display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/assets/css/font-awesome.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/icofont.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/themify.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/flag-icon.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/feather-icon.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/slick.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/slick-theme.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/scrollbar.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/animate.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/vendors/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
+    <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
+
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <!-- loader starts-->
+    <div class="loader-wrapper">
+        <div class="loader">
+            <div class="loader4"></div>
+        </div>
+    </div>
+    <!-- loader ends-->
+
+    <!-- tap on top starts-->
+    <div class="tap-top"><i data-feather="chevrons-up"></i></div>
+    <!-- tap on tap ends-->
+
+    <!-- page-wrapper Start-->
+    <div class="page-wrapper compact-wrapper" id="pageWrapper">
+        <!-- Page Header Start-->
+        <div class="page-header">
+            <div class="header-wrapper row m-0">
+                <form class="form-inline search-full col" action="#" method="get">
+                    <div class="form-group w-100">
+                        <div class="Typeahead Typeahead--twitterUsers">
+                            <div class="u-posRelative">
+                                <input class="demo-input Typeahead-input form-control-plaintext w-100" type="text"
+                                    placeholder="Search Miki .." name="q" title="" autofocus>
+                                <div class="spinner-border Typeahead-spinner" role="status"><span
+                                        class="sr-only">Loading... </span>
+                                </div><i class="close-search" data-feather="x"></i>
+                            </div>
+                            <div class="Typeahead-menu"> </div>
+                        </div>
+                    </div>
+                </form>
+                <div class="header-logo-wrapper col-auto p-0">
+                    <div class="logo-wrapper">
+                        <a href="/admin-panel/dashboard"
+                            style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
+                            <div
+                                style="background: white; padding: 4px 6px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <img class="img-fluid" src="/assets/images/logo/miki_logo.png" alt="Miki Logo"
+                                    style="height: 24px; object-fit: contain;">
+                            </div>
+                            <span
+                                style="font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.4rem; color: #006666; letter-spacing: 0px; text-transform: uppercase;">Miki</span>
+                        </a>
+                    </div>
+                    <div class="toggle-sidebar"> <i class="status_toggle middle sidebar-toggle"
+                            data-feather="align-center"></i>
+                    </div>
+                </div>
+                <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
+                    <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
+                        <div class="d-flex align-items-center gap-2 ">
+                            <h4 class="f-w-600">Welcome <span id="admin-name">Loading...</span></h4>
+                            <img class="mt-0" src="/assets/images/hand.gif" alt="hand-gif">
+                        </div>
+                    </div>
+                    <div class="welcome-content d-xl-block d-none"><span class="text-truncate col-12">Here’s what’s
+                            happening with your platform today. </span></div>
+                </div>
+                <div class="nav-right col-xxl-7 col-xl-6 col-md-7 col-8 pull-right right-header p-0 ms-auto">
+                    <ul class="nav-menus">
+                        <li class="d-md-block d-none">
+                            <div class="form search-form mb-0">
+                                <div class="input-group"><span class="input-icon">
+                                        <svg>
+                                            <use href="/assets/svg/icon-sprite.svg#search-header"></use>
+                                        </svg>
+                                        <input class="w-100" type="search" placeholder="Search"></span></div>
+                            </div>
+                        </li>
+                        <li class="onhover-dropdown">
+                            <div class="mode"><i class="moon" data-feather="moon"> </i></div>
+                        </li>
+                        <li class="profile-nav onhover-dropdown">
+                            <div class="media profile-media"><img class="b-r-10"
+                                    src="/assets/images/dashboard/profile.png" alt="">
+                                <div class="media-body d-xxl-block d-none box-col-none">
+                                    <div class="d-flex align-items-center gap-2"> <span>Admin </span><i
+                                            class="middle fa fa-angle-down"> </i></div>
+                                    <p class="mb-0 font-roboto">Administrator</p>
+                                </div>
+                            </div>
+                            <ul class="profile-dropdown onhover-show-div">
+                                <li><a href="javascript:void(0)" onclick="logout()"><i
+                                            data-feather="log-out"></i><span>Log Out</span></a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- Page Header Ends-->
+
+        <!-- Page Body Start-->
+        <div class="page-body-wrapper">
+            <!-- Page Sidebar Start-->
+            {% include "sidebar.html" %}
+            <!-- Page Sidebar Ends-->
+
+            <div class="page-body">
+                {% block content %}{% endblock %}
+            </div>
+
+            <!-- footer start-->
+            <footer class="footer">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12 footer-copyright text-center">
+                            <p class="mb-0">Copyright © 2024 Miki Assessment Portal</p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="/admin-panel/config.js"></script>
+    <!-- latest jquery-->
+    <script src="/assets/js/jquery.min.js"></script>
+    <!-- Bootstrap js-->
+    <script src="/assets/js/bootstrap/bootstrap.bundle.min.js"></script>
+    <!-- feather icon js-->
+    <script src="/assets/js/icons/feather-icon/feather.min.js"></script>
+    <script src="/assets/js/icons/feather-icon/feather-icon.js"></script>
+    <!-- scrollbar js-->
+    <script src="/assets/js/scrollbar/simplebar.js"></script>
+    <script src="/assets/js/scrollbar/custom.js"></script>
+    <!-- Sidebar jquery-->
+    <script src="/assets/js/config.js"></script>
+    <script src="/assets/js/sidebar-menu.js"></script>
+    <script src="/assets/js/sidebar-pin.js"></script>
+    <script src="/assets/js/script.js"></script>
+
+    <script>
+        const token = localStorage.getItem("admin_token");
+        const API_BASE = window.API_BASE;
+
+        if (!token) {
+            window.location.replace("/admin-panel/login");
+        }
+
+        async function loadAdminProfile() {
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/get_details`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const nameEl = document.getElementById("admin-name");
+                    if (nameEl) nameEl.innerText = data.username;
+                } else {
+                    localStorage.removeItem("admin_token");
+                    window.location.replace("/admin-panel/login");
+                }
+            } catch (err) {
+                console.error("Error loading profile:", err);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("admin_token");
+            window.location.replace("/admin-panel/login");
+        }
+
+        loadAdminProfile();
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

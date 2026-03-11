@@ -830,7 +830,7 @@ async def get_future_study(
 
     if not record:
         raise HTTPException(
-            status_code=404,
+            status_code=200,
             detail="Future study guidance not generated yet"
         )
 

@@ -296,6 +296,7 @@ TASK:
 3. Identify specific sub-topics within chapters that are strong or weak.
 4. Identify the primary skill gap (recall / understanding / application / analysis).
 5. Give 2-3 specific, actionable recommendations.
+6. Generate a 3-5 question "Micro-Quiz" (multiple choice) based EXACTLY on the student's weak areas to help them practice.
 
 Return STRICT JSON only:
 {{
@@ -305,7 +306,15 @@ Return STRICT JSON only:
   "strong_areas": ["specific subtopic 1", "specific subtopic 2"],
   "weak_areas": ["specific subtopic 3"],
   "skill_gap": "one clear sentence describing the skill gap",
-  "recommendations": ["recommendation 1", "recommendation 2"]
+  "recommendations": ["recommendation 1", "recommendation 2"],
+  "weakness_quiz": [
+    {{
+      "question": "A specific question testing a weak area...",
+      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+      "correct_answer": "The exact string from options that is correct",
+      "explanation": "Brief explanation of why it's correct"
+    }}
+  ]
 }}
 
 Strength classification: "strong" if pct >= 75, "average" if pct >= 50, "weak" if pct < 50.
@@ -331,7 +340,8 @@ If all questions were "[Not Attempted]", reflect that honestly.
             "strong_areas": [],
             "weak_areas": [],
             "skill_gap": "Analysis unavailable.",
-            "recommendations": []
+            "recommendations": [],
+            "weakness_quiz": []
         }
 
 
@@ -428,7 +438,14 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
                 "status": _question_status(score, marks, student_ans),
                 "feedback": eval_result.get("feedback"),
                 "ideal_answer": eval_result.get("ideal_answer"),
-                "grading_error": eval_result.get("grading_error", False)
+                "grading_error": eval_result.get("grading_error", False),
+                "ai_tutor_context": (
+                    f"Question: {question_text}\n"
+                    f"My Answer: {student_ans}\n"
+                    f"Feedback received: {eval_result.get('feedback')}\n"
+                    f"Ideal Answer: {eval_result.get('ideal_answer')}\n\n"
+                    "Can you help me understand why my answer was wrong and explain the correct concept?"
+                ) if _question_status(score, marks, student_ans) in ["wrong", "partial"] else None
             })
 
         evaluation_status = "COMPLETED"
@@ -801,6 +818,7 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
                 "chapter_trends": {},
                 "persistent_weak_areas": [],
                 "persistent_strong_areas": [],
+                "weakness_quizzes": [],
                 "question_accuracy": {"correct_pct": 0, "partial_pct": 0, "wrong_pct": 0, "not_attempted_pct": 0},
                 "performance_badge": "No Data",
                 "average_score_pct": 0,
@@ -909,6 +927,13 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
             resolved = get_fuzzy_topic_group(topic, strong_topic_counts)
             strong_topic_counts[resolved] = strong_topic_counts.get(resolved, 0) + 1
 
+    # Get the latest generated quiz to provide to the frontend
+    latest_weakness_quiz = []
+    if evaluations:
+        latest_eval = evaluations[-1]
+        ta = latest_eval.get("topic_analysis") or {}
+        latest_weakness_quiz = ta.get("weakness_quiz", [])
+
     # Chapter Trends
     chapter_trends = {
         ch: {
@@ -1005,6 +1030,7 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
             "chapter_trends": chapter_trends,
             "persistent_weak_areas": persistent_weak_areas,
             "persistent_strong_areas": persistent_strong_areas,
+            "weakness_quizzes": latest_weakness_quiz,
             "question_accuracy": question_accuracy
         }
     }

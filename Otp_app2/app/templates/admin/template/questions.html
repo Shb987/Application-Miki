@@ -670,7 +670,15 @@
               <h5 class="card-title-premium">
                 <i class="fa fa-list-ul text-primary"></i> Current Questions
               </h5>
-              <div class="badge bg-primary rounded-pill px-3" id="questions-count">{{ questions|length }}</div>
+              <div class="d-flex align-items-center gap-3">
+                <select id="type-filter" class="form-select premium-input py-1" style="width: auto; min-width: 150px;" onchange="filterQuestionsByType()">
+                  <option value="all">All Types</option>
+                  <option value="text">TEXT</option>
+                  <option value="image">IMAGE</option>
+                  <option value="rating">RATING</option>
+                </select>
+                <div class="badge bg-primary rounded-pill px-3" id="questions-count">{{ questions|length }}</div>
+              </div>
             </div>
             <div class="card-body p-4" id="questions-grid">
               <div class="row g-3">
@@ -687,7 +695,8 @@
                       </div>
                       <div class="question-actions">
                         <button class="btn btn-warning btn-action text-white"
-                          onclick='openEditModal("{{ q._id }}", {{ q.text|tojson|forceescape }}, {{ q.age_min }}, {{ q.age_max }})'>
+                          data-question='{{ q|tojson|forceescape }}'
+                          onclick='openEditModalFromButton(this)'>
                           <i class="fa fa-pencil"></i>
                         </button>
                         <button class="btn btn-danger btn-action" onclick="deleteQuestion('{{ q._id }}')">
@@ -713,32 +722,94 @@
 
       <!-- Edit Modal -->
       <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
           <div class="modal-content analytics-card" style="border-radius: 20px; overflow: hidden;">
             <div class="modal-header border-0 p-4">
-              <h5 class="modal-title f-w-700">Edit Question</h5>
+              <h5 class="modal-title f-w-700">Edit Question Intelligence</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 pt-0">
-              <input type="hidden" id="edit-question-id">
-              <div class="mb-3">
-                <label class="form-label-premium">Question Text</label>
-                <textarea id="edit-question-text" class="form-control premium-input" rows="3"></textarea>
-              </div>
-              <div class="row g-3">
-                <div class="col-6">
-                  <label class="form-label-premium">Min Age</label>
-                  <input type="number" id="edit-age-min" class="form-control premium-input">
+              <form id="editQuestionForm">
+                <input type="hidden" id="edit-question-id">
+                <div class="row g-3">
+                  <!-- Type selector in edit -->
+                  <div class="col-md-4">
+                    <label class="form-label-premium">Question Type</label>
+                    <select id="edit-question-type" class="form-select premium-input" onchange="toggleEditQuestionType()">
+                      <option value="text">Text-based MCQ</option>
+                      <option value="image">Image-based MCQ</option>
+                      <option value="rating">Text-based Rating</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-8">
+                    <label class="form-label-premium">Question Text</label>
+                    <textarea id="edit-question-text" class="form-control premium-input" rows="2" required></textarea>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label-premium">Min Age</label>
+                    <input type="number" id="edit-age-min" class="form-control premium-input" required>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label-premium">Max Age</label>
+                    <input type="number" id="edit-age-max" class="form-control premium-input" required>
+                  </div>
+
+                  <!-- 🔹 Text-based MCQ fields (Edit) -->
+                  <div id="edit-text-options" class="col-12">
+                    <label class="form-label-premium">Options & Correct Answer</label>
+                    <div class="row g-2">
+                      <div class="col-md-6"><input type="text" class="form-control premium-input mb-2 ed-opt" id="edit-option1" placeholder="Option 1" /></div>
+                      <div class="col-md-6"><input type="text" class="form-control premium-input mb-2 ed-opt" id="edit-option2" placeholder="Option 2" /></div>
+                      <div class="col-md-6"><input type="text" class="form-control premium-input mb-2 ed-opt" id="edit-option3" placeholder="Option 3" /></div>
+                      <div class="col-md-6"><input type="text" class="form-control premium-input mb-2 ed-opt" id="edit-option4" placeholder="Option 4" /></div>
+                      <div class="col-12 mt-2">
+                        <label class="form-label-premium">Correct Answer Position (1-4)</label>
+                        <input type="number" class="form-control premium-input" id="edit-correct-answer" placeholder="Correct Answer Position (e.g., 1)" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 🔹 Image-based MCQ fields (Edit) -->
+                  <div id="edit-image-options" class="col-12" style="display: none;">
+                    <label class="form-label-premium">Replace Image Options (Optional)</label>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <small class="d-block mb-1 text-muted">Image 1</small>
+                        <input type="file" class="form-control premium-input" id="edit-img1" accept="image/*" />
+                      </div>
+                      <div class="col-md-6">
+                        <small class="d-block mb-1 text-muted">Image 2</small>
+                        <input type="file" class="form-control premium-input" id="edit-img2" accept="image/*" />
+                      </div>
+                      <div class="col-md-6">
+                        <small class="d-block mb-1 text-muted">Image 3</small>
+                        <input type="file" class="form-control premium-input" id="edit-img3" accept="image/*" />
+                      </div>
+                      <div class="col-md-6">
+                        <small class="d-block mb-1 text-muted">Image 4</small>
+                        <input type="file" class="form-control premium-input" id="edit-img4" accept="image/*" />
+                      </div>
+                      <div class="col-md-12">
+                        <label class="form-label-premium">Correct image number (1–4)</label>
+                        <input type="number" class="form-control premium-input" id="edit-correct-index" min="1" max="4" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ⭐ Rating section in edit -->
+                  <div id="edit-rating-section" class="col-12" style="display: none;">
+                    <div class="alert alert-light border-2 py-2">
+                      <i class="fa fa-info-circle text-primary me-2"></i> Only text and age range will be saved for Rating questions.
+                    </div>
+                  </div>
                 </div>
-                <div class="col-6">
-                  <label class="form-label-premium">Max Age</label>
-                  <input type="number" id="edit-age-max" class="form-control premium-input">
-                </div>
-              </div>
+              </form>
             </div>
-            <div class="modal-footer border-0 p-4">
-              <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
-              <button type="button" class="btn btn-primary px-4" onclick="saveEdit()">Save Changes</button>
+            <div class="modal-footer border-0 p-4 pt-0">
+              <button type="button" class="btn btn-light px-4" style="border-radius: 10px;" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary px-4" style="border-radius: 10px;" onclick="saveEdit()">Save Changes</button>
             </div>
           </div>
         </div>
@@ -857,6 +928,16 @@
       document.getElementById("text-options").style.display = type === "text" ? "block" : "none";
       document.getElementById("image-options").style.display = type === "image" ? "block" : "none";
       document.getElementById("rating-section").style.display = type === "rating" ? "block" : "none";
+    }
+
+    /* ------------------------------------------
+          TOGGLE EDIT QUESTION TYPE
+    ------------------------------------------- */
+    function toggleEditQuestionType() {
+      const type = document.getElementById("edit-question-type").value;
+      document.getElementById("edit-text-options").style.display = type === "text" ? "block" : "none";
+      document.getElementById("edit-image-options").style.display = type === "image" ? "block" : "none";
+      document.getElementById("edit-rating-section").style.display = type === "rating" ? "block" : "none";
     }
 
 
@@ -988,23 +1069,59 @@
     /* ------------------------------------------
           MODAL HANDLING
     ------------------------------------------- */
-    function openEditModal(id, text, min, max) {
-      document.getElementById("edit-question-id").value = id;
-      document.getElementById("edit-question-text").value = text;
-      document.getElementById("edit-age-min").value = min;
-      document.getElementById("edit-age-max").value = max;
+    /* ------------------------------------------
+          MODAL HANDLING
+    ------------------------------------------- */
+    function openEditModalFromButton(btn) {
+      try {
+        const questionData = JSON.parse(btn.getAttribute('data-question'));
+        openEditModal(questionData);
+      } catch (err) {
+        console.error("Error parsing question data:", err);
+        alert("Error loading question data.");
+      }
+    }
+
+    function openEditModal(q) {
+      // Clear previous inputs
+      document.getElementById("editQuestionForm").reset();
+      
+      document.getElementById("edit-question-id").value = q._id;
+      document.getElementById("edit-question-text").value = q.text;
+      document.getElementById("edit-age-min").value = q.age_min;
+      document.getElementById("edit-age-max").value = q.age_max;
+      
+      const type = q.type || 'text';
+      document.getElementById("edit-question-type").value = type;
+      toggleEditQuestionType();
+
+      if (type === "text") {
+        if (q.options) {
+          q.options.forEach((opt, i) => {
+            const el = document.getElementById(`edit-option${i + 1}`);
+            if (el) el.value = opt;
+          });
+        }
+        document.getElementById("edit-correct-answer").value = 
+          (q.correct_index !== undefined) ? (q.correct_index + 1) : "";
+      } else if (type === "image") {
+        document.getElementById("edit-correct-index").value = 
+          (q.correct_index !== undefined) ? (q.correct_index + 1) : "";
+      }
+
       const modal = new bootstrap.Modal(document.getElementById('editModal'));
       modal.show();
     }
 
     async function saveEdit() {
       const id = document.getElementById("edit-question-id").value;
+      const type = document.getElementById("edit-question-type").value;
       const text = document.getElementById("edit-question-text").value.trim();
       const age_min = document.getElementById("edit-age-min").value;
       const age_max = document.getElementById("edit-age-max").value;
 
       if (!text || !age_min || !age_max) {
-        alert("Please fill all fields.");
+        alert("Please fill all required fields.");
         return;
       }
 
@@ -1013,33 +1130,53 @@
       formData.append("category", category);
       formData.append("age_min", age_min);
       formData.append("age_max", age_max);
+      formData.append("type", type);
 
+      if (type === "text") {
+        const opts = [];
+        for (let i = 1; i <= 4; i++) {
+          const val = document.getElementById(`edit-option${i}`).value.trim();
+          if (val) opts.push(val);
+        }
+        formData.append("options", JSON.stringify(opts));
+        formData.append("correct_answer", document.getElementById("edit-correct-answer").value.trim());
+      } else if (type === "image") {
+        const correct_index = parseInt(document.getElementById("edit-correct-index").value);
+        if (!isNaN(correct_index)) {
+          formData.append("correct_index", correct_index - 1);
+        }
+        for (let i = 1; i <= 4; i++) {
+          const file = document.getElementById(`edit-img${i}`).files[0];
+          if (file) formData.append(`option${i}`, file);
+        }
+      }
+
+      const btn = document.querySelector("#editModal .btn-primary");
+      const originalText = btn.innerHTML;
+      
       try {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i> Saving...';
+
         const res = await fetch(`${API_BASE}/${id}`, {
           method: "PUT",
-          headers: {
-            "Authorization": "Bearer " + token
-          },
+          headers: { "Authorization": "Bearer " + token },
           body: formData
         });
 
         if (res.ok) {
-          const item = document.querySelector(`.question-item[data-id='${id}']`);
-          if (item) {
-            item.querySelector(".question-text-display").innerText = text;
-            item.querySelector(".question-meta span").innerHTML = `<i class="fa fa-user-circle me-1"></i> Age: ${age_min}-${age_max}`;
-
-            // Also update the onclick handler for the edit button to reflect new values
-            const editBtn = item.querySelector(".btn-warning");
-            editBtn.setAttribute("onclick", `openEditModal("${id}", ${JSON.stringify(text).replace(/"/g, '&quot;')}, ${age_min}, ${age_max})`);
-          }
           bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+          window.location.reload(); 
         } else {
           const data = await res.json();
           alert(data.detail || "Error updating question");
         }
       } catch (err) {
         console.error("Save Error:", err);
+        alert("An error occurred while saving.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     }
 
@@ -1099,14 +1236,39 @@
 
     function checkEmptyGrid() {
       const grid = document.querySelector("#questions-grid .row");
-      if (grid.querySelectorAll(".question-item").length === 0) {
-        grid.innerHTML = `
+      const visibleItems = grid.querySelectorAll(".question-item:not([style*='display: none'])");
+      
+      // Remove any existing no-data message first
+      const existingNoData = grid.querySelector(".no-questions");
+      if (existingNoData) existingNoData.remove();
+
+      if (visibleItems.length === 0) {
+        grid.insertAdjacentHTML('beforeend', `
           <div class="col-12 no-questions text-center p-5">
             <img src="/assets/images/other-images/no-data.png" alt="No data" style="max-width: 150px; opacity: 0.5;">
-            <p class="text-muted mt-3">No questions yet in this category.</p>
+            <p class="text-muted mt-3">No matching questions found.</p>
           </div>
-        `;
+        `);
       }
+    }
+
+    /* ------------------------------------------
+          FILTER BY TYPE
+    ------------------------------------------- */
+    function filterQuestionsByType() {
+      const selectedType = document.getElementById("type-filter").value;
+      const questions = document.querySelectorAll(".question-item");
+      
+      questions.forEach(item => {
+        const typeBadge = item.querySelector(".badge").innerText.toLowerCase();
+        if (selectedType === "all" || typeBadge === selectedType) {
+          item.style.display = "block";
+        } else {
+          item.style.display = "none";
+        }
+      });
+      
+      checkEmptyGrid();
     }
 
 

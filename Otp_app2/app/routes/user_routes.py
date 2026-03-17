@@ -844,7 +844,7 @@ async def get_future_study(
         "created_at": record.get("created_at")
     }
 
-
+ 
 
 
 

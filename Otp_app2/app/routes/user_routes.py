@@ -920,6 +920,20 @@ async def get_career_history(student_id: str,
                      "correct_index": 1, "correct_answer": 1}
                 )
 
+                if not question:
+                    # Provide fallback if question was deleted
+                    answers_detailed.append({
+                        "question_id": qid,
+                        "question_text": "[Deleted Question]",
+                        "options": [],
+                        "student_answer": ans.get("answer_value"),
+                        "type": "deleted",
+                        "correct_index": None,
+                        "correct_answer": None,
+                        "is_correct": False
+                    })
+                    continue
+
                 # Extract data
                 qtype = question.get("type")
                 student_answer = ans.get("answer_value")

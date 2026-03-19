@@ -191,7 +191,7 @@ async def update_question(
                 file_path = os.path.join(UPLOAD_DIR, filename)
                 with open(file_path, "wb") as buffer:
                     buffer.write(await file.read())
-                image_options.append(file_path)
+                image_options.append(f"/uploads/{filename}")
             else:
                 image_options.append(None)
         update_data["image_options"] = image_options
@@ -229,8 +229,9 @@ async def delete_question(
         for path in existing["image_options"]:
             if not path:
                 continue
-            # Remove leading slash if present for disk path resolution
-            disk_path = path.lstrip("/")
+            # Resolve disk path relative to static mount
+            filename = os.path.basename(path)
+            disk_path = os.path.join(UPLOAD_DIR, filename)
             if os.path.exists(disk_path):
                 os.remove(disk_path)
 

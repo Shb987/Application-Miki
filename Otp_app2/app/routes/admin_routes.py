@@ -19,7 +19,7 @@ from app.models.question_models import Question
 router = APIRouter(tags=["Admin"])
 
 # Upload directory
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = "app/static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

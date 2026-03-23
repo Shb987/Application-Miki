@@ -97,7 +97,7 @@ def validate_fix_marks(paper: dict, required_total: int):
     return paper
 
 
-@router.post("/upload-chapter", dependencies=[Depends(get_current_admin)])
+@router.post("/textbook/upload-batch", dependencies=[Depends(get_current_admin)])
 async def upload_chapter_endpoint(
     background_tasks: BackgroundTasks,
     board: str = Form(...),
@@ -147,6 +147,24 @@ async def upload_chapter_endpoint(
         },
         upsert=True
     )
+
+    # 2.5 Initialize Chapter Status for UI Polling
+    await db.chapter_status.update_one(
+        {
+            "board": board,
+            "standard": standard,
+            "state": state,
+            "subject": subject,
+            "chapter_title": full_chapter_title
+        },
+        {
+            "$set": {
+                "status": "processing",
+                "updated_at": datetime.now(timezone.utc)
+            }
+        },
+        upsert=True
+    )
     
     # 3. Queue Background Processing
     background_tasks.add_task(
@@ -176,12 +194,20 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
         text_content = normalize_text(text_content)
         if not text_content.strip():
             print(f"[BG-CHAPTER] Error: No text extracted from {file_path}")
+            await db.chapter_status.update_one(
+                {**textbook_query, "chapter_title": full_chapter_title},
+                {"$set": {"status": "failed", "error": "No text extracted from PDF", "updated_at": datetime.now(timezone.utc)}}
+            )
             return
 
         # 2. Get Textbook ID
         textbook_doc = await db.textbook.find_one(textbook_query)
         if not textbook_doc:
             print(f"[BG-CHAPTER] Error: Textbook container not found for {textbook_query}")
+            await db.chapter_status.update_one(
+                {**textbook_query, "chapter_title": full_chapter_title},
+                {"$set": {"status": "failed", "error": "Textbook metadata not found", "updated_at": datetime.now(timezone.utc)}}
+            )
             return
         textbook_id = str(textbook_doc["_id"])
 
@@ -229,10 +255,18 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
                 "chapter_title": full_chapter_title
             })
             await db.textbook_chapters.insert_many(valid_docs)
+            await db.chapter_status.update_one(
+                {**textbook_query, "chapter_title": full_chapter_title},
+                {"$set": {"status": "completed", "updated_at": datetime.now(timezone.utc)}}
+            )
             print(f"[BG-CHAPTER] SUCCESS: '{full_chapter_title}' processed with {len(valid_docs)} passages.")
 
     except Exception as e:
         print(f"[BG-CHAPTER] CRITICAL WORKER ERROR: {e}")
+        await db.chapter_status.update_one(
+            {**textbook_query, "chapter_title": full_chapter_title},
+            {"$set": {"status": "failed", "error": str(e), "updated_at": datetime.now(timezone.utc)}}
+        )
     finally:
         # Auto-Cleanup: Delete the PDF after processing (success or failure)
         file_abspath = os.path.abspath(file_path)
@@ -286,6 +320,32 @@ async def get_chapters(standard: str, subject: str):
             if title and title not in chapter_set:
                 chapter_set.append(title)
     return {"chapters": chapter_set}
+    
+@router.get("/chapter-status", dependencies=[Depends(get_current_admin)])
+async def get_chapter_status(
+    board: str,
+    standard: str,
+    state: str,
+    subject: str,
+    chapter_title: str
+):
+    """Check the processing status of a specific chapter."""
+    status_doc = await db.chapter_status.find_one({
+        "board": board,
+        "standard": standard,
+        "state": state,
+        "subject": subject,
+        "chapter_title": chapter_title
+    })
+    
+    if not status_doc:
+        return {"status": "not_found"}
+        
+    return {
+        "status": status_doc.get("status"),
+        "error": status_doc.get("error"),
+        "updated_at": status_doc.get("updated_at")
+    }
 
 # --------------------------
 # ROUTES - TEXTBOOK & CHAPTER MANAGEMENT
@@ -462,6 +522,12 @@ async def generate_questions_worker(task_id: str):
                 chapter_text = "\n".join(selected_passages_texts)
                 context_text += f"\n=== CHAPTER: {title} ===\n{chapter_text}\n"
 
+            # Prepare dynamic sections JSON block for the prompt
+            sections_list = []
+            for name, val in sections.items():
+                sections_list.append(f'{{"section": "{name}", "marks_per_question": {val[0]}, "questions": []}}')
+            sections_json_block = ",\n    ".join(sections_list)
+
             prompt = f"""
 Kerala SCERT Board Exam Question Paper Generator — Paper {p + 1} of {papers}
 
@@ -493,9 +559,7 @@ Respond with valid JSON only. No text outside JSON.
   "subject": "{subject}",
   "chapters_used": {json.dumps(chapters)},
   "sections": [
-    {{"section": "A", "marks_per_question": {list(sections.values())[0][0]}, "questions": []}},
-    {{"section": "B", "marks_per_question": {list(sections.values())[1][0]}, "questions": []}},
-    {{"section": "C", "marks_per_question": {list(sections.values())[2][0]}, "questions": []}}
+    {sections_json_block}
   ]
 }}
 """
@@ -609,6 +673,19 @@ async def get_generated_papers(task_id: Optional[str] = None):
             # Match the mount point in main.py: app.mount("/generated_papers", ...)
             pdf_filename = os.path.basename(d["pdf_path"])
             d["pdf_url"] = f"/generated_papers/{pdf_filename}"
+            # Match frontend expectations in question_generation.html
+            d["download_url"] = d["pdf_url"]
+            
+            # Create a user-friendly filename/title from the paper data
+            paper_info = d.get("paper", {})
+            std = paper_info.get("standard", "N/A")
+            sub = paper_info.get("subject", "N/A")
+            chaps = paper_info.get("chapters_used", [])
+            chap_str = chaps[0] if chaps else "N/A"
+            if len(chaps) > 1:
+                chap_str += f" +{len(chaps)-1} more"
+            
+            d["filename"] = f"Class {std} {sub} - {chap_str}"
     return docs
 
 

@@ -680,6 +680,7 @@ async def get_exam_history(
 ):
     """
     Fetch paginated exam evaluations for a specific student.
+    Returns full enriched details for each exam.
     """
 
     # 🔐 Ownership check
@@ -688,12 +689,9 @@ async def get_exam_history(
     if user_student_id and user_student_id != student_id:
         raise HTTPException(status_code=403, detail="Unauthorized access to exam history")
     
-    # If user is a parent, we should ideally check if the student_id is in their list
-    # For now, following the pattern in get_notifications
-    
     # 🆔 Validate ObjectId
     try:
-        s_oid = str(student_id)
+        s_oid = ObjectId(student_id)
     except:
         raise HTTPException(
             status_code=400,
@@ -706,16 +704,23 @@ async def get_exam_history(
     # 📊 Fetch data
     cursor = (
         db.evaluations
-        .find({"student_id": ObjectId(s_oid)})
+        .find({"student_id": s_oid})
         .sort("created_at", -1)
         .skip(skip)
         .limit(limit)
     )
 
     evaluations = await cursor.to_list(length=limit)
+    
+    # 🧹 Clean and Enrich each evaluation record
+    enriched_data = []
+    for ev in evaluations:
+        cleaned = clean_mongo(ev)
+        enriched = await enrich_evaluation_data(cleaned)
+        enriched_data.append(enriched)
 
     # 📈 Total count (for has_more)
-    total_count = await db.evaluations.count_documents({"student_id": ObjectId(s_oid)})
+    total_count = await db.evaluations.count_documents({"student_id": s_oid})
 
     return {
         "status": True,
@@ -724,14 +729,67 @@ async def get_exam_history(
         "limit": limit,
         "total": total_count,
         "has_more": skip + limit < total_count,
-        "data": clean_mongo(evaluations)
+        "data": enriched_data
     }
+
+async def enrich_evaluation_data(data: dict):
+    """
+    Shared enrichment logic for evaluation records (Detail & History).
+    Ensures legacy records have subject, scores, and per-question status/prompts.
+    """
+    # 1. Enrich from generated_papers if subject or section_performance is missing
+    if not data.get("subject") or not data.get("section_performance"):
+        paper_id = data.get("paper_id")
+        if paper_id:
+            paper_doc = await db.generated_papers.find_one({"paper.paper_id": paper_id})
+            if paper_doc:
+                paper = paper_doc.get("paper", {})
+                if not data.get("subject"):
+                    data["subject"] = paper.get("subject", "")
+                    data["standard"] = paper.get("standard", "")
+                    data["chapters_used"] = paper.get("chapters_used", [])
+                
+                if not data.get("section_performance") and data.get("detailed_results"):
+                    data["section_performance"] = calculate_section_performance(
+                        paper.get("sections", []), data["detailed_results"]
+                    )
+
+    # 2. Add score_pct and grade if missing
+    if not data.get("score_pct") and data.get("max_total"):
+        total = data.get("total_score", 0)
+        max_t = data.get("max_total", 0)
+        data["score_pct"] = round((total / max_t * 100) if max_t > 0 else 0.0, 1)
+        data["grade"] = _grade_from_pct(data["score_pct"])
+
+    # 3. Enrich per-question results
+    for r in data.get("detailed_results", []):
+        score = r.get("score", 0)
+        max_m = r.get("max_marks", 0)
+        ans = r.get("student_answer", "")
+        
+        # Add status and pct if missing
+        if "status" not in r:
+            r["status"] = _question_status(score, max_m, ans)
+        if "pct" not in r and max_m:
+            r["pct"] = round((score / max_m * 100), 1)
+            
+        # Add ai_tutor_context if missing for wrong/partial answers
+        if not r.get("ai_tutor_context") and r["status"] in ["wrong", "partial"]:
+            r["ai_tutor_context"] = (
+                f"Question: {r.get('question')}\n"
+                f"My Answer: {ans}\n"
+                f"Feedback received: {r.get('feedback')}\n"
+                f"Ideal Answer: {r.get('ideal_answer')}\n\n"
+                "Can you help me understand why my answer was wrong and explain the correct concept?"
+            )
+            
+    return data
 
 @router.get("/evaluation-detail/{evaluation_id}")
 async def get_evaluation_detail(evaluation_id: str, current_user: dict = Depends(get_current_user)):
     """
     Fetch full details of a specific exam evaluation.
-    Enriches older records (without topic_analysis) by looking up paper from generated_papers.
+    Uses shared enrichment logic to ensure complete data.
     """
     try:
         e_oid = ObjectId(evaluation_id)
@@ -749,39 +807,14 @@ async def get_evaluation_detail(evaluation_id: str, current_user: dict = Depends
         raise HTTPException(status_code=403, detail="Unauthorized access to evaluation details")
 
     data = clean_mongo(evaluation)
-
-    # Enrich from generated_papers if subject/section_performance missing (legacy records)
-    if not data.get("subject") or not data.get("section_performance"):
-        paper_doc = await db.generated_papers.find_one({"paper.paper_id": data.get("paper_id")})
-        if paper_doc:
-            paper = paper_doc.get("paper", {})
-            if not data.get("subject"):
-                data["subject"] = paper.get("subject", "")
-                data["standard"] = paper.get("standard", "")
-                data["chapters_used"] = paper.get("chapters_used", [])
-            if not data.get("section_performance") and data.get("detailed_results"):
-                data["section_performance"] = calculate_section_performance(
-                    paper.get("sections", []), data["detailed_results"]
-                )
-
-    # Add score_pct and grade if missing
-    if not data.get("score_pct") and data.get("max_total"):
-        data["score_pct"] = round((data["total_score"] / data["max_total"] * 100), 1)
-        data["grade"] = _grade_from_pct(data["score_pct"])
-
-    # Add per-question status field if missing (legacy records)
-    for r in data.get("detailed_results", []):
-        if "status" not in r:
-            r["status"] = _question_status(
-                r.get("score", 0), r.get("max_marks", 0), r.get("student_answer", "")
-            )
-        if "pct" not in r and r.get("max_marks"):
-            r["pct"] = round((r["score"] / r["max_marks"] * 100), 1)
+    
+    # 🚀 Apply enrichment
+    enriched_data = await enrich_evaluation_data(data)
 
     return {
         "status": True,
         "message": "Evaluation details retrieved successfully.",
-        "data": data
+        "data": enriched_data
     }
 
 

@@ -226,9 +226,10 @@
         <td class="small text-muted">${item.file.name}</td>
         <td class="status-cell">
             ${item.status === 'pending' ? '<span class="badge bg-light text-dark">Ready</span>' :
-        item.status === 'uploading' ? '<div class="spinner-border spinner-border-sm text-primary"></div>' :
-          item.status === 'success' ? '<span class="badge bg-success">Success</span>' :
-            `<span class="badge bg-danger">Error: ${item.error}</span>`}
+        item.status === 'uploading' ? '<div class="spinner-border spinner-border-sm text-primary"></div> Uploading...' :
+          item.status === 'processing' ? '<div class="spinner-border spinner-border-sm text-warning"></div> Processing...' :
+            item.status === 'success' ? '<span class="badge bg-success">Success</span>' :
+              `<span class="badge bg-danger">Error: ${item.error}</span>`}
         </td>
         <td><button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="removeQueueItem('${item.id}')"><i data-feather="x" style="width:14px;"></i></button></td>
         </tr>
@@ -264,12 +265,42 @@
       formData.append("file", item.file);
       try {
         const res = await fetch("/admin-panel/textbook/upload-batch", { method: "POST", headers: { "Authorization": "Bearer " + token }, body: formData });
-        if (res.ok) { item.status = 'success'; }
+        if (res.ok) { 
+          item.status = 'processing'; 
+          pollStatus(item, board, standard, state, subject);
+        }
         else { const errData = await res.json(); item.status = 'error'; item.error = errData.detail || "Upload failed"; }
       } catch (err) { item.status = 'error'; item.error = "Network error"; }
       updateBatchTable();
     }
     submitBtn.disabled = false;
   });
+
+  async function pollStatus(item, board, standard, state, subject) {
+    const check = async () => {
+      try {
+        const url = `/admin-panel/chapter-status?board=${encodeURIComponent(board)}&standard=${encodeURIComponent(standard)}&state=${encodeURIComponent(state)}&subject=${encodeURIComponent(subject)}&chapter_title=${encodeURIComponent(item.chNumber + " " + item.chName).trim()}`;
+        const res = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        if (data.status === 'completed') {
+          item.status = 'success';
+          updateBatchTable();
+        } else if (data.status === 'failed') {
+          item.status = 'error';
+          item.error = data.error || "Processing failed";
+          updateBatchTable();
+        } else {
+          // Keep processing, check again in 3 seconds
+          setTimeout(check, 3000);
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+        setTimeout(check, 5000);
+      }
+    };
+    check();
+  }
 </script>
 {% endblock %}

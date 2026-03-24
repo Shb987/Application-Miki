@@ -13,6 +13,7 @@ from app.routes import (
     companion_routes, chat_routes, ai_tutor_routes,
     admin_tutorial_routes, user_tutorial_routes,
     user_analysis_routes, admin_analysis_routes, user_game_wordle, user_game_squares,
+    user_game_chess,
     admin_special_day_routes, user_special_day_routes, voice_assistant_routes,
     admin_stats_routes, admin_user_management_routes,
     admin_notification_routes, admin_games_routes
@@ -105,6 +106,7 @@ app.include_router(user_analysis_routes.router, prefix="/user", tags=["Analytics
 
 app.include_router(user_game_wordle.router, prefix="/user", tags=["Game - Wordle"])
 app.include_router(user_game_squares.router, prefix="/user", tags=["Game - Squares"])
+app.include_router(user_game_chess.router, prefix="/user", tags=["Game - Chess"])
 
 # Special Days
 app.include_router(admin_special_day_routes.router, prefix="/admin-panel", tags=["Special Days - Admin"])

@@ -9,10 +9,15 @@ import json
 import os
 import asyncio
 from app.report.scert_pdf_professional import save_scert_question_paper
+from app.report.primary_pdf_layout import save_primary_question_paper
 from app.utils.admin_auth import get_current_admin
 from fastapi import Depends
 from app.core.database import db
 from openai import AsyncOpenAI
+import base64
+import io
+from PIL import Image
+import pymupdf  # Standard PyMuPDF import
 
 # --------------------------
 # CONFIGURATION / CONSTANTS
@@ -57,6 +62,22 @@ PLUS_TWO = {
     80: (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 4), "E": (9, 2)}),
 }
 
+PRIMARY_PEDAGOGY_PROMPT = """
+You are a friendly Primary School Teacher (Standard 1-5). Your task is to generate a fun and engaging question paper.
+
+### CRITICAL ACCURACY & LOGIC RULES ###
+1. **Logical Consistency**: Avoid "logic-less" questions. If a question is about a "Rectangle", do NOT include "Rectangle" as one of the multiple-choice options. The options should be distinct from the subject of the question.
+2. **No Missing Visuals**: NEVER generate questions like "Look at the picture" or "Complete the pattern" if the visual is not shown.
+3. **Self-Contained Questions**: If a question relies on an illustration, describe it (e.g., "In a picture, there are 3 big circles...").
+4. **No Hallucinations**: Only use characters/objects named in the textbook.
+5. **Match Integrity**: Ensure left and right columns in 'Match' questions have perfect, balanced pairs.
+6. **No Redundant Phrasing**: DO NOT prepend the question with "Fill in the blank:", "True or False:", or "Answer the following:". Just ask the question directly.
+
+### PEDAGOGY ###
+- Language: Use very simple English.
+- Engagement: Encourage the student!
+"""
+
 # --------------------------
 # UTILITIES
 # --------------------------
@@ -65,11 +86,44 @@ def _safe(obj, key, default=""):
     return obj.get(key, default) if isinstance(obj, dict) else default
 
 def get_exam_structure(standard: int, total: int):
+    # Primary Standards (1-5) - Dynamic scaling
+    if standard <= 5:
+        types = ["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "PictureBased"]
+        if standard >= 4: types.append("Short")
+        
+        # Proportional mapping: ~70% of marks to 1-mark questions, ~30% to 2-mark questions
+        # Example for 25 marks: 15 questions (1 mark) + 5 questions (2 marks)
+        # Example for 50 marks: 30 questions (1 mark) + 10 questions (2 marks)
+        count_1 = int(total * 0.6)
+        count_2 = int((total - count_1) / 2)
+        # Add a section C for 3 marks if it's a big paper
+        count_3 = 0
+        if total >= 50:
+            count_2 = 10
+            count_1 = total - (count_2 * 2 + 5 * 3)
+            count_3 = 5
+            return (types, {"A": (1, count_1), "B": (2, count_2), "C": (3, count_3)})
+            
+        return (types, {"A": (1, count_1), "B": (2, count_2)})
+
+    # Standards 6-8
     if standard <= 8:
-        return EXAM_STRUCTURES.get(standard)
+        # For 6-8, we use a slightly more complex structure
+        base_struct = EXAM_STRUCTURES.get(standard, EXAM_STRUCTURES[8])
+        types, sec_map = base_struct
+        # Scale A, B, C proportional to total marks (assuming base is for 50)
+        scale = total / 50.0
+        new_sec_map = {}
+        for k, (v_mark, v_count) in sec_map.items():
+            new_sec_map[k] = (v_mark, int(v_count * scale) if int(v_count * scale) > 0 else 1)
+        return (types, new_sec_map)
+
+    # High School (9-10)
     if standard in [9, 10]:
-        return HIGH_SCHOOL.get(total)
-    return PLUS_TWO.get(total)
+        return HIGH_SCHOOL.get(total, HIGH_SCHOOL[50])
+        
+    # Plus Two (11-12)
+    return PLUS_TWO.get(total, PLUS_TWO[50])
 
 def normalize_text(text: str) -> str:
     """Collapses characters separated by spaces and artifacts like 'WWeeaatthheerr'."""
@@ -88,6 +142,47 @@ def normalize_text(text: str) -> str:
         return s
     text = re.sub(r'([A-Za-z])\1([A-Za-z])\2', de_double, text)
     return text
+
+async def extract_text_via_vision(file_path: str) -> str:
+    """Converts PDF pages to images and uses GPT-4o-mini Vision to extract text."""
+    print(f"[VISION-EXTRACT] Starting Vision-based extraction for: {file_path}")
+    combined_text = ""
+    try:
+        doc = pymupdf.open(file_path)
+        for i in range(len(doc)):
+            print(f"[VISION-EXTRACT] Processing Page {i+1}/{len(doc)}...")
+            page = doc.load_page(i)
+            # Higher DPI for better OCR quality
+            pix = page.get_pixmap(matrix=pymupdf.Matrix(2, 2))
+            img_data = pix.tobytes("png")
+            base64_image = base64.b64encode(img_data).decode('utf-8')
+
+            print(f"[VISION-EXTRACT] Sending Page {i+1} to OpenAI Vision API...")
+            response = await client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Extract all educational text from this textbook page. Preserve the logical reading order. Ignore decorative elements but include captions and diagram labels."},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{base64_image}"}
+                            },
+                        ],
+                    }
+                ],
+                max_tokens=2000,
+            )
+            page_text = response.choices[0].message.content
+            combined_text += page_text + "\n\n"
+            print(f"[VISION-EXTRACT] Page {i+1} extracted successfully.")
+        
+        doc.close()
+        return combined_text
+    except Exception as e:
+        print(f"[VISION-EXTRACT] CRITICAL ERROR during vision extraction: {e}")
+        return ""
 
 def validate_fix_marks(paper: dict, required_total: int):
     total = sum(q.get("marks", 0) for q in paper["questions"])
@@ -186,21 +281,42 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
         print(f"[BG-CHAPTER] Processing: {full_chapter_title} ({original_filename})")
         
         # 1. Extract Text
+        print(f"[BG-CHAPTER] Step 1: Extracting text (File: {file_path})")
         text_content = ""
-        with pdfplumber.open(file_path) as pdf:
-            for page in pdf.pages:
-                text_content += (page.extract_text() or "") + "\n"
         
-        text_content = normalize_text(text_content)
+        # Branching: Use Vision for Standard 1-5 or as fallback
+        standard_val = int(textbook_query.get("standard", 0))
+        use_vision = standard_val > 0 and standard_val <= 5
+        
+        if use_vision:
+            print(f"[BG-CHAPTER] Standard {standard_val} detected. Using VISION-BASED extraction for better quality.")
+            text_content = await extract_text_via_vision(file_path)
+        else:
+            print(f"[BG-CHAPTER] Using standard text extraction (pdfplumber)...")
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text() or ""
+                    # Filter fragmented lines
+                    lines = page_text.split('\n')
+                    cleaned_lines = [l.strip() for l in lines if l.strip() and not (len(l.strip()) < 3 and l.strip().isdigit())]
+                    text_content += "\n".join(cleaned_lines) + "\n"
+            
+            text_content = normalize_text(text_content)
+            
+            if not text_content.strip():
+                print(f"[BG-CHAPTER] pdfplumber extracted NO text. Falling back to VISION-BASED extraction...")
+                text_content = await extract_text_via_vision(file_path)
+
         if not text_content.strip():
-            print(f"[BG-CHAPTER] Error: No text extracted from {file_path}")
+            print(f"[BG-CHAPTER] ERROR: Extraction failed completely (No text from pdfplumber or vision).")
             await db.chapter_status.update_one(
                 {**textbook_query, "chapter_title": full_chapter_title},
-                {"$set": {"status": "failed", "error": "No text extracted from PDF", "updated_at": datetime.now(timezone.utc)}}
+                {"$set": {"status": "failed", "error": "No readable text found (PDF might be an image/scan). Try using an OCR-processed version.", "updated_at": datetime.now(timezone.utc)}}
             )
             return
 
         # 2. Get Textbook ID
+        print(f"[BG-CHAPTER] Step 2: Retrieving textbook metadata...")
         textbook_doc = await db.textbook.find_one(textbook_query)
         if not textbook_doc:
             print(f"[BG-CHAPTER] Error: Textbook container not found for {textbook_query}")
@@ -212,6 +328,7 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
         textbook_id = str(textbook_doc["_id"])
 
         # 3. Generate Embeddings & Save Passages
+        print(f"[BG-CHAPTER] Step 3: Generating embeddings for {len(text_content)} characters...")
         PASSAGE_SIZE = 4000
         PASSAGE_OVERLAP = 400
         passages = []
@@ -393,8 +510,10 @@ async def generate_questions_trigger(payload: dict = Body(...)):
     standard = payload.get("standard")
     subject = payload.get("subject")
     chapters = payload.get("chapters", [])
-    papers = int(payload.get("papers", 1))
-    marks = int(payload.get("marks", 50))
+    # Align with question_generation.html payload keys: paper_count, total_marks
+    papers = int(payload.get("paper_count") or payload.get("papers") or 1)
+    marks = int(payload.get("total_marks") or payload.get("marks") or payload.get("TotalMarks") or 50)
+    time_limit = payload.get("time_limit") or payload.get("time")
 
     if not standard or not subject or not chapters:
         raise HTTPException(status_code=400, detail="standard, subject and chapters are required")
@@ -407,6 +526,7 @@ async def generate_questions_trigger(payload: dict = Body(...)):
         "chapters": chapters,
         "papers": papers,
         "marks": marks,
+        "time_limit": time_limit, # Save user's selected time
         "status": "queued",
         "progress": 0,
         "created_at": datetime.now(timezone.utc)
@@ -440,6 +560,7 @@ async def generate_questions_worker(task_id: str):
     generated_ids = []
 
     # --- RAG: Fetch Chapter Content ---
+    print(f"[BG-GEN] Step 1: Fetching chapter content from database (RAG)...")
     chapter_docs = await db.textbook_chapters.find({
         "standard": str(std),
         "subject": subject,
@@ -528,7 +649,15 @@ async def generate_questions_worker(task_id: str):
                 sections_list.append(f'{{"section": "{name}", "marks_per_question": {val[0]}, "questions": []}}')
             sections_json_block = ",\n    ".join(sections_list)
 
+            # Determine Peer/Pedagogy Prompt based on Standard
+            print(f"[BG-GEN] Step 2: Generating Paper {p+1} via OpenAI ({'Vision/Primary' if std <= 5 else 'Standard'} mode)...")
+            system_role_content = "You are a professional SCERT Exam Paper Generator. Output valid JSON only."
+            if std <= 5:
+                system_role_content = PRIMARY_PEDAGOGY_PROMPT
+
             prompt = f"""
+{system_role_content}
+
 Kerala SCERT Board Exam Question Paper Generator — Paper {p + 1} of {papers}
 
 Standard: {std}
@@ -547,6 +676,14 @@ Use the following content to generate relevant questions. Do NOT ask questions o
 2. Follow EXACT question counts specified below.
 3. **CRITICAL**: Ensure questions are distributed EVENLY across all provided chapters/topics. Do not focus only on the first few pages. Cover the entire provided content.
 4. **UNIQUENESS**: Since this is paper {p + 1} of {papers}, generate FRESH questions that approach different concepts, facts, and angles from the chapter content. Avoid redundant or trivially rephrased questions.
+
+### QUESTION TYPE JSON STRUCTURES ###
+- MCQ: {{ "question": "...", "type": "MCQ", "options": ["A", "B", "C", "D"], "answer": "..." }}
+- TRUEFALSE: {{ "question": "...", "type": "TRUEFALSE", "answer": "True" }}
+- FILLINTHEBLANKS: {{ "question": "The ___ is blue.", "type": "FILLINTHEBLANKS", "answer": "sky" }}
+- MATCHTHEFOLLOWING: {{ "question": "Match items", "type": "MATCHTHEFOLLOWING", "left": ["Cat", "Dog"], "right": ["Meow", "Bark"] }}
+- PICTUREBASED: {{ "question": "What is in the picture?", "type": "PICTUREBASED", "answer": "..." }}
+- VERYSHORT/SHORT/ESSAY: {{ "question": "...", "type": "SHORT", "answer": "..." }}
 
 {section_text}
 
@@ -606,15 +743,26 @@ Respond with valid JSON only. No text outside JSON.
             generated_ids.append(str(result.inserted_id))
 
             # --- PDF Generation ---
+            print(f"[BG-GEN] Step 3: Rendering PDF for Paper {p+1}...")
             try:
                 # Inject metadata for PDF header
                 paper_json["marks"] = total_marks
                 paper_json["standard"] = str(std)
                 paper_json["subject"] = subject
-                paper_json["time"] = "TIME - 90 MINUTES" if total_marks >= 50 else "TIME - 45 MINUTES"
+                # Use provided time_limit if exists, else fallback to calculation
+                user_time = task.get("time_limit")
+                if user_time:
+                    paper_json["time"] = f"TIME - {user_time} MINUTES" if str(user_time).isdigit() else str(user_time)
+                else:
+                    paper_json["time"] = "TIME - 90 MINUTES" if total_marks >= 50 else "TIME - 45 MINUTES"
 
                 paper_filename = f"{GENERATED_PDF_DIR}/{paper_json['paper_id']}.pdf"
-                save_scert_question_paper(paper_json, paper_filename)
+                
+                # Use specialized layout for Standards 1-5
+                if std <= 5:
+                    save_primary_question_paper(paper_json, paper_filename)
+                else:
+                    save_scert_question_paper(paper_json, paper_filename)
                 # Update DB with PDF path
                 await db.generated_papers.update_one(
                     {"_id": result.inserted_id},

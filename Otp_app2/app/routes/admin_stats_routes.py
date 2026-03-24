@@ -5,6 +5,7 @@ import asyncio
 
 from app.core.database import db
 from app.utils.admin_auth import get_current_admin
+from bson import ObjectId
 
 router = APIRouter(tags=["Admin Stats"])
 
@@ -174,10 +175,13 @@ async def get_student_ai_summary(
         # STUDENT INFO
         # -----------------------------
         async def student_info():
-            return await db.students.find_one(
-                {"_id": student_id},
-                {"student_name": 1}
-            )
+            try:
+                return await db.students.find_one(
+                    {"_id": ObjectId(student_id)},
+                    {"student_name": 1}
+                )
+            except:
+                return None
 
         (
             tokens,

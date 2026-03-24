@@ -57,6 +57,12 @@ async def classify_intent(query: str) -> str:
             messages=[{"role": "user", "content": prompt}],
             temperature=0
         )
+        
+        # Log usage
+        if hasattr(response, 'usage') and response.usage:
+            from app.utils.ai_usage_logger import log_ai_usage
+            await log_ai_usage("ADMIN", "AI Tutor - Intent", "gpt-4o-mini", response.usage)
+
         intent = response.choices[0].message.content.strip().upper()
         # Fallback cleanup
         if "TEXTBOOK" in intent: return "TEXTBOOK"
@@ -80,6 +86,12 @@ async def get_relevant_context(student_class: str, query: str) -> str:
             model="text-embedding-3-large",
             input=query
         )
+        
+        # Log usage
+        if hasattr(response, 'usage') and response.usage:
+            from app.utils.ai_usage_logger import log_ai_usage
+            await log_ai_usage("ADMIN", "AI Tutor - Context", "text-embedding-3-large", response.usage)
+
         query_vector = response.data[0].embedding
     except Exception as e:
         print(f"Embedding Error: {e}")

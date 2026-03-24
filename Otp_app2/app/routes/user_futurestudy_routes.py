@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
-from openai import OpenAI
+from openai import AsyncOpenAI
 from bson import ObjectId
 from dotenv import load_dotenv
 from app.core.database import db
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+from app.utils.ai_usage_logger import log_ai_usage
 
 # Load environment variables
 load_dotenv()
@@ -14,78 +15,49 @@ router = APIRouter(
     tags=["User_Futurestudy Module"]
 )
 
-# OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+# OpenAI client (Async)
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ---------- Helper function ----------
 def extract_json(text: str):
     try:
         text = text.strip()
-
         if text.startswith("```"):
             text = text.replace("```json", "").replace("```", "").strip()
 
         start = text.find("{")
         end = text.rfind("}") + 1
-
-        if start == -1 or end == -1:
-            return None
-
+        if start == -1 or end == -1: return None
         return json.loads(text[start:end])
     except Exception:
         return None
 
-
 # ---------- API ----------
 @router.get("/{student_id}")
 async def generate_future_study_guidance(student_id: str):
-
     # Fetch student details
     student = await db.students.find_one({"student_id": student_id})
-
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
     student_class = student.get("student_class")
-
     if not student_class:
-        raise HTTPException(
-            status_code=400,
-            detail="Student class information missing"
-        )
-
-    # Fetch career analysis
-    """
-    Generate AI-based video, tutorial, and competitive exam
-    recommendations based on student's recommended career.
-    """
+        raise HTTPException(status_code=400, detail="Student class information missing")
 
     try:
         s_oid = ObjectId(student_id)
     except:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
 
-    # 1️⃣ Fetch latest career analysis for student
-    record = await db.career_analyzer.find_one(
-        {"student_id": s_oid},
-        sort=[("timestamp", -1)]
-    )
-
+    # 1. Fetch latest career analysis for student
+    record = await db.career_analyzer.find_one({"student_id": s_oid}, sort=[("timestamp", -1)])
     if not record:
-        raise HTTPException(
-            status_code=404,
-            detail="Career analysis not found"
-        )
+        raise HTTPException(status_code=404, detail="Career analysis not found")
 
     recommended_career = record.get("recommended_career")
     top_category = record.get("top_category")
-
     if not recommended_career or not top_category:
-        raise HTTPException(
-            status_code=400,
-            detail="Career data incomplete"
-        )
+        raise HTTPException(status_code=400, detail="Career data incomplete")
 
     # ---------- PROMPT (AGE-AWARE & CAREER-AWARE) ----------
     prompt = f"""
@@ -164,35 +136,26 @@ RETURN STRICT JSON ONLY:
 }}
 """
 
-    # ---------- OpenAI Call ----------
+    # ---------- OpenAI Call (Async) ----------
     try:
-        response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4
         )
-        ai_content = response.output[0].content[0].text
+        
+        # Log usage
+        if hasattr(response, 'usage') and response.usage:
+            await log_ai_usage(student_id, "Career - Future Study", "gpt-4o-mini", response.usage)
+
+        ai_content = response.choices[0].message.content
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"OpenAI API error: {str(e)}"
-        )
-    # 3️⃣ OpenAI call
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.4
-    )
+        raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
     # ---------- Parse JSON ----------
     ai_data = extract_json(ai_content)
-
     if not ai_data:
-        raise HTTPException(
-            status_code=500,
-            detail="AI returned invalid JSON format"
-        )
+        raise HTTPException(status_code=500, detail="AI returned invalid JSON format")
 
     # ---------- Save to DB ----------
     future_study_doc = {
@@ -201,16 +164,13 @@ RETURN STRICT JSON ONLY:
         "recommended_career": recommended_career,
         "top_category": top_category,
         "resources": ai_data,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     }
 
     try:
         await db.future_study.insert_one(future_study_doc)
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database insert failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Database insert failed: {str(e)}")
 
     return {
         "message": "Class-appropriate future study guidance generated",

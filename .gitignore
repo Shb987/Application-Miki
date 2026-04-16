@@ -15,3 +15,8 @@ Otp_app2/test_openai_billing.py
 Otp_app2/*.md
 Otp_app2/verify_randomization.py
 Otp_app2/migrate_ai_logs.py
+Otp_app2/test_timetable_merge.py
+Otp_app2/test_tuition.py
+Otp_app2/docs/
+Otp_app2/site/
+Otp_app2/mkdocs.yml

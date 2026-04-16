@@ -153,7 +153,7 @@ def alpha_beta(board: chess.Board, depth: int, alpha: int, beta: int, maximizing
 
 def difficulty_to_depth(difficulty: int) -> int:
     """
-    Maps a 0–20 difficulty level to a minimax search depth (1–5).
+    Maps a 0-20 difficulty level to a minimax search depth (1-5).
     Depth 4-5 is strong enough to challenge most casual players.
     """
     if difficulty <= 3:

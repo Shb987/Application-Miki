@@ -115,6 +115,11 @@ async def tutorials_page(request: Request):
     """Tutorial management page"""
     return templates.TemplateResponse("tutorials.html", {"request": request})
 
+@router.get("/manage-syllabus-page", response_class=HTMLResponse)
+async def manage_syllabus_page(request: Request):
+    """Syllabus management page"""
+    return templates.TemplateResponse("manage_syllabus.html", {"request": request})
+
 
 @router.get("/special-days-page", response_class=HTMLResponse)
 async def special_days_page(request: Request):

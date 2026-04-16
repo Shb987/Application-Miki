@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Syllabus - Miki Assessment Portal{% endblock %}
+
+{% block head %}
+<style>
+    .hover-light:hover { background-color: #f8f9fa !important; }
+    .bg-light-primary { background-color: rgba(69, 43, 144, 0.1); }
+    .custom-info-bar { background: #fafbfc; }
+    .accordion-button:focus { box-shadow: none; border-color: rgba(69, 43, 144, 0.2); }
+    .accordion-button:not(.collapsed) {
+        background-color: #ffffff;
+        color: #452b90;
+        box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .125);
+    }
+    .filter-container-glass {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid #452b9011;
+        border-radius: 12px;
+    }
+    .topic-list-item {
+        border-left: 3px solid #452b90;
+    }
+    .edit-mode .static-view { display: none; }
+    .edit-mode .edit-view { display: flex !important; }
+    .edit-view { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4>Manage Syllabus</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard">
+                            <svg class="stroke-icon">
+                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                            </svg></a></li>
+                    <li class="breadcrumb-item">Tuition Module</li>
+                    <li class="breadcrumb-item active">Manage Syllabus</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Generate Syllabus Form -->
+    <div class="card shadow-sm border-0 mb-4 filter-container-glass">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-primary p-2 rounded shadow-sm me-3 text-white">
+                    <i data-feather="loader" style="width: 18px; height: 18px;"></i>
+                </div>
+                <h6 class="mb-0 text-dark fw-bold">Generate New Syllabus with AI</h6>
+            </div>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label text-muted f-12 fw-bold">Student Class (Standard)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i data-feather="monitor" style="width: 14px;"></i></span>
+                        <select id="gen-standard" class="form-select border-start-0 ps-0">
+                            <option value="">Select Standard</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-muted f-12 fw-bold">Subject</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i data-feather="book-open" style="width: 14px;"></i></span>
+                        <select id="gen-subject" class="form-select border-start-0 ps-0">
+                            <option value="">Select Subject</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <button id="btn-generate" class="btn btn-primary w-100 shadow-sm d-flex align-items-center justify-content-center gap-2" onclick="generateSyllabus()">
+                        <i data-feather="cpu" style="width: 16px;"></i> Generate Syllabus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Syllabuses Section -->
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center pb-3">
+            <h5 class="mb-0 text-primary fw-bold">
+                <i data-feather="layers" class="me-2 pb-1"></i> Available Curriculum Syllabuses
+            </h5>
+            <button class="btn btn-outline-primary btn-sm rounded-pill shadow-sm px-3" onclick="loadSyllabuses()">
+                <i data-feather="refresh-cw" class="me-1" style="width: 14px; height: 14px;"></i> Refresh
+            </button>
+        </div>
+        <div class="card-body bg-light">
+            <div id="syllabuses-container">
+                <div class="text-center text-muted py-5">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                    <div class="mt-2">Loading syllabuses...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let globalSyllabuses = [];
+    let textbooksData = [];
+
+    // --- On Load: Fetch Textbooks to populate Dropdowns ---
+    async function loadTextbookMetadata() {
+        try {
+            const res = await fetch("/admin-panel/textbooks", { headers: { "Authorization": "Bearer " + token } });
+            if (!res.ok) throw new Error("Failed to load textbooks");
+            const data = await res.json();
+            textbooksData = data.textbooks || [];
+            
+            const standards = [...new Set(textbooksData.map(tb => tb.standard))].sort((a,b) => parseInt(a) - parseInt(b));
+            
+            const stdSelect = document.getElementById("gen-standard");
+            const subSelect = document.getElementById("gen-subject");
+            
+            stdSelect.innerHTML = `<option value="">Select Standard</option>` + standards.map(s => `<option value="${s}">Class ${s}</option>`).join('');
+            
+            // Listen for Standard change to dynamically populate subjects
+            stdSelect.addEventListener("change", function() {
+                const selectedStd = this.value;
+                if(!selectedStd) {
+                    subSelect.innerHTML = `<option value="">Select Subject</option>`;
+                    return;
+                }
+                
+                // Filter subjects that belong only to this standard
+                const filteredSubjects = textbooksData
+                    .filter(tb => tb.standard === selectedStd)
+                    .map(tb => tb.subject);
+                    
+                const uniqueSubjects = [...new Set(filteredSubjects)].sort();
+                
+                subSelect.innerHTML = `<option value="">Select Subject</option>` + uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
+            });
+            
+        } catch(e) {
+            console.error("Warning: Could not fetch textbooks.", e);
+        }
+    }
+
+    async function generateSyllabus() {
+        const standard = document.getElementById("gen-standard").value;
+        const subject = document.getElementById("gen-subject").value;
+        
+        if(!standard || !subject) {
+            alert("Please select both Standard and Subject.");
+            return;
+        }
+
+        const btn = document.getElementById("btn-generate");
+        btn.innerHTML = `<i class="fa fa-spin fa-spinner me-2"></i> Generating via AI...`;
+        btn.disabled = true;
+
+        try {
+            const res = await fetch("/admin/tuition/generate-syllabus", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token 
+                },
+                body: JSON.stringify({ student_class: standard, subject: subject })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.detail || "Failed to generate syllabus");
+            
+            alert(data.message);
+            loadSyllabuses();
+            
+        } catch(e) {
+            alert("Error: " + e.message);
+        } finally {
+            btn.innerHTML = `<i data-feather="cpu" style="width: 16px;"></i> Generate Syllabus`;
+            btn.disabled = false;
+            feather.replace();
+        }
+    }
+
+    async function loadSyllabuses() {
+        const container = document.getElementById("syllabuses-container");
+        container.innerHTML = `<div class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 fw-medium">Fetching active syllabuses...</div></div>`;
+        try {
+            const res = await fetch("/admin/tuition/syllabuses", { 
+                headers: { "Authorization": "Bearer " + token } 
+            });
+            if (!res.ok) throw new Error("Failed to load syllabuses");
+            const data = await res.json();
+            globalSyllabuses = data.data || [];
+            renderSyllabuses();
+        } catch (err) {
+            container.innerHTML = `<div class="alert alert-danger shadow-sm"><i class="icofont icofont-exclamation-circle"></i> Error: ${err.message}</div>`;
+        }
+    }
+
+    function renderSyllabuses() {
+        const container = document.getElementById("syllabuses-container");
+        if (globalSyllabuses.length === 0) {
+            container.innerHTML = `<div class="alert alert-light text-center border p-5 bg-white"><i data-feather="inbox" class="text-muted mb-3" style="width: 48px; height: 48px;"></i><h5 class="text-muted">No syllabuses generated yet.</h5><p class="text-muted mb-0">Use the form above to generate one via AI from existing textbooks.</p></div>`;
+            feather.replace(); return;
+        }
+        
+        let html = '<div class="accordion border-0" id="syllabusAccordion">';
+        globalSyllabuses.forEach((syl, index) => {
+            const title = `Class ${syl.student_class} - ${syl.subject}`;
+            const topics = syl.topics || [];
+            const syllabusId = syl._id;
+            
+            html += `
+            <div class="accordion-item mb-3 bg-white rounded border shadow-sm overflow-hidden" id="accordion-item-${syllabusId}">
+                <h2 class="accordion-header flex-grow-1" id="heading${index}">
+                    <button class="accordion-button bg-white text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}">
+                        <div class="d-flex justify-content-between align-items-center w-100 pe-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book-open"></i></div>
+                                <span class="f-16">${title}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge bg-light-primary text-primary border border-primary">${topics.length} Topics</span>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#syllabusAccordion">
+                    <div class="accordion-body bg-light border-top p-0 px-3 py-3">
+                        <div class="d-flex justify-content-end mb-3 static-view">
+                            <button class="btn btn-sm btn-outline-primary" onclick="toggleEditMode('${syllabusId}', true)">
+                                <i data-feather="edit-2" style="width:14px; height: 14px;"></i> Edit Syllabus
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 edit-view">
+                            <h6 class="text-primary mb-0 d-flex align-items-center"><i data-feather="edit-3" class="me-2"></i> Editing Mode</h6>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-light border" onclick="toggleEditMode('${syllabusId}', false)">Cancel</button>
+                                <button class="btn btn-sm btn-primary" onclick="saveSyllabus('${syllabusId}')">Save Changes</button>
+                            </div>
+                        </div>
+                        `;
+            
+            if (topics.length === 0) { 
+                html += `<div class="text-center p-3 static-view"><p class="text-muted mb-0">No topics found.</p></div>`; 
+            } else { 
+                html += `<div class="list-group" id="topic-list-${syllabusId}">`; 
+                topics.forEach((topic, tIndex) => { 
+                    const chapBadge = topic.chapter ? `<span class="badge bg-secondary text-white ms-2 px-2 py-1" style="font-size: 10px; font-weight: normal;"><i data-feather="bookmark" style="width: 10px; height: 10px; margin-right: 2px;"></i>${topic.chapter}</span>` : '';
+                    html += `
+                        <div class="list-group-item mb-2 rounded shadow-sm topic-list-item border-0">
+                            <!-- STATIC VIEW -->
+                            <div class="d-flex justify-content-between align-items-start static-view w-100">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold text-dark d-flex align-items-center mb-1">
+                                        <span class="text-muted pe-2">#${topic.order_index}</span> ${topic.title}
+                                        ${chapBadge}
+                                    </div>
+                                    <span class="text-muted f-13">${topic.description}</span>
+                                </div>
+                                <span class="badge bg-primary rounded-pill mt-1">${topic.estimated_duration_mins} mins</span>
+                            </div>
+                            
+                            <!-- EDIT VIEW -->
+                            <div class="edit-view flex-column gap-2 w-100" data-topic-index="${tIndex}" data-topic-id="${topic.topic_id}">
+                                <div class="d-flex gap-2">
+                                    <span class="badge bg-light text-dark align-self-start mt-2">#${topic.order_index}</span>
+                                    <input type="text" class="form-control form-control-sm topic-title w-50" value="${topic.title.replace(/"/g, '&quot;')}" placeholder="Topic Title">
+                                    <input type="text" class="form-control form-control-sm topic-chapter w-25" value="${(topic.chapter || '').replace(/"/g, '&quot;')}" placeholder="Chapter Name">
+                                    <div class="input-group input-group-sm w-25">
+                                        <input type="number" class="form-control topic-duration" value="${topic.estimated_duration_mins}" min="5" placeholder="Mins">
+                                        <span class="input-group-text">mins</span>
+                                    </div>
+                                </div>
+                                <textarea class="form-control form-control-sm topic-desc w-100" rows="2" placeholder="Description">${topic.description}</textarea>
+                            </div>
+                        </div>`; 
+                }); 
+                html += `</div>`; 
+            }
+            
+            html += `
+                    </div>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+        feather.replace();
+    }
+
+    function toggleEditMode(syllabusId, enable) {
+        const item = document.getElementById(`accordion-item-${syllabusId}`);
+        if(enable) {
+            item.classList.add('edit-mode');
+        } else {
+            item.classList.remove('edit-mode');
+            // Re-render essentially resets the unsaved changes
+            renderSyllabuses(); 
+        }
+    }
+
+    async function saveSyllabus(syllabusId) {
+        const item = document.getElementById(`accordion-item-${syllabusId}`);
+        const topicElements = item.querySelectorAll('.edit-view[data-topic-index]');
+        
+        let newTopics = [];
+        topicElements.forEach(el => {
+            const title = el.querySelector('.topic-title').value.trim();
+            const chapter = el.querySelector('.topic-chapter').value.trim();
+            const desc = el.querySelector('.topic-desc').value.trim();
+            const duration = parseInt(el.querySelector('.topic-duration').value);
+            const topicId = el.getAttribute('data-topic-id');
+            
+            if(title) {
+                newTopics.push({
+                    topic_id: topicId,
+                    chapter: chapter || null,
+                    title: title,
+                    description: desc,
+                    estimated_duration_mins: isNaN(duration) ? 45 : duration,
+                    order_index: newTopics.length + 1
+                });
+            }
+        });
+
+        if(newTopics.length === 0) {
+            alert("Syllabus must have at least one valid topic.");
+            return;
+        }
+
+        try {
+            document.body.style.cursor = 'wait';
+            const res = await fetch(`/admin/tuition/syllabus/${syllabusId}`, {
+                method: "PUT",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token 
+                },
+                body: JSON.stringify(newTopics)
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.detail || "Failed to update syllabus");
+            
+            alert("Syllabus updated successfully!");
+            // Refresh to get clean state
+            loadSyllabuses();
+        } catch(e) {
+            alert("Error: " + e.message);
+        } finally {
+            document.body.style.cursor = 'default';
+        }
+    }
+
+    // Initialize Page
+    loadTextbookMetadata();
+    loadSyllabuses();
+</script>
+{% endblock %}

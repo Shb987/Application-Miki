@@ -318,7 +318,7 @@ async def get_class_ai_summary(
 
 
 @router.get("/ai-stats/summary", response_model=Dict[str, Any])
-async def get_ai_usage_summary(current_admin: dict = Depends(get_current_admin)):
+async def get_platform_ai_usage_summary(current_admin: dict = Depends(get_current_admin)):
     """
     Returns platform-wide AI usage analytics (last 30 days)
     """

@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import pytz
-from app.services.notification_service import broadcast_notification
+from app.services.notification_service import broadcast_notification, create_notification
 
 async def check_and_notify_special_days(db):
     """
@@ -75,3 +75,70 @@ async def start_special_day_scheduler(db):
         except Exception as e:
             print(f"❌ [Scheduler] Error in background loop: {e}")
             await asyncio.sleep(60)
+
+async def check_and_notify_upcoming_tuition(db):
+    """
+    Checks for tuition sessions starting within the next 15 minutes and sends targeted notifications.
+    """
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    # 15 minutes from now
+    target_time = now_utc + datetime.timedelta(minutes=15)
+    
+    # Query: status is pending, not yet notified, and scheduled_time is in the past OR up to 15 mins from now
+    query = {
+        "status": "pending",
+        "notification_sent": {"$ne": True},
+        "scheduled_time": {"$lte": target_time}
+    }
+    
+    cursor = db.tuition_sessions.find(query)
+    sessions = await cursor.to_list(length=None)
+    
+    for session in sessions:
+        student_id = str(session["student_id"])
+        subject = session.get("subject", "Class")
+        topic_title = session.get("topic", {}).get("title", "Unknown Topic")
+        
+        title = f"Your {subject} class starts soon!"
+        message = f"Get ready! Your session on '{topic_title}' is about to begin. Open the app to join."
+        
+        print(f"📢 [Tuition Scheduler] Notifying student {student_id} about upcoming {subject} class...")
+        
+        try:
+            await create_notification(
+                db=db,
+                user_id=student_id,
+                title=title,
+                message=message,
+                notification_type="tuition_class_reminder",
+                extra_data={
+                    "session_id": str(session["_id"]),
+                    "subject": subject
+                },
+                priority=10  # High priority push
+            )
+            
+            # Mark as notified
+            await db.tuition_sessions.update_one(
+                {"_id": session["_id"]},
+                {"$set": {"notification_sent": True}}
+            )
+            print(f"✅ [Tuition Scheduler] Marked session {session['_id']} as notified.")
+            
+        except Exception as e:
+            print(f"❌ [Tuition Scheduler] Failed to notify student {student_id}: {e}")
+
+async def start_tuition_scheduler(db):
+    """
+    Starts a background loop that checks for upcoming tuition classes every 60 seconds.
+    """
+    print("🚀 [Tuition Scheduler] Background Service Started.")
+    
+    while True:
+        try:
+            await check_and_notify_upcoming_tuition(db)
+        except Exception as e:
+            print(f"❌ [Tuition Scheduler] Error in background loop: {e}")
+            
+        # Sleep for 60 seconds before checking again
+        await asyncio.sleep(60)

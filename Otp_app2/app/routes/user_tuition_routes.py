@@ -6,6 +6,7 @@ from app.utils.user_auth import get_current_user, admin_or_user
 from app.utils.admin_auth import get_current_admin
 from app.services.tuition_service import generate_syllabus_with_ai, map_syllabus_to_timetable
 from app.models.tuition_models import StudentTimetableConfig, TuitionChatRequest
+from app.utils.ai_usage_logger import log_ai_usage
 from pydantic import BaseModel
 from bson import ObjectId
 import os
@@ -238,6 +239,12 @@ async def get_student_schedule(student_id: str, current_user: dict = Depends(adm
     sessions = await db.tuition_sessions.find({"student_id": s_oid}).sort("scheduled_time", 1).to_list(None)
     return {"status_code": 200, "data": serialize_mongo(sessions)}
 
+@router.get("/user/tuition/available-subjects/{student_class}")
+async def get_available_subjects_by_class(student_class: str, current_user: dict = Depends(admin_or_user)):
+    """Fetch the list of distinct subjects that have a generated syllabus for a specific class."""
+    subjects = await db.syllabuses.distinct("subject", {"student_class": str(student_class)})
+    return {"status_code": 200, "data": subjects}
+
 
 # ----------------- SESSION STATE MACHINE (CLASS MODE) ----------------- #
 
@@ -396,7 +403,10 @@ async def tuition_session_chat(
     
     ai_reply = response.choices[0].message.content
     
-    # Handle State Transitions 
+    # Log AI Usage
+    await log_ai_usage(str(student_oid), "tuition_session_chat", "gpt-4o", response.usage)
+    
+    # Handle State Transitions
     new_state = state
     if "[SYSTEM_CHANGE_STATE: TEACH]" in ai_reply:
         new_state = "TEACH"

@@ -5,6 +5,8 @@ from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 from openai import AsyncOpenAI
 import logging
+from app.utils.ai_usage_logger import log_ai_usage
+
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -60,6 +62,9 @@ async def generate_syllabus_with_ai(db, student_class: str, subject: str) -> dic
     )
 
     result = json.loads(response.choices[0].message.content)
+    
+    # Log AI usage
+    await log_ai_usage("ADMIN", "generate_syllabus", "gpt-4o-mini", response.usage)
     
     # 3. Add IDs and order
     topics = result.get("topics", [])

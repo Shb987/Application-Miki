@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 from datetime import datetime, timezone, timedelta
+import pytz
 from bson import ObjectId
 from openai import AsyncOpenAI
 import logging
@@ -92,7 +93,8 @@ async def generate_syllabus_with_ai(db, student_class: str, subject: str) -> dic
 
 async def map_syllabus_to_timetable(db, student_id: str, student_class: str, subject: str, start_date: datetime):
     """
-    Takes the master syllabus and maps the topics sequentially to the user's weekly timetable slots.
+    Takes the master syllabus and maps the remaining (uncompleted) topics 
+    sequentially to the user's weekly timetable slots.
     """
     # 1. Fetch User's Timetable Config
     try:
@@ -108,55 +110,79 @@ async def map_syllabus_to_timetable(db, student_id: str, student_class: str, sub
     if not slots:
         raise ValueError(f"No slots reserved for {subject} in the user's timetable.")
 
-    # 2. Fetch Master Syllabus
+    # 2. Fetch Master Syllabus & Filter out Completed Topics
     syllabus = await db.syllabuses.find_one({"student_class": student_class, "subject": subject})
     if not syllabus:
         raise ValueError("Master syllabus not found. Ensure Admin generates it first.")
 
-    topics = sorted(syllabus.get("topics", []), key=lambda x: x["order_index"])
+    all_topics = sorted(syllabus.get("topics", []), key=lambda x: x["order_index"])
     
+    # NEW: Find which topics are already completed
+    completed_sessions = await db.tuition_sessions.find({
+        "student_id": ObjectId(student_id),
+        "subject": subject,
+        "status": "completed"
+    }).to_list(None)
+    
+    completed_topic_ids = {str(s["topic"]["topic_id"]) for s in completed_sessions if s.get("topic")}
+    
+    # Filter syllabus to only include uncompleted topics
+    topics_to_map = [t for t in all_topics if str(t["topic_id"]) not in completed_topic_ids]
+
+    if not topics_to_map:
+        return {"message": "All topics for this subject are already completed."}
+
     # 3. Generate future sessions
-    days_map = {
-        "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
-        "friday": 4, "saturday": 5, "sunday": 6
-    }
-    
-    current_date = start_date
+    tz = pytz.timezone("Asia/Kolkata")
+    current_date = start_date.astimezone(tz)
     created_sessions = []
     
-    # Simple allocation: loop through days, if day matches a slot, assign next topic
     topic_idx = 0
-    while topic_idx < len(topics):
+    # Guard against infinite loops if no slots match
+    max_days = 365 
+    days_checked = 0
+
+    while topic_idx < len(topics_to_map) and days_checked < max_days:
         day_name = current_date.strftime("%A").lower()
         
+        # Check all slots for this day
         for slot in slots:
             if slot["day_of_week"].lower() == day_name:
-                # Assign this topic to this date/time
-                time_str = slot["start_time"]
+                time_str = slot["start_time"] # e.g. "18:00"
                 hour, minute = map(int, time_str.split(':'))
                 
-                # Create naive datetime from date, then add time, then make aware
-                session_time = current_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                # 4. Correct Timezone Handling (IST -> UTC)
+                # Set target time in IST
+                session_time_ist = current_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                
+                # If this time has already passed today, skip to next occurrence
+                if session_time_ist < start_date.astimezone(tz):
+                    continue
+                
+                # Convert back to UTC for database storage
+                session_time_utc = session_time_ist.astimezone(pytz.UTC).replace(tzinfo=None)
                 
                 session_doc = {
                     "student_id": ObjectId(student_id),
                     "subject": subject,
-                    "topic": topics[topic_idx],
-                    "scheduled_time": session_time,
-                    "status": "pending",  # pending, active, completed, backlog
-                    "session_state": "PENDING", # PENDING -> RECAP -> TEACH -> PRACTICE -> COMPLETED
+                    "topic": topics_to_map[topic_idx],
+                    "scheduled_time": session_time_utc,
+                    "status": "pending",
+                    "attendance": "pending",
+                    "session_state": "PENDING",
                     "created_at": datetime.now(timezone.utc)
                 }
                 
                 created_sessions.append(session_doc)
                 topic_idx += 1
-                if topic_idx >= len(topics):
+                if topic_idx >= len(topics_to_map):
                     break
         
         current_date += timedelta(days=1)
+        days_checked += 1
         
     # Batch insert
     if created_sessions:
         await db.tuition_sessions.insert_many(created_sessions)
         
-    return {"message": f"Allocated {len(created_sessions)} sessions."}
+    return {"message": f"Allocated {len(created_sessions)} future sessions."}

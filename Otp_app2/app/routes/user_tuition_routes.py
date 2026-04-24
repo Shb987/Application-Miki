@@ -297,7 +297,7 @@ async def postpone_session(payload: PostponeRequest, current_user: dict = Depend
 
 @router.post("/user/tuition/session/start")
 async def start_session(session_id: str = Body(...), current_user: dict = Depends(admin_or_user)):
-    """Marks a scheduled session as 'active' and starts the RECAP state."""
+    """Marks a scheduled session as 'active' and starts the RECAP state with time validation."""
     try:
         s_oid = ObjectId(session_id)
     except:
@@ -306,19 +306,68 @@ async def start_session(session_id: str = Body(...), current_user: dict = Depend
     session = await db.tuition_sessions.find_one({"_id": s_oid})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-        
-    await db.tuition_sessions.update_one(
-        {"_id": s_oid},
-        {"$set": {"status": "active", "session_state": "RECAP"}}
-    )
     
-    # Introduce the class
-    topic = session.get("topic", {})
-    return {
-        "status_code": 200,
-        "message": "Class started",
-        "initial_tutor_message": f"Welcome to today's class on {topic.get('title')}! Let's start with a quick recap. Are you ready?"
-    }
+    # Pre-checks
+    if session.get("status") == "completed":
+        return {"status_code": 400, "can_join": False, "message": "This session is already completed."}
+    if session.get("status") == "absent":
+        return {"status_code": 400, "can_join": False, "message": "You were marked absent for this session."}
+
+    # 1. Time Window Validation (-15m to +30m)
+    now = datetime.now(timezone.utc)
+    scheduled_time = session.get("scheduled_time")
+    
+    if scheduled_time.tzinfo is None:
+        scheduled_time = scheduled_time.replace(tzinfo=timezone.utc)
+        
+    diff_mins = (now - scheduled_time).total_seconds() / 60
+    
+    # Use boolean logic as requested
+    is_too_early = diff_mins < -15
+    is_too_late = diff_mins > 30
+    can_join = not is_too_early and not is_too_late
+    
+    if is_too_early:
+        return {
+            "status_code": 403, 
+            "can_join": False,
+            "message": f"Too early. Please join within 15 minutes of the start time ({scheduled_time.strftime('%H:%M')} UTC)."
+        }
+    
+    if is_too_late:
+        # Mark as absent if they missed the window
+        if session.get("status") != "absent":
+            await db.tuition_sessions.update_one(
+                {"_id": s_oid},
+                {"$set": {"status": "absent", "attendance": "absent"}}
+            )
+        return {
+            "status_code": 403, 
+            "can_join": False,
+            "message": "Too late. You have been marked absent for this session."
+        }
+
+    # 2. Mark as Active and Present
+    if can_join:
+        await db.tuition_sessions.update_one(
+            {"_id": s_oid},
+            {"$set": {
+                "status": "active", 
+                "attendance": "present",
+                "session_state": "RECAP",
+                "started_at": now
+            }}
+        )
+        
+        topic = session.get("topic", {})
+        return {
+            "status_code": 200,
+            "can_join": True,
+            "message": "Class started",
+            "initial_tutor_message": f"Welcome to today's class on {topic.get('title')}! Let's start with a quick recap. Are you ready?"
+        }
+    
+    return {"status_code": 500, "can_join": False, "message": "Unknown error starting session."}
 
 
 @router.post("/user/tuition/session/chat")

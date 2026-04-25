@@ -420,11 +420,33 @@ async def tuition_session_chat(
     
     system_instruction = state_instructions.get(state, state_instructions["RECAP"])
     
+    # Time Awareness Logic
+    now = datetime.now(timezone.utc)
+    started_at = session.get("started_at")
+    if started_at:
+        # Normalize timezone
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=timezone.utc)
+        elapsed_mins = int((now - started_at).total_seconds() / 60)
+    else:
+        # Fallback if started_at is missing
+        elapsed_mins = 0
+
+    time_status = f"Class duration so far: {elapsed_mins} minutes."
+    time_instruction = ""
+    
+    if elapsed_mins >= 55:
+        time_instruction = "IMPORTANT: You have reached the maximum 1-hour limit. Regardless of whether the topic is finished, you MUST conclude the class NOW. Move to SUMMARY phase immediately and end with 'Class Dismissed'."
+    elif elapsed_mins >= 40:
+        time_instruction = "NOTE: You are approaching the 45-minute lesson target. Start winding up the current phase and move towards the SUMMARY phase soon to keep the schedule."
+
     prompt = f"""
     You are 'Miki', an expert Digital Institute Tutor leading a live, structured class.
     
     CURRENT PHASE: {state}
     TOPIC TODAY: {title}
+    TIME STATUS: {time_status}
+    {time_instruction}
     
     CRITICAL RULE FOR DISCIPLINE: 
     If the student asks a random off-topic question, firmly but politely redirect them back to the current phase of the lesson. Do not satisfy off-topic tangents during Class Mode.

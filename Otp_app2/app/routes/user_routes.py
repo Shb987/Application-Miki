@@ -681,7 +681,6 @@ career_map = {
 }
 
 
-import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 from datetime import datetime, timezone

@@ -70,6 +70,8 @@ async def verify_otp(data: OTPVerify):
     is_user = False
     student_id = None
     is_new_user = False # Default
+    student_subscription = None
+    student_usage_buckets = None
 
     # âœ… Only if student
     if usertype == "student":
@@ -83,19 +85,23 @@ async def verify_otp(data: OTPVerify):
 
             if student_id:
                 student = await db.students.find_one(
-                    {"_id": ObjectId(student_id)},
-                    {"is_user": 1}
+                    {"_id": ObjectId(student_id)}
                 )
 
-                if student and student.get("is_user") is True:
-                    is_user = True
-                
-                # âœ… Check if student is "new"
-                is_new_user = student.get("is_new_user", False) if student else False
+                if student:
+                    if student.get("is_user") is True:
+                        is_user = True
+                    
+                    # âœ… Check if student is "new"
+                    is_new_user = student.get("is_new_user", False)
+                    
+                    # Grab subscription and usage_buckets
+                    student_subscription = student.get("subscription")
+                    student_usage_buckets = student.get("usage_buckets")
 
     access_token = create_user_token(data.mobile_number, usertype)
 
-    return {
+    response_payload = {
         "status_code": 200,
         "message": "OTP verified successfully",
         "usertype": usertype,
@@ -108,6 +114,13 @@ async def verify_otp(data: OTPVerify):
         "token_type": "bearer",
         "is_new_user": is_new_user  # ðŸ†• Return new user status
     }
+
+    if usertype == "student" and student_subscription is not None:
+        from app.routes.user_routes import serialize_mongo_doc
+        response_payload["subscription"] = serialize_mongo_doc(student_subscription)
+        response_payload["usage_buckets"] = student_usage_buckets
+
+    return response_payload
 
 
 # ðŸ” PROTECTED â€” must be a LOGGED IN USER (parent)
@@ -185,7 +198,7 @@ async def switch_to_student(
     # âœ… Return is_new_user status
     is_new_user = student_doc.get("is_new_user", False)
 
-    return {
+    response_payload = {
         "status_code": 200,
         "message": "Switched to student successfully",
         "usertype": "student",
@@ -194,3 +207,13 @@ async def switch_to_student(
         "token_type": "bearer",
         "is_new_user": is_new_user  # ðŸ†• Return new user status
     }
+
+    student_subscription = student_doc.get("subscription")
+    student_usage_buckets = student_doc.get("usage_buckets")
+
+    if student_subscription is not None:
+        from app.routes.user_routes import serialize_mongo_doc
+        response_payload["subscription"] = serialize_mongo_doc(student_subscription)
+        response_payload["usage_buckets"] = student_usage_buckets
+
+    return response_payload

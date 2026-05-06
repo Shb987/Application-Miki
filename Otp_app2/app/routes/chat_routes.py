@@ -9,6 +9,13 @@ from app.core.database import db
 from app.utils.user_auth import get_current_user
 from app.models.chat_models import GroupCreate, GroupResponse, ChatMessage
 from app.services.notification_service import create_notification
+from app.utils.usage_guard import has_premium_access
+
+async def check_premium(student_id: str):
+    is_premium = await has_premium_access(student_id)
+    if not is_premium:
+        raise HTTPException(status_code=403, detail="Group Chat is a Premium feature. Please upgrade to Plus or Pro.")
+
 
 UPLOAD_DIR = "app/static/uploads/group_images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -92,6 +99,8 @@ async def create_group(
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new chat group"""
+    await check_premium(student_id)
+
     # Parse member IDs
     id_list = [id.strip() for id in member_ids.split(",") if id.strip()]
     if student_id not in id_list:
@@ -433,8 +442,14 @@ async def websocket_endpoint(websocket: WebSocket, group_id: str, student_id: st
         })
         print('check3')
         if not group:
-            print('check4')
-            await websocket.close(code=4003) # Forbidden
+            await websocket.send_text("Student not found.")
+            await websocket.close(code=1003)
+            return
+
+        is_premium = await has_premium_access(student_id)
+        if not is_premium:
+            await websocket.send_text("Group Chat is a Premium feature. Please upgrade.")
+            await websocket.close(code=1008)
             return
 
         # Fetch sender name

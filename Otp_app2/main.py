@@ -16,7 +16,8 @@ from app.routes import (
     user_game_chess,
     admin_special_day_routes, user_special_day_routes, voice_assistant_routes,
     admin_stats_routes, admin_user_management_routes,
-    admin_notification_routes, admin_games_routes, user_tuition_routes
+    admin_notification_routes, admin_games_routes, user_tuition_routes,
+    payment_routes, admin_plan_routes
 )
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
@@ -118,6 +119,7 @@ app.include_router(user_special_day_routes.router, prefix="/user", tags=["Specia
 app.include_router(admin_stats_routes.router, prefix="/admin-panel", tags=["Admin Stats"])
 app.include_router(admin_user_management_routes.router, prefix="", tags=["User Management - Admin"])
 app.include_router(admin_notification_routes.router, prefix="", tags=["Notifications - Admin"])
+app.include_router(admin_plan_routes.router, prefix="/admin-panel", tags=["Admin Plan Management"])
 
 app.include_router(admin_games_routes.router, prefix="", tags=["Games - Admin"])
 
@@ -125,3 +127,6 @@ app.include_router(voice_assistant_routes.router,prefix="/user",tags=["Voice Ass
 
 # Digital Tuition
 app.include_router(user_tuition_routes.router,prefix="",tags=["Digital Tuition"])
+
+# Payment & Subscriptions
+app.include_router(payment_routes.router)

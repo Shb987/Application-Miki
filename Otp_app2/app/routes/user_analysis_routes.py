@@ -10,6 +10,11 @@ from app.models.analysis_models import (
     VisualExamAnalytics, VisualQuizAnalytics
 )
 from app.core.database import db
+from app.utils.usage_guard import has_premium_access
+
+async def check_premium(student_id: str):
+    if not await has_premium_access(student_id):
+        raise HTTPException(status_code=403, detail="Visual Analytics is a Premium feature. Please upgrade to Plus or Pro.")
 
 router = APIRouter(prefix="/analytics")
 
@@ -24,6 +29,8 @@ async def get_visual_core_dashboard(
     """
     try:
         target_id = student_id if student_id else str(current_user["_id"])
+        
+        await check_premium(target_id)
         
         # Get student details
         student = await db.students.find_one({"_id": ObjectId(target_id)})
@@ -43,7 +50,10 @@ async def get_visual_career_analysis(
 ):
     """Intelligence score breakdown for Radar/Bar charts"""
     try:
+        await check_premium(student_id)
         return await AnalysisService.get_visual_career_stats(ObjectId(student_id))
+    except HTTPException:
+        raise
     except Exception:
          raise HTTPException(status_code=400, detail="Invalid student_id")
 
@@ -54,7 +64,10 @@ async def get_visual_exam_analysis(
 ):
     """Historical progression trend for Line charts"""
     try:
+        await check_premium(student_id)
         return await AnalysisService.get_visual_exam_stats(ObjectId(student_id))
+    except HTTPException:
+        raise
     except Exception:
          raise HTTPException(status_code=400, detail="Invalid student_id")
 
@@ -65,6 +78,9 @@ async def get_visual_quiz_analysis(
 ):
     """Difficulty breakdown and trend for 'Mixed' quizzes"""
     try:
+        await check_premium(student_id)
         return await AnalysisService.get_visual_quiz_stats(ObjectId(student_id))
+    except HTTPException:
+        raise
     except Exception:
          raise HTTPException(status_code=400, detail="Invalid student_id")

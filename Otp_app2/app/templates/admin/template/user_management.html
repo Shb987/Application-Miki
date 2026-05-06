@@ -441,25 +441,6 @@
     </div>
 </div>
 
-<!-- Student Profile Modal -->
-<div class="modal fade" id="profileModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header"
-                style="background:linear-gradient(135deg,#7366ff,#13c9ca);color:#fff;border-radius:16px 16px 0 0;">
-                <h5 class="modal-title"><i data-feather="user"
-                        style="width:18px;height:18px;margin-right:6px;"></i><span id="modal-student-name">Student
-                        Profile</span></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="modal-body-content">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Confirm Delete Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
@@ -583,7 +564,7 @@
         <td>${s.guardian_name || "—"}</td>
         <td><span class="badge ${isActive ? "bg-success" : "bg-secondary"}">${isActive ? "Active" : "Inactive"}</span></td>
         <td>
-        <button class="btn btn-sm btn-outline-primary action-btn me-1" onclick="viewProfile('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')">
+        <button class="btn btn-sm btn-outline-primary action-btn me-1" onclick="location.href='/admin-panel/student-profile-page?id=${s._id}'">
             <i class="fa fa-eye" style="font-size:12px;"></i> View
         </button>
         <button class="btn btn-sm btn-outline-danger action-btn" onclick="promptDelete('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')" title="Delete">
@@ -608,47 +589,6 @@
         if (newSkip < 0 || newSkip >= studentTotal) return;
         studentSkip = newSkip;
         loadStudents();
-    }
-
-    async function viewProfile(id, name) {
-        document.getElementById("modal-student-name").textContent = name;
-        document.getElementById("modal-body-content").innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
-        const modal = new bootstrap.Modal(document.getElementById("profileModal"));
-        modal.show();
-        const res = await fetch(`${API_BASE}/admin-panel/users/student/${id}`, { headers: { Authorization: "Bearer " + token } });
-        const json = await res.json();
-        const d = json.data;
-        if (!d) { document.getElementById("modal-body-content").innerHTML = "Error loading profile"; return; }
-        const s = d.student || {};
-        const career = d.career || {};
-        const pct = career.percentages || {};
-        const cats = ["verbal-linguistic", "logical-mathematical", "visual-spatial", "bodily-kinesthetic", "musical", "interpersonal", "intrapersonal", "naturalist"];
-        const catColors = ["#7366ff", "#13c9ca", "#f73164", "#ff9f40", "#54ba4a", "#6610f2", "#fd7e14", "#20c997"];
-        let scores_html = cats.map((c, i) => {
-            const val = pct[c] || 0;
-            return `<div class="profile-modal-score">
-        <span style="width:140px;font-size:0.75rem;text-transform:capitalize;">${c}</span>
-        <div class="score-bar"><div class="score-bar-fill" style="width:${val}%;background:${catColors[i]};"></div></div>
-        <span style="width:35px;font-size:0.75rem;text-align:right;">${val}%</span>
-    </div>`;
-        }).join("");
-        document.getElementById("modal-body-content").innerHTML = `
-    <div class="row">
-        <div class="col-md-5">
-        <h6 class="text-primary mb-3">Basic Info</h6>
-        <table class="table table-sm table-borderless" style="font-size:0.83rem;">
-            <tr><td class="text-muted">Class</td><td><strong>${s.student_class || "—"}</strong></td></tr>
-            <tr><td class="text-muted">DOB</td><td>${s.dob || "—"}</td></tr>
-            <tr><td class="text-muted">Age</td><td>${s.age || "—"}</td></tr>
-            <tr><td class="text-muted">Guardian</td><td>${s.guardian_name || "—"}</td></tr>
-            <tr><td class="text-muted">Address</td><td>${s.address || "—"}</td></tr>
-        </table>
-        </div>
-        <div class="col-md-7">
-        <h6 class="text-primary mb-3">Intelligence Scores</h6>
-        ${Object.keys(pct).length > 0 ? scores_html : '<p class="text-muted">No test completed</p>'}
-        </div>
-    </div>`;
     }
 
     function promptDelete(id, name) {

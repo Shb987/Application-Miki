@@ -428,9 +428,40 @@ async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: 
         await websocket.close(code=1003)
         return
 
+    from app.utils.usage_guard import check_and_use_quota
+    
+    # 2. Check initial quota (1 minute cost)
+    try:
+        await check_and_use_quota(student_id, "voice", cost=1)
+    except HTTPException as e:
+        await websocket.accept()
+        await websocket.send_text(str(e.detail))
+        await websocket.close(code=1008)
+        return
+
     # 3. Accept connection and start the loop
     await websocket.accept()
+    
+    # Start a quota deduction loop (1 min every 60s)
+    async def quota_loop():
+        try:
+            while True:
+                await asyncio.sleep(60)
+                await check_and_use_quota(student_id, "voice", cost=1)
+        except HTTPException as e:
+            try:
+                await websocket.send_text(str(e.detail))
+                await websocket.close(code=1008)
+            except:
+                pass
+        except Exception:
+            pass
+            
+    quota_task = asyncio.create_task(quota_loop())
+    
     try:
         await handle_realtime_voice(websocket, student_id, session_id, student)
     except Exception as e:
         logger.error(f"WebSocket endpoint error: {e}")
+    finally:
+        quota_task.cancel()

@@ -16,6 +16,7 @@ from app.core.database import db
 from typing import List
 from app.utils.user_auth import get_current_user
 from app.services.notification_service import create_notification
+from app.utils.usage_guard import check_and_use_quota
 
 
 # Load environment variables
@@ -540,6 +541,9 @@ async def evaluate_answersheet(
     model: str = Form("gpt-4o-mini"),
     current_user: dict = Depends(get_current_user)
 ):
+    # 🚨 Check & Use Quota (1 evaluation)
+    await check_and_use_quota(student_id, "exam", cost=1)
+
     saved_file_paths = []
     
     try:

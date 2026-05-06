@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subscriptions - Miki{% endblock %}
+
+{% block head %}
+<style>
+    /* Premium Design System */
+    .plan-card {
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        margin-bottom: 30px;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        position: relative;
+    }
+    
+    .plan-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(115, 102, 255, 0.12);
+    }
+    
+    .plan-header {
+        padding: 30px 25px;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Dynamic Gradients */
+    .plan-header.basic { background: linear-gradient(135deg, #8ca5c9 0%, #a2b6d7 100%); }
+    .plan-header.plus { background: linear-gradient(135deg, #7366ff 0%, #a855f7 100%); }
+    .plan-header.pro { background: linear-gradient(135deg, #f73164 0%, #ff7e5f 100%); }
+    
+    /* Decorative SVG in Header */
+    .header-decor {
+        position: absolute;
+        right: -20px;
+        top: -20px;
+        opacity: 0.15;
+        width: 150px;
+        height: 150px;
+        transform: rotate(15deg);
+    }
+    
+    .price-container {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-top: 15px;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 10px 15px;
+        border-radius: 12px;
+        backdrop-filter: blur(5px);
+    }
+    
+    .price-input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 800;
+        width: 120px;
+        outline: none;
+    }
+    .price-input::placeholder { color: rgba(255,255,255,0.6); }
+    .price-input:disabled { opacity: 0.8; }
+    
+    .plan-body {
+        padding: 30px 25px;
+        background: #fff;
+    }
+    
+    .bucket-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding: 12px 15px;
+        background: #f8f9fa;
+        border-radius: 14px;
+        border: 1px solid #f0f0f0;
+        transition: all 0.2s ease;
+    }
+    
+    .bucket-row:hover {
+        background: #fff;
+        border-color: #7366ff;
+        box-shadow: 0 4px 12px rgba(115, 102, 255, 0.08);
+    }
+    
+    .bucket-icon-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .bucket-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .icon-tutor { background: rgba(115, 102, 255, 0.1); color: #7366ff; }
+    .icon-exam { background: rgba(247, 49, 100, 0.1); color: #f73164; }
+    .icon-class { background: rgba(19, 201, 202, 0.1); color: #13c9ca; }
+    .icon-voice { background: rgba(255, 159, 64, 0.1); color: #ff9f40; }
+    
+    .bucket-label {
+        font-weight: 700;
+        color: #2b2b2b;
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+    }
+    .bucket-subtext {
+        font-size: 0.75rem;
+        color: #888;
+    }
+    
+    .bucket-input {
+        width: 80px;
+        text-align: center;
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        padding: 8px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #2b2b2b;
+        background: #fff;
+        transition: all 0.2s;
+    }
+    
+    .bucket-input:focus {
+        outline: none;
+        border-color: #7366ff;
+        box-shadow: 0 0 0 3px rgba(115, 102, 255, 0.15);
+    }
+    
+    .save-btn {
+        width: 100%;
+        padding: 14px;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 1rem;
+        letter-spacing: 0.5px;
+        border: none;
+        color: #fff;
+        transition: all 0.3s ease;
+        margin-top: 10px;
+    }
+    
+    .save-btn.basic { background: #8ca5c9; }
+    .save-btn.basic:hover { background: #7a94b8; box-shadow: 0 8px 20px rgba(140, 165, 201, 0.3); }
+    
+    .save-btn.plus { background: linear-gradient(135deg, #7366ff, #a855f7); }
+    .save-btn.plus:hover { box-shadow: 0 8px 25px rgba(115, 102, 255, 0.4); transform: translateY(-2px); }
+    
+    .save-btn.pro { background: linear-gradient(135deg, #f73164, #ff7e5f); }
+    .save-btn.pro:hover { box-shadow: 0 8px 25px rgba(247, 49, 100, 0.4); transform: translateY(-2px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4><i data-feather="credit-card" style="width:20px;height:20px;color:#7366ff;"></i> Manage Subscription Plans</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg class="stroke-icon"><use href="/assets/svg/icon-sprite.svg#stroke-home"></use></svg></a></li>
+                    <li class="breadcrumb-item active">Manage Plans</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row" id="plans-container">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading Subscription Plans...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="liveToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toast-message">Plan updated successfully.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const token = window.token || localStorage.getItem("admin_token");
+    const API_BASE = window.API_BASE;
+
+    async function loadPlans() {
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/plans`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const json = await res.json();
+            
+            if (json.status_code === 200) {
+                renderPlans(json.plans);
+            }
+        } catch (e) {
+            console.error("Error loading plans:", e);
+        }
+    }
+
+    function renderPlans(plans) {
+        const container = document.getElementById("plans-container");
+        container.innerHTML = "";
+        
+        plans.forEach(plan => {
+            const headerClass = plan._id === "basic" ? "basic" : (plan._id === "plus" ? "plus" : "pro");
+            const priceDisabled = plan._id === "basic" ? "disabled" : "";
+            
+            // Generate feather icon based on tier
+            let tierIcon = "shield";
+            if(plan._id === "plus") tierIcon = "zap";
+            if(plan._id === "pro") tierIcon = "star";
+            
+            const html = `
+            <div class="col-xl-4 col-md-6 col-sm-12">
+                <div class="plan-card">
+                    <div class="plan-header ${headerClass}">
+                        <i data-feather="${tierIcon}" class="header-decor"></i>
+                        <h3 class="mb-0 text-white" style="font-weight: 800; letter-spacing: 0.5px;">${plan.name}</h3>
+                        <div class="price-container">
+                            <span style="font-size: 1.5rem; font-weight: 700; opacity: 0.9;">₹</span>
+                            <input type="number" id="price-${plan._id}" class="price-input" value="${plan.price_inr}" ${priceDisabled}>
+                        </div>
+                    </div>
+                    <div class="plan-body">
+                        
+                        <div class="bucket-row">
+                            <div class="bucket-icon-wrapper">
+                                <div class="bucket-icon icon-tutor"><i data-feather="message-circle" style="width:18px;height:18px;"></i></div>
+                                <div>
+                                    <div class="bucket-label">AI Tutor</div>
+                                    <div class="bucket-subtext">Total Questions</div>
+                                </div>
+                            </div>
+                            <input type="number" class="bucket-input" id="tutor-${plan._id}" value="${plan.buckets.tutor_balance_qs}">
+                        </div>
+                        
+                        <div class="bucket-row">
+                            <div class="bucket-icon-wrapper">
+                                <div class="bucket-icon icon-exam"><i data-feather="file-text" style="width:18px;height:18px;"></i></div>
+                                <div>
+                                    <div class="bucket-label">Exam Evaluator</div>
+                                    <div class="bucket-subtext">Papers</div>
+                                </div>
+                            </div>
+                            <input type="number" class="bucket-input" id="exam-${plan._id}" value="${plan.buckets.exam_balance}">
+                        </div>
+                        
+                        <div class="bucket-row">
+                            <div class="bucket-icon-wrapper">
+                                <div class="bucket-icon icon-class"><i data-feather="video" style="width:18px;height:18px;"></i></div>
+                                <div>
+                                    <div class="bucket-label">Digital Tuition</div>
+                                    <div class="bucket-subtext">Sessions</div>
+                                </div>
+                            </div>
+                            <input type="number" class="bucket-input" id="class-${plan._id}" value="${plan.buckets.class_balance}">
+                        </div>
+                        
+                        <div class="bucket-row">
+                            <div class="bucket-icon-wrapper">
+                                <div class="bucket-icon icon-voice"><i data-feather="mic" style="width:18px;height:18px;"></i></div>
+                                <div>
+                                    <div class="bucket-label">Voice Assistant</div>
+                                    <div class="bucket-subtext">Minutes</div>
+                                </div>
+                            </div>
+                            <input type="number" class="bucket-input" id="voice-${plan._id}" value="${plan.buckets.voice_balance_mins}">
+                        </div>
+                        
+                        <button class="save-btn ${headerClass}" onclick="savePlan('${plan._id}')">
+                            <i data-feather="save" style="width:18px;height:18px;margin-right:8px;"></i> Save Plan Setup
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+            
+            container.innerHTML += html;
+        });
+        feather.replace();
+    }
+
+    async function savePlan(tier_id) {
+        const price = document.getElementById(`price-${tier_id}`).value;
+        const tutor = document.getElementById(`tutor-${tier_id}`).value;
+        const exam = document.getElementById(`exam-${tier_id}`).value;
+        const cls = document.getElementById(`class-${tier_id}`).value;
+        const voice = document.getElementById(`voice-${tier_id}`).value;
+        
+        const payload = {
+            price_inr: parseInt(price),
+            buckets: {
+                tutor_balance_qs: parseInt(tutor),
+                exam_balance: parseInt(exam),
+                class_balance: parseInt(cls),
+                voice_balance_mins: parseInt(voice)
+            }
+        };
+        
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/plans/${tier_id}`, {
+                method: "PUT",
+                headers: { 
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const json = await res.json();
+            if (json.status_code === 200) {
+                const toast = new bootstrap.Toast(document.getElementById('liveToast'));
+                toast.show();
+            } else {
+                alert("Failed to update plan");
+            }
+        } catch (e) {
+            console.error("Error saving plan:", e);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadPlans();
+    });
+</script>
+{% endblock %}

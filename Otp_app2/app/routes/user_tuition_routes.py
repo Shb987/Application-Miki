@@ -11,6 +11,11 @@ from pydantic import BaseModel
 from bson import ObjectId
 import os
 from openai import AsyncOpenAI
+from app.utils.usage_guard import check_and_use_quota, has_premium_access
+
+async def check_premium(student_id: str):
+    if not await has_premium_access(student_id):
+        raise HTTPException(status_code=403, detail="Digital Tuition is a Premium feature. Please upgrade to Plus or Pro.")
 
 router = APIRouter(tags=["Digital Tuition"])
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -84,6 +89,7 @@ async def setup_timetable(
     Parent slots setter. Strictly appends new slots (e.g., adding a subject on a different day) 
     without replacing/overwriting any existing slots unless they are exact duplicates.
     """
+    await check_premium(config.student_id)
     subjects_in_request = list(set([slot.subject for slot in config.slots]))
     
     # 1. Fetch Existing Config & Append
@@ -148,6 +154,7 @@ async def remove_subject_from_timetable(
     current_user: dict = Depends(admin_or_user)
 ):
     """Safely removes a subject from the student's timetable and deletes its uncompleted sessions."""
+    await check_premium(student_id)
     try:
         s_oid = ObjectId(student_id)
     except:
@@ -181,6 +188,7 @@ async def remove_specific_slot(
     current_user: dict = Depends(admin_or_user)
 ):
     """Deletes a specific day/time slot for a subject, and remaps the remaining future sessions."""
+    await check_premium(student_id)
     existing_config = await db.student_timetable_configs.find_one({"student_id": student_id})
     if not existing_config or "slots" not in existing_config:
         raise HTTPException(status_code=404, detail="No configuration found")
@@ -222,6 +230,7 @@ async def remove_specific_slot(
 @router.get("/user/tuition/timetable-config/{student_id}")
 async def get_timetable_config(student_id: str, current_user: dict = Depends(admin_or_user)):
     """Fetch the raw slot configuration for a student to pre-fill the frontend scheduler UI."""
+    await check_premium(student_id)
     doc = await db.student_timetable_configs.find_one({"student_id": student_id})
     if not doc:
         return {"status_code": 200, "data": []}
@@ -231,6 +240,7 @@ async def get_timetable_config(student_id: str, current_user: dict = Depends(adm
 @router.get("/user/tuition/schedule/{student_id}")
 async def get_student_schedule(student_id: str, current_user: dict = Depends(admin_or_user)):
     """Fetch user's allocated class sessions (the schedule loop)."""
+    await check_premium(student_id)
     try:
         s_oid = ObjectId(student_id)
     except:
@@ -349,6 +359,10 @@ async def start_session(session_id: str = Body(...), current_user: dict = Depend
 
     # 2. Mark as Active and Present
     if can_join:
+        # 🚨 Check & Use Quota (1 class session)
+        student_id_str = str(session.get("student_id"))
+        await check_and_use_quota(student_id_str, "class", cost=1)
+
         await db.tuition_sessions.update_one(
             {"_id": s_oid},
             {"$set": {
@@ -467,7 +481,7 @@ async def tuition_session_chat(
 
     # Call AI
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=messages,
         temperature=0.5
     )

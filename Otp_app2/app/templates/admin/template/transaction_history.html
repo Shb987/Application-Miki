@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction History - Miki Admin{% endblock %}
+
+{% block head %}
+<style>
+    .metric-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+        border: 1px solid #f0f0f0;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-icon-bg {
+        position: absolute;
+        right: -10px;
+        top: -10px;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        opacity: 0.05;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .metric-icon-bg i { width: 50px; height: 50px; }
+    
+    .metric-title {
+        font-size: 0.95rem;
+        color: #888;
+        font-weight: 600;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .metric-value {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #2b2b2b;
+    }
+    
+    .data-table-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+        border: 1px solid #f0f0f0;
+        overflow: hidden;
+    }
+    
+    .data-table-header {
+        padding: 20px 25px;
+        border-bottom: 1px solid #f5f5f5;
+        background: #fdfdfd;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .badge-tier-basic { background: #8ca5c9; color: #fff; }
+    .badge-tier-plus { background: #7366ff; color: #fff; }
+    .badge-tier-pro { background: #f73164; color: #fff; }
+    
+    .badge-status-success { background: rgba(84, 186, 74, 0.1); color: #54ba4a; }
+    .badge-status-failed { background: rgba(247, 49, 100, 0.1); color: #f73164; }
+    .badge-status-pending { background: rgba(255, 159, 64, 0.1); color: #ff9f40; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4><i data-feather="dollar-sign" style="width:20px;height:20px;color:#7366ff;margin-right:8px;"></i> Transaction History</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg class="stroke-icon"><use href="/assets/svg/icon-sprite.svg#stroke-home"></use></svg></a></li>
+                    <li class="breadcrumb-item">Subscriptions</li>
+                    <li class="breadcrumb-item active">Transactions</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Revenue Card -->
+        <div class="col-md-6 col-lg-4">
+            <div class="metric-card">
+                <div class="metric-icon-bg" style="background: #54ba4a; color: #54ba4a;"><i data-feather="trending-up"></i></div>
+                <div class="metric-title" style="color: #54ba4a;">Total Revenue</div>
+                <div class="metric-value">₹<span id="metric-revenue">0</span></div>
+            </div>
+        </div>
+        
+        <!-- Transactions Card -->
+        <div class="col-md-6 col-lg-4">
+            <div class="metric-card">
+                <div class="metric-icon-bg" style="background: #7366ff; color: #7366ff;"><i data-feather="credit-card"></i></div>
+                <div class="metric-title" style="color: #7366ff;">Total Transactions</div>
+                <div class="metric-value" id="metric-count">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="data-table-card">
+                <div class="data-table-header">
+                    <h5 class="mb-0" style="font-weight: 700;">Payment Orders</h5>
+                    <button class="btn btn-primary btn-sm" onclick="loadTransactions()"><i data-feather="refresh-cw" style="width:14px;height:14px;margin-right:4px;"></i> Refresh</button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="transactions-table">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="py-3 px-4">Date</th>
+                                    <th>Order ID</th>
+                                    <th>Student</th>
+                                    <th>Tier</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-body">
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="spinner-border text-primary"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const token = window.token || localStorage.getItem("admin_token");
+    const API_BASE = window.API_BASE;
+
+    async function loadTransactions() {
+        document.getElementById("transactions-body").innerHTML = `<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>`;
+        
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/transactions`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const json = await res.json();
+            
+            if (json.status_code === 200) {
+                document.getElementById("metric-revenue").innerText = json.total_revenue.toLocaleString('en-IN');
+                document.getElementById("metric-count").innerText = json.total_transactions;
+                
+                const tbody = document.getElementById("transactions-body");
+                tbody.innerHTML = "";
+                
+                if (json.transactions.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No transactions found.</td></tr>`;
+                    return;
+                }
+                
+                json.transactions.forEach(t => {
+                    const date = new Date(t.created_at).toLocaleString();
+                    const amount = (t.amount / 100).toLocaleString('en-IN'); // assuming paise
+                    
+                    let tierBadge = "badge-tier-basic";
+                    if (t.tier === "plus") tierBadge = "badge-tier-plus";
+                    if (t.tier === "pro") tierBadge = "badge-tier-pro";
+                    
+                    let statusBadge = "badge-status-pending";
+                    if (t.status === "success" || t.status === "paid") statusBadge = "badge-status-success";
+                    if (t.status === "failed") statusBadge = "badge-status-failed";
+                    
+                    const row = `
+                    <tr>
+                        <td class="px-4">${date}</td>
+                        <td style="font-family: monospace; font-size: 0.85rem; color: #555;">${t.order_id || t.payment_id || "N/A"}</td>
+                        <td><strong>${t.student_name}</strong></td>
+                        <td><span class="badge ${tierBadge}" style="text-transform:uppercase;">${t.tier}</span></td>
+                        <td style="font-weight: 700;">₹${amount}</td>
+                        <td><span class="badge ${statusBadge}" style="text-transform:uppercase; font-size:0.75rem;">${t.status}</span></td>
+                    </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            }
+        } catch (e) {
+            console.error("Error loading transactions:", e);
+            document.getElementById("transactions-body").innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Error loading data.</td></tr>`;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadTransactions();
+    });
+</script>
+{% endblock %}

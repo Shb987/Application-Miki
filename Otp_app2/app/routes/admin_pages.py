@@ -153,6 +153,11 @@ async def user_management_page(request: Request):
     """User Management page — search, filter, delete students & parents"""
     return templates.TemplateResponse("user_management.html", {"request": request})
 
+@router.get("/student-profile-page", response_class=HTMLResponse)
+async def student_profile_page(request: Request, id: str):
+    """Dedicated Student Profile Dashboard"""
+    return templates.TemplateResponse("student_profile.html", {"request": request, "student_id": id})
+
 
 @router.get("/notification-center-page", response_class=HTMLResponse)
 async def notification_center_page(request: Request):
@@ -165,3 +170,12 @@ async def games_management_page(request: Request):
     """Games Management — Wordle & Squares admin UI"""
     return templates.TemplateResponse("games_management.html", {"request": request})
 
+@router.get("/manage-plans-page", response_class=HTMLResponse)
+async def manage_plans_page(request: Request):
+    """Admin page to view and edit subscription plans"""
+    return templates.TemplateResponse("manage_plans.html", {"request": request})
+
+@router.get("/transaction-history-page", response_class=HTMLResponse)
+async def transaction_history_page(request: Request):
+    """Admin page to view all subscription transactions"""
+    return templates.TemplateResponse("transaction_history.html", {"request": request})

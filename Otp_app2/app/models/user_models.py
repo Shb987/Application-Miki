@@ -1,19 +1,32 @@
-from pydantic import BaseModel,field_validator
-from typing import Optional
+from pydantic import BaseModel, field_validator
+from typing import Optional, Dict, Any
+from datetime import datetime
 
 class UserCreate(BaseModel):
     mobile_number: str
     student_id: str
 
+class UsageBuckets(BaseModel):
+    exam_balance: int = 1
+    voice_balance_mins: int = 2
+    tutor_balance_qs: int = 5
+    class_balance: int = 2
+
+class SubscriptionInfo(BaseModel):
+    current_tier: str = "basic"
+    last_recharge_date: Optional[datetime] = None
+
 class Student(BaseModel):
     student_name: str
     dob: str
     student_class: str
-    age:str
+    age: str
     address: str
     guardian_name: str
-    parent_mobile: str   # <-- instead of passing student_id, we link with parent number
+    parent_mobile: str
     image_url: Optional[str] = None
+    subscription: Optional[SubscriptionInfo] = SubscriptionInfo()
+    usage_buckets: Optional[UsageBuckets] = UsageBuckets()
 
 
 class StudentUpdate(BaseModel):

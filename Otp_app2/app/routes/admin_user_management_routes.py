@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime, timezone
@@ -173,6 +174,40 @@ async def deactivate_student(
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Student not found")
     return {"status": "success", "message": "Student deactivated"}
+
+
+class QuotaUpdate(BaseModel):
+    bucket: str
+    new_value: int
+
+@router.patch("/admin-panel/users/student/{student_id}/quotas")
+async def update_student_quotas(
+    student_id: str,
+    payload: QuotaUpdate,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Manually update a student's usage quota."""
+    try:
+        s_oid = ObjectId(student_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+        
+    allowed_buckets = ["tutor_balance_qs", "exam_balance", "class_balance", "voice_balance_mins"]
+    if payload.bucket not in allowed_buckets:
+        raise HTTPException(status_code=400, detail="Invalid bucket name")
+        
+    if payload.new_value < 0:
+        raise HTTPException(status_code=400, detail="Quota cannot be negative")
+
+    result = await db.students.update_one(
+        {"_id": s_oid},
+        {"$set": {f"usage_buckets.{payload.bucket}": payload.new_value}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    return {"status": "success", "message": f"Updated {payload.bucket} to {payload.new_value}"}
 
 
 # ──────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ from openai import AsyncOpenAI
 from bson import ObjectId
 from app.utils.ai_usage_logger import log_ai_usage
 from fastapi import BackgroundTasks
+from app.utils.usage_guard import check_and_use_quota
 
 from ddgs import DDGS
 import numpy as np
@@ -156,6 +157,9 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
     """
     student_id = payload.student_id
     user_message = payload.message
+
+    # 🚨 Check & Use Quota
+    await check_and_use_quota(student_id, "tutor", cost=1)
 
     # 1. Verify Student
     student = await db.students.find_one({"_id": ObjectId(student_id)})

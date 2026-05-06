@@ -53,6 +53,14 @@ async def register_student(
         
         image_url = f"uploads/student_images/{file_name}"
 
+    basic_plan = await db.subscription_plans.find_one({"_id": "basic"})
+    initial_buckets = basic_plan.get("buckets", {}) if basic_plan else {
+        "exam_balance": 1,
+        "voice_balance_mins": 2,
+        "tutor_balance_qs": 5,
+        "class_balance": 0
+    }
+
     # 1️⃣ Create student document
     student_doc = {
         "student_name": student_name,
@@ -63,6 +71,8 @@ async def register_student(
         "guardian_name": guardian_name,
         "image_url": image_url,
         "created_at": datetime.now(timezone.utc),
+        "subscription": {"current_tier": "basic", "last_recharge_date": None},
+        "usage_buckets": initial_buckets,
         "is_user": is_user,
         "is_new_user": True
     }
@@ -144,6 +154,14 @@ async def register_student_public(
         
         image_url = f"uploads/student_images/{file_name}"
 
+    basic_plan = await db.subscription_plans.find_one({"_id": "basic"})
+    initial_buckets = basic_plan.get("buckets", {}) if basic_plan else {
+        "exam_balance": 1,
+        "voice_balance_mins": 2,
+        "tutor_balance_qs": 5,
+        "class_balance": 0
+    }
+
     # 2️⃣ Create Student Document
     student_doc = {
         "student_name": student_name,
@@ -154,6 +172,8 @@ async def register_student_public(
         "guardian_name": guardian_name,
         "image_url": image_url,
         "created_at": datetime.now(timezone.utc),
+        "subscription": {"current_tier": "basic", "last_recharge_date": None},
+        "usage_buckets": initial_buckets,
         "is_user": False,  # Child is not the user
         "is_new_user": True
     }

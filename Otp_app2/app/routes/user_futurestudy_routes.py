@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from openai import AsyncOpenAI
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -7,9 +7,15 @@ import os
 import json
 from datetime import datetime, timezone
 from app.utils.ai_usage_logger import log_ai_usage
+from app.utils.user_auth import get_current_user
+from app.utils.usage_guard import has_premium_access
 
 # Load environment variables
 load_dotenv()
+
+async def check_premium(student_id: str):
+    if not await has_premium_access(student_id):
+        raise HTTPException(status_code=403, detail="Career & Study Roadmap is a Premium feature. Please upgrade to Plus or Pro.")
 
 router = APIRouter(
     tags=["User_Futurestudy Module"]
@@ -34,7 +40,9 @@ def extract_json(text: str):
 
 # ---------- API ----------
 @router.get("/{student_id}")
-async def generate_future_study_guidance(student_id: str):
+async def generate_future_study_guidance(student_id: str, current_user: dict = Depends(get_current_user)):
+    await check_premium(student_id)
+
     # Fetch student details
     student = await db.students.find_one({"student_id": student_id})
     if not student:

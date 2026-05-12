@@ -1,9 +1,13 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException, Depends, Body
 from app.core.database import db
 from app.utils.admin_auth import get_current_admin
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
+# pyrefly: ignore [missing-import]
 from bson import ObjectId
+
+from app.utils.user_auth import admin_or_user
 
 router = APIRouter(tags=["Admin Plan Management"])
 
@@ -17,7 +21,7 @@ def serialize_doc(doc: dict) -> dict:
     return result
 
 @router.get("/plans")
-async def get_all_plans(current_admin: dict = Depends(get_current_admin)):
+async def get_all_plans():
     """Fetch all subscription plans"""
     cursor = db.subscription_plans.find({})
     plans = await cursor.to_list(length=None)

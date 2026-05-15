@@ -100,7 +100,7 @@ async def get_all_transactions(
     
     # Calculate some quick stats
     pipeline = [
-        {"$match": {"status": "success"}},
+        {"$match": {"status": "paid"}},
         {"$group": {"_id": None, "total_revenue": {"$sum": "$amount"}}}
     ]
     stats_cursor = db.payment_orders.aggregate(pipeline)
@@ -130,7 +130,7 @@ async def get_all_transactions(
         
     return {
         "status_code": 200,
-        "total_revenue": total_revenue / 100, # Assuming Razorpay amount is in paise
+        "total_revenue": total_revenue, # Stored in INR already
         "total_transactions": total_count,
         "transactions": result
     }

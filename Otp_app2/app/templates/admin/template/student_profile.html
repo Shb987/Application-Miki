@@ -571,7 +571,7 @@
                 
                 json.transactions.forEach(t => {
                     const date = new Date(t.created_at).toLocaleString();
-                    const amount = (t.amount / 100).toLocaleString('en-IN');
+                    const amount = t.amount.toLocaleString('en-IN');
                     let statusBadge = "bg-warning";
                     if (t.status === "success" || t.status === "paid") statusBadge = "bg-success";
                     if (t.status === "failed") statusBadge = "bg-danger";

@@ -175,7 +175,7 @@
                 
                 json.transactions.forEach(t => {
                     const date = new Date(t.created_at).toLocaleString();
-                    const amount = (t.amount / 100).toLocaleString('en-IN'); // assuming paise
+                    const amount = t.amount.toLocaleString('en-IN'); // Already in INR
                     
                     let tierBadge = "badge-tier-basic";
                     if (t.tier === "plus") tierBadge = "badge-tier-plus";

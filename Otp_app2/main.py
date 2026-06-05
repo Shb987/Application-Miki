@@ -13,12 +13,13 @@ from app.routes import (
     companion_routes, chat_routes, ai_tutor_routes,
     admin_tutorial_routes, user_tutorial_routes,
     user_analysis_routes, admin_analysis_routes, user_game_wordle, user_game_squares,
-    user_game_chess,
+    user_game_chess, user_game_puzzle,
     admin_special_day_routes, user_special_day_routes, voice_assistant_routes,
     admin_stats_routes, admin_user_management_routes,
     admin_notification_routes, admin_games_routes, user_tuition_routes,
     payment_routes, admin_plan_routes
-)
+) 
+
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
@@ -82,6 +83,7 @@ app.mount("/uploads", StaticFiles(directory="app/static/uploads"), name="uploads
 app.mount("/subject_images", StaticFiles(directory="app/static/subject_images"), name="subject_images")
 app.mount("/Domain_pictures", StaticFiles(directory="app/static/Domain_pictures"), name="Domain_pictures")
 app.mount("/generated_papers", StaticFiles(directory="app/static/generated_papers"), name="generated_papers")
+app.mount("/static/games", StaticFiles(directory="app/static/games"), name="games")
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])
 app.include_router(admin_exam_routes.router,prefix="/admin-panel", tags=["Exam Module"])
@@ -110,6 +112,7 @@ app.include_router(user_analysis_routes.router, prefix="/user", tags=["Analytics
 app.include_router(user_game_wordle.router, prefix="/user", tags=["Game - Wordle"])
 app.include_router(user_game_squares.router, prefix="/user", tags=["Game - Squares"])
 app.include_router(user_game_chess.router, prefix="/user", tags=["Game - Chess"])
+app.include_router(user_game_puzzle.router, prefix="/user", tags=["Game - Puzzle"])
 
 # Special Days
 app.include_router(admin_special_day_routes.router, prefix="/admin-panel", tags=["Special Days - Admin"])

@@ -35,6 +35,7 @@ def serialize(doc: dict) -> dict:
 async def search_students(
     name: Optional[str] = Query(None, description="Filter by student name (partial match)"),
     student_class: Optional[str] = Query(None, description="Filter by class (e.g. '5')"),
+    school_id: Optional[str] = Query(None, description="Filter by school ID"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     current_admin: dict = Depends(get_current_admin)
@@ -45,10 +46,31 @@ async def search_students(
         query["student_name"] = {"$regex": name, "$options": "i"}
     if student_class:
         query["student_class"] = student_class
+    if school_id:
+        query["school_id"] = school_id
 
     total = await db.students.count_documents(query)
     cursor = db.students.find(query).sort("created_at", -1).skip(skip).limit(limit)
     students = await cursor.to_list(length=limit)
+
+    school_ids = list(set([s.get("school_id") for s in students if s.get("school_id")]))
+    school_map = {}
+    if school_ids:
+        valid_school_ids = []
+        for sid in school_ids:
+            try:
+                valid_school_ids.append(ObjectId(sid))
+            except:
+                pass
+        if valid_school_ids:
+            s_cursor = db.schools.find({"_id": {"$in": valid_school_ids}})
+            async for school in s_cursor:
+                school_map[str(school["_id"])] = school.get("name")
+
+    for s in students:
+        sid = s.get("school_id")
+        if sid and sid in school_map:
+            s["school_name"] = school_map[sid]
 
     return {
         "status": "success",

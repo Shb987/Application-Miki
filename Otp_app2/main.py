@@ -17,7 +17,8 @@ from app.routes import (
     admin_special_day_routes, user_special_day_routes, voice_assistant_routes,
     admin_stats_routes, admin_user_management_routes,
     admin_notification_routes, admin_games_routes, user_tuition_routes,
-    payment_routes, admin_plan_routes
+    payment_routes, admin_plan_routes, admin_school_routes, public_school_routes,
+    external_registration_routes
 ) 
 
 from fastapi.responses import JSONResponse
@@ -133,3 +134,10 @@ app.include_router(user_tuition_routes.router,prefix="",tags=["Digital Tuition"]
 
 # Payment & Subscriptions
 app.include_router(payment_routes.router)
+
+# Schools
+app.include_router(admin_school_routes.router, prefix="/admin-panel", tags=["Admin Schools"])
+app.include_router(public_school_routes.router, prefix="/public", tags=["Public Schools"])
+
+# External Partner API
+app.include_router(external_registration_routes.router, prefix="/api/v1", tags=["External Registration"])

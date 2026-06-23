@@ -385,6 +385,10 @@
                         style="max-width:140px;border-radius:8px;font-size:0.85rem;">
                         <option value="">All Classes</option>
                     </select>
+                    <select id="filter-school" class="form-select"
+                        style="max-width:200px;border-radius:8px;font-size:0.85rem;">
+                        <option value="">All Schools</option>
+                    </select>
                     <button class="btn btn-primary btn-sm" style="border-radius:8px;" onclick="loadStudents()">
                         <i data-feather="search" style="width:13px;height:13px;"></i> Search
                     </button>
@@ -539,9 +543,11 @@
         if (reset) studentSkip = 0;
         const name = document.getElementById("search-name").value.trim();
         const cls = document.getElementById("filter-class").value;
+        const schoolId = document.getElementById("filter-school").value;
         let url = `${API_BASE}/admin-panel/users/students?skip=${studentSkip}&limit=${studentLimit}`;
         if (name) url += `&name=${encodeURIComponent(name)}`;
         if (cls) url += `&student_class=${encodeURIComponent(cls)}`;
+        if (schoolId) url += `&school_id=${encodeURIComponent(schoolId)}`;
         document.getElementById("students-table-wrapper").innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
         const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
@@ -553,13 +559,14 @@
             return;
         }
         let html = `<table class="table table-hover table-bordered">
-    <thead class="table-dark"><tr><th>#</th><th>Name</th><th>Class</th><th>DOB</th><th>Guardian</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+    <thead class="table-dark"><tr><th>#</th><th>Name</th><th>Class</th><th>School</th><th>DOB</th><th>Guardian</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
         json.data.forEach((s, i) => {
             const isActive = s.is_active !== false;
             html += `<tr>
         <td>${studentSkip + i + 1}</td>
         <td><strong>${s.student_name || "—"}</strong></td>
         <td><span class="class-badge">Class ${s.student_class || "—"}</span></td>
+        <td>${s.school_name || "—"}</td>
         <td>${s.dob || "—"}</td>
         <td>${s.guardian_name || "—"}</td>
         <td><span class="badge ${isActive ? "bg-success" : "bg-secondary"}">${isActive ? "Active" : "Inactive"}</span></td>
@@ -581,6 +588,7 @@
     function clearSearch() {
         document.getElementById("search-name").value = "";
         document.getElementById("filter-class").value = "";
+        document.getElementById("filter-school").value = "";
         loadStudents(true);
     }
 
@@ -690,11 +698,30 @@
         setTimeout(() => { el.style.display = "none"; }, 3000);
     }
 
+    async function loadSchoolsFilter() {
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/schools`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            const sel = document.getElementById("filter-school");
+            if (json.data && Array.isArray(json.data)) {
+                json.data.forEach(s => {
+                    const opt = document.createElement("option");
+                    opt.value = s._id;
+                    opt.textContent = s.name;
+                    sel.appendChild(opt);
+                });
+            }
+        } catch (err) {
+            console.error("Error loading schools filter:", err);
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         const params = new URLSearchParams(window.location.search);
         const tab = params.get("tab") || "overview";
         switchTab(tab);
         loadClasses();
+        loadSchoolsFilter();
         loadStudents();
         document.getElementById("search-name").addEventListener("keydown", e => { if (e.key === "Enter") loadStudents(true); });
     });

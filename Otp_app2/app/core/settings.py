@@ -25,4 +25,7 @@ class Settings:
     # YouTube API
     YOUTUBE_API_KEY: str = os.getenv("YOUTUBE_API_KEY")
 
+    # External Partner API Key (used by external apps to register students)
+    EXTERNAL_API_KEY: str = os.getenv("EXTERNAL_API_KEY", "miki-external-api-key-change-me")
+
 settings = Settings()

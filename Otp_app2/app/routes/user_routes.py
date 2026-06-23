@@ -36,6 +36,7 @@ async def register_student(
     guardian_name: str = Form(...),
     parent_mobile: str = Query(...),
     profile_image: Optional[UploadFile] = File(None),
+    school_id: Optional[str] = Form(None),
     current=Depends(admin_or_user)
 ):
     usertype = current.get("usertype")
@@ -74,7 +75,8 @@ async def register_student(
         "subscription": {"current_tier": "basic", "last_recharge_date": None},
         "usage_buckets": initial_buckets,
         "is_user": is_user,
-        "is_new_user": True
+        "is_new_user": True,
+        "school_id": school_id
     }
 
     # ✅ INSERT STUDENT ONCE
@@ -136,7 +138,8 @@ async def register_student_public(
     address: str = Form(...),
     guardian_name: str = Form(...),
     parent_mobile: str = Form(...),  # Required for public registration
-    profile_image: Optional[UploadFile] = File(None)
+    profile_image: Optional[UploadFile] = File(None),
+    school_id: Optional[str] = Form(None)
 ):
     """
     Public endpoint for parents to register students without logging in first.
@@ -175,7 +178,8 @@ async def register_student_public(
         "subscription": {"current_tier": "basic", "last_recharge_date": None},
         "usage_buckets": initial_buckets,
         "is_user": False,  # Child is not the user
-        "is_new_user": True
+        "is_new_user": True,
+        "school_id": school_id
     }
 
     # Insert into DB
@@ -216,6 +220,7 @@ async def update_student(
     age: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
     guardian_name: Optional[str] = Form(None),
+    school_id: Optional[str] = Form(None),
     profile_image: Optional[UploadFile] = File(None),
     current=Depends(admin_or_user)
 ):
@@ -236,6 +241,7 @@ async def update_student(
         update_data["age"] = age
     if address is not None: update_data["address"] = address
     if guardian_name is not None: update_data["guardian_name"] = guardian_name
+    if school_id is not None: update_data["school_id"] = school_id
 
     if profile_image:
         file_extension = os.path.splitext(profile_image.filename)[1]

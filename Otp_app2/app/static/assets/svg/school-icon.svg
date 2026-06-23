@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simple solid white school/building icon -->
+  <path d="M8 44 H56 V56 H8 Z" fill="white"/>
+  <path d="M12 44 V28 L32 12 L52 28 V44" fill="none" stroke="white" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M24 44 V32 H40 V44" fill="none" stroke="white" stroke-width="3"/>
+</svg>

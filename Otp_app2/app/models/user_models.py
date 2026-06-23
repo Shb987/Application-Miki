@@ -27,6 +27,7 @@ class Student(BaseModel):
     image_url: Optional[str] = None
     subscription: Optional[SubscriptionInfo] = SubscriptionInfo()
     usage_buckets: Optional[UsageBuckets] = UsageBuckets()
+    school_id: Optional[str] = None
 
 
 class StudentUpdate(BaseModel):
@@ -37,6 +38,7 @@ class StudentUpdate(BaseModel):
     address: Optional[str] = None
     guardian_name: Optional[str] = None
     image_url: Optional[str] = None
+    school_id: Optional[str] = None
 
     @field_validator("age")
     @classmethod

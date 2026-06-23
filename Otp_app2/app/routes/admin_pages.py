@@ -182,3 +182,8 @@ async def manage_plans_page(request: Request):
 async def transaction_history_page(request: Request):
     """Admin page to view all subscription transactions"""
     return templates.TemplateResponse("transaction_history.html", {"request": request})
+
+@router.get("/manage-schools-page", response_class=HTMLResponse)
+async def manage_schools_page(request: Request):
+    """Render the Manage Schools admin page."""
+    return templates.TemplateResponse("manage_schools.html", {"request": request})

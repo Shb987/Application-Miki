@@ -28,7 +28,7 @@ class Student(BaseModel):
     subscription: Optional[SubscriptionInfo] = SubscriptionInfo()
     usage_buckets: Optional[UsageBuckets] = UsageBuckets()
     school_id: Optional[str] = None
-
+    skill_profile: Optional[Dict[str, int]] = {}
 
 class StudentUpdate(BaseModel):
     student_name: Optional[str] = None
@@ -39,6 +39,7 @@ class StudentUpdate(BaseModel):
     guardian_name: Optional[str] = None
     image_url: Optional[str] = None
     school_id: Optional[str] = None
+    skill_profile: Optional[Dict[str, int]] = None
 
     @field_validator("age")
     @classmethod

@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Contributors - Miki{% endblock %}
+
+{% block head %}
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    }
+    
+    .table th {
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-top: none !important;
+        text-transform: uppercase;
+        color: #555;
+    }
+
+    .table td {
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .add-btn {
+        border-radius: 30px;
+        padding: 8px 20px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #7366ff, #51bbfe);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(115, 102, 255, 0.3);
+        transition: transform 0.2s ease;
+    }
+
+    .add-btn:hover {
+        transform: translateY(-2px);
+        color: white;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 10px 15px;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #7366ff;
+        box-shadow: 0 0 10px rgba(115, 102, 255, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4><i data-feather="users" style="width:20px;height:20px;color:#7366ff;"></i> Manage Contributors</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin-panel/manage-contributors-page"><svg class="stroke-icon">
+                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                            </svg></a></li>
+                    <li class="breadcrumb-item">Social Media</li>
+                    <li class="breadcrumb-item active">Contributors</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card glass-card">
+                <div class="card-header pb-0 bg-transparent border-0 d-flex justify-content-between align-items-center mt-3 mx-2">
+                    <div>
+                        <h5 class="mb-1 f-w-700">Social Media Contributors</h5>
+                        <p class="text-muted mb-0" style="font-size: 0.85rem;">Manage content creators for the educational social feed.</p>
+                    </div>
+                    <button class="btn add-btn d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addContributorModal">
+                        <i data-feather="plus-circle" style="width:16px;height:16px;"></i> Register Contributor
+                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="contributorsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Username</th>
+                                    <th>Status</th>
+                                    <th>Joined On</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Contributor Modal -->
+<div class="modal fade" id="addContributorModal" tabindex="-1" aria-labelledby="addContributorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+      <div class="modal-header bg-light" style="border-radius: 16px 16px 0 0; border-bottom: 1px solid #eee;">
+        <h5 class="modal-title f-w-600" id="addContributorModalLabel">
+            <i data-feather="user-plus" style="width:18px;height:18px; color:#7366ff; margin-right: 8px;"></i>
+            Register New Contributor
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="addContributorForm">
+            <div class="mb-3">
+                <label class="form-label f-w-600">Full Name</label>
+                <input type="text" id="contributorName" class="form-control" placeholder="e.g. John Doe" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label f-w-600">Username</label>
+                <input type="text" id="contributorUsername" class="form-control" placeholder="Choose a unique username" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label f-w-600">Temporary Password</label>
+                <input type="password" id="contributorPassword" class="form-control" placeholder="Enter password" required />
+            </div>
+            <button type="submit" class="btn w-100" style="background: #7366ff; color: white; border-radius: 8px; font-weight: 600; padding: 10px;">
+                Complete Registration
+            </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Posts Modal -->
+<div class="modal fade" id="viewPostsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+      <div class="modal-header bg-light" style="border-radius: 16px 16px 0 0; border-bottom: 1px solid #eee;">
+        <h5 class="modal-title f-w-600">
+            <i data-feather="layout" style="width:18px;height:18px; color:#7366ff; margin-right: 8px;"></i>
+            Posts by <span id="viewPostsAuthorName" class="text-primary"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 bg-light">
+        <div class="row g-3" id="authorPostsGrid">
+            <!-- Loaded via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        loadContributors();
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+
+        document.getElementById('addContributorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('contributorName').value,
+                username: document.getElementById('contributorUsername').value,
+                password: document.getElementById('contributorPassword').value
+            };
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerText;
+            submitBtn.innerText = "Registering...";
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/social/contributors/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.ok) {
+                    alert("Contributor registered successfully!");
+                    document.getElementById('addContributorForm').reset();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addContributorModal'));
+                    modal.hide();
+                    loadContributors();
+                } else {
+                    const errorData = await res.json();
+                    alert(`Failed: ${errorData.detail}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred");
+            } finally {
+                submitBtn.innerText = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    });
+
+    async function loadContributors() {
+        const tbody = document.querySelector('#contributorsTable tbody');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/social/contributors`);
+            const contributors = await res.json();
+            
+            tbody.innerHTML = '';
+            
+            if(contributors.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No contributors registered yet.</td></tr>';
+                return;
+            }
+
+            contributors.forEach(c => {
+                const tr = document.createElement('tr');
+                const badgeClass = c.status === 'active' ? 'bg-success' : 'bg-danger';
+                
+                const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
+                const joinedStr = new Date(c.created_at).toLocaleDateString(undefined, dateOpts);
+
+                tr.innerHTML = `
+                    <td><strong>${c.name}</strong></td>
+                    <td class="text-muted">@${c.username}</td>
+                    <td><span class="badge ${badgeClass} status-badge">${c.status}</span></td>
+                    <td>${joinedStr}</td>
+                    <td>
+                        <button class="btn btn-sm" style="background: rgba(115,102,255,0.1); color: #7366ff; border-radius: 8px; font-weight: 600;" onclick="viewAuthorPosts('${c._id}', '${c.name.replace(/'/g, "\\'")}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            View Posts
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            feather.replace();
+        } catch (err) {
+            console.error(err);
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Failed to load contributors.</td></tr>';
+        }
+    }
+
+    async function viewAuthorPosts(contributorId, authorName) {
+        document.getElementById('viewPostsAuthorName').innerText = authorName;
+        const grid = document.getElementById('authorPostsGrid');
+        grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div></div>';
+        
+        const modal = new bootstrap.Modal(document.getElementById('viewPostsModal'));
+        modal.show();
+
+        try {
+            // Note: reusing the contributor portal API endpoint since it accepts contributor_id
+            const res = await fetch(`${API_BASE}/contributor/content?contributor_id=${contributorId}`);
+            const contents = await res.json();
+
+            if (contents.length === 0) {
+                grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">This contributor has not published any content yet.</div>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            contents.forEach(c => {
+                const tagsHtml = c.skill_tags.map(t => `<span class="badge" style="background: rgba(115,102,255,0.1); color: #7366ff; margin-right: 4px;">${t}</span>`).join('');
+                
+                const imageHtml = (c.media_type === 'image' && c.media_url)
+                    ? `<img src="${c.media_url}" alt="${c.title}" style="width:100%; height:140px; object-fit:cover; border-radius:10px 10px 0 0;" onerror="this.style.display='none'">`
+                    : '';
+                
+                grid.innerHTML += `
+                    <div class="col-md-4">
+                        <div class="card h-100" style="border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 12px; overflow: hidden;">
+                            ${imageHtml}
+                            <div class="card-body">
+                                <h6 class="card-title f-w-700">${c.title}</h6>
+                                <p class="card-text text-muted" style="font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${c.description}</p>
+                                <div class="mb-2" style="font-size: 0.8rem;">
+                                    <span class="badge bg-secondary text-uppercase me-1">${c.media_type}</span>
+                                    <span class="text-muted">Class ${c.target_class || 'All'}</span>
+                                </div>
+                                <div>${tagsHtml}</div>
+                            </div>
+                            <div class="card-footer bg-white d-flex justify-content-between align-items-center" style="border-top: 1px solid #f8f9fa;">
+                                <small style="color:#51bbfe; font-weight:600;">
+                                    <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='vertical-align:middle;margin-right:3px;'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'></path><circle cx='12' cy='12' r='3'></circle></svg>${c.views_count}
+                                </small>
+                                <small style="color:#f73164; font-weight:600;">
+                                    <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='vertical-align:middle;margin-right:3px;'><path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'></path></svg>${c.likes_count}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            feather.replace();
+        } catch (err) {
+            console.error(err);
+            grid.innerHTML = '<div class="col-12 text-center py-5 text-danger">Failed to load posts.</div>';
+        }
+    }
+</script>
+{% endblock %}

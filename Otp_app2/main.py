@@ -18,7 +18,7 @@ from app.routes import (
     admin_stats_routes, admin_user_management_routes,
     admin_notification_routes, admin_games_routes, user_tuition_routes,
     payment_routes, admin_plan_routes, admin_school_routes, public_school_routes,
-    external_registration_routes
+    external_registration_routes, admin_social_routes, contributor_routes, user_social_routes
 ) 
 
 from fastapi.responses import JSONResponse
@@ -141,3 +141,8 @@ app.include_router(public_school_routes.router, prefix="/public", tags=["Public 
 
 # External Partner API
 app.include_router(external_registration_routes.router, prefix="/api/v1", tags=["External Registration"])
+
+# Social Media Module
+app.include_router(admin_social_routes.router, prefix="/admin-panel/social", tags=["Admin Social"])
+app.include_router(contributor_routes.router, prefix="/contributor", tags=["Contributor Social"])
+app.include_router(user_social_routes.router, prefix="/user/social", tags=["User Social"])

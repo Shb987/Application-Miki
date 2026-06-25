@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Social Content - Miki{% endblock %}
+
+{% block head %}
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    }
+    
+    .table th {
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-top: none !important;
+        text-transform: uppercase;
+        color: #555;
+    }
+
+    .table td {
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+
+    .tag-badge {
+        background: rgba(115, 102, 255, 0.1);
+        color: #7366ff;
+        border: 1px solid rgba(115, 102, 255, 0.2);
+        border-radius: 12px;
+        padding: 4px 10px;
+        font-size: 0.75rem;
+        margin-right: 4px;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4><i data-feather="layout" style="width:20px;height:20px;color:#7366ff;"></i> Social Content</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg class="stroke-icon">
+                                <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                            </svg></a></li>
+                    <li class="breadcrumb-item">Social Media</li>
+                    <li class="breadcrumb-item active">All Content</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card glass-card">
+                <div class="card-header pb-0 bg-transparent border-0 d-flex justify-content-between align-items-center mt-3 mx-2">
+                    <div>
+                        <h5 class="mb-1 f-w-700">Published Content</h5>
+                        <p class="text-muted mb-0" style="font-size: 0.85rem;">Review posts created by all contributors.</p>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="contentTable">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Format</th>
+                                    <th>Target Class</th>
+                                    <th>Topics</th>
+                                    <th>Metrics</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        loadContent();
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+    });
+
+    async function loadContent() {
+        const tbody = document.querySelector('#contentTable tbody');
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/social/content`);
+            const contents = await res.json();
+            
+            tbody.innerHTML = '';
+            
+            if(contents.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No content has been published yet.</td></tr>';
+                return;
+            }
+
+            contents.forEach(c => {
+                const tr = document.createElement('tr');
+                
+                const tagsHtml = c.skill_tags.map(t => `<span class="tag-badge">${t}</span>`).join('');
+                
+                // Truncate title if too long
+                const shortTitle = c.title.length > 40 ? c.title.substring(0, 40) + '...' : c.title;
+
+                tr.innerHTML = `
+                    <td><strong>${shortTitle}</strong></td>
+                    <td class="text-muted">${c.contributor_name || 'Unknown'}</td>
+                    <td><span class="badge bg-secondary text-uppercase">${c.media_type}</span></td>
+                    <td>${c.target_class ? 'Class ' + c.target_class : 'All'}</td>
+                    <td>${tagsHtml}</td>
+                    <td>
+                        <span class="me-2"><i data-feather="eye" style="width:12px;height:12px;color:#51bbfe;"></i> ${c.views_count}</span>
+                        <span><i data-feather="heart" style="width:12px;height:12px;color:#f73164;"></i> ${c.likes_count}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            feather.replace();
+        } catch (err) {
+            console.error(err);
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load content.</td></tr>';
+        }
+    }
+</script>
+{% endblock %}

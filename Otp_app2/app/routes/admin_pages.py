@@ -187,3 +187,13 @@ async def transaction_history_page(request: Request):
 async def manage_schools_page(request: Request):
     """Render the Manage Schools admin page."""
     return templates.TemplateResponse("manage_schools.html", {"request": request})
+
+@router.get("/manage-contributors-page", response_class=HTMLResponse)
+async def manage_contributors_page(request: Request):
+    """Render the Manage Contributors admin page for Social Media."""
+    return templates.TemplateResponse("manage_contributors.html", {"request": request})
+
+@router.get("/manage-social-content-page", response_class=HTMLResponse)
+async def manage_social_content_page(request: Request):
+    """Render the Manage Social Content admin page."""
+    return templates.TemplateResponse("manage_social_content.html", {"request": request})

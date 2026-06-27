@@ -5,8 +5,6 @@ from pydantic import BaseModel
 from app.core.database import db
 from app.models.social_models import SocialContentCreate, SocialContentInDB
 from app.utils.admin_auth import verify_password
-import uuid
-
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates/contributor")
 
@@ -48,13 +46,17 @@ async def create_content(content: SocialContentCreate, contributor_id: str):
     )
     
     content_dict = content_db.model_dump()
-    content_dict["_id"] = str(uuid.uuid4())
     
-    await db.social_content.insert_one(content_dict)
-    return content_db
+    result = await db.social_content.insert_one(content_dict)
+    
+    # Return the dictionary with the string ID to avoid serialization issues
+    content_dict["_id"] = str(result.inserted_id)
+    return content_dict
 
 @router.get("/content", response_model=list[SocialContentInDB])
 async def list_contributor_content(contributor_id: str):
     cursor = db.social_content.find({"contributor_id": contributor_id})
     contents = await cursor.to_list(length=100)
+    for c in contents:
+        c["_id"] = str(c["_id"])
     return contents

@@ -10,6 +10,7 @@ class ContributorCreate(BaseModel):
     status: str = "active"
 
 class ContributorInDB(ContributorCreate):
+    id: Optional[str] = Field(default=None, alias="_id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class SocialContentCreate(BaseModel):
@@ -22,6 +23,7 @@ class SocialContentCreate(BaseModel):
     skill_tags: List[str] = [] # User defined tags e.g. ['robotics', 'science']
 
 class SocialContentInDB(SocialContentCreate):
+    id: Optional[str] = Field(default=None, alias="_id")
     contributor_id: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     likes_count: int = 0

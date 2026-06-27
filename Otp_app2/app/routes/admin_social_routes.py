@@ -2,8 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.database import db
 from app.models.social_models import ContributorCreate, ContributorInDB
 from app.utils.admin_auth import get_password_hash
-import uuid
-
 router = APIRouter()
 
 @router.post("/contributors/register", response_model=ContributorInDB)
@@ -18,13 +16,12 @@ async def register_contributor(contributor: ContributorCreate):
         password=get_password_hash(contributor.password)
     )
     
-    # We add an explicit _id or let Mongo handle it, but standard here seems to be using strings if possible
-    # Let's generate a string ID for consistency
+    # We let Mongo handle the _id generation
     contributor_dict = contributor_db.model_dump()
-    contributor_dict["_id"] = str(uuid.uuid4())
     
-    await db.contributors.insert_one(contributor_dict)
-    return contributor_db
+    result = await db.contributors.insert_one(contributor_dict)
+    contributor_dict["_id"] = str(result.inserted_id)
+    return contributor_dict
 
 @router.get("/contributors")
 async def list_contributors():

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
 from pydantic import BaseModel
 from typing import List
 from app.core.database import db
@@ -13,7 +13,11 @@ class InteractionRequest(BaseModel):
     interaction_type: str # 'like' or 'view'
 
 @router.get("/feed", response_model=List[SocialContentInDB])
-async def get_social_feed(student_id: str):
+async def get_social_feed(
+    student_id: str,
+    skip: int = Query(0, ge=0, description="Number of items to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum number of items to return")
+):
     try:
         s_oid = ObjectId(student_id)
     except Exception:
@@ -34,8 +38,8 @@ async def get_social_feed(student_id: str):
             {"target_class": None}
         ]
         
-    cursor = db.social_content.find(query).sort("created_at", -1).limit(50)
-    contents = await cursor.to_list(length=50)
+    cursor = db.social_content.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    contents = await cursor.to_list(length=limit)
     for c in contents:
         c["_id"] = str(c["_id"])
     return contents

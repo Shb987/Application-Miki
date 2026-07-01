@@ -300,8 +300,19 @@
         window.location.href = "/contributor/login-page";
     }
 
+    let currentSkip = 0;
+    const LIMIT = 12;
+    let currentEditId = null;
+
     document.addEventListener("DOMContentLoaded", () => {
-        loadContent();
+        loadContent(true);
+
+        document.getElementById("addContentModal").addEventListener("hidden.bs.modal", () => {
+            document.getElementById("addContentForm").reset();
+            currentEditId = null;
+            document.querySelector("#addContentModal .modal-title").textContent = "Draft New Post";
+            document.querySelector("#addContentForm button[type=submit]").textContent = "Publish to Feed";
+        });
 
         document.getElementById("addContentForm").addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -321,19 +332,27 @@
 
             const submitBtn = e.target.querySelector('button');
             const origText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Publishing...';
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
             try {
-                const res = await fetch(`${API_BASE}/contributor/content?contributor_id=${contributorId}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
+                let res;
+                if (currentEditId) {
+                    res = await fetch(`${API_BASE}/contributor/content/${currentEditId}?contributor_id=${contributorId}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    res = await fetch(`${API_BASE}/contributor/content?contributor_id=${contributorId}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                }
                 
                 if (res.ok) {
-                    document.getElementById("addContentForm").reset();
                     bootstrap.Modal.getInstance(document.getElementById("addContentModal")).hide();
-                    loadContent();
+                    loadContent(true);
                 } else {
                     const err = await res.json();
                     alert(`Error: ${err.detail}`);
@@ -347,15 +366,24 @@
         });
     });
 
-    async function loadContent() {
+    async function loadContent(reset = false) {
         const grid = document.getElementById("contentGrid");
-        grid.innerHTML = '<div class="text-center py-5 w-100"><div class="spinner-border" style="color: #7366ff;"></div></div>';
+        if (reset) {
+            currentSkip = 0;
+            grid.innerHTML = '<div class="text-center py-5 w-100" id="loadingSpinner"><div class="spinner-border" style="color: #7366ff;"></div></div>';
+        } else {
+            const loadBtn = document.getElementById("loadMoreBtn");
+            if (loadBtn) loadBtn.remove();
+            grid.insertAdjacentHTML('beforeend', '<div class="text-center py-3 w-100" id="loadingSpinner"><div class="spinner-border spinner-border-sm" style="color: #7366ff;"></div></div>');
+        }
 
         try {
-            const res = await fetch(`${API_BASE}/contributor/content?contributor_id=${contributorId}`);
+            const res = await fetch(`${API_BASE}/contributor/content?contributor_id=${contributorId}&skip=${currentSkip}&limit=${LIMIT}`);
             const contents = await res.json();
             
-            if (contents.length === 0) {
+            document.getElementById("loadingSpinner")?.remove();
+
+            if (reset && contents.length === 0) {
                 grid.innerHTML = `
                 <div class="col-12 text-center py-5">
                     <div style="background: white; border-radius: 20px; padding: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.03);">
@@ -368,62 +396,168 @@
                 return;
             }
 
-            grid.innerHTML = '';
-            contents.forEach(c => {
-                const tagsHtml = c.skill_tags.map(t => `<span class="tag-pill">${t}</span>`).join('');
-                const mediaIcon = c.media_type === 'video' ? 'video' : (c.media_type === 'image' ? 'image' : 'file-text');
-                
-                // Show image thumbnail if it's an image post with a URL
-                const imageHtml = (c.media_type === 'image' && c.media_url)
-                    ? `<img src="${c.media_url}" alt="${c.title}" style="width:100%; height:150px; object-fit:cover; border-radius:10px; margin-bottom:14px;" onerror="this.style.display='none'">`
-                    : (c.media_type === 'video' && c.media_url)
-                    ? `<div style="background:linear-gradient(135deg,#7366ff22,#51bbfe22); border-radius:10px; height:80px; display:flex; align-items:center; justify-content:center; margin-bottom:14px;"><svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='#7366ff' stroke-width='2'><polygon points='5 3 19 12 5 21 5 3'></polygon></svg></div>`
-                    : '';
-                
-                grid.innerHTML += `
-                    <div class="col-md-4">
-                        <div class="content-card">
-                            ${imageHtml}
-                            <h5 class="card-title">${c.title}</h5>
-                            <p class="card-text" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${c.description}</p>
-                            
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span style="font-size: 0.8rem; font-weight: 600; color: #bd5fff;">
-                                    <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='margin-right:4px;vertical-align:middle;'><rect x='3' y='3' width='18' height='18' rx='2' ry='2'></rect><circle cx='8.5' cy='8.5' r='1.5'></circle><polyline points='21 15 16 10 5 21'></polyline></svg>
-                                    ${c.media_type.toUpperCase()}
-                                </span>
-                                <span style="font-size: 0.8rem; font-weight: 600; color: #51bbfe;">
-                                    <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='margin-right:4px;vertical-align:middle;'><path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'></path><circle cx='9' cy='7' r='4'></circle><path d='M23 21v-2a4 4 0 0 0-3-3.87'></path><path d='M16 3.13a4 4 0 0 1 0 7.75'></path></svg>
-                                    Class ${c.target_class || 'All'}
-                                </span>
-                            </div>
+            if (reset) grid.innerHTML = '';
 
-                            <div style="margin-bottom: auto;">
-                                ${tagsHtml}
-                            </div>
-                            
-                            <div class="stats-row">
-                                <div class="stat-item views">
-                                    <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'></path><circle cx='12' cy='12' r='3'></circle></svg> ${c.views_count}
-                                </div>
-                                <div class="stat-item likes">
-                                    <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'></path></svg> ${c.likes_count}
-                                </div>
-                            </div>
-                        </div>
+            contents.forEach(c => {
+                const col = document.createElement('div');
+                col.className = 'col-md-4';
+                
+                const card = document.createElement('div');
+                card.className = 'content-card';
+                card.style.position = 'relative';
+
+                // Image/Video placeholder
+                if (c.media_type === 'image' && c.media_url) {
+                    const img = document.createElement('img');
+                    img.src = c.media_url;
+                    img.alt = c.title || "Content Image";
+                    img.style.cssText = "width:100%; height:150px; object-fit:cover; border-radius:10px; margin-bottom:14px;";
+                    img.onerror = () => img.style.display = 'none';
+                    card.appendChild(img);
+                } else if (c.media_type === 'video' && c.media_url) {
+                    const vidDiv = document.createElement('div');
+                    vidDiv.style.cssText = "background:linear-gradient(135deg,#7366ff22,#51bbfe22); border-radius:10px; height:80px; display:flex; align-items:center; justify-content:center; margin-bottom:14px;";
+                    vidDiv.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='#7366ff' stroke-width='2'><polygon points='5 3 19 12 5 21 5 3'></polygon></svg>`;
+                    card.appendChild(vidDiv);
+                }
+
+                // Title
+                const title = document.createElement('h5');
+                title.className = 'card-title';
+                title.textContent = c.title; // Safe against XSS
+                card.appendChild(title);
+
+                // Description
+                const desc = document.createElement('p');
+                desc.className = 'card-text';
+                desc.style.cssText = "display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;";
+                desc.textContent = c.description; // Safe against XSS
+                card.appendChild(desc);
+
+                // Info Row
+                const infoRow = document.createElement('div');
+                infoRow.className = 'd-flex justify-content-between align-items-center mb-3';
+                infoRow.innerHTML = `
+                    <span style="font-size: 0.8rem; font-weight: 600; color: #bd5fff;">
+                        <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='margin-right:4px;vertical-align:middle;'><rect x='3' y='3' width='18' height='18' rx='2' ry='2'></rect><circle cx='8.5' cy='8.5' r='1.5'></circle><polyline points='21 15 16 10 5 21'></polyline></svg>
+                        ${(c.media_type || '').toUpperCase()}
+                    </span>
+                    <span style="font-size: 0.8rem; font-weight: 600; color: #51bbfe;">
+                        <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='margin-right:4px;vertical-align:middle;'><path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'></path><circle cx='9' cy='7' r='4'></circle><path d='M23 21v-2a4 4 0 0 0-3-3.87'></path><path d='M16 3.13a4 4 0 0 1 0 7.75'></path></svg>
+                        Class ${c.target_class || 'All'}
+                    </span>
+                `;
+                card.appendChild(infoRow);
+
+                // Tags
+                const tagsDiv = document.createElement('div');
+                tagsDiv.style.marginBottom = "auto";
+                if (c.skill_tags) {
+                    c.skill_tags.forEach(t => {
+                        const tagSpan = document.createElement('span');
+                        tagSpan.className = 'tag-pill';
+                        tagSpan.textContent = t;
+                        tagsDiv.appendChild(tagSpan);
+                    });
+                }
+                card.appendChild(tagsDiv);
+
+                // Action Row (Edit/Delete)
+                const actionRow = document.createElement('div');
+                actionRow.className = 'd-flex justify-content-end gap-2 mt-3';
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center';
+                editBtn.style.padding = '5px 10px';
+                editBtn.innerHTML = '<i data-feather="edit-2" style="width: 14px; height: 14px;"></i>';
+                editBtn.onclick = () => editContent(c);
+                actionRow.appendChild(editBtn);
+                
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center';
+                delBtn.style.padding = '5px 10px';
+                delBtn.innerHTML = '<i data-feather="trash-2" style="width: 14px; height: 14px;"></i>';
+                delBtn.onclick = () => deleteContent(c._id);
+                actionRow.appendChild(delBtn);
+
+                card.appendChild(actionRow);
+
+                // Stats Row
+                const statsRow = document.createElement('div');
+                statsRow.className = 'stats-row mt-3';
+                statsRow.innerHTML = `
+                    <div class="stat-item views">
+                        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'></path><circle cx='12' cy='12' r='3'></circle></svg> ${c.views_count || 0}
+                    </div>
+                    <div class="stat-item likes">
+                        <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'></path></svg> ${c.likes_count || 0}
                     </div>
                 `;
+                card.appendChild(statsRow);
+
+                col.appendChild(card);
+                grid.appendChild(col);
             });
+
             feather.replace();
+
+            if (contents.length === LIMIT) {
+                currentSkip += LIMIT;
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'col-12 text-center mt-4 mb-4';
+                btnContainer.id = 'loadMoreBtn';
+                const loadBtn = document.createElement('button');
+                loadBtn.className = 'btn btn-outline-primary px-4 py-2 rounded-pill fw-bold';
+                loadBtn.textContent = 'Load More';
+                loadBtn.onclick = () => loadContent(false);
+                btnContainer.appendChild(loadBtn);
+                grid.appendChild(btnContainer);
+            }
+
         } catch (err) {
             console.error(err);
-            grid.innerHTML = '<div class="text-center py-5 w-100 text-danger">Error loading content</div>';
+            document.getElementById("loadingSpinner")?.remove();
+            if (reset) grid.innerHTML = '<div class="text-center py-5 w-100 text-danger">Error loading content</div>';
+        }
+    }
+
+    function editContent(c) {
+        currentEditId = c._id;
+        document.getElementById("contentTitle").value = c.title;
+        document.getElementById("contentDescription").value = c.description;
+        document.getElementById("mediaType").value = c.media_type;
+        document.getElementById("mediaUrl").value = c.media_url || "";
+        document.getElementById("targetAge").value = c.target_age_group || "";
+        document.getElementById("targetClass").value = c.target_class || "";
+        document.getElementById("skillTags").value = (c.skill_tags && c.skill_tags.length > 0) ? c.skill_tags[0] : "";
+        
+        document.querySelector("#addContentModal .modal-title").textContent = "Edit Post";
+        document.querySelector("#addContentForm button[type=submit]").textContent = "Update Content";
+        
+        const modal = new bootstrap.Modal(document.getElementById("addContentModal"));
+        modal.show();
+    }
+
+    async function deleteContent(id) {
+        if (!confirm("Are you sure you want to delete this content?")) return;
+        
+        try {
+            const res = await fetch(`${API_BASE}/contributor/content/${id}?contributor_id=${contributorId}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                loadContent(true);
+            } else {
+                alert("Failed to delete content");
+            }
+        } catch(err) {
+            console.error(err);
+            alert("Error deleting content");
         }
     }
 
     function logout() {
         localStorage.removeItem("contributor_id");
-        // Cool fade out animation
         document.body.style.opacity = '0';
         document.body.style.transition = 'opacity 0.4s ease';
         setTimeout(() => {

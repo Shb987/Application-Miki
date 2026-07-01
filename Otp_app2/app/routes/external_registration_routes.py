@@ -73,17 +73,21 @@ async def external_register_student(
     payload: ExternalStudentRegistration,
     _: str = Depends(verify_api_key)
 ):
-    # ── 1. Resolve school by link ──────────────────────────────────────────
+    # ── 1. Resolve school by link or Auto-Create ───────────────────────────
     school = await db.schools.find_one({"link": payload.link})
     if not school:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No school found with link '{payload.link}'. "
-                   "Make sure the school is registered in the system."
-        )
-
-    school_id = str(school["_id"])
-    school_name = school.get("name", "")
+        school_name = payload.link.replace("-", " ").replace("_", " ").title()
+        new_school = {
+            "name": school_name,
+            "link": payload.link,
+            "created_at": datetime.now(timezone.utc),
+            "student_count": 0
+        }
+        result = await db.schools.insert_one(new_school)
+        school_id = str(result.inserted_id)
+    else:
+        school_id = str(school["_id"])
+        school_name = school.get("name", "")
 
     # ── 2. Prevent duplicate registration (same name + dob + school) ───────
     existing_student = await db.students.find_one({

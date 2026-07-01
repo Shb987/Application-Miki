@@ -12,10 +12,10 @@ async def create_school(school: SchoolCreate):
     school_dict = school.model_dump()
     school_db = SchoolInDB(**school_dict)
     
-    # Check if place_code already exists
-    existing = await db.schools.find_one({"place_code": school.place_code})
+    # Check if link already exists
+    existing = await db.schools.find_one({"link": school.link})
     if existing:
-        raise HTTPException(status_code=400, detail="School with this place code already exists")
+        raise HTTPException(status_code=400, detail="School with this link already exists")
     
     result = await db.schools.insert_one(jsonable_encoder(school_db))
     return {"message": "School created successfully", "id": str(result.inserted_id)}

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from app.core.database import db
 from app.models.social_models import SocialContentCreate, SocialContentInDB
 from app.utils.admin_auth import verify_password
+from bson import ObjectId
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates/contributor")
 
@@ -54,9 +55,52 @@ async def create_content(content: SocialContentCreate, contributor_id: str):
     return content_dict
 
 @router.get("/content", response_model=list[SocialContentInDB])
-async def list_contributor_content(contributor_id: str):
-    cursor = db.social_content.find({"contributor_id": contributor_id})
-    contents = await cursor.to_list(length=100)
+async def list_contributor_content(contributor_id: str, skip: int = 0, limit: int = 20):
+    cursor = db.social_content.find({"contributor_id": contributor_id}).sort("created_at", -1).skip(skip).limit(limit)
+    contents = await cursor.to_list(length=limit)
     for c in contents:
         c["_id"] = str(c["_id"])
     return contents
+
+@router.put("/content/{content_id}", response_model=SocialContentInDB)
+async def update_content(content_id: str, content: SocialContentCreate, contributor_id: str):
+    # Verify contributor exists
+    contributor = await db.contributors.find_one({"_id": contributor_id})
+    if not contributor:
+        raise HTTPException(status_code=404, detail="Contributor not found")
+        
+    try:
+        obj_id = ObjectId(content_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid content ID format")
+
+    # Check if content exists and belongs to contributor
+    existing = await db.social_content.find_one({"_id": obj_id, "contributor_id": contributor_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Content not found or unauthorized")
+
+    update_data = content.model_dump()
+    
+    await db.social_content.update_one(
+        {"_id": obj_id},
+        {"$set": update_data}
+    )
+    
+    updated_content = await db.social_content.find_one({"_id": obj_id})
+    updated_content["_id"] = str(updated_content["_id"])
+    return updated_content
+
+@router.delete("/content/{content_id}")
+async def delete_content(content_id: str, contributor_id: str):
+    try:
+        obj_id = ObjectId(content_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid content ID format")
+
+    # Verify content belongs to contributor
+    existing = await db.social_content.find_one({"_id": obj_id, "contributor_id": contributor_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Content not found or unauthorized")
+        
+    await db.social_content.delete_one({"_id": obj_id})
+    return {"message": "Content deleted successfully"}

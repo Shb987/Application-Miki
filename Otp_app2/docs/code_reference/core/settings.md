@@ -1,0 +1,3 @@
+# Settings
+
+::: app.core.settings

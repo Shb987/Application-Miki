@@ -1,0 +1,122 @@
+site_name: Miki Application docs
+site_description: Documentation for the FastAPI backend, API, and integrated modules.
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["."]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_if_no_docstring: true
+            heading_level: 2
+
+nav:
+  - Home: index.md
+  - Project Overview:
+      - Architecture: Architecture.md
+      - Feature Modules: Feature_Modules.md
+      - API Overview: API_Overview.md
+  - Newcomer Guide:
+      - System Entrypoint: onboarding/entrypoint.md
+      - Database & Config: onboarding/database_and_config.md
+      - Route Manifest: onboarding/Route_Manifest.md
+      - Service Manifest: onboarding/Service_Manifest.md
+      - Key Services Deep Dive: onboarding/key_services.md
+      - Utility Functions: onboarding/utility_functions.md
+  - Code Reference:
+      - Models:
+          - Admin Models: code_reference/models/admin_models.md
+          - Ai Tutor Models: code_reference/models/ai_tutor_models.md
+          - Analysis Models: code_reference/models/analysis_models.md
+          - Answer Models: code_reference/models/answer_models.md
+          - Career Models: code_reference/models/career_models.md
+          - Chat Models: code_reference/models/chat_models.md
+          - Chess Models: code_reference/models/chess_models.md
+          - Companion Models: code_reference/models/companion_models.md
+          - Notifications: code_reference/models/notifications.md
+          - Otp Models: code_reference/models/otp_models.md
+          - Question Models: code_reference/models/question_models.md
+          - Quiz Models: code_reference/models/quiz_models.md
+          - Special Day Models: code_reference/models/special_day_models.md
+          - Squares Models: code_reference/models/squares_models.md
+          - Tutorial Models: code_reference/models/tutorial_models.md
+          - User Models: code_reference/models/user_models.md
+          - Voice Assistant Models: code_reference/models/voice_assistant_models.md
+          - Wordle Models: code_reference/models/wordle_models.md
+      - Routes:
+          - Admin Analysis Routes: code_reference/routes/admin_analysis_routes.md
+          - Admin Exam Routes: code_reference/routes/admin_exam_routes.md
+          - Admin Games Routes: code_reference/routes/admin_games_routes.md
+          - Admin Notification Routes: code_reference/routes/admin_notification_routes.md
+          - Admin Pages: code_reference/routes/admin_pages.md
+          - Admin Quiz Routes: code_reference/routes/admin_quiz_routes.md
+          - Admin Routes: code_reference/routes/admin_routes.md
+          - Admin Special Day Routes: code_reference/routes/admin_special_day_routes.md
+          - Admin Stats Routes: code_reference/routes/admin_stats_routes.md
+          - Admin Tutorial Routes: code_reference/routes/admin_tutorial_routes.md
+          - Admin User Management Routes: code_reference/routes/admin_user_management_routes.md
+          - Ai Tutor Routes: code_reference/routes/ai_tutor_routes.md
+          - Chat Routes: code_reference/routes/chat_routes.md
+          - Companion Routes: code_reference/routes/companion_routes.md
+          - Exam Evaluation Routes: code_reference/routes/exam_evaluation_routes.md
+          - Otp Routes: code_reference/routes/otp_routes.md
+          - User Analysis Routes: code_reference/routes/user_analysis_routes.md
+          - User Exam Routes: code_reference/routes/user_exam_routes.md
+          - User Futurestudy Routes: code_reference/routes/user_futurestudy_routes.md
+          - User Game Chess: code_reference/routes/user_game_chess.md
+          - User Game Squares: code_reference/routes/user_game_squares.md
+          - User Game Wordle: code_reference/routes/user_game_wordle.md
+          - User Quiz Routes: code_reference/routes/user_quiz_routes.md
+          - User Routes: code_reference/routes/user_routes.md
+          - User Special Day Routes: code_reference/routes/user_special_day_routes.md
+          - User Tutorial Routes: code_reference/routes/user_tutorial_routes.md
+          - Voice Assistant Routes: code_reference/routes/voice_assistant_routes.md
+      - Services:
+          - Ai Companion Service: code_reference/services/ai_companion_service.md
+          - Ai Tutor Service: code_reference/services/ai_tutor_service.md
+          - Analysis Service: code_reference/services/analysis_service.md
+          - Chess Service: code_reference/services/chess_service.md
+          - Future Study Service: code_reference/services/future_study_service.md
+          - Notification Service: code_reference/services/notification_service.md
+          - Scheduler Service: code_reference/services/scheduler_service.md
+          - Squares Service: code_reference/services/squares_service.md
+          - Wordle Service: code_reference/services/wordle_service.md
+          - Youtube Service: code_reference/services/youtube_service.md
+      - Core:
+          - Database: code_reference/core/database.md
+          - Settings: code_reference/core/settings.md
+      - Utils:
+          - Admin Auth: code_reference/utils/admin_auth.md
+          - Ai Usage Logger: code_reference/utils/ai_usage_logger.md
+          - User Auth: code_reference/utils/user_auth.md
+      - Report:
+          - Primary Pdf Layout: code_reference/report/primary_pdf_layout.md
+          - Scert Pdf Professional: code_reference/report/scert_pdf_professional.md

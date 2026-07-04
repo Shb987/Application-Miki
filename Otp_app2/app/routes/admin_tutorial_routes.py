@@ -3,7 +3,7 @@ from typing import List, Optional
 from app.core.database import db
 from app.models.tutorial_models import YouTubeFetchRequest, TutorialModule, VideoLink
 from app.services.youtube_service import youtube_service
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 from datetime import datetime
 
 router = APIRouter(prefix="/admin/tutorials")
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/admin/tutorials")
 @router.post("/fetch-and-save")
 async def fetch_and_save_youtube_links(
     request: YouTubeFetchRequest,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Tutorials", "create"))
 ):
     """
     Fetch YouTube videos from a URL (Channel or Playlist) and save to MongoDB.
@@ -90,7 +90,7 @@ async def fetch_and_save_youtube_links(
 async def get_tutorials(
     student_class: Optional[str] = None,
     subject: Optional[str] = None,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Tutorials", "read"))
 ):
     """
     Get all stored tutorials.
@@ -113,7 +113,7 @@ async def get_tutorials(
 @router.delete("/{tutorial_id}")
 async def delete_tutorial(
     tutorial_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Tutorials", "delete"))
 ):
     """
     Delete a tutorial module.

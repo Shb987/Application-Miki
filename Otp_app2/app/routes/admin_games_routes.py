@@ -4,7 +4,7 @@ from bson import ObjectId
 from datetime import datetime
 
 from app.core.database import db
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 
 router = APIRouter(tags=["Games - Admin"])
 
@@ -31,7 +31,7 @@ async def list_wordle_words(
     search: Optional[str] = Query(None, description="Search by word"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Games", "read"))
 ):
     """List all Wordle questions with optional filters."""
     query: Dict[str, Any] = {}
@@ -54,7 +54,7 @@ async def list_wordle_words(
 @router.post("/admin-panel/games/wordle/words")
 async def add_wordle_word(
     payload: Dict[str, Any] = Body(...),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Games", "create"))
 ):
     """
     Add a new Wordle word/level.
@@ -99,7 +99,7 @@ async def add_wordle_word(
 async def update_wordle_word(
     word_id: str,
     payload: Dict[str, Any] = Body(...),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Games", "update"))
 ):
     """Update an existing Wordle word."""
     try:
@@ -137,7 +137,7 @@ async def update_wordle_word(
 @router.delete("/admin-panel/games/wordle/words/{word_id}")
 async def delete_wordle_word(
     word_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Games", "delete"))
 ):
     """Delete a Wordle word by ID."""
     try:
@@ -153,7 +153,7 @@ async def delete_wordle_word(
 
 
 @router.get("/admin-panel/games/wordle/stats")
-async def get_wordle_stats(current_admin: dict = Depends(get_current_admin)):
+async def get_wordle_stats(current_admin: dict = Depends(require_permission("Games", "read"))):
     """Returns total Wordle words per class range + total sessions."""
     pipeline = [
         {"$group": {"_id": "$class_range", "count": {"$sum": 1}}},
@@ -182,7 +182,7 @@ async def list_squares_levels(
     class_range: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Games", "read"))
 ):
     """List all Squares levels with optional class_range filter."""
     query: Dict[str, Any] = {}
@@ -206,7 +206,7 @@ async def list_squares_levels(
 @router.post("/admin-panel/games/squares/levels")
 async def add_squares_level(
     payload: Dict[str, Any] = Body(...),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Games", "create"))
 ):
     """
     Add a new Squares level.
@@ -252,7 +252,7 @@ async def add_squares_level(
 async def update_squares_level(
     level_id: str,
     payload: Dict[str, Any] = Body(...),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Games", "update"))
 ):
     """Update an existing Squares level."""
     try:
@@ -292,7 +292,7 @@ async def update_squares_level(
 @router.delete("/admin-panel/games/squares/levels/{level_id}")
 async def delete_squares_level(
     level_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Games", "delete"))
 ):
     """Delete a Squares level by ID."""
     try:
@@ -308,7 +308,7 @@ async def delete_squares_level(
 
 
 @router.get("/admin-panel/games/squares/stats")
-async def get_squares_stats(current_admin: dict = Depends(get_current_admin)):
+async def get_squares_stats(current_admin: dict = Depends(require_permission("Games", "read"))):
     """Returns total Squares levels per class range + total sessions."""
     pipeline = [
         {"$group": {"_id": "$class_range", "count": {"$sum": 1}}},

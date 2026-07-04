@@ -76,7 +76,14 @@ async def external_register_student(
     # ── 1. Resolve school by link or Auto-Create ───────────────────────────
     school = await db.schools.find_one({"link": payload.link})
     if not school:
-        school_name = payload.link.replace("-", " ").replace("_", " ").title()
+        import urllib.parse
+        parsed = urllib.parse.urlparse(payload.link)
+        if parsed.netloc:
+            # Extract subdomain (e.g., from 'school.onedusoft.in', get 'school')
+            raw_name = parsed.netloc.split('.')[0]
+            school_name = raw_name.replace("-", " ").replace("_", " ").title()
+        else:
+            school_name = payload.link.replace("-", " ").replace("_", " ").title()
         new_school = {
             "name": school_name,
             "link": payload.link,
@@ -153,8 +160,9 @@ async def external_register_student(
     )
 
     # ── 6. Update school's student count (optional convenience counter) ───
+    from bson import ObjectId
     await db.schools.update_one(
-        {"_id": school["_id"]},
+        {"_id": ObjectId(school_id)},
         {
             "$inc": {"student_count": 1},
             "$set": {"updated_at": datetime.now(timezone.utc)}

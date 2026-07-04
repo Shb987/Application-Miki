@@ -3,6 +3,7 @@ from passlib.context import CryptContext
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer
 from app.core.settings import settings
+from app.core.database import db
 from datetime import datetime, timedelta, timezone
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -36,7 +37,33 @@ def get_current_admin(token: str = Depends(oauth2_scheme)):
     username: str = payload.get("sub")
     role: str = payload.get("role")
 
-    if username is None or role != "admin":
+    if username is None or role is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     return {"sub": username, "role": role}
+
+def require_permission(module: str, action: str):
+    async def permission_checker(token: str = Depends(oauth2_scheme)):
+        payload = decode_access_token(token)
+        username: str = payload.get("sub")
+        role_name: str = payload.get("role")
+
+        if username is None or role_name is None:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        if role_name == "superadmin":
+            return {"sub": username, "role": role_name}
+            
+        role = await db.roles.find_one({"role_name": role_name})
+        if not role:
+            raise HTTPException(status_code=403, detail="Role not found")
+            
+        permissions = role.get("permissions", {})
+        module_perms = permissions.get(module, {})
+        
+        if not module_perms.get(action, False):
+            raise HTTPException(status_code=403, detail=f"Permission denied for module '{module}' with action '{action}'")
+            
+        return {"sub": username, "role": role_name}
+        
+    return permission_checker

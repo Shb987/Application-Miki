@@ -213,48 +213,10 @@
               </div>
             </div>
             <div class="col-md-6 form-group-premium">
-              <label>Link (optional)</label>
+              <label>Link</label>
               <div class="input-wrapper-premium">
-                <input type="url" class="form-control" id="link" placeholder="https://example.com" />
+                <input type="url" class="form-control" id="link" placeholder="https://example.com" required />
                 <i class="fa fa-globe"></i>
-              </div>
-            </div>
-            <div class="col-md-6 form-group-premium">
-              <label>Place Code</label>
-              <div class="input-wrapper-premium">
-                <input type="text" class="form-control" id="place_code" placeholder="e.g. 026" required />
-                <i class="fa fa-map-marker"></i>
-              </div>
-            </div>
-            <div class="col-md-6 form-group-premium">
-              <label>Address</label>
-              <div class="input-wrapper-premium">
-                <textarea class="form-control" id="address" placeholder="Enter address..." rows="2"></textarea>
-                <i class="fa fa-map-marked"></i>
-              </div>
-            </div>
-            <div class="col-md-6 form-group-premium">
-              <label>Contact Person</label>
-              <div class="input-wrapper-premium">
-                <input type="text" class="form-control" id="contact_person" placeholder="Enter contact person..." />
-                <i class="fa fa-user"></i>
-              </div>
-            </div>
-            <div class="col-md-6 form-group-premium">
-              <label>Contact Number</label>
-              <div class="input-wrapper-premium">
-                <input type="tel" class="form-control" id="contact_number" placeholder="Enter contact number..." />
-                <i class="fa fa-phone"></i>
-              </div>
-            </div>
-            <div class="col-md-6 form-group-premium">
-              <label>Status</label>
-              <div class="input-wrapper-premium">
-                <select class="form-select" id="school_status" required>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-                <i class="fa fa-toggle-on"></i>
               </div>
             </div>
           </div><!-- /.row g-2 -->
@@ -287,13 +249,9 @@
     let html = `<table class="table table-hover table-bordered school-table">
       <thead class="table-dark"><tr>        <th>#</th>
         <th>Name</th>
-        <th>Place Code</th>
         <th>Link</th>
-        <th>Status</th>
+        <th>Students</th>
         <th>Created Date</th>
-        <th>Address</th>
-        <th>Contact Person</th>
-        <th>Contact Number</th>
         <th>Actions</th></tr></thead><tbody>`;
     json.data.forEach((s, i) => {
       const statusBadge = s.status === 'inactive' ? 'bg-secondary' : 'bg-success';
@@ -301,13 +259,9 @@
       html += `<tr>
         <td>${i+1}</td>
         <td>${s.name || ''}</td>
-        <td>${s.place_code || ''}</td>
         <td>${s.link ? `<a href="${s.link}" target="_blank">Visit</a>` : ''}</td>
-        <td><span class="badge status-badge ${statusBadge}">${s.status || 'active'}</span></td>
+        <td><span class="badge bg-primary text-white rounded-pill px-3">${s.student_count || 0}</span></td>
         <td>${createdDate}</td>
-        <td>${s.address || ''}</td>
-        <td>${s.contact_person || ''}</td>
-        <td>${s.contact_number || ''}</td>
         <td>
           <button class="btn btn-sm btn-outline-primary action-btn me-1" onclick="editSchool('${s._id}')">
             <i class="fa fa-pencil"></i> Edit
@@ -324,12 +278,7 @@
 
   function clearForm() {
     document.getElementById('school_name').value = '';
-    document.getElementById('place_code').value = '';
     document.getElementById('link').value = '';
-    document.getElementById('school_status').value = 'active';
-    document.getElementById('address').value = '';
-    document.getElementById('contact_person').value = '';
-    document.getElementById('contact_number').value = '';
   }
 
   function openAddModal() {
@@ -346,19 +295,14 @@
 
   document.getElementById('saveSchoolBtn').addEventListener('click', async () => {
     const nameVal = document.getElementById('school_name').value.trim();
-    const placeCodeVal = document.getElementById('place_code').value.trim();
-    if (!nameVal || !placeCodeVal) {
-      showToast('School Name and Place Code are required', 'warning');
+    const linkVal = document.getElementById('link').value.trim();
+    if (!nameVal || !linkVal) {
+      showToast('School Name and Link are required', 'warning');
       return;
     }
     const payload = {
       name: nameVal,
-      place_code: placeCodeVal,
-      link: document.getElementById('link').value.trim() || null,
-      status: document.getElementById('school_status').value,
-      address: document.getElementById('address').value.trim() || null,
-      contact_person: document.getElementById('contact_person').value.trim() || null,
-      contact_number: document.getElementById('contact_number').value.trim() || null,
+      link: linkVal,
     };
     const method = window.currentSchoolId ? 'PUT' : 'POST';
     const url = window.currentSchoolId
@@ -395,12 +339,7 @@
       .then(json => {
         const s = json.data;
           document.getElementById('school_name').value = s.name || '';
-          document.getElementById('place_code').value = s.place_code || '';
           document.getElementById('link').value = s.link || '';
-          document.getElementById('school_status').value = s.status || 'active';
-          document.getElementById('address').value = s.address || '';
-          document.getElementById('contact_person').value = s.contact_person || '';
-          document.getElementById('contact_number').value = s.contact_number || '';
           window.currentSchoolId = id;
         document.getElementById('addSchoolModalLabel').innerText = 'Edit School';
         const modalEl = document.getElementById('addSchoolModal');

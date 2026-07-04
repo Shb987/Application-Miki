@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block title %}Roles & Permissions{% endblock %}
+
+{% block head %}
+<style>
+  /* ── Page Layout ── */
+  .roles-page { padding: 24px; }
+
+  /* ── Header Card ── */
+  .page-header-card {
+    background: linear-gradient(135deg, #006666 0%, #004d4d 100%);
+    border-radius: 16px;
+    padding: 28px 32px;
+    color: #fff;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 8px 32px rgba(0,102,102,0.25);
+  }
+  .page-header-card h2 { margin: 0; font-size: 1.6rem; font-weight: 700; }
+  .page-header-card p  { margin: 4px 0 0; opacity: 0.85; font-size: 0.9rem; }
+  .btn-create-role {
+    background: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.5);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-create-role:hover { background: rgba(255,255,255,0.35); }
+
+  /* ── Two-column layout ── */
+  .roles-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .roles-layout { grid-template-columns: 1fr; } }
+
+  /* ── Roles List ── */
+  .roles-panel { background: #fff; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); overflow: hidden; }
+  .roles-panel-header { padding: 18px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 700; font-size: 1rem; color: #333; display: flex; align-items: center; gap: 8px; }
+  .roles-panel-header i { color: #006666; }
+  .role-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f7f7f7;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .role-item:hover { background: #f0fafa; }
+  .role-item.active { background: #e6f5f5; border-left: 4px solid #006666; }
+  .role-item-name { font-weight: 600; color: #222; font-size: 0.95rem; }
+  .role-item-desc { font-size: 0.78rem; color: #888; margin-top: 2px; }
+  .role-actions { display: flex; gap: 8px; }
+  .btn-icon {
+    border: none; background: transparent; padding: 6px; border-radius: 8px;
+    cursor: pointer; color: #888; transition: all 0.2s; font-size: 14px;
+  }
+  .btn-icon:hover.delete { background: #fff0f0; color: #e53e3e; }
+  .btn-icon:hover.edit   { background: #f0fafa; color: #006666; }
+
+  /* ── Permissions Editor ── */
+  .permissions-panel { background: #fff; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); }
+  .permissions-panel-header { padding: 18px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+  .permissions-panel-header h5 { margin: 0; font-weight: 700; color: #333; }
+  .permissions-panel-header .role-badge { background: #e6f5f5; color: #006666; border-radius: 20px; padding: 4px 14px; font-size: 0.82rem; font-weight: 600; }
+
+  .empty-state { padding: 60px 24px; text-align: center; color: #bbb; }
+  .empty-state i { font-size: 3rem; display: block; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.95rem; }
+
+  /* ── Module Table ── */
+  .modules-table { width: 100%; border-collapse: collapse; }
+  .modules-table th {
+    background: #f8fafb; padding: 12px 20px; text-align: left;
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #666; font-weight: 700; border-bottom: 1px solid #eee;
+  }
+  .modules-table td { padding: 14px 20px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+  .modules-table tr:last-child td { border-bottom: none; }
+  .modules-table tr:hover td { background: #fafcfc; }
+  .module-name { font-weight: 600; color: #333; font-size: 0.9rem; }
+  .module-icon { color: #006666; margin-right: 8px; }
+
+  /* Checkbox Toggle */
+  .perm-check { text-align: center; vertical-align: middle; }
+  .perm-check input[type=checkbox] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #006666;
+    margin: 0 auto;
+    display: inline-block;
+  }
+
+  /* ── Save Button ── */
+  .btn-save-perms {
+    background: linear-gradient(135deg, #006666, #00a0a0);
+    color: #fff; border: none; border-radius: 10px;
+    padding: 12px 28px; font-weight: 700; font-size: 0.95rem;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  .btn-save-perms:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,102,102,0.3); }
+  .permissions-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
+
+  /* ── Modal ── */
+  .modal-backdrop-custom {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-backdrop-custom.show { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 16px; padding: 32px;
+    width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .modal-box h4 { margin: 0 0 20px; font-weight: 700; color: #333; }
+  .form-field { margin-bottom: 16px; }
+  .form-field label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: 600; color: #555; }
+  .form-field input, .form-field textarea {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #e0e0e0;
+    border-radius: 10px; font-size: 0.9rem; outline: none;
+    transition: border-color 0.2s; box-sizing: border-box;
+  }
+  .form-field input:focus, .form-field textarea:focus { border-color: #006666; }
+  .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
+  .btn-cancel { background: #f1f1f1; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600; cursor: pointer; color: #555; }
+  .btn-submit { background: #006666; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-weight: 600; cursor: pointer; }
+  .btn-submit:hover { background: #004d4d; }
+
+  /* Toast */
+  .toast-msg {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    padding: 14px 22px; border-radius: 12px; color: #fff; font-weight: 600;
+    font-size: 0.9rem; opacity: 0; transform: translateY(10px);
+    transition: all 0.3s; pointer-events: none;
+  }
+  .toast-msg.show { opacity: 1; transform: translateY(0); }
+  .toast-msg.success { background: #006666; }
+  .toast-msg.error   { background: #e53e3e; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="roles-page">
+
+  <!-- Header -->
+  <div class="page-header-card">
+    <div>
+      <h2><i class="fa fa-shield"></i> &nbsp;Roles &amp; Staff Access</h2>
+      <p>Configure access rules, define roles, and assign permissions for admin panel users.</p>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <ul class="nav nav-tabs border-tab mb-4" id="rolesTabs" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="roles-tab" data-bs-toggle="tab" href="#roles-section" role="tab" aria-selected="true">
+        <i class="fa fa-shield"></i> Roles &amp; Permissions
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="admins-tab" data-bs-toggle="tab" href="#admins-section" role="tab" aria-selected="false" onclick="fetchAdmins()">
+        <i class="fa fa-users"></i> Admin Users / Staff
+      </a>
+    </li>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content" id="rolesTabContent">
+    <!-- Roles Tab -->
+    <div class="tab-pane show active" id="roles-section" role="tabpanel">
+      
+      <!-- Roles Action Header -->
+      <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-primary" onclick="openCreateModal()">
+          <i class="fa fa-plus"></i> &nbsp;Create New Role
+        </button>
+      </div>
+
+      <div class="roles-layout">
+        <!-- Left: Role List -->
+        <div class="roles-panel">
+          <div class="roles-panel-header">
+            <i class="fa fa-list-ul"></i> All Roles
+          </div>
+          <div id="roles-list">
+            <div class="empty-state" style="padding:30px">
+              <div class="spinner-border text-secondary" role="status"></div>
+              <p style="margin-top:10px">Loading roles...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Permissions Editor -->
+        <div class="permissions-panel" id="permissions-panel">
+          <div class="permissions-panel-header">
+            <h5>Module Permissions</h5>
+            <span class="role-badge" id="selected-role-badge">Select a role →</span>
+          </div>
+          <div id="permissions-body">
+            <div class="empty-state">
+              <i class="fa fa-mouse-pointer"></i>
+              <p>Select a role from the left panel to view and edit its module permissions.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Admin Users Tab -->
+    <div class="tab-pane" id="admins-section" role="tabpanel">
+      
+      <!-- Admin Action Header -->
+      <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-primary" onclick="openAdminModal()">
+          <i class="fa fa-user-plus"></i> &nbsp;Add Admin Staff
+        </button>
+      </div>
+
+      <div class="card" style="border-radius:16px; border:none; box-shadow: 0 2px 16px rgba(0,0,0,0.07)">
+        <div class="card-body p-0">
+          <div class="table-responsive custom-scrollbar" style="border-radius:16px overflow:hidden">
+            <table class="table table-bordered table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th style="width: 150px; text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admins-list-body">
+                <tr>
+                  <td colspan="3" class="text-center">
+                    <div class="spinner-border text-secondary" role="status"></div>
+                    <p style="margin-top:10px">Loading admin staff...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Create / Edit Role Modal -->
+<div class="modal-backdrop-custom" id="roleModal">
+  <div class="modal-box">
+    <h4 id="modal-title">Create New Role</h4>
+    <div class="form-field">
+      <label>Role Name *</label>
+      <input type="text" id="input-role-name" placeholder="e.g. Content Manager">
+    </div>
+    <div class="form-field">
+      <label>Description</label>
+      <textarea id="input-role-desc" rows="2" placeholder="Short description of this role's responsibilities"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" onclick="submitRole()">Save Role</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Admin User Modal -->
+<div class="modal-backdrop-custom" id="adminModal">
+  <div class="modal-box">
+    <h4>Create Admin Staff Account</h4>
+    <div class="form-field">
+      <label>Username *</label>
+      <input type="text" id="admin-username" placeholder="e.g. data_entry_jane">
+    </div>
+    <div class="form-field">
+      <label>Password *</label>
+      <input type="password" id="admin-password" placeholder="Password (min 6 characters)">
+    </div>
+    <div class="form-field">
+      <label>Assigned Role *</label>
+      <select id="admin-role-select" style="width: 100%; padding: 10px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 0.9rem; outline: none; box-sizing: border-box;">
+        <!-- Filled dynamically -->
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAdminModal()">Cancel</button>
+      <button class="btn-submit" onclick="submitAdmin()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-msg" id="toast"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TOKEN = localStorage.getItem("admin_token");
+const API   = window.API_BASE || "";
+
+// ─── ALL ADMIN MODULES ───────────────────────────────────────
+const MODULES = [
+  { key: "User Management",                      icon: "fa-users" },
+  { key: "Subscription Plans & Transactions",    icon: "fa-credit-card" },
+  { key: "Schools",                              icon: "fa-building" },
+  { key: "Questions Base",                       icon: "fa-question-circle" },
+  { key: "Exams, Textbooks & Syllabus",          icon: "fa-file-text" },
+  { key: "Quizzes",                              icon: "fa-pencil-square-o" },
+  { key: "Games",                                icon: "fa-gamepad" },
+  { key: "Tutorials",                            icon: "fa-youtube-play" },
+  { key: "Notifications",                        icon: "fa-bell" },
+  { key: "Analytics",                            icon: "fa-bar-chart" },
+  { key: "Special Days",                         icon: "fa-calendar" },
+  { key: "Social Content & Contributors",        icon: "fa-share-alt" },
+  { key: "AI Usage",                             icon: "fa-microchip" },
+  { key: "Roles & Permissions",                  icon: "fa-shield" },
+];
+
+const ACTIONS = ["read", "create", "update", "delete"];
+
+let roles = [];
+let selectedRole = null;
+let editingRoleName = null;  // null = create mode, string = edit mode
+
+// ─── FETCH roles ─────────────────────────────────────────────
+async function fetchRoles() {
+  try {
+    const res = await fetch(`${API}/admin-panel/roles`, {
+      headers: { Authorization: "Bearer " + TOKEN }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    roles = await res.json();
+    renderRolesList();
+  } catch (e) {
+    document.getElementById("roles-list").innerHTML =
+      `<div class="empty-state"><i class="fa fa-exclamation-triangle" style="color:#e53e3e"></i><p>Failed to load roles.<br><small>${e.message}</small></p></div>`;
+  }
+}
+
+// ─── RENDER roles list ────────────────────────────────────────
+function renderRolesList() {
+  const el = document.getElementById("roles-list");
+  if (!roles.length) {
+    el.innerHTML = `<div class="empty-state"><i class="fa fa-folder-open-o"></i><p>No roles yet. Create your first role!</p></div>`;
+    return;
+  }
+  el.innerHTML = roles.map(r => `
+    <div class="role-item ${selectedRole && selectedRole.role_name === r.role_name ? 'active' : ''}"
+         onclick="selectRole('${r.role_name}')">
+      <div>
+        <div class="role-item-name">${r.role_name}</div>
+        <div class="role-item-desc">${r.description || 'No description'}</div>
+      </div>
+      <div class="role-actions">
+        <button class="btn-icon edit" title="Edit role info" onclick="event.stopPropagation(); openEditModal('${r.role_name}')">
+          <i class="fa fa-pencil"></i>
+        </button>
+        <button class="btn-icon delete" title="Delete role" onclick="event.stopPropagation(); deleteRole('${r.role_name}')">
+          <i class="fa fa-trash"></i>
+        </button>
+      </div>
+    </div>`).join("");
+}
+
+// ─── SELECT a role → show permissions editor ──────────────────
+function selectRole(roleName) {
+  selectedRole = roles.find(r => r.role_name === roleName);
+  renderRolesList();
+  renderPermissionsEditor();
+}
+
+// ─── RENDER permissions editor ────────────────────────────────
+function renderPermissionsEditor() {
+  if (!selectedRole) return;
+  document.getElementById("selected-role-badge").textContent = selectedRole.role_name;
+  const perms = selectedRole.permissions || {};
+
+  const rows = MODULES.map((m, idx) => {
+    const mPerms = perms[m.key] || {};
+    const checkboxes = ACTIONS.map(a =>
+      `<td class="perm-check">
+        <input type="checkbox" data-mod="${idx}" data-action="${a}" ${mPerms[a] ? "checked" : ""}>
+       </td>`
+    ).join("");
+    return `<tr>
+      <td><span class="module-name"><i class="fa ${m.icon} module-icon"></i>${m.key}</span></td>
+      ${checkboxes}
+    </tr>`;
+  }).join("");
+
+  document.getElementById("permissions-body").innerHTML = `
+    <div style="overflow-x:auto">
+      <table class="table table-bordered table-striped mb-0">
+        <colgroup>
+          <col style="width:55%">
+          <col style="width:12%">
+          <col style="width:12%">
+          <col style="width:12%">
+          <col style="width:9%">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th style="text-align:center">Read</th>
+            <th style="text-align:center">Create</th>
+            <th style="text-align:center">Update</th>
+            <th style="text-align:center">Delete</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="permissions-footer">
+      <button class="btn-save-perms" onclick="savePermissions()">
+        <i class="fa fa-save"></i> Save Permissions
+      </button>
+    </div>`;
+}
+
+// ─── SAVE permissions ─────────────────────────────────────────
+async function savePermissions() {
+  if (!selectedRole) return;
+  const permissions = {};
+  document.querySelectorAll("#permissions-body input[data-mod]").forEach(cb => {
+    const modIdx  = parseInt(cb.getAttribute("data-mod"));
+    const action  = cb.getAttribute("data-action");
+    const modKey  = MODULES[modIdx].key;
+    if (!permissions[modKey]) permissions[modKey] = {};
+    permissions[modKey][action] = cb.checked;
+  });
+
+  try {
+    const res = await fetch(`${API}/admin-panel/roles/${encodeURIComponent(selectedRole.role_name)}/permissions`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
+      body: JSON.stringify({ permissions })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    // Update local state
+    selectedRole.permissions = permissions;
+    roles = roles.map(r => r.role_name === selectedRole.role_name ? { ...r, permissions } : r);
+    showToast("Permissions saved successfully!", "success");
+  } catch (e) {
+    showToast("Failed to save: " + e.message, "error");
+  }
+}
+
+// ─── CREATE / EDIT modal ──────────────────────────────────────
+function openCreateModal() {
+  editingRoleName = null;
+  document.getElementById("modal-title").textContent = "Create New Role";
+  document.getElementById("input-role-name").value = "";
+  document.getElementById("input-role-desc").value = "";
+  document.getElementById("input-role-name").disabled = false;
+  document.getElementById("roleModal").classList.add("show");
+}
+
+function openEditModal(roleName) {
+  const r = roles.find(x => x.role_name === roleName);
+  editingRoleName = roleName;
+  document.getElementById("modal-title").textContent = "Edit Role";
+  document.getElementById("input-role-name").value = r.role_name;
+  document.getElementById("input-role-desc").value = r.description || "";
+  document.getElementById("input-role-name").disabled = true; // cannot rename
+  document.getElementById("roleModal").classList.add("show");
+}
+
+function closeModal() {
+  document.getElementById("roleModal").classList.remove("show");
+}
+
+async function submitRole() {
+  const name = document.getElementById("input-role-name").value.trim();
+  const desc = document.getElementById("input-role-desc").value.trim();
+  if (!name) { showToast("Role name is required", "error"); return; }
+
+  try {
+    if (editingRoleName) {
+      // Update description via permissions endpoint (add description field)
+      // For now just update permissions object to include description
+      const existing = roles.find(r => r.role_name === editingRoleName);
+      const res = await fetch(`${API}/admin-panel/roles/${encodeURIComponent(editingRoleName)}/permissions`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
+        body: JSON.stringify({ permissions: existing.permissions || {}, description: desc })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      showToast("Role updated!", "success");
+    } else {
+      const res = await fetch(`${API}/admin-panel/roles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
+        body: JSON.stringify({ role_name: name, description: desc, permissions: {} })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      showToast("Role created!", "success");
+    }
+    closeModal();
+    await fetchRoles();
+  } catch(e) {
+    showToast("Error: " + e.message, "error");
+  }
+}
+
+// ─── DELETE role ──────────────────────────────────────────────
+async function deleteRole(roleName) {
+  if (!confirm(`Delete role "${roleName}"? This cannot be undone.`)) return;
+  try {
+    const res = await fetch(`${API}/admin-panel/roles/${encodeURIComponent(roleName)}`, {
+      method: "DELETE",
+      headers: { Authorization: "Bearer " + TOKEN }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Delete failed");
+    }
+    if (selectedRole && selectedRole.role_name === roleName) {
+      selectedRole = null;
+      document.getElementById("permissions-body").innerHTML = `
+        <div class="empty-state">
+          <i class="fa fa-mouse-pointer"></i>
+          <p>Select a role from the left panel.</p>
+        </div>`;
+      document.getElementById("selected-role-badge").textContent = "Select a role →";
+    }
+    showToast("Role deleted.", "success");
+    await fetchRoles();
+  } catch(e) {
+    showToast(e.message, "error");
+  }
+}
+
+// ─── TOAST ───────────────────────────────────────────────────
+function showToast(msg, type = "success") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = `toast-msg ${type} show`;
+  setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+// ─── Close modal on backdrop click ───────────────────────────
+document.getElementById("roleModal").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
+});
+document.getElementById("adminModal").addEventListener("click", function(e) {
+  if (e.target === this) closeAdminModal();
+});
+
+// ─── ADMIN STAFF MANAGEMENT JS ──────────────────────────────
+async function fetchAdmins() {
+  try {
+    const res = await fetch(`${API}/admin-panel/admins`, {
+      headers: { Authorization: "Bearer " + TOKEN }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const admins = await res.json();
+    renderAdmins(admins);
+  } catch (e) {
+    document.getElementById("admins-list-body").innerHTML = `
+      <tr>
+        <td colspan="3" class="text-center text-danger">
+          <i class="fa fa-exclamation-triangle"></i> Failed to load admin list: ${e.message}
+        </td>
+      </tr>`;
+  }
+}
+
+function renderAdmins(admins) {
+  const tbody = document.getElementById("admins-list-body");
+  if (!admins.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="text-center text-muted">No admin staff registered yet.</td>
+      </tr>`;
+    return;
+  }
+  tbody.innerHTML = admins.map(admin => {
+    const roleName = admin.role_name || "superadmin";
+    const isSuperAdmin = roleName === "superadmin";
+    const badgeBg = isSuperAdmin ? "#004d4d" : "#e6f5f5";
+    const badgeColor = isSuperAdmin ? "#fff" : "#006666";
+    const displayRole = roleName.charAt(0).toUpperCase() + roleName.slice(1);
+    return `
+    <tr>
+      <td><strong>${admin.username}</strong></td>
+      <td>
+        <span style="
+          display:inline-block;
+          padding: 4px 14px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          background: ${badgeBg};
+          color: ${badgeColor};
+          border: 1.5px solid ${isSuperAdmin ? '#006666' : '#b2dada'};
+        ">${displayRole}</span>
+      </td>
+      <td style="text-align: center;">
+        <button class="btn btn-sm" style="border:1.5px solid #e53e3e; color:#e53e3e; background:transparent; border-radius:8px; padding: 4px 12px;" onclick="deleteAdmin('${admin.username}')" title="Delete staff account">
+          <i class="fa fa-trash"></i> Delete
+        </button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function openAdminModal() {
+  // Populate Roles select
+  const select = document.getElementById("admin-role-select");
+  select.innerHTML = '<option value="superadmin">Superadmin (All Permissions)</option>' + 
+    roles.map(r => `<option value="${r.role_name}">${r.role_name}</option>`).join("");
+    
+  document.getElementById("admin-username").value = "";
+  document.getElementById("admin-password").value = "";
+  document.getElementById("adminModal").classList.add("show");
+}
+
+function closeAdminModal() {
+  document.getElementById("adminModal").classList.remove("show");
+}
+
+async function submitAdmin() {
+  const username = document.getElementById("admin-username").value.trim();
+  const password = document.getElementById("admin-password").value.trim();
+  const roleName = document.getElementById("admin-role-select").value;
+
+  if (!username || !password) {
+    showToast("Username and password are required", "error");
+    return;
+  }
+  if (password.length < 6) {
+    showToast("Password must be at least 6 characters", "error");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/admin-panel/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
+      body: JSON.stringify({ username, password, role_name: roleName })
+    });
+    
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Registration failed");
+    }
+    
+    showToast("Admin staff account created!", "success");
+    closeAdminModal();
+    fetchAdmins();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+async function deleteAdmin(username) {
+  if (!confirm(`Are you sure you want to delete staff account "${username}"?`)) return;
+  try {
+    const res = await fetch(`${API}/admin-panel/admins/${encodeURIComponent(username)}`, {
+      method: "DELETE",
+      headers: { Authorization: "Bearer " + TOKEN }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Delete failed");
+    }
+    showToast("Admin staff account deleted", "success");
+    fetchAdmins();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+fetchRoles();
+</script>
+{% endblock %}

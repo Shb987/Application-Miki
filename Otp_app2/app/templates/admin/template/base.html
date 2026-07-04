@@ -114,10 +114,10 @@
                         <li class="profile-nav onhover-dropdown">
                             <div class="media profile-media"><img class="b-r-10"
                                     src="/assets/images/dashboard/profile.png" alt="">
-                                <div class="media-body d-xxl-block d-none box-col-none">
-                                    <div class="d-flex align-items-center gap-2"> <span>Admin </span><i
+                                <div class="media-body d-block" style="min-width:90px">
+                                    <div class="d-flex align-items-center gap-2"> <span id="header-profile-name" style="font-weight:600; font-size:0.9rem;">Loading... </span><i
                                             class="middle fa fa-angle-down"> </i></div>
-                                    <p class="mb-0 font-roboto">Administrator</p>
+                                    <p class="mb-0 font-roboto" id="header-profile-role" style="font-size:0.75rem; color:#888; text-transform:capitalize;">Staff</p>
                                 </div>
                             </div>
                             <ul class="profile-dropdown onhover-show-div">
@@ -189,12 +189,61 @@
                     const data = await res.json();
                     const nameEl = document.getElementById("admin-name");
                     if (nameEl) nameEl.innerText = data.username;
+                    
+                    // Update top-right header profile name & role
+                    const headerNameEl = document.getElementById("header-profile-name");
+                    const headerRoleEl = document.getElementById("header-profile-role");
+                    if (headerNameEl) headerNameEl.innerText = data.username + " ";
+                    if (headerRoleEl) {
+                        // Capitalize role name for cleaner styling
+                        const displayRole = data.role.charAt(0).toUpperCase() + data.role.slice(1);
+                        headerRoleEl.innerText = displayRole;
+                    }
+                    
+                    // Enforce sidebar item visibility based on permissions
+                    applySidebarPermissions(data);
                 } else {
                     localStorage.removeItem("admin_token");
                     window.location.replace("/admin-panel/login");
                 }
             } catch (err) {
                 console.error("Error loading profile:", err);
+            }
+        }
+
+        function applySidebarPermissions(data) {
+            const sidebarMapping = {
+                "menu-user-management": "User Management",
+                "menu-subscriptions": "Subscription Plans & Transactions",
+                "menu-schools": "Schools",
+                "menu-notifications": "Notifications",
+                "menu-games": "Games",
+                "menu-questions": "Questions Base",
+                "menu-Exams": "Exams, Textbooks & Syllabus",
+                "menu-quiz": "Quizzes",
+                "menu-tutorial": "Tutorials",
+                "menu-tuition": "Exams, Textbooks & Syllabus",
+                "menu-special-days": "Special Days",
+                "menu-analytics": "Analytics",
+                "menu-social-media": "Social Content & Contributors",
+                "menu-roles": "Roles & Permissions"
+            };
+
+            // If superadmin, show everything
+            if (data.is_superadmin) {
+                return;
+            }
+
+            const perms = data.permissions || {};
+            for (const [menuId, moduleName] of Object.entries(sidebarMapping)) {
+                const el = document.getElementById(menuId);
+                if (el) {
+                    const modulePerms = perms[moduleName] || {};
+                    // If read permission is false or missing, hide the sidebar item
+                    if (!modulePerms.read) {
+                        el.style.display = "none";
+                    }
+                }
             }
         }
 

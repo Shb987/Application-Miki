@@ -1,7 +1,7 @@
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException, Depends, Body
 from app.core.database import db
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 # pyrefly: ignore [missing-import]
@@ -39,7 +39,7 @@ async def update_plan(
     price_inr: Optional[int] = Body(None),
     buckets: Optional[Dict] = Body(None),
     is_active: Optional[bool] = Body(None),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Subscription Plans & Transactions", "update"))
 ):
     """Update a specific subscription plan"""
     plan = await db.subscription_plans.find_one({"_id": tier_id})
@@ -70,7 +70,7 @@ async def create_plan(
     name: str = Body(...),
     price_inr: int = Body(...),
     buckets: Dict = Body(...),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Subscription Plans & Transactions", "create"))
 ):
     """Create a new subscription plan"""
     existing_plan = await db.subscription_plans.find_one({"_id": tier_id})
@@ -93,7 +93,7 @@ async def create_plan(
 async def get_all_transactions(
     skip: int = 0,
     limit: int = 100,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Subscription Plans & Transactions", "read"))
 ):
     """Fetch all payment transactions for the global revenue dashboard"""
     total_count = await db.payment_orders.count_documents({})
@@ -138,7 +138,7 @@ async def get_all_transactions(
 @router.get("/transactions/student/{student_id}")
 async def get_student_transactions(
     student_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Subscription Plans & Transactions", "read"))
 ):
     """Fetch transactions for a specific student profile"""
     cursor = db.payment_orders.find({"student_id": student_id}).sort("created_at", -1)

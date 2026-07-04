@@ -4,7 +4,7 @@ from bson import ObjectId
 from datetime import datetime, timezone
 
 from app.core.database import db
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 from app.services.notification_service import broadcast_notification, create_notification
 
 router = APIRouter(tags=["Notifications - Admin"])
@@ -17,7 +17,7 @@ router = APIRouter(tags=["Notifications - Admin"])
 @router.post("/admin-panel/notifications/broadcast")
 async def broadcast_to_all(
     payload: Dict[str, Any] = Body(...),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Notifications", "create"))
 ):
     """
     Send a push notification to ALL registered users.
@@ -63,7 +63,7 @@ async def broadcast_to_all(
 @router.post("/admin-panel/notifications/broadcast-class")
 async def broadcast_to_class(
     payload: Dict[str, Any] = Body(...),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Notifications", "create"))
 ):
     """
     Send a push notification to students in a specific class.
@@ -125,7 +125,7 @@ async def get_notification_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(30, ge=1, le=100),
     notification_type: Optional[str] = Query(None),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Notifications", "read"))
 ):
     """Get paginated broadcast history from broadcast_logs collection."""
     query: Dict[str, Any] = {}
@@ -153,7 +153,7 @@ async def get_notification_history(
 # ──────────────────────────────────────────────────────────────
 
 @router.get("/admin-panel/notifications/stats")
-async def get_notification_stats(current_admin: dict = Depends(get_current_admin)):
+async def get_notification_stats(current_admin: dict = Depends(require_permission("Notifications", "read"))):
     """Returns count of broadcasts sent today, this week, and this month."""
     from datetime import timedelta
 
@@ -181,7 +181,7 @@ async def get_notification_stats(current_admin: dict = Depends(get_current_admin
 # ──────────────────────────────────────────────────────────────
 
 @router.get("/admin-panel/notifications/classes")
-async def get_classes_for_notifications(current_admin: dict = Depends(get_current_admin)):
+async def get_classes_for_notifications(current_admin: dict = Depends(require_permission("Notifications", "read"))):
     classes = await db.students.distinct("student_class")
     try:
         classes_sorted = sorted(classes, key=lambda x: int(str(x)))

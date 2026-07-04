@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
 from datetime import datetime, timedelta, timezone
 from app.core.database import db
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 
 router = APIRouter(prefix="/ai-stats", tags=["Admin AI Analytics"])
 
 @router.get("/summary", response_model=Dict[str, Any])
-async def get_ai_usage_summary(days: int = 30, current_admin: dict = Depends(get_current_admin)):
+async def get_ai_usage_summary(days: int = 30, current_admin: dict = Depends(require_permission("Analytics", "read"))):
     """
     Returns an aggregated summary of AI usage and costs over the last `days` days.
     """

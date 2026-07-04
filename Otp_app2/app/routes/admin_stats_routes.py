@@ -4,14 +4,14 @@ from typing import Dict, Any
 import asyncio
 
 from app.core.database import db
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 from bson import ObjectId
 
 router = APIRouter(tags=["Admin Stats"])
 
 
 @router.get("/stats/summary", response_model=Dict[str, Any])
-async def get_dashboard_summary(current_admin: dict = Depends(get_current_admin)):
+async def get_dashboard_summary(current_admin: dict = Depends(require_permission("Analytics", "read"))):
     """
     Returns aggregated KPI stats for the admin dashboard.
     All 6 queries run in parallel for performance.
@@ -85,7 +85,7 @@ async def get_dashboard_summary(current_admin: dict = Depends(get_current_admin)
 @router.get("/ai-stats/student/{student_id}", response_model=Dict[str, Any])
 async def get_student_ai_summary(
     student_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Analytics", "read"))
 ):
     """
     Returns AI usage analytics for a single student (last 30 days)
@@ -223,7 +223,7 @@ async def get_student_ai_summary(
 @router.get("/ai-stats/class/{class_name}", response_model=Dict[str, Any])
 async def get_class_ai_summary(
     class_name: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Analytics", "read"))
 ):
     """
     Returns AI usage analytics for all students in a specific class (last 30 days)
@@ -318,7 +318,7 @@ async def get_class_ai_summary(
 
 
 @router.get("/ai-stats/summary", response_model=Dict[str, Any])
-async def get_platform_ai_usage_summary(current_admin: dict = Depends(get_current_admin)):
+async def get_platform_ai_usage_summary(current_admin: dict = Depends(require_permission("Analytics", "read"))):
     """
     Returns platform-wide AI usage analytics (last 30 days)
     """
@@ -413,7 +413,7 @@ def serialize_student(doc):
 
 
 @router.get("/ai-stats/get_students")
-async def get_students(admin=Depends(get_current_admin)):
+async def get_students(admin=Depends(require_permission("Analytics", "read"))):
 
     cursor = db.students.find({})
     students = await cursor.to_list(length=None)

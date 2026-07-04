@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import (
-    admin_routes, user_routes, otp_routes, admin_pages,
+    admin_routes, admin_roles_routes, user_routes, otp_routes, admin_pages,
     admin_exam_routes, user_exam_routes, exam_evaluation_routes,
     user_futurestudy_routes, admin_quiz_routes, user_quiz_routes,
     companion_routes, chat_routes, ai_tutor_routes,
@@ -87,6 +87,7 @@ app.mount("/generated_papers", StaticFiles(directory="app/static/generated_paper
 app.mount("/static/games", StaticFiles(directory="app/static/games"), name="games")
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])
+app.include_router(admin_roles_routes.router, prefix="/admin-panel", tags=["Admin Roles"])
 app.include_router(admin_exam_routes.router,prefix="/admin-panel", tags=["Exam Module"])
 app.include_router(user_routes.router, prefix="/user", tags=["User"])
 app.include_router(otp_routes.router, prefix="/otp", tags=["OTP"])

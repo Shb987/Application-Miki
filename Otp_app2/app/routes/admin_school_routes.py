@@ -1,14 +1,15 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from bson import ObjectId
 from app.core.database import db
 from app.models.school_models import SchoolCreate, SchoolUpdate, SchoolInDB
 from fastapi.encoders import jsonable_encoder
+from app.utils.admin_auth import require_permission
 
 router = APIRouter()
 
 @router.post("/schools", response_model=dict)
-async def create_school(school: SchoolCreate):
+async def create_school(school: SchoolCreate, current_admin: dict = Depends(require_permission("Schools", "create"))):
     school_dict = school.model_dump()
     school_db = SchoolInDB(**school_dict)
     
@@ -21,14 +22,14 @@ async def create_school(school: SchoolCreate):
     return {"message": "School created successfully", "id": str(result.inserted_id)}
 
 @router.get("/schools", response_model=dict)
-async def get_schools():
+async def get_schools(current_admin: dict = Depends(require_permission("Schools", "read"))):
     schools = await db.schools.find().to_list(length=None)
     for s in schools:
         s["_id"] = str(s["_id"])
     return {"data": schools}
 
 @router.get("/schools/{school_id}", response_model=dict)
-async def get_school(school_id: str):
+async def get_school(school_id: str, current_admin: dict = Depends(require_permission("Schools", "read"))):
     try:
         obj_id = ObjectId(school_id)
     except Exception:
@@ -42,7 +43,7 @@ async def get_school(school_id: str):
     return {"data": school}
 
 @router.put("/schools/{school_id}", response_model=dict)
-async def update_school(school_id: str, school_update: SchoolUpdate):
+async def update_school(school_id: str, school_update: SchoolUpdate, current_admin: dict = Depends(require_permission("Schools", "update"))):
     # Use exclude_unset=True to only update fields that were actually sent
     update_data = school_update.model_dump(exclude_unset=True)
     if not update_data:
@@ -60,7 +61,7 @@ async def update_school(school_id: str, school_update: SchoolUpdate):
     return {"message": "School updated successfully"}
 
 @router.delete("/schools/{school_id}", response_model=dict)
-async def delete_school(school_id: str):
+async def delete_school(school_id: str, current_admin: dict = Depends(require_permission("Schools", "delete"))):
     try:
         obj_id = ObjectId(school_id)
     except Exception:

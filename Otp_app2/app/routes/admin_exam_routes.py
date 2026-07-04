@@ -10,7 +10,7 @@ import os
 import asyncio
 from app.report.scert_pdf_professional import save_scert_question_paper
 from app.report.primary_pdf_layout import save_primary_question_paper
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 from fastapi import Depends
 from app.core.database import db
 from openai import AsyncOpenAI
@@ -192,7 +192,7 @@ def validate_fix_marks(paper: dict, required_total: int):
     return paper
 
 
-@router.post("/textbook/upload-batch", dependencies=[Depends(get_current_admin)])
+@router.post("/textbook/upload-batch", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "create"))])
 async def upload_chapter_endpoint(
     background_tasks: BackgroundTasks,
     board: str = Form(...),
@@ -438,7 +438,7 @@ async def get_chapters(standard: str, subject: str):
                 chapter_set.append(title)
     return {"chapters": chapter_set}
     
-@router.get("/chapter-status", dependencies=[Depends(get_current_admin)])
+@router.get("/chapter-status", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "read"))])
 async def get_chapter_status(
     board: str,
     standard: str,
@@ -468,7 +468,7 @@ async def get_chapter_status(
 # ROUTES - TEXTBOOK & CHAPTER MANAGEMENT
 # --------------------------
 
-@router.get("/textbooks", dependencies=[Depends(get_current_admin)])
+@router.get("/textbooks", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "read"))])
 async def get_all_textbooks():
     """Fetch all uploaded textbooks and their generated chapters."""
     textbooks = await db.textbook.find({}).sort("created_at", -1).to_list(None)
@@ -476,7 +476,7 @@ async def get_all_textbooks():
         t["_id"] = str(t["_id"])
     return {"textbooks": textbooks}
 
-@router.delete("/textbook/{textbook_id}/chapter/{chapter_name}", dependencies=[Depends(get_current_admin)])
+@router.delete("/textbook/{textbook_id}/chapter/{chapter_name}", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "delete"))])
 async def delete_textbook_chapter(textbook_id: str, chapter_name: str):
     """Delete a specific chapter and its passages from a textbook."""
     textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
@@ -505,7 +505,7 @@ async def delete_textbook_chapter(textbook_id: str, chapter_name: str):
 # ROUTES - QUESTION GENERATION
 # --------------------------
 
-@router.post("/generate-questions", dependencies=[Depends(get_current_admin)])
+@router.post("/generate-questions", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "create"))])
 async def generate_questions_trigger(payload: dict = Body(...)):
     standard = payload.get("standard")
     subject = payload.get("subject")
@@ -795,7 +795,7 @@ Respond with valid JSON only. No text outside JSON.
 # ROUTES - JOB STATUS / GENERATED PAPERS
 # --------------------------
 
-@router.get("/question-task-status/{task_id}", dependencies=[Depends(get_current_admin)])
+@router.get("/question-task-status/{task_id}", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "read"))])
 async def question_task_status(task_id: str):
     task = await db.question_tasks.find_one({"_id": ObjectId(task_id)})
     if not task:
@@ -837,7 +837,7 @@ async def get_generated_papers(task_id: Optional[str] = None):
     return docs
 
 
-@router.delete("/generated-paper/{paper_id}", dependencies=[Depends(get_current_admin)])
+@router.delete("/generated-paper/{paper_id}", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "delete"))])
 async def delete_generated_paper(paper_id: str):
     doc = await db.generated_papers.find_one({"_id": ObjectId(paper_id)})
     if not doc:
@@ -853,8 +853,8 @@ async def delete_generated_paper(paper_id: str):
     return {"status": "deleted", "message": "Question paper removed successfully"}
 
 
-@router.get("/generated-papers/filter", dependencies=[Depends(get_current_admin)])
-async def get_generated_papers_filtered(standard: str, subject: str):
+@router.get("/generated-papers/filter", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "read"))])
+async def get_generated_papers_filter(standard: str, subject: str):
     docs = await db.generated_papers.find({"paper.standard": standard, "paper.subject": subject}).to_list(None)
 
     for d in docs:

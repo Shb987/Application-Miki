@@ -12,7 +12,7 @@ import random
 import shutil
 import uuid
 from app.utils.user_auth import get_current_user, admin_or_user, create_user_token
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import get_current_admin, require_permission
 from fastapi import HTTPException
 from datetime import datetime, timezone
 from fastapi import BackgroundTasks
@@ -636,7 +636,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
 
 @router.get("/get_students")
-async def get_students(admin=Depends(get_current_admin)):
+async def get_students(admin=Depends(require_permission("User Management", "read"))):
     cursor = db.students.find({})
     students = await cursor.to_list(length=None)
     serialized_students = [serialize_mongo_doc(doc) for doc in students]
@@ -670,7 +670,7 @@ async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
 
 # ✅ Get all Users (Parents table)
 @router.get("/get_users")
-async def get_users(admin=Depends(get_current_admin)):
+async def get_users(admin=Depends(require_permission("User Management", "read"))):
     cursor = db.usertable.find({})
     users = await cursor.to_list(length=None)
     serialized_users = [serialize_mongo_doc(doc) for doc in users]
@@ -682,7 +682,7 @@ async def get_users(admin=Depends(get_current_admin)):
 
 # ✅ Get all Login Attempts (OTP table)
 @router.get("/get_logins")
-async def get_logins(admin=Depends(get_current_admin)):
+async def get_logins(admin=Depends(require_permission("User Management", "read"))):
     cursor = db.otps.find({})
     logins = await cursor.to_list(length=None)
     serialized_logins = [serialize_mongo_doc(doc) for doc in logins]

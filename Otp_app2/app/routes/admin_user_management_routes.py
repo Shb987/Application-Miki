@@ -5,7 +5,7 @@ from bson import ObjectId
 from datetime import datetime, timezone
 
 from app.core.database import db
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 
 router = APIRouter(tags=["User Management - Admin"])
 
@@ -38,7 +38,7 @@ async def search_students(
     school_id: Optional[str] = Query(None, description="Filter by school ID"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("User Management", "read"))
 ):
     """Search/list all students with optional filters."""
     query: Dict[str, Any] = {}
@@ -84,7 +84,7 @@ async def search_students(
 @router.get("/admin-panel/users/student/{student_id}")
 async def get_student_profile(
     student_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("User Management", "read"))
 ):
     """
     Fetch a full student profile including:
@@ -141,7 +141,7 @@ async def get_student_profile(
 @router.delete("/admin-panel/users/student/{student_id}")
 async def delete_student(
     student_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("User Management", "delete"))
 ):
     """
     Permanently delete a student record and unlink from parent.
@@ -181,7 +181,7 @@ async def delete_student(
 @router.patch("/admin-panel/users/student/{student_id}/deactivate")
 async def deactivate_student(
     student_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("User Management", "update"))
 ):
     """Soft-deactivate a student (sets is_active=False)."""
     try:
@@ -206,7 +206,7 @@ class QuotaUpdate(BaseModel):
 async def update_student_quotas(
     student_id: str,
     payload: QuotaUpdate,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("User Management", "update"))
 ):
     """Manually update a student's usage quota."""
     try:
@@ -241,7 +241,7 @@ async def list_parents(
     search: Optional[str] = Query(None, description="Search by parent mobile"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("User Management", "read"))
 ):
     """List all parents with their linked student names and join dates."""
     query = {"usertype": "parent"}
@@ -288,7 +288,7 @@ async def list_parents(
 @router.delete("/admin-panel/users/parent/{mobile}")
 async def delete_parent(
     mobile: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("User Management", "delete"))
 ):
     """Remove a parent record from usertable."""
     existing = await db.usertable.find_one({"mobile_number": mobile})
@@ -303,7 +303,7 @@ async def delete_parent(
 # ──────────────────────────────────────────────────────────────
 
 @router.get("/admin-panel/users/classes")
-async def get_available_classes(current_admin: dict = Depends(get_current_admin)):
+async def get_available_classes(current_admin: dict = Depends(require_permission("User Management", "read"))):
     """Returns the distinct student classes present in DB (for filter dropdowns)."""
     classes = await db.students.distinct("student_class")
     try:

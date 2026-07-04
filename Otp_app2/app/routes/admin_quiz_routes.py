@@ -9,7 +9,7 @@ from app.models.quiz_models import (
     QuizQuestion, QuestionType, DifficultyLevel, ClassRange,
     QuizFilter
 )
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 
 router = APIRouter(tags=["Quiz Module - Admin"])
 
@@ -25,7 +25,7 @@ def serialize_question(question: dict) -> dict:
 @router.post("/quiz/add-question")
 async def add_quiz_question(
     question: QuizQuestion,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Quizzes", "create"))
 ):
     """
     Add a new quiz question to the database.
@@ -65,7 +65,7 @@ async def get_quiz_questions(
     is_active: Optional[bool] = Query(True),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Quizzes", "read"))
 ):
     """
     Get all quiz questions with optional filters.
@@ -103,7 +103,7 @@ async def get_quiz_questions(
 @router.get("/quiz/question/{question_id}")
 async def get_quiz_question(
     question_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Quizzes", "read"))
 ):
     """Get a single quiz question by ID"""
     try:
@@ -124,7 +124,7 @@ async def get_quiz_question(
 async def update_quiz_question(
     question_id: str,
     question: QuizQuestion,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Quizzes", "update"))
 ):
     """Update an existing quiz question"""
     try:
@@ -159,7 +159,7 @@ async def update_quiz_question(
 async def delete_quiz_question(
     question_id: str,
     hard_delete: bool = Query(False, description="Permanently delete instead of soft delete"),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Quizzes", "delete"))
 ):
     """
     Delete a quiz question.
@@ -193,7 +193,7 @@ async def delete_quiz_question(
 @router.post("/quiz/bulk-upload")
 async def bulk_upload_questions(
     questions: List[QuizQuestion],
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Quizzes", "create"))
 ):
     """
     Bulk upload multiple quiz questions.
@@ -224,7 +224,7 @@ async def bulk_upload_questions(
 
 # ==================== GET DOMAINS ====================
 @router.get("/quiz/domains")
-async def get_quiz_domains(current_admin: dict = Depends(get_current_admin)):
+async def get_quiz_domains(current_admin: dict = Depends(require_permission("Quizzes", "read"))):
     """Get list of all available quiz domains"""
     domains = await db.quiz_questions.distinct("domain", {"is_active": True})
     return {
@@ -234,7 +234,7 @@ async def get_quiz_domains(current_admin: dict = Depends(get_current_admin)):
 
 # ==================== GET STATISTICS ====================
 @router.get("/quiz/statistics")
-async def get_quiz_statistics(current_admin: dict = Depends(get_current_admin)):
+async def get_quiz_statistics(current_admin: dict = Depends(require_permission("Quizzes", "read"))):
     """Get quiz statistics - total questions per domain, class, difficulty, etc."""
     
     # Aggregate by domain

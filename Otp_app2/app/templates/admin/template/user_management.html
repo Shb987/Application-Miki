@@ -501,11 +501,25 @@
     }
 
     async function loadKPIStats() {
+        // Set a fallback immediately so spinners never get stuck
+        ["kpi-students","kpi-parents","kpi-active","kpi-exams"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = `<span class="text-muted">—</span>`;
+        });
         try {
             const res = await fetch(`${API_BASE}/admin-panel/stats/summary`, {
                 headers: { "Authorization": "Bearer " + token }
             });
-            if (!res.ok) return;
+            if (!res.ok) {
+                // 403 = not enough permissions — keep the dashes, that's fine
+                if (res.status === 403) {
+                    ["kpi-students","kpi-parents","kpi-active","kpi-exams"].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.innerHTML = `<small class="text-muted" title="Insufficient permissions">N/A</small>`;
+                    });
+                }
+                return;
+            }
             const json = await res.json();
             const d = json.data;
             function animateCount(elId, target, prefix = "", suffix = "") {

@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from datetime import datetime, timezone
 from app.core.database import db
 from app.utils.user_auth import get_current_user, admin_or_user
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 from app.services.tuition_service import generate_syllabus_with_ai, map_syllabus_to_timetable
 from app.models.tuition_models import StudentTimetableConfig, TuitionChatRequest
 from app.utils.ai_usage_logger import log_ai_usage
@@ -37,7 +37,7 @@ def serialize_mongo(doc):
 async def admin_generate_syllabus(
     student_class: str = Body(...), 
     subject: str = Body(...),
-    admin=Depends(get_current_admin)
+    admin=Depends(require_permission("Exams, Textbooks & Syllabus", "create"))
 ):
     try:
         result = await generate_syllabus_with_ai(db, student_class, subject)
@@ -46,7 +46,7 @@ async def admin_generate_syllabus(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/admin/tuition/syllabuses")
-async def get_syllabuses(student_class: str = None, subject: str = None, admin=Depends(get_current_admin)):
+async def get_syllabuses(student_class: str = None, subject: str = None, admin=Depends(require_permission("Exams, Textbooks & Syllabus", "read"))):
     query = {}
     if student_class: query["student_class"] = student_class
     if subject: query["subject"] = subject
@@ -58,7 +58,7 @@ async def get_syllabuses(student_class: str = None, subject: str = None, admin=D
 async def admin_edit_syllabus(
     syllabus_id: str,
     topics: list = Body(...),
-    admin=Depends(get_current_admin)
+    admin=Depends(require_permission("Exams, Textbooks & Syllabus", "update"))
 ):
     try:
         s_oid = ObjectId(syllabus_id)

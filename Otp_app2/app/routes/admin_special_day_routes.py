@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from app.core.database import db
 from app.models.special_day_models import SpecialDayCreate, SpecialDayUpdate, SpecialDayResponse
-from app.utils.user_auth import get_current_user # Assuming admin auth is similar or handled here
+from app.utils.admin_auth import require_permission
 from bson import ObjectId
 from datetime import datetime, timezone
 import pytz
@@ -17,7 +17,8 @@ def serialize_doc(doc):
 @router.get("/", response_model=list[SpecialDayResponse])
 async def get_all_special_days(
     limit: int = 50, 
-    skip: int = 0
+    skip: int = 0,
+    current_admin: dict = Depends(require_permission("Special Days", "read"))
 ):
     """List all special days, sorted by date (descending)"""
     cursor = db.special_days.find().sort("date", -1).skip(skip).limit(limit)
@@ -25,7 +26,7 @@ async def get_all_special_days(
     return [serialize_doc(day) for day in days]
 
 @router.post("/", response_model=SpecialDayResponse)
-async def create_special_day(day_data: SpecialDayCreate):
+async def create_special_day(day_data: SpecialDayCreate, current_admin: dict = Depends(require_permission("Special Days", "create"))):
     """Create a new manual special day"""
     # 1. Check for duplicate date
     existing = await db.special_days.find_one({"date": day_data.date})
@@ -53,7 +54,7 @@ async def create_special_day(day_data: SpecialDayCreate):
     return serialize_doc(created)
 
 @router.put("/{day_id}", response_model=SpecialDayResponse)
-async def update_special_day(day_id: str, update_data: SpecialDayUpdate):
+async def update_special_day(day_id: str, update_data: SpecialDayUpdate, current_admin: dict = Depends(require_permission("Special Days", "update"))):
     """Update an existing special day"""
     if not ObjectId.is_valid(day_id):
         raise HTTPException(status_code=400, detail="Invalid ID format")
@@ -84,7 +85,7 @@ async def update_special_day(day_id: str, update_data: SpecialDayUpdate):
     return serialize_doc(updated_doc)
 
 @router.delete("/{day_id}")
-async def delete_special_day(day_id: str):
+async def delete_special_day(day_id: str, current_admin: dict = Depends(require_permission("Special Days", "delete"))):
     """Delete a special day"""
     if not ObjectId.is_valid(day_id):
         raise HTTPException(status_code=400, detail="Invalid ID format")

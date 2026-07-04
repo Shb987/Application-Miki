@@ -197,3 +197,8 @@ async def manage_contributors_page(request: Request):
 async def manage_social_content_page(request: Request):
     """Render the Manage Social Content admin page."""
     return templates.TemplateResponse("manage_social_content.html", {"request": request})
+
+@router.get("/manage-roles-page", response_class=HTMLResponse)
+async def manage_roles_page(request: Request):
+    """Render the Roles & Permissions management page (superadmin only)."""
+    return templates.TemplateResponse("manage_roles.html", {"request": request})

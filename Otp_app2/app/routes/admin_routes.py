@@ -11,8 +11,9 @@ from app.utils.admin_auth import (
     create_access_token,
     get_password_hash,
     get_current_admin,
+    require_permission,
 )
-from app.models.admin_models import AdminLogin
+from app.models.admin_models import AdminLogin, AdminCreate
 from app.models.question_models import Question
 
 # Router setup
@@ -26,15 +27,20 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # ✅ Register new admin
 @router.post("/register")
 async def register_admin(
-    admin: AdminLogin
-    # current_admin: dict = Depends(get_current_admin)
+    admin: AdminCreate,
+    current_admin: dict = Depends(get_current_admin)
 ):
+    # Only superadmins can create new admins, or we let the first superadmin be created manually.
+    # For now, require superadmin to create others.
+    if current_admin.get("role") != "superadmin":
+        raise HTTPException(status_code=403, detail="Only superadmins can create admins")
+
     existing = await db.admins.find_one({"username": admin.username})
     if existing:
         raise HTTPException(status_code=400, detail="Admin already exists")
 
     hashed_pw = get_password_hash(admin.password)
-    await db.admins.insert_one({"username": admin.username, "password": hashed_pw})
+    await db.admins.insert_one({"username": admin.username, "password": hashed_pw, "role_name": admin.role_name})
     return {"message": "Admin registered successfully"}
 
 
@@ -45,14 +51,65 @@ async def login(admin: AdminLogin):
     if not record or not verify_password(admin.password, record["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token({"sub": record["username"], "role": "admin"})
+    token = create_access_token({"sub": record["username"], "role": record.get("role_name", "superadmin")})
     return {"access_token": token, "token_type": "bearer"}
 
 
 # ✅ Get admin details
 @router.get("/get_details")
 async def get_admin_me(current_admin: dict = Depends(get_current_admin)):
-    return {"username": current_admin["sub"]}
+    username = current_admin["sub"]
+    role_name = current_admin["role"]
+    
+    # Defaults
+    permissions = {}
+    is_superadmin = False
+    
+    if role_name == "superadmin":
+        is_superadmin = True
+    else:
+        role_doc = await db.roles.find_one({"role_name": role_name})
+        if role_doc:
+            permissions = role_doc.get("permissions", {})
+            
+    return {
+        "username": username,
+        "role": role_name,
+        "is_superadmin": is_superadmin,
+        "permissions": permissions
+    }
+
+
+# ✅ List all admins
+@router.get("/admins")
+async def list_admins(current_admin: dict = Depends(get_current_admin)):
+    if current_admin.get("role") != "superadmin":
+        raise HTTPException(status_code=403, detail="Only superadmins can view admin list")
+    
+    cursor = db.admins.find({}, {"password": 0})
+    admins = await cursor.to_list(length=100)
+    for a in admins:
+        a["_id"] = str(a["_id"])
+        # Fallback for older admin accounts created before RBAC
+        if not a.get("role_name"):
+            a["role_name"] = "superadmin"
+    return admins
+
+
+# ✅ Delete an admin
+@router.delete("/admins/{username}")
+async def delete_admin(username: str, current_admin: dict = Depends(get_current_admin)):
+    if current_admin.get("role") != "superadmin":
+        raise HTTPException(status_code=403, detail="Only superadmins can delete admins")
+    
+    if username == current_admin["sub"]:
+        raise HTTPException(status_code=400, detail="You cannot delete yourself")
+        
+    result = await db.admins.delete_one({"username": username})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Admin user not found")
+        
+    return {"message": "Admin deleted successfully"}
 
 
 # ✅ Create Question (supports text & image-based MCQs)
@@ -70,7 +127,7 @@ async def create_question(
     option2: UploadFile | None = File(None),
     option3: UploadFile | None = File(None),
     option4: UploadFile | None = File(None),
-    current_admin: dict = Depends(get_current_admin)  # 🔐 Protection added
+    current_admin: dict = Depends(require_permission("Question Base", "create"))  # 🔐 Protection added
 ):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -163,7 +220,7 @@ async def update_question(
     option2: UploadFile | None = File(None),
     option3: UploadFile | None = File(None),
     option4: UploadFile | None = File(None),
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(require_permission("Question Base", "update")),
 ):
     """Update a question (text or image-based)"""
     existing = await db.questions.find_one({"_id": ObjectId(question_id)})
@@ -218,7 +275,7 @@ async def update_question(
 @router.delete("/questions/{question_id}")
 async def delete_question(
     question_id: str,
-    current_admin: dict = Depends(get_current_admin),
+    current_admin: dict = Depends(require_permission("Question Base", "delete")),
 ):
     existing = await db.questions.find_one({"_id": ObjectId(question_id)})
     if not existing:

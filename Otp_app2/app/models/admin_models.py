@@ -8,6 +8,10 @@ class AdminLogin(BaseModel):
 class AdminCreate(BaseModel):
     username: str
     password: str
+    full_name: str
+    email: str
+    phone_number: str
+    address: str
     role_name: Optional[str] = "superadmin"
 
 class Permission(BaseModel):

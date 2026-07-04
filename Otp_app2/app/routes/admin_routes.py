@@ -40,7 +40,9 @@ async def register_admin(
         raise HTTPException(status_code=400, detail="Admin already exists")
 
     hashed_pw = get_password_hash(admin.password)
-    await db.admins.insert_one({"username": admin.username, "password": hashed_pw, "role_name": admin.role_name})
+    admin_dict = admin.model_dump()
+    admin_dict["password"] = hashed_pw
+    await db.admins.insert_one(admin_dict)
     return {"message": "Admin registered successfully"}
 
 

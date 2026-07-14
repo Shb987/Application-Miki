@@ -18,7 +18,8 @@ from app.routes import (
     admin_stats_routes, admin_user_management_routes,
     admin_notification_routes, admin_games_routes, user_tuition_routes,
     payment_routes, admin_plan_routes, admin_school_routes, public_school_routes,
-    external_registration_routes, admin_social_routes, contributor_routes, user_social_routes
+    external_registration_routes, admin_social_routes, contributor_routes, user_social_routes,
+    edusoft_routes
 ) 
 
 from fastapi.responses import JSONResponse
@@ -142,6 +143,9 @@ app.include_router(public_school_routes.router, prefix="/public", tags=["Public 
 
 # External Partner API
 app.include_router(external_registration_routes.router, prefix="/api/v1", tags=["External Registration"])
+
+# EduSoft External App — Credential Storage & Retrieval
+app.include_router(edusoft_routes.router, prefix="/api/v1/edusoft", tags=["EduSoft External API"])
 
 # Social Media Module
 app.include_router(admin_social_routes.router, prefix="/admin-panel/social", tags=["Admin Social"])

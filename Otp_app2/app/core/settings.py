@@ -28,4 +28,11 @@ class Settings:
     # External Partner API Key (used by external apps to register students)
     EXTERNAL_API_KEY: str = os.getenv("EXTERNAL_API_KEY", "miki-external-api-key-change-me")
 
+    # EduSoft External App API Key
+    EDUSOFT_API_KEY: str = os.getenv("EDUSOFT_API_KEY", "edusoft-change-me")
+
+    # Fernet symmetric encryption key — used to encrypt/decrypt EduSoft passwords
+    # Generate once with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    FERNET_SECRET_KEY: str = os.getenv("FERNET_SECRET_KEY", "")
+
 settings = Settings()

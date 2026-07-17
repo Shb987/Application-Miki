@@ -141,8 +141,22 @@ async def get_edusoft_credentials(
     # ── 3. Decrypt the stored password ───────────────────────────────────────
     plain_password = decrypt_password(credential["password_enc"])
 
+    # ── 4. Retrieve school link ──────────────────────────────────────────────
+    school_link = None
+    try:
+        student_oid = ObjectId(student_id)
+        student_doc = await db.students.find_one({"_id": student_oid})
+        if student_doc and "school_id" in student_doc:
+            school_oid = ObjectId(student_doc["school_id"])
+            school_doc = await db.schools.find_one({"_id": school_oid})
+            if school_doc and "link" in school_doc:
+                school_link = school_doc["link"]
+    except Exception as e:
+        print(f"Error fetching school link for student {student_id}: {e}")
+
     return {
         "student_id": student_id,
         "username":   credential["username"],
-        "password":   plain_password
+        "password":   plain_password,
+        "school_link": school_link
     }

@@ -129,7 +129,7 @@ async def create_question(
     option2: UploadFile | None = File(None),
     option3: UploadFile | None = File(None),
     option4: UploadFile | None = File(None),
-    current_admin: dict = Depends(require_permission("Question Base", "create"))  # 🔐 Protection added
+    current_admin: dict = Depends(require_permission("Questions Base", "create"))  # 🔐 Protection added
 ):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -222,7 +222,7 @@ async def update_question(
     option2: UploadFile | None = File(None),
     option3: UploadFile | None = File(None),
     option4: UploadFile | None = File(None),
-    current_admin: dict = Depends(require_permission("Question Base", "update")),
+    current_admin: dict = Depends(require_permission("Questions Base", "update")),
 ):
     """Update a question (text or image-based)"""
     existing = await db.questions.find_one({"_id": ObjectId(question_id)})
@@ -277,7 +277,7 @@ async def update_question(
 @router.delete("/questions/{question_id}")
 async def delete_question(
     question_id: str,
-    current_admin: dict = Depends(require_permission("Question Base", "delete")),
+    current_admin: dict = Depends(require_permission("Questions Base", "delete")),
 ):
     existing = await db.questions.find_one({"_id": ObjectId(question_id)})
     if not existing:

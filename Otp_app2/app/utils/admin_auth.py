@@ -59,8 +59,16 @@ def require_permission(module: str, action: str):
             raise HTTPException(status_code=403, detail="Role not found")
             
         permissions = role.get("permissions", {})
-        module_perms = permissions.get(module, {})
-        
+
+        # Normalize keys: compare lowercase+stripped to handle typos like
+        # "Questions Base" vs "Question Base" saved in DB
+        module_normalized = module.strip().lower()
+        module_perms = {}
+        for db_key, db_val in permissions.items():
+            if db_key.strip().lower() == module_normalized:
+                module_perms = db_val
+                break
+
         if not module_perms.get(action, False):
             raise HTTPException(status_code=403, detail=f"Permission denied for module '{module}' with action '{action}'")
             

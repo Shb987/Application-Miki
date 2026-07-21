@@ -32,6 +32,11 @@ async def send_otp(data: OTPRequest):
     if not record:
         update_data["usertype"] = None
 
+    # Sync usertype from usertable if it exists (for externally registered users)
+    user_record = await db.usertable.find_one({"mobile_number": data.mobile_number})
+    if user_record and user_record.get("usertype"):
+        update_data["usertype"] = user_record.get("usertype")
+
     await db.otps.update_one(
         {"mobile_number": data.mobile_number},
         {"$set": update_data},
@@ -64,7 +69,20 @@ async def verify_otp(data: OTPVerify):
         return {"status_code": 400, "message": "Invalid OTP"}
 
     # Get usertype
-    usertype = record.get("usertype") or "null"
+    usertype = record.get("usertype")
+    
+    # If usertype is missing in otps (e.g. registered via external API), fetch from usertable
+    if not usertype or usertype == "null":
+        user_record = await db.usertable.find_one({"mobile_number": data.mobile_number})
+        if user_record and user_record.get("usertype"):
+            usertype = user_record.get("usertype")
+            # Sync it back to otps table
+            await db.otps.update_one(
+                {"mobile_number": data.mobile_number},
+                {"$set": {"usertype": usertype}}
+            )
+        else:
+            usertype = "null"
 
     # Defaults
     is_user = False

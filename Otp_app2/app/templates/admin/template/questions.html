@@ -777,18 +777,30 @@
                     <div class="row g-3">
                       <div class="col-md-6">
                         <small class="d-block mb-1 text-muted">Image 1</small>
+                        <div id="edit-img1-preview-container" class="mb-2" style="display: none;">
+                          <img id="edit-img1-preview" src="" alt="Image 1" style="max-height: 80px; border-radius: 5px;">
+                        </div>
                         <input type="file" class="form-control premium-input" id="edit-img1" accept="image/*" />
                       </div>
                       <div class="col-md-6">
                         <small class="d-block mb-1 text-muted">Image 2</small>
+                        <div id="edit-img2-preview-container" class="mb-2" style="display: none;">
+                          <img id="edit-img2-preview" src="" alt="Image 2" style="max-height: 80px; border-radius: 5px;">
+                        </div>
                         <input type="file" class="form-control premium-input" id="edit-img2" accept="image/*" />
                       </div>
                       <div class="col-md-6">
                         <small class="d-block mb-1 text-muted">Image 3</small>
+                        <div id="edit-img3-preview-container" class="mb-2" style="display: none;">
+                          <img id="edit-img3-preview" src="" alt="Image 3" style="max-height: 80px; border-radius: 5px;">
+                        </div>
                         <input type="file" class="form-control premium-input" id="edit-img3" accept="image/*" />
                       </div>
                       <div class="col-md-6">
                         <small class="d-block mb-1 text-muted">Image 4</small>
+                        <div id="edit-img4-preview-container" class="mb-2" style="display: none;">
+                          <img id="edit-img4-preview" src="" alt="Image 4" style="max-height: 80px; border-radius: 5px;">
+                        </div>
                         <input type="file" class="form-control premium-input" id="edit-img4" accept="image/*" />
                       </div>
                       <div class="col-md-12">
@@ -855,6 +867,48 @@
   <!-- Sidebar jquery-->
   <script src="/assets/js/config.js"></script>
 
+  <!-- Apply sidebar permissions BEFORE sidebar-menu.js so hidden items are never rendered -->
+  <script>
+      (function() {
+          const sidebarMapping = {
+              "menu-user-management": "User Management",
+              "menu-subscriptions": "Subscription Plans & Transactions",
+              "menu-schools": "Schools",
+              "menu-notifications": "Notifications",
+              "menu-games": "Games",
+              "menu-questions": "Questions Base",
+              "menu-Exams": "Exams, Textbooks & Syllabus",
+              "menu-quiz": "Quizzes",
+              "menu-tutorial": "Tutorials",
+              "menu-tuition": "Exams, Textbooks & Syllabus",
+              "menu-special-days": "Special Days",
+              "menu-analytics": "Analytics",
+              "menu-social-media": "Social Content & Contributors",
+              "menu-roles": "Roles & Permissions"
+          };
+          try {
+              const cached = localStorage.getItem("admin_permissions");
+              const isSuperadmin = localStorage.getItem("admin_is_superadmin") === "true";
+              if (!isSuperadmin && cached) {
+                  const perms = JSON.parse(cached);
+                  let css = '';
+                  for (const [menuId, moduleName] of Object.entries(sidebarMapping)) {
+                      const modulePerms = perms[moduleName] || {};
+                      if (!modulePerms.read) {
+                          css += `#${menuId} { display: none !important; }\n`;
+                      }
+                  }
+                  if (css) {
+                      const style = document.createElement('style');
+                      style.id = 'admin-permissions-style';
+                      style.innerHTML = css;
+                      document.head.appendChild(style);
+                  }
+              }
+          } catch(e) {}
+      })();
+  </script>
+
   <!-- Plugins JS start-->
   <script src="/assets/js/sidebar-menu.js"></script>
   <script src="/assets/js/sidebar-pin.js"></script>
@@ -914,10 +968,55 @@
 
         const data = await res.json();
         document.getElementById("admin-name").innerText = data.username;
+        
+        // Cache permissions
+        localStorage.setItem("admin_permissions", JSON.stringify(data.permissions || {}));
+        localStorage.setItem("admin_is_superadmin", data.is_superadmin ? "true" : "false");
+        
+        applySidebarPermissions(data);
       } catch (err) {
         console.error("Error loading profile:", err);
         document.getElementById("admin-name").innerText = "Admin";
       }
+    }
+    
+    function applySidebarPermissions(data) {
+        const sidebarMapping = {
+            "menu-user-management": "User Management",
+            "menu-subscriptions": "Subscription Plans & Transactions",
+            "menu-schools": "Schools",
+            "menu-notifications": "Notifications",
+            "menu-games": "Games",
+            "menu-questions": "Questions Base",
+            "menu-Exams": "Exams, Textbooks & Syllabus",
+            "menu-quiz": "Quizzes",
+            "menu-tutorial": "Tutorials",
+            "menu-tuition": "Exams, Textbooks & Syllabus",
+            "menu-special-days": "Special Days",
+            "menu-analytics": "Analytics",
+            "menu-social-media": "Social Content & Contributors",
+            "menu-roles": "Roles & Permissions"
+        };
+        if (data.is_superadmin) return;
+        
+        const perms = data.permissions || {};
+        let css = '';
+        for (const [menuId, moduleName] of Object.entries(sidebarMapping)) {
+            const modulePerms = perms[moduleName] || {};
+            if (!modulePerms.read) {
+                css += `#${menuId} { display: none !important; }\n`;
+            }
+        }
+        
+        if (css) {
+            let style = document.getElementById('admin-permissions-style');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'admin-permissions-style';
+                document.head.appendChild(style);
+            }
+            style.innerHTML = css;
+        }
     }
 
     /* ------------------------------------------
@@ -1107,6 +1206,18 @@
       } else if (type === "image") {
         document.getElementById("edit-correct-index").value = 
           (q.correct_index !== undefined) ? (q.correct_index + 1) : "";
+        
+        for (let i = 1; i <= 4; i++) {
+          const previewContainer = document.getElementById(`edit-img${i}-preview-container`);
+          const previewImg = document.getElementById(`edit-img${i}-preview`);
+          if (q.image_options && q.image_options[i - 1]) {
+            previewImg.src = q.image_options[i - 1];
+            previewContainer.style.display = "block";
+          } else {
+            previewImg.src = "";
+            previewContainer.style.display = "none";
+          }
+        }
       }
 
       const modal = new bootstrap.Modal(document.getElementById('editModal'));

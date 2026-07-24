@@ -166,11 +166,54 @@
     <!-- scrollbar js-->
     <script src="/assets/js/scrollbar/simplebar.js"></script>
     <script src="/assets/js/scrollbar/custom.js"></script>
-    <!-- Sidebar jquery-->
     <script src="/assets/js/config.js"></script>
-    <script src="/assets/js/sidebar-menu.js"></script>
     <script src="/assets/js/sidebar-pin.js"></script>
     <script src="/assets/js/script.js"></script>
+
+    <!-- Apply sidebar permissions BEFORE sidebar-menu.js so hidden items are never rendered -->
+    <script>
+        (function() {
+            const sidebarMapping = {
+                "menu-user-management": "User Management",
+                "menu-subscriptions": "Subscription Plans & Transactions",
+                "menu-schools": "Schools",
+                "menu-notifications": "Notifications",
+                "menu-games": "Games",
+                "menu-questions": "Questions Base",
+                "menu-Exams": "Exams, Textbooks & Syllabus",
+                "menu-quiz": "Quizzes",
+                "menu-tutorial": "Tutorials",
+                "menu-tuition": "Exams, Textbooks & Syllabus",
+                "menu-special-days": "Special Days",
+                "menu-analytics": "Analytics",
+                "menu-social-media": "Social Content & Contributors",
+                "menu-roles": "Roles & Permissions"
+            };
+            try {
+                const cached = localStorage.getItem("admin_permissions");
+                const isSuperadmin = localStorage.getItem("admin_is_superadmin") === "true";
+                if (!isSuperadmin && cached) {
+                    const perms = JSON.parse(cached);
+                    let css = '';
+                    for (const [menuId, moduleName] of Object.entries(sidebarMapping)) {
+                        const modulePerms = perms[moduleName] || {};
+                        if (!modulePerms.read) {
+                            css += `#${menuId} { display: none !important; }\n`;
+                        }
+                    }
+                    if (css) {
+                        const style = document.createElement('style');
+                        style.id = 'admin-permissions-style';
+                        style.innerHTML = css;
+                        document.head.appendChild(style);
+                    }
+                }
+            } catch(e) {}
+        })();
+    </script>
+
+    <!-- Sidebar jquery (runs AFTER permissions are applied) -->
+    <script src="/assets/js/sidebar-menu.js"></script>
 
     <script>
         window.token = localStorage.getItem("admin_token");
@@ -195,10 +238,13 @@
                     const headerRoleEl = document.getElementById("header-profile-role");
                     if (headerNameEl) headerNameEl.innerText = data.username + " ";
                     if (headerRoleEl) {
-                        // Capitalize role name for cleaner styling
                         const displayRole = data.role.charAt(0).toUpperCase() + data.role.slice(1);
                         headerRoleEl.innerText = displayRole;
                     }
+
+                    // Cache permissions in localStorage for next page load (instant apply)
+                    localStorage.setItem("admin_permissions", JSON.stringify(data.permissions || {}));
+                    localStorage.setItem("admin_is_superadmin", data.is_superadmin ? "true" : "false");
                     
                     // Enforce sidebar item visibility based on permissions
                     applySidebarPermissions(data);
@@ -235,20 +281,29 @@
             }
 
             const perms = data.permissions || {};
+            let css = '';
             for (const [menuId, moduleName] of Object.entries(sidebarMapping)) {
-                const el = document.getElementById(menuId);
-                if (el) {
-                    const modulePerms = perms[moduleName] || {};
-                    // If read permission is false or missing, hide the sidebar item
-                    if (!modulePerms.read) {
-                        el.style.display = "none";
-                    }
+                const modulePerms = perms[moduleName] || {};
+                if (!modulePerms.read) {
+                    css += `#${menuId} { display: none !important; }\n`;
                 }
+            }
+            
+            if (css) {
+                let style = document.getElementById('admin-permissions-style');
+                if (!style) {
+                    style = document.createElement('style');
+                    style.id = 'admin-permissions-style';
+                    document.head.appendChild(style);
+                }
+                style.innerHTML = css;
             }
         }
 
         function logout() {
             localStorage.removeItem("admin_token");
+            localStorage.removeItem("admin_permissions");
+            localStorage.removeItem("admin_is_superadmin");
             window.location.replace("/admin-panel/login");
         }
 

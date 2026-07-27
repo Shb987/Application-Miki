@@ -9,6 +9,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import json
 import os
+import re
 
 # Optional: register a nicer font
 # pdfmetrics.registerFont(TTFont('DejaVuSans', '/path/to/DejaVuSans.ttf'))
@@ -182,9 +183,15 @@ def save_scert_question_paper(json_paper: dict, filename: str):
             # MCQ Options
             if qtype == "MCQ":
                 options = [str(o) for o in q.get("options", [])]
-                if len(options) >= 4:
-                    opt_table = Table([[f"A. {options[0]}", f"B. {options[1]}"],
-                                       [f"C. {options[2]}", f"D. {options[3]}"]],
+                cleaned_options = []
+                for opt in options:
+                    clean_opt = re.sub(r'^[A-Z0-9][\.\)\:\s-]+\s*', '', opt, flags=re.IGNORECASE)
+                    clean_opt = re.sub(r'^\([A-Z0-9]\)\s*', '', clean_opt, flags=re.IGNORECASE)
+                    cleaned_options.append(clean_opt)
+
+                if len(cleaned_options) >= 4:
+                    opt_table = Table([[f"A. {cleaned_options[0]}", f"B. {cleaned_options[1]}"],
+                                       [f"C. {cleaned_options[2]}", f"D. {cleaned_options[3]}"]],
                                       colWidths=[9*cm, 7*cm])
                     opt_table.setStyle(TableStyle([
                         ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
@@ -195,12 +202,12 @@ def save_scert_question_paper(json_paper: dict, filename: str):
                     ]))
                     story.append(opt_table)
                 else:
-                    for idx, opt in enumerate(options):
+                    for idx, opt in enumerate(cleaned_options):
                         story.append(Paragraph(f"{chr(65+idx)}. {opt}", opt_style))
 
             # True/False
             elif qtype in ("TRUEFALSE", "TRUE/FALSE"):
-                story.append(Paragraph("True    False", opt_style))
+                story.append(Paragraph("True &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; False", opt_style))
 
             # Match the following
             elif qtype == "MATCHTHEFOLLOWING":

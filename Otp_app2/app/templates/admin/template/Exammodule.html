@@ -104,17 +104,17 @@
               <div class="col-md-6 mb-2">
                 <label class="form-label fw-bold font-primary"><i class="icofont icofont-book-alt me-1"></i>
                   Subject</label>
-                <select class="form-select shadow-sm border-light-subtle" id="subject" required>
-                  <option value="">-- Select Subject --</option>
-                  <option value="Science">Science</option>
-                  <option value="Maths">Maths</option>
-                  <option value="English">English</option>
-                  <option value="Malayalam">Malayalam</option>
-                  <option value="Social Science">Social Science</option>
-                  <option value="Physics">Physics</option>
-                  <option value="Chemistry">Chemistry</option>
-                  <option value="Biology">Biology</option>
-                </select>
+                <input type="text" class="form-control shadow-sm border-light-subtle" list="subjectOptions" id="subject" placeholder="-- Select or Type Subject --" required>
+                <datalist id="subjectOptions">
+                  <option value="Science">
+                  <option value="Maths">
+                  <option value="English">
+                  <option value="Malayalam">
+                  <option value="Social Science">
+                  <option value="Physics">
+                  <option value="Chemistry">
+                  <option value="Biology">
+                </datalist>
               </div>
               <div class="col-md-12 mb-4">
                 <label class="form-label fw-bold font-primary"><i class="icofont icofont-file-pdf me-1"></i> Upload

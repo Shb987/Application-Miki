@@ -10,9 +10,82 @@ from reportlab.pdfbase.ttfonts import TTFont
 import json
 import os
 import re
+import urllib.request
 
-# Optional: register a nicer font
-# pdfmetrics.registerFont(TTFont('DejaVuSans', '/path/to/DejaVuSans.ttf'))
+def setup_fonts(subject: str):
+    """
+    Registers the correct Unicode fonts for Hindi, Malayalam, or English.
+    Returns (regular_font_name, bold_font_name).
+    """
+    subj = (subject or "").lower().strip()
+    is_hindi = "hindi" in subj or subj == "hi"
+    is_malayalam = "malayalam" in subj or subj == "ml"
+
+    if not (is_hindi or is_malayalam):
+        return "Helvetica", "Helvetica-Bold"
+
+    # First, try Nirmala UI (Windows standard font supporting multiple Indic scripts)
+    nirmala_reg = "C:/Windows/Fonts/Nirmala.ttf"
+    nirmala_bold = "C:/Windows/Fonts/NirmalaB.ttf"
+    if os.path.exists(nirmala_reg) and os.path.exists(nirmala_bold):
+        try:
+            pdfmetrics.registerFont(TTFont("Nirmala", nirmala_reg))
+            pdfmetrics.registerFont(TTFont("Nirmala-Bold", nirmala_bold))
+            print("Successfully registered Nirmala UI font from Windows")
+            return "Nirmala", "Nirmala-Bold"
+        except Exception as e:
+            print(f"Failed to register Nirmala font: {e}")
+
+    # Fallback to downloading Google Noto Sans fonts
+    font_dir = "app/static/fonts"
+    os.makedirs(font_dir, exist_ok=True)
+
+    if is_hindi:
+        reg_filename = "NotoSansDevanagari-Regular.ttf"
+        bold_filename = "NotoSansDevanagari-Bold.ttf"
+        reg_url = "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf"
+        bold_url = "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Bold.ttf"
+        reg_font_name = "NotoSansDevanagari"
+        bold_font_name = "NotoSansDevanagari-Bold"
+    else:  # Malayalam
+        reg_filename = "NotoSansMalayalam-Regular.ttf"
+        bold_filename = "NotoSansMalayalam-Bold.ttf"
+        reg_url = "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansMalayalam/NotoSansMalayalam-Regular.ttf"
+        bold_url = "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansMalayalam/NotoSansMalayalam-Bold.ttf"
+        reg_font_name = "NotoSansMalayalam"
+        bold_font_name = "NotoSansMalayalam-Bold"
+
+    reg_path = os.path.join(font_dir, reg_filename)
+    bold_path = os.path.join(font_dir, bold_filename)
+
+    # Download regular if not exists
+    if not os.path.exists(reg_path):
+        try:
+            print(f"Downloading {reg_filename} from Google Fonts...")
+            urllib.request.urlretrieve(reg_url, reg_path)
+        except Exception as e:
+            print(f"Failed to download regular font: {e}")
+            return "Helvetica", "Helvetica-Bold"
+
+    # Download bold if not exists
+    if not os.path.exists(bold_path):
+        try:
+            print(f"Downloading {bold_filename} from Google Fonts...")
+            urllib.request.urlretrieve(bold_url, bold_path)
+        except Exception as e:
+            print(f"Failed to download bold font: {e}")
+            bold_path = reg_path  # Use regular as fallback for bold
+            bold_font_name = reg_font_name
+
+    try:
+        pdfmetrics.registerFont(TTFont(reg_font_name, reg_path))
+        if bold_path != reg_path:
+            pdfmetrics.registerFont(TTFont(bold_font_name, bold_path))
+        return reg_font_name, bold_font_name
+    except Exception as e:
+        print(f"Failed to register Noto font: {e}")
+        return "Helvetica", "Helvetica-Bold"
+
 
 def _safe(obj, key, default=""):
     return obj.get(key, default) if isinstance(obj, dict) else default
@@ -34,39 +107,46 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     )
 
     # -------------------
-    # STYLES
+    # FONTS & STYLES SETUP
     # -------------------
+    subject = _safe(json_paper, "subject", "")
+    font_reg, font_bold = setup_fonts(subject)
+
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle(
         "Title", parent=styles["Heading1"], alignment=1, fontSize=18,
-        leading=22, spaceAfter=10, fontName="Helvetica-Bold", textColor=colors.darkblue
+        leading=22, spaceAfter=10, fontName=font_bold, textColor=colors.darkblue
     )
     hdr_style = ParagraphStyle(
         "Hdr", parent=styles["Normal"], alignment=1, fontSize=12,
-        leading=14, spaceAfter=4, fontName="Helvetica-Bold"
+        leading=14, spaceAfter=4, fontName=font_bold
     )
     instr_title = ParagraphStyle(
         "InstrTitle", parent=styles["Normal"], fontSize=12,
-        fontName="Helvetica-Bold", spaceAfter=4, textColor=colors.darkgreen
+        fontName=font_bold, spaceAfter=4, textColor=colors.darkgreen
     )
     instr_style = ParagraphStyle(
-        "Instr", parent=styles["Normal"], fontSize=11, leftIndent=10, leading=16
+        "Instr", parent=styles["Normal"], fontSize=11, leftIndent=10, leading=16,
+        fontName=font_reg
     )
     section_style = ParagraphStyle(
         "Section", parent=styles["Heading2"], fontSize=13,
-        fontName="Helvetica-Bold", backColor=colors.lightgrey,
+        fontName=font_bold, backColor=colors.lightgrey,
         spaceBefore=12, spaceAfter=8, leftIndent=4
     )
     q_style = ParagraphStyle(
-        "Q", parent=styles["Normal"], fontSize=11, leading=16, spaceAfter=4
+        "Q", parent=styles["Normal"], fontSize=11, leading=16, spaceAfter=4,
+        fontName=font_reg
     )
     opt_style = ParagraphStyle(
-        "Opt", parent=styles["Normal"], fontSize=10, leftIndent=18, leading=14
+        "Opt", parent=styles["Normal"], fontSize=10, leftIndent=18, leading=14,
+        fontName=font_reg
     )
     case_style = ParagraphStyle(
         "Case", parent=styles["Normal"], fontSize=10, backColor=colors.whitesmoke,
-        leftIndent=6, rightIndent=6, spaceBefore=6, spaceAfter=6, leading=14
+        leftIndent=6, rightIndent=6, spaceBefore=6, spaceAfter=6, leading=14,
+        fontName=font_reg
     )
 
     story = []
@@ -87,7 +167,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
 
     title_row = Table([[time_text, "", mm_text]], colWidths=[9*cm, 2*cm, 8*cm])
     title_row.setStyle(TableStyle([
-        ("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"),
+        ("FONTNAME", (0,0), (-1,-1), font_bold),
         ("FONTSIZE", (0,0), (-1,-1), 11),
         ("ALIGN", (0,0), (0,0), "LEFT"),
         ("ALIGN", (2,0), (2,0), "RIGHT"),
@@ -194,7 +274,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
                                        [f"C. {cleaned_options[2]}", f"D. {cleaned_options[3]}"]],
                                       colWidths=[9*cm, 7*cm])
                     opt_table.setStyle(TableStyle([
-                        ("FONTNAME", (0,0), (-1,-1), "Helvetica"),
+                        ("FONTNAME", (0,0), (-1,-1), font_reg),
                         ("FONTSIZE", (0,0), (-1,-1), 10),
                         ("VALIGN", (0,0), (-1,-1), "TOP"),
                         ("LEFTPADDING", (0,0), (-1,-1), 8),
@@ -214,7 +294,11 @@ def save_scert_question_paper(json_paper: dict, filename: str):
                 lefts, rights = q.get("left", []), q.get("right", [])
                 rows = [[f"{i+1}. {l}", r] for i, (l, r) in enumerate(zip(lefts, rights))]
                 mtable = Table(rows, colWidths=[9*cm, 7*cm])
-                mtable.setStyle(TableStyle([("FONTSIZE", (0,0), (-1,-1), 10), ("VALIGN", (0,0), (-1,-1), "TOP")]))
+                mtable.setStyle(TableStyle([
+                    ("FONTNAME", (0,0), (-1,-1), font_reg),
+                    ("FONTSIZE", (0,0), (-1,-1), 10),
+                    ("VALIGN", (0,0), (-1,-1), "TOP")
+                ]))
                 story.append(mtable)
 
             # Fill in the blanks
@@ -256,7 +340,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     # BUILD PDF
     # -------------------
     doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
-    print(f"Saved PDF → {filename}")
+    print(f"Saved PDF to {filename}")
 
 # -------------------
 # EXAMPLE USAGE

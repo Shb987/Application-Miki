@@ -8,6 +8,84 @@ from reportlab.lib.units import cm
 import json
 import os
 import re
+import urllib.request
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+def setup_fonts(subject: str):
+    """
+    Registers the correct Unicode fonts for Hindi, Malayalam, or English.
+    Returns (regular_font_name, bold_font_name).
+    """
+    subj = (subject or "").lower().strip()
+    is_hindi = "hindi" in subj or subj == "hi"
+    is_malayalam = "malayalam" in subj or subj == "ml"
+
+    if not (is_hindi or is_malayalam):
+        return "Helvetica", "Helvetica-Bold"
+
+    # First, try Nirmala UI (Windows standard font supporting multiple Indic scripts)
+    nirmala_reg = "C:/Windows/Fonts/Nirmala.ttf"
+    nirmala_bold = "C:/Windows/Fonts/NirmalaB.ttf"
+    if os.path.exists(nirmala_reg) and os.path.exists(nirmala_bold):
+        try:
+            pdfmetrics.registerFont(TTFont("Nirmala", nirmala_reg))
+            pdfmetrics.registerFont(TTFont("Nirmala-Bold", nirmala_bold))
+            print("Successfully registered Nirmala UI font from Windows")
+            return "Nirmala", "Nirmala-Bold"
+        except Exception as e:
+            print(f"Failed to register Nirmala font: {e}")
+
+    # Fallback to downloading Google Noto Sans fonts
+    font_dir = "app/static/fonts"
+    os.makedirs(font_dir, exist_ok=True)
+
+    if is_hindi:
+        reg_filename = "NotoSansDevanagari-Regular.ttf"
+        bold_filename = "NotoSansDevanagari-Bold.ttf"
+        reg_url = "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf"
+        bold_url = "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Bold.ttf"
+        reg_font_name = "NotoSansDevanagari"
+        bold_font_name = "NotoSansDevanagari-Bold"
+    else:  # Malayalam
+        reg_filename = "NotoSansMalayalam-Regular.ttf"
+        bold_filename = "NotoSansMalayalam-Bold.ttf"
+        reg_url = "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansMalayalam/NotoSansMalayalam-Regular.ttf"
+        bold_url = "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansMalayalam/NotoSansMalayalam-Bold.ttf"
+        reg_font_name = "NotoSansMalayalam"
+        bold_font_name = "NotoSansMalayalam-Bold"
+
+    reg_path = os.path.join(font_dir, reg_filename)
+    bold_path = os.path.join(font_dir, bold_filename)
+
+    # Download regular if not exists
+    if not os.path.exists(reg_path):
+        try:
+            print(f"Downloading {reg_filename} from Google Fonts...")
+            urllib.request.urlretrieve(reg_url, reg_path)
+        except Exception as e:
+            print(f"Failed to download regular font: {e}")
+            return "Helvetica", "Helvetica-Bold"
+
+    # Download bold if not exists
+    if not os.path.exists(bold_path):
+        try:
+            print(f"Downloading {bold_filename} from Google Fonts...")
+            urllib.request.urlretrieve(bold_url, bold_path)
+        except Exception as e:
+            print(f"Failed to download bold font: {e}")
+            bold_path = reg_path  # Use regular as fallback for bold
+            bold_font_name = reg_font_name
+
+    try:
+        pdfmetrics.registerFont(TTFont(reg_font_name, reg_path))
+        if bold_path != reg_path:
+            pdfmetrics.registerFont(TTFont(bold_font_name, bold_path))
+        return reg_font_name, bold_font_name
+    except Exception as e:
+        print(f"Failed to register Noto font: {e}")
+        return "Helvetica", "Helvetica-Bold"
+
 
 def _safe(obj, key, default=""):
     return obj.get(key, default) if isinstance(obj, dict) else default
@@ -29,35 +107,41 @@ def save_primary_question_paper(json_paper: dict, filename: str):
     )
 
     # -------------------
-    # STYLES (Enlarged and Clearer)
+    # FONTS & STYLES SETUP
     # -------------------
+    subject = _safe(json_paper, "subject", "")
+    font_reg, font_bold = setup_fonts(subject)
+
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle(
         "Title", parent=styles["Heading1"], alignment=1, fontSize=20,
-        leading=26, spaceAfter=15, fontName="Helvetica-Bold", textColor=colors.darkblue
+        leading=26, spaceAfter=15, fontName=font_bold, textColor=colors.darkblue
     )
     hdr_style = ParagraphStyle(
         "Hdr", parent=styles["Normal"], alignment=1, fontSize=14,
-        leading=18, spaceAfter=8, fontName="Helvetica-Bold"
+        leading=18, spaceAfter=8, fontName=font_bold
     )
     instr_title = ParagraphStyle(
         "InstrTitle", parent=styles["Normal"], fontSize=13,
-        fontName="Helvetica-Bold", spaceAfter=6, textColor=colors.darkgreen
+        fontName=font_bold, spaceAfter=6, textColor=colors.darkgreen
     )
     instr_style = ParagraphStyle(
-        "Instr", parent=styles["Normal"], fontSize=12, leftIndent=12, leading=18
+        "Instr", parent=styles["Normal"], fontSize=12, leftIndent=12, leading=18,
+        fontName=font_reg
     )
     section_style = ParagraphStyle(
         "Section", parent=styles["Heading2"], fontSize=15,
-        fontName="Helvetica-Bold", backColor=colors.lightcyan,
+        fontName=font_bold, backColor=colors.lightcyan,
         spaceBefore=15, spaceAfter=10, leftIndent=6, borderPadding=5
     )
     q_style = ParagraphStyle(
-        "Q", parent=styles["Normal"], fontSize=13, leading=20, spaceAfter=6
+        "Q", parent=styles["Normal"], fontSize=13, leading=20, spaceAfter=6,
+        fontName=font_reg
     )
     opt_style = ParagraphStyle(
-        "Opt", parent=styles["Normal"], fontSize=12, leftIndent=24, leading=18
+        "Opt", parent=styles["Normal"], fontSize=12, leftIndent=24, leading=18,
+        fontName=font_reg
     )
     
     story = []
@@ -77,7 +161,7 @@ def save_primary_question_paper(json_paper: dict, filename: str):
 
     title_row = Table([[time_text, mm_text]], colWidths=[9*cm, 8*cm])
     title_row.setStyle(TableStyle([
-        ("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"),
+        ("FONTNAME", (0,0), (-1,-1), font_bold),
         ("FONTSIZE", (0,0), (-1,-1), 12),
         ("ALIGN", (0,0), (0,0), "LEFT"),
         ("ALIGN", (1,0), (1,0), "RIGHT"),
@@ -141,6 +225,7 @@ def save_primary_question_paper(json_paper: dict, filename: str):
                 if rows:
                     mtable = Table(rows, colWidths=[6.5*cm, 4*cm, 6.5*cm])
                     mtable.setStyle(TableStyle([
+                        ("FONTNAME", (0,0), (-1,-1), font_reg),
                         ("FONTSIZE", (0,0), (-1,-1), 11), 
                         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
                         ("ALIGN", (1,0), (1,0), "CENTER")

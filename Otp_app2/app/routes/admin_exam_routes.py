@@ -334,6 +334,32 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
             return
         textbook_id = str(textbook_doc["_id"])
 
+        # 2.5. Detect Language using langdetect
+        print(f"[BG-CHAPTER] Step 2.5: Detecting language...")
+        detected_language = "en"  # default fallback
+        try:
+            from langdetect import detect
+            # Use the first 2000 characters for language detection, strip newlines
+            sample_text = text_content[:2000].replace('\n', ' ').strip()
+            if sample_text:
+                detected_lang_code = detect(sample_text)
+                
+                # Check for requested languages (ml, hi, en) and others
+                if detected_lang_code in ['ml', 'hi', 'en']:
+                    detected_language = detected_lang_code
+                else:
+                    detected_language = detected_lang_code # Store whatever is detected
+                    
+            print(f"[BG-CHAPTER] Language detected: {detected_language}")
+            
+            # Save detected language to chapter status
+            await db.chapter_status.update_one(
+                {**textbook_query, "chapter_title": full_chapter_title},
+                {"$set": {"detected_language": detected_language}}
+            )
+        except Exception as e:
+            print(f"[BG-CHAPTER] langdetect language detection failed: {e}. Falling back to 'en'.")
+
         # 3. Generate Embeddings & Save Passages
         print(f"[BG-CHAPTER] Step 3: Generating embeddings for {len(text_content)} characters...")
         PASSAGE_SIZE = 4000
@@ -367,6 +393,7 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
                     "content": passage.strip(),
                     "passage_index": p_idx,
                     "vector": vector,
+                    "detected_language": detected_language,
                     "created_at": datetime.now(timezone.utc),
                 })
             except Exception as e:
@@ -582,6 +609,16 @@ async def generate_questions_worker(task_id: str):
         "chapter_title": {"$in": chapters}
     }).sort("passage_index", 1).to_list(None)
 
+    # Determine overall language from chapters (fallback to 'en')
+    detected_languages = [doc.get("detected_language") for doc in chapter_docs if doc.get("detected_language")]
+    from collections import Counter
+    if detected_languages:
+        majority_lang = Counter(detected_languages).most_common(1)[0][0]
+    else:
+        majority_lang = "en"
+    
+    print(f"[BG-GEN] Determined overall language for generation: {majority_lang}")
+
     # Group passages by chapter title
     chapter_content_map = {}
     for doc in chapter_docs:
@@ -665,10 +702,19 @@ async def generate_questions_worker(task_id: str):
             sections_json_block = ",\n    ".join(sections_list)
 
             # Determine Peer/Pedagogy Prompt based on Standard
-            print(f"[BG-GEN] Step 2: Generating Paper {p+1} via OpenAI ({'Vision/Primary' if std <= 5 else 'Standard'} mode)...")
-            system_role_content = "You are a professional SCERT Exam Paper Generator. Output valid JSON only."
+            print(f"[BG-GEN] Step 2: Generating Paper {p+1} via OpenAI ({'Vision/Primary' if std <= 5 else 'Standard'} mode, Language: {majority_lang})...")
+            
+            lang_instruction = ""
+            if majority_lang == "ml":
+                lang_instruction = "CRITICAL: YOU MUST GENERATE ALL QUESTIONS, OPTIONS, AND ANSWERS ENTIRELY IN MALAYALAM (മലയാളം)."
+            elif majority_lang == "hi":
+                lang_instruction = "CRITICAL: YOU MUST GENERATE ALL QUESTIONS, OPTIONS, AND ANSWERS ENTIRELY IN HINDI (हिंदी)."
+            else:
+                lang_instruction = "CRITICAL: YOU MUST GENERATE ALL QUESTIONS, OPTIONS, AND ANSWERS ENTIRELY IN ENGLISH."
+                
+            system_role_content = f"You are a professional SCERT Exam Paper Generator. Output valid JSON only.\n\n{lang_instruction}"
             if std <= 5:
-                system_role_content = PRIMARY_PEDAGOGY_PROMPT
+                system_role_content = f"{PRIMARY_PEDAGOGY_PROMPT}\n\n{lang_instruction}"
 
             prompt = f"""
 {system_role_content}

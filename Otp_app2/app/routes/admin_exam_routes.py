@@ -201,6 +201,7 @@ async def upload_chapter_endpoint(
     subject: str = Form(...),
     chapter_name: str = Form(...),
     chapter_number: str = Form(...),
+    textbook_name: Optional[str] = Form(None),
     file: UploadFile = File(...)
 ):
     """
@@ -226,6 +227,11 @@ async def upload_chapter_endpoint(
         "subject": subject
     }
     
+    if textbook_name and textbook_name.strip() and textbook_name.strip().lower() != "null":
+        textbook_query["textbook_name"] = textbook_name.strip()
+    else:
+        textbook_query["textbook_name"] = None
+    
     full_chapter_title = f"{chapter_number} {chapter_name}".strip()
     
     # Update/Reset chapter status in parent textbook
@@ -250,6 +256,7 @@ async def upload_chapter_endpoint(
             "standard": standard,
             "state": state,
             "subject": subject,
+            "textbook_name": textbook_query["textbook_name"],
             "chapter_title": full_chapter_title
         },
         {
@@ -444,16 +451,24 @@ async def get_chapter_status(
     standard: str,
     state: str,
     subject: str,
-    chapter_title: str
+    chapter_title: str,
+    textbook_name: Optional[str] = None
 ):
     """Check the processing status of a specific chapter."""
-    status_doc = await db.chapter_status.find_one({
+    query = {
         "board": board,
         "standard": standard,
         "state": state,
         "subject": subject,
         "chapter_title": chapter_title
-    })
+    }
+    
+    if textbook_name and textbook_name.strip() and textbook_name.strip().lower() != "null":
+        query["textbook_name"] = textbook_name.strip()
+    else:
+        query["textbook_name"] = None
+        
+    status_doc = await db.chapter_status.find_one(query)
     
     if not status_doc:
         return {"status": "not_found"}

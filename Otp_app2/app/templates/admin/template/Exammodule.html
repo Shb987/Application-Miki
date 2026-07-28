@@ -116,6 +116,11 @@
                   <option value="Biology">
                 </datalist>
               </div>
+              <div class="col-md-12 mb-2 d-none" id="textbook-name-container">
+                <label class="form-label fw-bold font-primary"><i class="icofont icofont-book me-1"></i>
+                  Textbook Name (Optional)</label>
+                <input type="text" class="form-control shadow-sm border-light-subtle" id="textbook_name" placeholder="Enter textbook name (e.g., NCERT Physics Part 1)">
+              </div>
               <div class="col-md-12 mb-4">
                 <label class="form-label fw-bold font-primary"><i class="icofont icofont-file-pdf me-1"></i> Upload
                   Chapter PDFs (Bulk)</label>
@@ -187,6 +192,18 @@
   const batchTableBody = document.getElementById("batch-table-body");
   const batchContainer = document.getElementById("batch-review-container");
   const submitBtn = document.getElementById("submit-btn");
+  const standardSelect = document.getElementById("standard");
+  const textbookNameContainer = document.getElementById("textbook-name-container");
+  const textbookNameInput = document.getElementById("textbook_name");
+
+  standardSelect.addEventListener("change", (e) => {
+    if (e.target.value === '11' || e.target.value === '12') {
+      textbookNameContainer.classList.remove("d-none");
+    } else {
+      textbookNameContainer.classList.add("d-none");
+      textbookNameInput.value = "";
+    }
+  });
 
   let uploadQueue = [];
 
@@ -250,6 +267,7 @@
     const standard = document.getElementById("standard").value;
     const state = document.getElementById("state").value;
     const subject = document.getElementById("subject").value;
+    const textbookName = document.getElementById("textbook_name").value.trim();
 
     submitBtn.disabled = true;
     for (let item of uploadQueue) {
@@ -260,6 +278,9 @@
       formData.append("standard", standard);
       formData.append("state", state);
       formData.append("subject", subject);
+      if (textbookName) {
+        formData.append("textbook_name", textbookName);
+      }
       formData.append("chapter_number", item.chNumber);
       formData.append("chapter_name", item.chName);
       formData.append("file", item.file);
@@ -267,7 +288,7 @@
         const res = await fetch("/admin-panel/textbook/upload-batch", { method: "POST", headers: { "Authorization": "Bearer " + token }, body: formData });
         if (res.ok) { 
           item.status = 'processing'; 
-          pollStatus(item, board, standard, state, subject);
+          pollStatus(item, board, standard, state, subject, textbookName);
         }
         else { const errData = await res.json(); item.status = 'error'; item.error = errData.detail || "Upload failed"; }
       } catch (err) { item.status = 'error'; item.error = "Network error"; }
@@ -276,10 +297,13 @@
     submitBtn.disabled = false;
   });
 
-  async function pollStatus(item, board, standard, state, subject) {
+  async function pollStatus(item, board, standard, state, subject, textbookName) {
     const check = async () => {
       try {
-        const url = `/admin-panel/chapter-status?board=${encodeURIComponent(board)}&standard=${encodeURIComponent(standard)}&state=${encodeURIComponent(state)}&subject=${encodeURIComponent(subject)}&chapter_title=${encodeURIComponent(item.chNumber + " " + item.chName).trim()}`;
+        let url = `/admin-panel/chapter-status?board=${encodeURIComponent(board)}&standard=${encodeURIComponent(standard)}&state=${encodeURIComponent(state)}&subject=${encodeURIComponent(subject)}&chapter_title=${encodeURIComponent(item.chNumber + " " + item.chName).trim()}`;
+        if (textbookName) {
+          url += `&textbook_name=${encodeURIComponent(textbookName)}`;
+        }
         const res = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
         if (!res.ok) return;
         const data = await res.json();

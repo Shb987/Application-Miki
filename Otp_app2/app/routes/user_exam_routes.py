@@ -23,46 +23,27 @@ from fastapi import Depends
 router = APIRouter(tags=["User_Exam Module"])
 
 
+def natural_sort_key(s):
+    import re
+    if not s:
+        return []
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+
 @router.get("/standard/{standard}")
 async def get_subjects_and_chapters(standard: str):
-    # Step 1: Get subjects for the given standard
-    subjects = await db.textbook.distinct("subject", {"standard": standard})
-    subjects = sorted([s for s in subjects if s])
+    # Fetch all processed textbooks for this standard
+    docs = await db.textbook.find({
+        "standard": standard,
+        "processed": True
+    }).to_list(None)
 
     # Optimization: List images once from the correct static directory
     IMAGE_DIR = os.path.join("app", "static", "subject_images")
     image_files = os.listdir(IMAGE_DIR) if os.path.exists(IMAGE_DIR) else []
-    print(image_files)
-    result = []
-    
-    for subject in subjects:
-        chapters_set = set()
 
-        # Primary: chapters from processed textbooks
-        docs = await db.textbook.find({
-            "standard": standard,
-            "subject": subject,
-            "processed": True
-        }).to_list(None)
-
-        for d in docs:
-            chapter_list = d.get("chapters", [])
-            if isinstance(chapter_list, list):
-                chapters_set.update([c for c in chapter_list if c])
-
-        # Fallback: textbook_chapters
-        if not chapters_set:
-            ch_docs = await db.textbook_chapters.find({
-                "standard": standard,
-                "subject": subject
-            }).to_list(None)
-
-            for cd in ch_docs:
-                title = cd.get("chapter_title")
-                if title:
-                    chapters_set.add(title)
-
-        # Image matching logic
+    def get_subject_image(subject):
+        if not subject:
+            return None
         normalized_subject = subject.lower().replace(" ", "")
         
         # Manual mapping for common abbreviations or typos
@@ -73,32 +54,111 @@ async def get_subjects_and_chapters(standard: str):
             "socialscience": "socialscience.jpg"
         }
         
-        image_url = None
-        
         if normalized_subject in special_cases:
             target_image = special_cases[normalized_subject]
             if target_image in image_files:
-                image_url = f"subject_images/{target_image}"
+                return f"subject_images/{target_image}"
         else:
             # Search for loosely matching image
             for img in image_files:
                 if img.lower().startswith(normalized_subject):
-                    image_url = f"subject_images/{img}"
-                    break
-        
+                    return f"subject_images/{img}"
+                    
         # Fallback: match by name without extension
-        if not image_url:
-             for img in image_files:
-                img_name = os.path.splitext(img)[0].lower()
-                if img_name == normalized_subject:
-                    image_url = f"subject_images/{img}"
-                    break
+        for img in image_files:
+            img_name = os.path.splitext(img)[0].lower()
+            if img_name == normalized_subject:
+                return f"subject_images/{img}"
+        return None
+
+    # Group chapters by subject first, then by textbook_name
+    # subject_map: subject_name -> { textbook_name -> set(chapters) }
+    subject_map = {}
+
+    for doc in docs:
+        subj = doc.get("subject")
+        if not subj:
+            continue
+        tb_name = doc.get("textbook_name")
+        if not tb_name or not tb_name.strip() or tb_name.strip().lower() == "null":
+            tb_name = None
+        else:
+            tb_name = tb_name.strip()
+            
+        if subj not in subject_map:
+            subject_map[subj] = {}
+            
+        if tb_name not in subject_map[subj]:
+            subject_map[subj][tb_name] = set()
+            
+        chapter_list = doc.get("chapters", [])
+        if isinstance(chapter_list, list):
+            subject_map[subj][tb_name].update([c for c in chapter_list if c])
+
+    # Fallback to textbook_chapters for any subjects/textbooks
+    # that don't have chapters in db.textbook
+    fallback_docs = await db.textbook_chapters.find({
+        "standard": standard
+    }).to_list(None)
+
+    # Cache textbook_id -> textbook_name to avoid excessive DB calls
+    textbook_cache = {}
+
+    for fd in fallback_docs:
+        subj = fd.get("subject")
+        if not subj:
+            continue
+        t_id = fd.get("textbook_id")
+        chap_title = fd.get("chapter_title")
+        if not chap_title:
+            continue
+
+        tb_name = None
+        if t_id:
+            if t_id not in textbook_cache:
+                try:
+                    tb_doc = await db.textbook.find_one({"_id": ObjectId(t_id)})
+                    if tb_doc:
+                        name_val = tb_doc.get("textbook_name")
+                        if name_val and name_val.strip() and name_val.strip().lower() != "null":
+                            tb_name = name_val.strip()
+                except Exception:
+                    pass
+                textbook_cache[t_id] = tb_name
+            else:
+                tb_name = textbook_cache[t_id]
+
+        if subj not in subject_map:
+            subject_map[subj] = {}
+            
+        if tb_name not in subject_map[subj]:
+            subject_map[subj][tb_name] = set()
+            
+        subject_map[subj][tb_name].add(chap_title)
+
+    result = []
+    for subj, textbooks_dict in subject_map.items():
+        textbook_list = []
+        for tb_name, chapters_set in textbooks_dict.items():
+            sorted_chaps = sorted(list(chapters_set), key=natural_sort_key)
+            textbook_list.append({
+                "textbook_name": tb_name,
+                "chapters": sorted_chaps
+            })
+            
+        # Sort textbooks alphabetically by textbook_name (handling None/null gracefully)
+        textbook_list.sort(key=lambda x: (x["textbook_name"] is None, x["textbook_name"].lower() if x["textbook_name"] else ""))
+
+        image_url = get_subject_image(subj)
 
         result.append({
-            "name": subject,
-            "chapters": sorted(list(chapters_set)),
+            "name": subj,
+            "textbook_name": textbook_list,
             "image_url": image_url
         })
+
+    # Sort subjects alphabetically by name
+    result.sort(key=lambda x: x["name"].lower() if x["name"] else "")
 
     return {
         "standard": standard,

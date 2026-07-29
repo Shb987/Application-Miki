@@ -454,6 +454,12 @@ async def get_subjects(standard: str):
     subjects = sorted([s for s in subjects if s])
     return {"subjects": subjects}
 
+def natural_sort_key(s):
+    import re
+    if not s:
+        return []
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+
 @router.get("/chapters/{standard}/{subject}")
 async def get_chapters(standard: str, subject: str):
     docs = await db.textbook.find({"standard": standard, "subject": subject, "processed": True}).to_list(None)
@@ -470,6 +476,7 @@ async def get_chapters(standard: str, subject: str):
             title = cd.get("chapter_title")
             if title and title not in chapter_set:
                 chapter_set.append(title)
+    chapter_set = sorted(chapter_set, key=natural_sort_key)
     return {"chapters": chapter_set}
     
 @router.get("/chapter-status", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "read"))])
@@ -516,6 +523,8 @@ async def get_all_textbooks():
     textbooks = await db.textbook.find({}).sort("created_at", -1).to_list(None)
     for t in textbooks:
         t["_id"] = str(t["_id"])
+        if isinstance(t.get("chapters"), list):
+            t["chapters"] = sorted(t["chapters"], key=natural_sort_key)
     return {"textbooks": textbooks}
 
 @router.delete("/textbook/{textbook_id}/chapter/{chapter_name}", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "delete"))])

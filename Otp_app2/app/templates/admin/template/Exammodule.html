@@ -116,6 +116,14 @@
                   <option value="Biology">
                 </datalist>
               </div>
+              <div class="col-md-6 mb-2">
+                <label class="form-label fw-bold font-primary"><i class="icofont icofont-tags me-1"></i> Category</label>
+                <select class="form-select shadow-sm border-light-subtle" id="category" required>
+                  <option value="">-- Select Category --</option>
+                  <option value="NCERT">NCERT</option>
+                  <option value="SCERT">SCERT</option>
+                </select>
+              </div>
               <div class="col-md-12 mb-2" id="textbook-name-container">
                 <label class="form-label fw-bold font-primary"><i class="icofont icofont-book me-1"></i>
                   Textbook Name (Optional)</label>
@@ -257,6 +265,7 @@
     const state = document.getElementById("state").value;
     const subject = document.getElementById("subject").value;
     const textbookName = document.getElementById("textbook_name").value.trim();
+    const category = document.getElementById("category").value;
 
     submitBtn.disabled = true;
     for (let item of uploadQueue) {
@@ -269,6 +278,9 @@
       formData.append("subject", subject);
       if (textbookName) {
         formData.append("textbook_name", textbookName);
+      }
+      if (category) {
+        formData.append("category", category);
       }
       formData.append("chapter_number", item.chNumber);
       formData.append("chapter_name", item.chName);

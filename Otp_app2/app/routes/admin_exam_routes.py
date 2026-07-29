@@ -202,6 +202,7 @@ async def upload_chapter_endpoint(
     chapter_name: str = Form(...),
     chapter_number: str = Form(...),
     textbook_name: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
     file: UploadFile = File(...)
 ):
     """
@@ -231,6 +232,11 @@ async def upload_chapter_endpoint(
         textbook_query["textbook_name"] = textbook_name.strip()
     else:
         textbook_query["textbook_name"] = None
+
+    if category and category.strip() and category.strip().lower() != "null":
+        textbook_query["category"] = category.strip()
+    else:
+        textbook_query["category"] = None
     
     full_chapter_title = f"{chapter_number} {chapter_name}".strip()
     
@@ -549,6 +555,36 @@ async def delete_textbook_chapter(textbook_id: str, chapter_name: str):
     return {
         "status": "success", 
         "message": f"Deleted chapter '{chapter_name}' successfully",
+        "deleted_passages_count": del_result.deleted_count
+    }
+
+@router.delete("/textbook/{textbook_id}", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "delete"))])
+async def delete_textbook(textbook_id: str):
+    """Delete an entire textbook and all its associated chapters and passages."""
+    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
+    if not textbook:
+        raise HTTPException(status_code=404, detail="Textbook not found")
+        
+    # Delete passages from vector db
+    del_result = await db.textbook_chapters.delete_many({
+        "textbook_id": textbook_id
+    })
+
+    # Delete chapter statuses
+    await db.chapter_status.delete_many({
+        "board": textbook.get("board"),
+        "standard": textbook.get("standard"),
+        "state": textbook.get("state"),
+        "subject": textbook.get("subject"),
+        "textbook_name": textbook.get("textbook_name")
+    })
+
+    # Delete the textbook document
+    await db.textbook.delete_one({"_id": ObjectId(textbook_id)})
+    
+    return {
+        "status": "success", 
+        "message": f"Deleted textbook '{textbook_id}' successfully",
         "deleted_passages_count": del_result.deleted_count
     }
 

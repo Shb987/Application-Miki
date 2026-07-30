@@ -60,3 +60,4 @@ gunicorn_conf.py
 
 test_voice_assistant.py
 verify_voice_history.py
+seed_admin.py

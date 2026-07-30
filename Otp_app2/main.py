@@ -31,7 +31,6 @@ from app.services.scheduler_service import start_special_day_scheduler, start_tu
 import asyncio
 
 
-from seed_admin import seed_admin
 
 app = FastAPI(title="Miki Application")
 
@@ -39,7 +38,7 @@ app = FastAPI(title="Miki Application")
 async def startup_event():
     # Automatically seed default admin if not existing
     try:
-        await seed_admin()
+        pass
     except Exception as e:
         print(f"[WARN] Failed to auto-seed admin: {e}")
     # Start the background scheduler for Special Days

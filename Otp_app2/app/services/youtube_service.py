@@ -6,10 +6,8 @@ from typing import List, Tuple, Optional
 
 class YouTubeService:
     def __init__(self):
-        self.api_key = settings.YOUTUBE_API_KEY
-        if not self.api_key:
-            raise ValueError("YOUTUBE_API_KEY not found in settings")
-        self.youtube = build('youtube', 'v3', developerKey=self.api_key)
+        self.api_key = settings.YOUTUBE_API_KEY or ""
+        self.youtube = build('youtube', 'v3', developerKey=self.api_key) if self.api_key else None
 
     def extract_id(self, input_str: str) -> Tuple[str, str]:
         """
@@ -38,8 +36,13 @@ class YouTubeService:
 
         return input_str, "text"
 
+    def _check_client(self):
+        if not self.youtube:
+            raise ValueError("YOUTUBE_API_KEY is not configured in environment settings.")
+
     def get_channel_id_from_handle(self, handle: str) -> str:
         """Resolves a @handle to a Channel ID."""
+        self._check_client()
         request = self.youtube.search().list(
             part="snippet",
             q=handle,

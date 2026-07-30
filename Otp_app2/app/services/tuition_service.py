@@ -10,7 +10,7 @@ from app.utils.ai_usage_logger import log_ai_usage
 
 
 logger = logging.getLogger(__name__)
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 
 async def generate_syllabus_with_ai(db, student_class: str, subject: str) -> dict:
     """

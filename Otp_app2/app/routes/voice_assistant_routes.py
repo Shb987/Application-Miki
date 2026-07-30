@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/voice-assistant")
 
 # OpenAI client initialization
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "sk-placeholder"
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # MongoDB collection

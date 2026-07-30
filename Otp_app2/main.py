@@ -31,10 +31,17 @@ from app.services.scheduler_service import start_special_day_scheduler, start_tu
 import asyncio
 
 
+from seed_admin import seed_admin
+
 app = FastAPI(title="Miki Application")
 
 @app.on_event("startup")
 async def startup_event():
+    # Automatically seed default admin if not existing
+    try:
+        await seed_admin()
+    except Exception as e:
+        print(f"[WARN] Failed to auto-seed admin: {e}")
     # Start the background scheduler for Special Days
     asyncio.create_task(start_special_day_scheduler(db))
     # Start the background scheduler for Digital Tuition
@@ -48,17 +55,17 @@ try:
     if os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
-        print("✅ Firebase Admin Initialized Successfully")
+        print("[Firebase] Admin Initialized Successfully")
     else:
-        print(f"⚠️ Firebase Credentials not found at {cred_path}. Push notifications will not work.")
+        print(f"[WARN] Firebase Credentials not found at {cred_path}. Push notifications will not work.")
 except Exception as e:
-    print(f"❌ Failed to initialize Firebase: {e}")
+    print(f"[ERROR] Failed to initialize Firebase: {e}")
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    print("💥 Validation Error:", exc.errors())
-    print("💥 Body Received:", exc.body)
+    print("[ERROR] Validation Error:", exc.errors())
+    print("[ERROR] Body Received:", exc.body)
     return JSONResponse(
         status_code=422,
         content={"detail": exc.errors(), "body": exc.body},

@@ -6,14 +6,14 @@ load_dotenv()
 
 class Settings:
     # Database
-    MONGO_URI: str = os.getenv("MONGO_URI")
-    DB_NAME: str = os.getenv("DB_NAME")
+    MONGO_URI: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    DB_NAME: str = os.getenv("DB_NAME", "miki_db")
     #Onesignal
-    ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID")
-    ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY")
+    ONESIGNAL_APP_ID = os.getenv("ONESIGNAL_APP_ID", "")
+    ONESIGNAL_API_KEY = os.getenv("ONESIGNAL_API_KEY", "")
     # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY")
-    ALGORITHM: str = os.getenv("ALGORITHM")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "miki-secret-key-change-in-production")
+    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_HOURS: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_HOURS", 24))
     
     # OTP

@@ -671,11 +671,11 @@
                 <i class="fa fa-list-ul text-primary"></i> Current Questions
               </h5>
               <div class="d-flex align-items-center gap-3">
-                <select id="type-filter" class="form-select premium-input py-1" style="width: auto; min-width: 150px;" onchange="filterQuestionsByType()">
-                  <option value="all">All Types</option>
-                  <option value="text">TEXT</option>
-                  <option value="image">IMAGE</option>
-                  <option value="rating">RATING</option>
+                <select id="type-filter" class="form-select premium-input py-1" style="width: auto; min-width: 180px;" onchange="filterQuestionsByType()">
+                  <option value="all">All Types ({{ total_count|default(questions|length) }})</option>
+                  <option value="text">TEXT ({{ text_count|default(0) }})</option>
+                  <option value="image">IMAGE ({{ image_count|default(0) }})</option>
+                  <option value="rating">RATING ({{ rating_count|default(0) }})</option>
                 </select>
                 <div class="badge bg-primary rounded-pill px-3" id="questions-count">{{ questions|length }}</div>
               </div>
@@ -1134,9 +1134,7 @@
           };
 
           grid.insertAdjacentHTML('afterbegin', createQuestionCardHtml(newQuestion));
-
-          const countBadge = document.getElementById("questions-count");
-          countBadge.innerText = parseInt(countBadge.innerText) + 1;
+          updateTypeFilterCounts();
 
           document.getElementById("new-question-text").value = "";
           ["option1", "option2", "option3", "option4", "correct-answer", "correct-index"].forEach(id => {
@@ -1326,11 +1324,9 @@
             setTimeout(() => {
               item.remove();
               checkEmptyGrid();
+              updateTypeFilterCounts();
             }, 300);
           }
-
-          const countBadge = document.getElementById("questions-count");
-          countBadge.innerText = Math.max(0, parseInt(countBadge.innerText) - 1);
 
           deleteModalInstance.hide();
         } else {
@@ -1382,6 +1378,42 @@
       checkEmptyGrid();
     }
 
+    /* ------------------------------------------
+          UPDATE TYPE FILTER COUNTS
+    ------------------------------------------- */
+    function updateTypeFilterCounts() {
+      const items = document.querySelectorAll("#questions-grid .question-item");
+      let total = items.length;
+      let textCount = 0;
+      let imageCount = 0;
+      let ratingCount = 0;
+
+      items.forEach(item => {
+        const badge = item.querySelector(".badge");
+        const typeText = badge ? badge.innerText.trim().toLowerCase() : "text";
+        if (typeText === "image") {
+          imageCount++;
+        } else if (typeText === "rating") {
+          ratingCount++;
+        } else {
+          textCount++;
+        }
+      });
+
+      const select = document.getElementById("type-filter");
+      if (select && select.options && select.options.length >= 4) {
+        select.options[0].text = `All Types (${total})`;
+        select.options[1].text = `TEXT (${textCount})`;
+        select.options[2].text = `IMAGE (${imageCount})`;
+        select.options[3].text = `RATING (${ratingCount})`;
+      }
+
+      const countBadge = document.getElementById("questions-count");
+      if (countBadge) {
+        countBadge.innerText = total;
+      }
+    }
+
 
     /* ------------------------------------------
           LOGOUT
@@ -1397,6 +1429,7 @@
           INIT
     ------------------------------------------- */
     loadAdminProfile();
+    updateTypeFilterCounts();
 
   </script>
 </body>

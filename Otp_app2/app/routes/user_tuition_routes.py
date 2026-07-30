@@ -18,7 +18,7 @@ async def check_premium(student_id: str):
         raise HTTPException(status_code=403, detail="Digital Tuition is a Premium feature. Please upgrade to Plus or Pro.")
 
 router = APIRouter(tags=["Digital Tuition"])
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 
 def serialize_mongo(doc):
     if isinstance(doc, ObjectId):

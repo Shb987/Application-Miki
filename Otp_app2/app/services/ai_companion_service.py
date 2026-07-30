@@ -6,7 +6,7 @@ from app.core.database import db
 from bson import ObjectId
 
 # Load environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "sk-placeholder"
 client = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=20.0)
 
 async def get_student_performance_context(student_id: str):

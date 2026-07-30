@@ -10,13 +10,16 @@ from app.utils.ai_usage_logger import log_ai_usage
 from fastapi import BackgroundTasks
 from app.utils.usage_guard import check_and_use_quota
 
-from ddgs import DDGS
+try:
+    from duckduckgo_search import DDGS
+except ImportError:
+    from ddgs import DDGS
 import numpy as np
 
 router = APIRouter(prefix="/ai-tutor", tags=["AI Tutor"])
 
 # Initialize OpenAI Client (Async)
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 
 async def search_web(query: str) -> str:
     """Perform a web search for current events or general facts."""

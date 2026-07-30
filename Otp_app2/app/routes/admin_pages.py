@@ -14,10 +14,7 @@ templates = Jinja2Templates(directory="app/templates/admin/template")
 router = APIRouter(tags=["Admin Pages"])
 
 
-API_BASE = os.getenv("API_BASE")
-print('check33333',API_BASE)    
-if not API_BASE:
-    raise RuntimeError("API_BASE environment variable not set (admin_pages)")
+API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 
 
 @router.get("/config.js", response_class=HTMLResponse)
@@ -85,12 +82,31 @@ async def questions_category_page(request: Request, category: str):
     questions_cursor = db.questions.find({"category": category})
     questions = await questions_cursor.to_list(length=None)
 
+    text_count = 0
+    image_count = 0
+    rating_count = 0
+
     for q in questions:
         q["_id"] = str(q["_id"])
+        q_type = str(q.get("type", "text")).lower()
+        if q_type == "image":
+            image_count += 1
+        elif q_type == "rating":
+            rating_count += 1
+        else:
+            text_count += 1
 
     return templates.TemplateResponse(
         "questions.html",
-        {"request": request, "category": category, "questions": questions}
+        {
+            "request": request,
+            "category": category,
+            "questions": questions,
+            "total_count": len(questions),
+            "text_count": text_count,
+            "image_count": image_count,
+            "rating_count": rating_count,
+        }
     )
 
 

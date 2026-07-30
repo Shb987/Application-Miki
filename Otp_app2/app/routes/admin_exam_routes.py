@@ -24,7 +24,7 @@ import pymupdf  # Standard PyMuPDF import
 # --------------------------
 
 # OpenAI Client (Async — non-blocking event loop)
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 print("OpenAI AsyncClient Initialized Successfully!")
 
 router = APIRouter(tags=["Exam Module"])
@@ -34,6 +34,32 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 GENERATED_PDF_DIR = "app/static/generated_papers"
 os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
+
+
+def determine_language_from_subject(subject: str, text_sample: str = None) -> str:
+    """
+    Language Routing Approach:
+    - If subject is 'Hindi' or contains 'hindi' -> 'hi' (Hindi prompt)
+    - If subject is 'Malayalam' or contains 'malayalam' -> 'ml' (Malayalam prompt)
+    - All other subjects (English, Science, Maths, Social Science, etc.) -> 'en' (English prompt)
+    """
+    subj_clean = (subject or "").strip().lower()
+    if "hindi" in subj_clean or subj_clean == "hi":
+        return "hi"
+    elif "malayalam" in subj_clean or subj_clean == "ml":
+        return "ml"
+    elif "english" in subj_clean or subj_clean == "en":
+        return "en"
+    
+    # Secondary check on text sample script if subject is ambiguous
+    if text_sample:
+        import re
+        if re.search(r'[\u0D00-\u0D7F]', text_sample):
+            return "ml"
+        if re.search(r'[\u0900-\u097F]', text_sample):
+            return "hi"
+
+    return "en"
 
 
 
@@ -340,31 +366,17 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
             return
         textbook_id = str(textbook_doc["_id"])
 
-        # 2.5. Detect Language using langdetect
-        print(f"[BG-CHAPTER] Step 2.5: Detecting language...")
-        detected_language = "en"  # default fallback
-        try:
-            from langdetect import detect
-            # Use the first 2000 characters for language detection, strip newlines
-            sample_text = text_content[:2000].replace('\n', ' ').strip()
-            if sample_text:
-                detected_lang_code = detect(sample_text)
-                
-                # Check for requested languages (ml, hi, en) and others
-                if detected_lang_code in ['ml', 'hi', 'en']:
-                    detected_language = detected_lang_code
-                else:
-                    detected_language = detected_lang_code # Store whatever is detected
-                    
-            print(f"[BG-CHAPTER] Language detected: {detected_language}")
-            
-            # Save detected language to chapter status
-            await db.chapter_status.update_one(
-                {**textbook_query, "chapter_title": full_chapter_title},
-                {"$set": {"detected_language": detected_language}}
-            )
-        except Exception as e:
-            print(f"[BG-CHAPTER] langdetect language detection failed: {e}. Falling back to 'en'.")
+        # 2.5. Determine Language based on Subject (Hindi -> hi, Malayalam -> ml, Others -> en)
+        subject_name = textbook_query.get("subject", "")
+        print(f"[BG-CHAPTER] Step 2.5: Determining language for subject '{subject_name}'...")
+        detected_language = determine_language_from_subject(subject_name, text_content[:2000])
+        print(f"[BG-CHAPTER] Subject '{subject_name}' -> Language set to '{detected_language}'")
+        
+        # Save detected language to chapter status
+        await db.chapter_status.update_one(
+            {**textbook_query, "chapter_title": full_chapter_title},
+            {"$set": {"detected_language": detected_language}}
+        )
 
         # 3. Generate Embeddings & Save Passages
         print(f"[BG-CHAPTER] Step 3: Generating embeddings for {len(text_content)} characters...")
@@ -379,31 +391,35 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
                 passages.append(text_content[i:i + PASSAGE_SIZE])
 
         valid_docs = []
-        for p_idx, passage in enumerate(passages):
-            try:
-                emb = await client.embeddings.create(model="text-embedding-3-large", input=passage)
-                vector = emb.data[0].embedding
-                
-                # Log usage
-                if hasattr(emb, 'usage') and emb.usage:
-                    from app.utils.ai_usage_logger import log_ai_usage
-                    await log_ai_usage("ADMIN", "Chapter Upload - Embedding", "text-embedding-3-large", emb.usage)
-                
-                valid_docs.append({
-                    "textbook_id": textbook_id,
-                    "board": textbook_query["board"],
-                    "standard": textbook_query["standard"],
-                    "state": textbook_query["state"],
-                    "subject": textbook_query["subject"],
-                    "chapter_title": full_chapter_title,
-                    "content": passage.strip(),
-                    "passage_index": p_idx,
-                    "vector": vector,
-                    "detected_language": detected_language,
-                    "created_at": datetime.now(timezone.utc),
-                })
-            except Exception as e:
-                print(f"[BG-CHAPTER] Embedding error [P{p_idx}]: {e}")
+        api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        if not api_key or api_key == "sk-placeholder":
+            print("[BG-CHAPTER] WARNING: OPENAI_API_KEY is not set in .env file. Skipping embedding generation. Set OPENAI_API_KEY in .env to enable vector search.")
+        else:
+            for p_idx, passage in enumerate(passages):
+                try:
+                    emb = await client.embeddings.create(model="text-embedding-3-large", input=passage)
+                    vector = emb.data[0].embedding
+                    
+                    # Log usage
+                    if hasattr(emb, 'usage') and emb.usage:
+                        from app.utils.ai_usage_logger import log_ai_usage
+                        await log_ai_usage("ADMIN", "Chapter Upload - Embedding", "text-embedding-3-large", emb.usage)
+                    
+                    valid_docs.append({
+                        "textbook_id": textbook_id,
+                        "board": textbook_query["board"],
+                        "standard": textbook_query["standard"],
+                        "state": textbook_query["state"],
+                        "subject": textbook_query["subject"],
+                        "chapter_title": full_chapter_title,
+                        "content": passage.strip(),
+                        "passage_index": p_idx,
+                        "vector": vector,
+                        "detected_language": detected_language,
+                        "created_at": datetime.now(timezone.utc),
+                    })
+                except Exception as e:
+                    print(f"[BG-CHAPTER] Embedding error [P{p_idx}]: {e}")
 
         if valid_docs:
             # Atomic update: clear old and insert new
@@ -654,15 +670,9 @@ async def generate_questions_worker(task_id: str):
         "chapter_title": {"$in": chapters}
     }).sort("passage_index", 1).to_list(None)
 
-    # Determine overall language from chapters (fallback to 'en')
-    detected_languages = [doc.get("detected_language") for doc in chapter_docs if doc.get("detected_language")]
-    from collections import Counter
-    if detected_languages:
-        majority_lang = Counter(detected_languages).most_common(1)[0][0]
-    else:
-        majority_lang = "en"
-    
-    print(f"[BG-GEN] Determined overall language for generation: {majority_lang}")
+    # Determine overall language based on Subject (Hindi -> hi, Malayalam -> ml, Others -> en)
+    majority_lang = determine_language_from_subject(subject)
+    print(f"[BG-GEN] Subject '{subject}' -> Determined overall generation language: '{majority_lang}'")
 
     # Group passages by chapter title
     chapter_content_map = {}

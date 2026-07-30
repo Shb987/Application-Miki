@@ -21,7 +21,7 @@ from app.utils.usage_guard import check_and_use_quota
 
 # Load environment variables
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "sk-placeholder"
 
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 router = APIRouter()

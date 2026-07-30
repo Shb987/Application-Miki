@@ -22,7 +22,7 @@ router = APIRouter(
 )
 
 # OpenAI client (Async)
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 
 # ---------- Helper function ----------
 def extract_json(text: str):

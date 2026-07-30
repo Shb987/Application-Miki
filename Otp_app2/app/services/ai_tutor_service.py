@@ -4,14 +4,17 @@ import logging
 from datetime import datetime
 from bson import ObjectId
 from openai import AsyncOpenAI
-from ddgs import DDGS
+try:
+    from duckduckgo_search import DDGS
+except ImportError:
+    from ddgs import DDGS
 from app.core.database import db
 
 logger = logging.getLogger(__name__)
 
 class AITutorService:
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=20.0)
+        self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder", timeout=20.0)
 
     async def search_web(self, query: str) -> str:
         """Perform a web search for current events or general facts."""

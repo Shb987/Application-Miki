@@ -122,6 +122,11 @@ def save_primary_question_paper(json_paper: dict, filename: str):
         "Hdr", parent=styles["Normal"], alignment=1, fontSize=14,
         leading=18, spaceAfter=8, fontName=font_bold
     )
+
+    # English styles
+    if font_reg == "Helvetica":
+        title_style.fontName = "Helvetica-Bold"
+        hdr_style.fontName = "Helvetica"
     instr_title = ParagraphStyle(
         "InstrTitle", parent=styles["Normal"], fontSize=13,
         fontName=font_bold, spaceAfter=6, textColor=colors.darkgreen

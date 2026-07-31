@@ -122,6 +122,11 @@ def save_scert_question_paper(json_paper: dict, filename: str):
         "Hdr", parent=styles["Normal"], alignment=1, fontSize=12,
         leading=14, spaceAfter=4, fontName=font_bold
     )
+
+    # English styles
+    if font_reg == "Helvetica":
+        title_style.fontName = "Helvetica-Bold"
+        hdr_style.fontName = "Helvetica"
     instr_title = ParagraphStyle(
         "InstrTitle", parent=styles["Normal"], fontSize=12,
         fontName=font_bold, spaceAfter=4, textColor=colors.darkgreen

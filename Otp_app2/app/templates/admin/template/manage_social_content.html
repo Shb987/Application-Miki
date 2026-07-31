@@ -132,8 +132,9 @@
                     <td>${c.target_class ? 'Class ' + c.target_class : 'All'}</td>
                     <td>${tagsHtml}</td>
                     <td>
-                        <span class="me-2"><i data-feather="eye" style="width:12px;height:12px;color:#51bbfe;"></i> ${c.views_count}</span>
-                        <span><i data-feather="heart" style="width:12px;height:12px;color:#f73164;"></i> ${c.likes_count}</span>
+                        <span class="me-2" title="Views"><i data-feather="eye" style="width:12px;height:12px;color:#51bbfe;"></i> ${c.views_count || 0}</span>
+                        <span class="me-2" title="Likes"><i data-feather="heart" style="width:12px;height:12px;color:#f73164;"></i> ${c.likes_count || 0}</span>
+                        <span title="Shares"><i data-feather="share-2" style="width:12px;height:12px;color:#7366ff;"></i> ${c.shares_count || 0}</span>
                     </td>
                 `;
                 tbody.appendChild(tr);

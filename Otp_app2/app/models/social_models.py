@@ -28,10 +28,11 @@ class SocialContentInDB(SocialContentCreate):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     likes_count: int = 0
     views_count: int = 0
+    shares_count: int = 0
 
 class ContentInteraction(BaseModel):
     student_id: str
     content_id: str
-    interaction_type: str # 'like', 'view'
+    interaction_type: str # 'like', 'view', 'share'
     skill_tags: List[str] = [] # Snapshot of tags at interaction time for analytics
     timestamp: datetime = Field(default_factory=datetime.utcnow)

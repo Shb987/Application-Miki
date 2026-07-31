@@ -48,17 +48,6 @@ def determine_language_from_subject(subject: str, text_sample: str = None) -> st
         return "hi"
     elif "malayalam" in subj_clean or subj_clean == "ml":
         return "ml"
-    elif "english" in subj_clean or subj_clean == "en":
-        return "en"
-    
-    # Secondary check on text sample script if subject is ambiguous
-    if text_sample:
-        import re
-        if re.search(r'[\u0D00-\u0D7F]', text_sample):
-            return "ml"
-        if re.search(r'[\u0900-\u097F]', text_sample):
-            return "hi"
-
     return "en"
 
 
@@ -155,6 +144,13 @@ def normalize_text(text: str) -> str:
     """Collapses characters separated by spaces and artifacts like 'WWeeaatthheerr'."""
     if not text: return ""
     import re
+    import unicodedata
+    
+    # 0. Clean Latin diacritics (e.g., Nāṭyaśāstra -> Natyasastra) to prevent rendering black boxes (■)
+    normalized = unicodedata.normalize('NFD', text)
+    text = "".join(c for c in normalized if not (0x0300 <= ord(c) <= 0x036F))
+    text = unicodedata.normalize('NFC', text)
+
     # 1. Collapse characters separated by spaces (G e n e t i c s -> Genetics)
     text = re.sub(r'(?<=\b[A-Za-z]) (?=[A-Za-z]\b)', '', text)
     # 2. Handle "1 1" -> "1" (common PDF artifact for numbers)
@@ -316,6 +312,14 @@ async def upload_chapter_endpoint(
 
 async def process_chapter_worker(textbook_query, full_chapter_title, file_path, original_filename):
     """Background worker to extract text and generate embeddings for a single chapter."""
+    status_query = {
+        "board": textbook_query.get("board"),
+        "standard": textbook_query.get("standard"),
+        "state": textbook_query.get("state"),
+        "subject": textbook_query.get("subject"),
+        "textbook_name": textbook_query.get("textbook_name"),
+        "chapter_title": full_chapter_title
+    }
     try:
         print(f"[BG-CHAPTER] Processing: {full_chapter_title} ({original_filename})")
         
@@ -349,7 +353,7 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
         if not text_content.strip():
             print(f"[BG-CHAPTER] ERROR: Extraction failed completely (No text from pdfplumber or vision).")
             await db.chapter_status.update_one(
-                {**textbook_query, "chapter_title": full_chapter_title},
+                status_query,
                 {"$set": {"status": "failed", "error": "No readable text found (PDF might be an image/scan). Try using an OCR-processed version.", "updated_at": datetime.now(timezone.utc)}}
             )
             return
@@ -360,7 +364,7 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
         if not textbook_doc:
             print(f"[BG-CHAPTER] Error: Textbook container not found for {textbook_query}")
             await db.chapter_status.update_one(
-                {**textbook_query, "chapter_title": full_chapter_title},
+                status_query,
                 {"$set": {"status": "failed", "error": "Textbook metadata not found", "updated_at": datetime.now(timezone.utc)}}
             )
             return
@@ -374,7 +378,7 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
         
         # Save detected language to chapter status
         await db.chapter_status.update_one(
-            {**textbook_query, "chapter_title": full_chapter_title},
+            status_query,
             {"$set": {"detected_language": detected_language}}
         )
 
@@ -429,7 +433,7 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
             })
             await db.textbook_chapters.insert_many(valid_docs)
             await db.chapter_status.update_one(
-                {**textbook_query, "chapter_title": full_chapter_title},
+                status_query,
                 {"$set": {"status": "completed", "updated_at": datetime.now(timezone.utc)}}
             )
             print(f"[BG-CHAPTER] SUCCESS: '{full_chapter_title}' processed with {len(valid_docs)} passages.")
@@ -437,7 +441,7 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
     except Exception as e:
         print(f"[BG-CHAPTER] CRITICAL WORKER ERROR: {e}")
         await db.chapter_status.update_one(
-            {**textbook_query, "chapter_title": full_chapter_title},
+            status_query,
             {"$set": {"status": "failed", "error": str(e), "updated_at": datetime.now(timezone.utc)}}
         )
     finally:
@@ -761,11 +765,40 @@ async def generate_questions_worker(task_id: str):
             
             lang_instruction = ""
             if majority_lang == "ml":
-                lang_instruction = "CRITICAL: YOU MUST GENERATE ALL QUESTIONS, OPTIONS, AND ANSWERS ENTIRELY IN MALAYALAM (മലയാളം)."
+                lang_instruction = """ നിങ്ങൾ കേരള SCERT പരീക്ഷാ ചോദ്യപേപ്പർ തയ്യാറാക്കുന്നതിൽ വലിയ പരിചയമുള്ള ഒരു മലയാളം അധ്യാപകനാണ്.
+
+വളരെ പ്രധാനപ്പെട്ട നിയമങ്ങൾ:
+1. ചോദ്യങ്ങളും ഓപ്ഷനുകളും ഉത്തരങ്ങളും പൂർണ്ണമായും മലയാളത്തിൽ തന്നെ എഴുതുക.
+2. നൽകിയിരിക്കുന്ന പാഠഭാഗത്തെ അടിസ്ഥാനമാക്കി മാത്രമേ ചോദ്യങ്ങൾ നിർമ്മിക്കാവൂ.
+3. എല്ലാ വാക്യങ്ങളും പൂർണ്ണവും വ്യാകരണപരമായി തികച്ചും ശരിയുമായിരിക്കണം. വാക്യങ്ങൾ അപൂർണ്ണമായി (ഉദാഹരണത്തിന് 'സാംസ്കാരിക' എന്ന് മാത്രം പറഞ്ഞ്) അവസാനിപ്പിക്കരുത്.
+4. വിവർത്തനം ചെയ്തതുപോലെയുള്ള കൃത്രിമമായ മലയാളം ഒഴിവാക്കുക. സ്വാഭാവികവും ലളിതവുമായ ശൈലി ഉപയോഗിക്കുക.
+5. അക്ഷരത്തെറ്റുകളോ തെറ്റായ പദപ്രയോഗങ്ങളോ ഉണ്ടാകരുത്.
+6. കേരള SCERT പരീക്ഷകളിൽ ചോദിക്കാറുള്ള നിലവാരമുള്ള ചോദ്യങ്ങൾ തയ്യാറാക്കുക.
+7. ചോദ്യങ്ങളിൽ അനാവശ്യമായ ഇംഗ്ലീഷ് വാക്കുകളോ ഇംഗ്ലീഷ് വാക്യഘടനയോ ഉപയോഗിക്കരുത്. """
+
             elif majority_lang == "hi":
-                lang_instruction = "CRITICAL: YOU MUST GENERATE ALL QUESTIONS, OPTIONS, AND ANSWERS ENTIRELY IN HINDI (हिंदी)."
+                lang_instruction = """ आप परीक्षा के लिए एक पेशेवर प्रश्नपत्र निर्माता हैं। कृपया सभी प्रश्नों, विकल्पों और उत्तरों को विशुद्ध हिन्दी में लिखें। 
+
+नियम:
+1. केवल प्रदान किए गए पाठ से ही प्रश्न बनाएँ।
+2. व्याकरणिक रूप से सही और स्वाभाविक हिन्दी का प्रयोग करें।
+3. केरल बोर्ड पैटर्न का पालन करें।
+4. अंग्रेजी शब्दों का प्रयोग न करें।
+5. सभी प्रश्न स्पष्ट और सटीक हों।
+6. उत्तरों को भी हिन्दी में दें।
+7. सुनिश्चित करें कि विकल्प प्रश्न का भाग न हों। """
+
             else:
-                lang_instruction = "CRITICAL: YOU MUST GENERATE ALL QUESTIONS, OPTIONS, AND ANSWERS ENTIRELY IN ENGLISH."
+                lang_instruction = """ You are an experienced SCERT question paper setter.
+
+Generate a high-quality SCERT question paper.
+
+Rules:
+- Use only English.
+- Questions must be grammatically correct.
+- Use textbook terminology.
+- Do not invent facts.
+- Do not translate from another language. """
                 
             system_role_content = f"You are a professional SCERT Exam Paper Generator. Output valid JSON only.\n\n{lang_instruction}"
             if std <= 5:
@@ -820,7 +853,7 @@ Respond with valid JSON only. No text outside JSON.
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.7  # Higher temperature = more creative variation across papers
+                temperature=0.2  # Higher temperature = more creative variation across papers
             )
 
             content = response.choices[0].message.content

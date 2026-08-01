@@ -80,7 +80,7 @@ async def generated_question_page(request: Request):
 
 @router.get("/questions/{category}", response_class=HTMLResponse)
 async def questions_category_page(request: Request, category: str):
-    questions_cursor = db.questions.find({"category": category})
+    questions_cursor = db.questions.find({"category": category}).sort([("_id", -1)])
     questions = await questions_cursor.to_list(length=None)
 
     text_count = 0

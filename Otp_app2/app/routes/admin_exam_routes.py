@@ -962,7 +962,7 @@ async def get_generated_papers(task_id: Optional[str] = None):
     q = {}
     if task_id:
         q["task_id"] = task_id
-    docs = await db.generated_papers.find(q).to_list(None)
+    docs = await db.generated_papers.find(q).sort([("created_at", -1), ("_id", -1)]).to_list(None)
     for d in docs:
         d["_id"] = str(d["_id"])
         # Add pdf_url if pdf_path exists
@@ -1004,7 +1004,9 @@ async def delete_generated_paper(paper_id: str):
 
 @router.get("/generated-papers/filter", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "read"))])
 async def get_generated_papers_filter(standard: str, subject: str):
-    docs = await db.generated_papers.find({"paper.standard": standard, "paper.subject": subject}).to_list(None)
+    docs = await db.generated_papers.find(
+        {"paper.standard": str(standard), "paper.subject": subject}
+    ).sort([("created_at", -1), ("_id", -1)]).to_list(None)
 
     for d in docs:
         d["_id"] = str(d["_id"])

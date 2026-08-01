@@ -555,15 +555,35 @@ async def get_all_textbooks():
 
 @router.delete("/textbook/{textbook_id}/chapter/{chapter_name}", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "delete"))])
 async def delete_textbook_chapter(textbook_id: str, chapter_name: str):
-    """Delete a specific chapter and its passages from a textbook."""
+    """Delete a specific chapter and all its extracted passages and status from a textbook."""
     textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
     if not textbook:
         raise HTTPException(status_code=404, detail="Textbook not found")
         
-    # Delete passages from vector db
+    # Delete passages and vectors from textbook_chapters collection
     del_result = await db.textbook_chapters.delete_many({
-        "textbook_id": textbook_id,
-        "chapter_title": chapter_name
+        "$or": [
+            {"textbook_id": str(textbook_id), "chapter_title": chapter_name},
+            {
+                "board": textbook.get("board"),
+                "standard": str(textbook.get("standard")),
+                "subject": textbook.get("subject"),
+                "chapter_title": chapter_name
+            }
+        ]
+    })
+
+    # Delete chapter processing status
+    await db.chapter_status.delete_many({
+        "$or": [
+            {"textbook_id": str(textbook_id), "chapter_title": chapter_name},
+            {
+                "board": textbook.get("board"),
+                "standard": str(textbook.get("standard")),
+                "subject": textbook.get("subject"),
+                "chapter_title": chapter_name
+            }
+        ]
     })
 
     # Remove chapter from the textbook's chapter list
@@ -574,37 +594,56 @@ async def delete_textbook_chapter(textbook_id: str, chapter_name: str):
     
     return {
         "status": "success", 
-        "message": f"Deleted chapter '{chapter_name}' successfully",
+        "message": f"Deleted chapter '{chapter_name}' and its extracted content successfully",
         "deleted_passages_count": del_result.deleted_count
     }
 
 @router.delete("/textbook/{textbook_id}", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "delete"))])
 async def delete_textbook(textbook_id: str):
-    """Delete an entire textbook and all its associated chapters and passages."""
+    """Delete an entire textbook and all its associated extracted chapters, passages, vectors, and status."""
     textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
     if not textbook:
         raise HTTPException(status_code=404, detail="Textbook not found")
         
-    # Delete passages from vector db
+    # Delete all extracted passages and vectors from db.textbook_chapters
     del_result = await db.textbook_chapters.delete_many({
-        "textbook_id": textbook_id
+        "$or": [
+            {"textbook_id": str(textbook_id)},
+            {
+                "board": textbook.get("board"),
+                "standard": str(textbook.get("standard")),
+                "state": textbook.get("state"),
+                "subject": textbook.get("subject")
+            }
+        ]
     })
 
-    # Delete chapter statuses
+    # Delete all chapter processing status entries
     await db.chapter_status.delete_many({
-        "board": textbook.get("board"),
-        "standard": textbook.get("standard"),
-        "state": textbook.get("state"),
-        "subject": textbook.get("subject"),
-        "textbook_name": textbook.get("textbook_name")
+        "$or": [
+            {"textbook_id": str(textbook_id)},
+            {
+                "board": textbook.get("board"),
+                "standard": str(textbook.get("standard")),
+                "state": textbook.get("state"),
+                "subject": textbook.get("subject")
+            }
+        ]
     })
 
-    # Delete the textbook document
+    # Delete extracted syllabus entries for this board/standard/subject
+    await db.syllabus.delete_many({
+        "board": textbook.get("board"),
+        "standard": str(textbook.get("standard")),
+        "subject": textbook.get("subject")
+    })
+
+    # Delete the main textbook document
     await db.textbook.delete_one({"_id": ObjectId(textbook_id)})
     
     return {
         "status": "success", 
-        "message": f"Deleted textbook '{textbook_id}' successfully",
+        "message": f"Deleted textbook '{textbook_id}' and all extracted content successfully",
         "deleted_passages_count": del_result.deleted_count
     }
 

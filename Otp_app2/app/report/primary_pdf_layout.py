@@ -1,263 +1,269 @@
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable
-)
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import cm
-import json
 import os
+import json
 import re
 import sys
-import reportlab
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+import fitz  # PyMuPDF for 100% accurate HarfBuzz OpenType complex text shaping
 
 def setup_fonts(subject: str):
     """
-    Registers the correct Unicode fonts for Hindi, Malayalam, or English.
-    Returns (regular_font_name, bold_font_name).
+    Returns font metadata tuple for subject.
     """
     subj = (subject or "").lower().strip()
     is_hindi = "hindi" in subj or subj == "hi"
     is_malayalam = "malayalam" in subj or subj == "ml"
 
-    print(f"DEBUG: Python executable: {sys.executable}")
-    print(f"DEBUG: ReportLab version: {reportlab.Version}")
-
-    if not (is_hindi or is_malayalam):
-        print("DEBUG: English subject detected. Using Helvetica.")
-        return "Helvetica", "Helvetica-Bold"
-
-    font_dir = "app/static/fonts"
     if is_hindi:
-        reg_filename = "NotoSansDevanagari-Regular.ttf"
-        bold_filename = "NotoSansDevanagari-Bold.ttf"
-        reg_font_name = "NotoSansDevanagari"
-        bold_font_name = "NotoSansDevanagari-Bold"
-    else:  # Malayalam
-        reg_filename = "NotoSansMalayalam-Regular.ttf"
-        bold_filename = "NotoSansMalayalam-Bold.ttf"
-        reg_font_name = "NotoSansMalayalam"
-        bold_font_name = "NotoSansMalayalam-Bold"
-
-    reg_path = os.path.abspath(os.path.join(font_dir, reg_filename))
-    bold_path = os.path.abspath(os.path.join(font_dir, bold_filename))
-
-    print(f"DEBUG: Expected font paths: {reg_path}, {bold_path}")
-
-    if not os.path.exists(reg_path) or os.path.getsize(reg_path) == 0:
-        raise Exception(f"CRITICAL: Required font file missing or empty at {reg_path}")
-    print(f"DEBUG: Found {reg_path} (size: {os.path.getsize(reg_path)} bytes)")
-
-    if not os.path.exists(bold_path) or os.path.getsize(bold_path) == 0:
-        print(f"DEBUG: Bold font missing or empty at {bold_path}. Falling back to regular font for bold.")
-        bold_path = reg_path
-        bold_font_name = reg_font_name
-    else:
-        print(f"DEBUG: Found {bold_path} (size: {os.path.getsize(bold_path)} bytes)")
-
-    pdfmetrics.registerFont(TTFont(reg_font_name, reg_path))
-    print(f"DEBUG: Registered {reg_font_name}")
-    if bold_path != reg_path:
-        pdfmetrics.registerFont(TTFont(bold_font_name, bold_path))
-        print(f"DEBUG: Registered {bold_font_name}")
-    
-    return reg_font_name, bold_font_name
-
+        return "NotoSansDevanagari", "NotoSansDevanagari-Bold"
+    elif is_malayalam:
+        return "NotoSansMalayalam", "NotoSansMalayalam-Bold"
+    return "Helvetica", "Helvetica-Bold"
 
 def _safe(obj, key, default=""):
     return obj.get(key, default) if isinstance(obj, dict) else default
 
-import itertools
-def render_mixed(text, indic_font, latin_font="Helvetica"):
-    """Splits text into ASCII and non-ASCII, assigning Helvetica to ASCII to avoid missing Latin glyphs in Noto Sans."""
+def _escape_html(text):
     if text is None: return ""
-    text = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    parts = []
-    for is_ascii, group in itertools.groupby(text, key=lambda c: ord(c) < 128):
-        font = latin_font if is_ascii else indic_font
-        parts.append(f"<font name='{font}'>{''.join(group)}</font>")
-    return "".join(parts)
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+def render_mixed(text, indic_font=None, latin_font=None):
+    """Escapes XML/HTML special characters for text rendering."""
+    return _escape_html(text)
 
 def save_primary_question_paper(json_paper: dict, filename: str):
     """
-    Generate an engaging and child-friendly question paper PDF for Standards 1-5.
+    Generate an engaging and child-friendly question paper PDF for Standards 1-5 using PyMuPDF (fitz.Story)
+    for 100% accurate HarfBuzz OpenType text shaping (Malayalam, Hindi, English).
     """
     os.makedirs(os.path.dirname(filename) or ".", exist_ok=True)
-
-    # -------------------
-    # DOCUMENT SETUP
-    # -------------------
-    doc = SimpleDocTemplate(
-        filename,
-        pagesize=A4,
-        rightMargin=40, leftMargin=40,
-        topMargin=40, bottomMargin=40
-    )
-
-    # -------------------
-    # FONTS & STYLES SETUP
-    # -------------------
-    subject = _safe(json_paper, "subject", "")
-    font_reg, font_bold = setup_fonts(subject)
-
-    styles = getSampleStyleSheet()
-
-    english_title_style = ParagraphStyle("EnglishTitle", parent=styles["Heading1"], alignment=1, fontSize=20, leading=26, spaceAfter=15, fontName="Helvetica-Bold", textColor=colors.darkblue)
-    english_hdr_style = ParagraphStyle("EnglishHeader", parent=styles["Normal"], alignment=1, fontSize=14, leading=18, spaceAfter=8, fontName="Helvetica-Bold")
-    english_normal = ParagraphStyle("EnglishNormal", parent=styles["Normal"], fontSize=12, leading=18, fontName="Helvetica")
-    english_section_style = ParagraphStyle("EnglishSection", parent=styles["Heading2"], fontSize=15, fontName="Helvetica-Bold", backColor=colors.lightcyan, spaceBefore=15, spaceAfter=10, leftIndent=6, borderPadding=5)
-
-    title_style = ParagraphStyle(
-        "Title", parent=styles["Heading1"], alignment=1, fontSize=20,
-        leading=26, spaceAfter=15, fontName=font_bold, textColor=colors.darkblue
-    )
-    hdr_style = ParagraphStyle(
-        "Hdr", parent=styles["Normal"], alignment=1, fontSize=14,
-        leading=18, spaceAfter=8, fontName=font_bold
-    )
-    instr_title = ParagraphStyle(
-        "InstrTitle", parent=styles["Normal"], fontSize=13,
-        fontName="Helvetica-Bold", spaceAfter=6, textColor=colors.darkgreen
-    )
-    instr_style = ParagraphStyle(
-        "Instr", parent=styles["Normal"], fontSize=12, leftIndent=12, leading=18,
-        fontName=font_reg
-    )
-    section_style = ParagraphStyle(
-        "Section", parent=styles["Heading2"], fontSize=15,
-        fontName=font_bold, backColor=colors.lightcyan,
-        spaceBefore=15, spaceAfter=10, leftIndent=6, borderPadding=5
-    )
-    q_style = ParagraphStyle(
-        "Q", parent=styles["Normal"], fontSize=13, leading=20, spaceAfter=6,
-        fontName=font_reg
-    )
-    opt_style = ParagraphStyle(
-        "Opt", parent=styles["Normal"], fontSize=12, leftIndent=24, leading=18,
-        fontName=font_reg
-    )
     
-    story = []
+    subject = (json_paper.get("subject") or "").lower().strip()
+    is_hi = "hindi" in subject or subject == "hi"
+    is_ml = "malayalam" in subject or subject == "ml"
+    
+    lang_class = "lang-ml" if is_ml else ("lang-hi" if is_hi else "")
+    bold_class = "lang-ml-bold" if is_ml else ("lang-hi-bold" if is_hi else "")
 
-    # -------------------
-    # HEADER
-    # -------------------
-    story.append(Paragraph("MY QUESTION PAPER", english_title_style))
-    story.append(Paragraph(f"CLASS: {render_mixed(_safe(json_paper, 'standard', 'N/A'), font_bold, 'Helvetica-Bold')}", english_hdr_style))
-    story.append(Paragraph(f"SUBJECT: {render_mixed(_safe(json_paper, 'subject', 'N/A'), font_bold, 'Helvetica-Bold')}", english_hdr_style))
-    story.append(Spacer(1, 10))
-
-    # MARKS row
-    marks_total = json_paper.get("marks", 0)
-    mm_text = f"TOTAL MARKS: {marks_total}"
-    time_val = json_paper.get("time", "60 MINUTES")
+    std = _escape_html(str(json_paper.get("standard", "N/A")))
+    subj_title = _escape_html(str(json_paper.get("subject", "N/A")))
+    time_val = _escape_html(str(json_paper.get("time", "60 MINUTES")))
     time_text = f"TIME: {time_val}" if "TIME" not in time_val.upper() else time_val
+    marks_val = _escape_html(str(json_paper.get("marks", 50)))
 
-    title_row = Table([[time_text, mm_text]], colWidths=[9*cm, 8*cm])
-    title_row.setStyle(TableStyle([
-        ("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 12),
-        ("ALIGN", (0,0), (0,0), "LEFT"),
-        ("ALIGN", (1,0), (1,0), "RIGHT"),
-    ]))
-    story.append(title_row)
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.darkblue, spaceBefore=8, spaceAfter=8))
-    story.append(Spacer(1, 8))
+    # Get workspace base directory for font paths in fitz.Archive
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-    # -------------------
-    # SECTIONS & QUESTIONS
-    # -------------------
-    sections = _safe(json_paper, "sections", [])
+    html_parts = []
+    html_parts.append(f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {{
+    font-family: 'NotoMalayalam';
+    src: url('app/static/fonts/NotoSansMalayalam-Regular.ttf');
+  }}
+  @font-face {{
+    font-family: 'NotoMalayalamBold';
+    src: url('app/static/fonts/NotoSansMalayalam-Bold.ttf');
+  }}
+  @font-face {{
+    font-family: 'NotoDevanagari';
+    src: url('app/static/fonts/NotoSansDevanagari-Regular.ttf');
+  }}
+  @font-face {{
+    font-family: 'NotoDevanagariBold';
+    src: url('app/static/fonts/NotoSansDevanagari-Bold.ttf');
+  }}
+
+  * {{
+    box-sizing: border-box;
+  }}
+  body {{
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #111111;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }}
+  .lang-ml {{ font-family: 'NotoMalayalam', sans-serif; }}
+  .lang-ml-bold {{ font-family: 'NotoMalayalamBold', sans-serif; }}
+  .lang-hi {{ font-family: 'NotoDevanagari', sans-serif; }}
+  .lang-hi-bold {{ font-family: 'NotoDevanagariBold', sans-serif; }}
+  
+  .header {{ text-align: center; margin-bottom: 10px; width: 100%; }}
+  .title {{ font-size: 22px; font-weight: bold; color: #002B49; margin-bottom: 4px; letter-spacing: 0.5px; }}
+  .subtitle {{ font-size: 13px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }}
+  
+  .meta-table {{
+    width: 100%;
+    border-bottom: 2px solid #002B49;
+    padding-bottom: 6px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    font-weight: bold;
+    table-layout: fixed;
+  }}
+  .meta-left {{ text-align: left; width: 50%; }}
+  .meta-right {{ text-align: right; width: 50%; }}
+
+  .section-hdr {{
+    background-color: #e0f2fe;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 6px 10px;
+    margin-top: 16px;
+    margin-bottom: 12px;
+    border-left: 5px solid #0284c7;
+    border-radius: 4px;
+    width: 100%;
+  }}
+  .question {{ margin-bottom: 14px; page-break-inside: avoid; width: 100%; }}
+  .q-text {{ font-size: 14px; margin-bottom: 6px; }}
+  
+  .options-grid {{
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }}
+  .option-row {{ display: table-row; }}
+  .option-cell {{
+    display: table-cell;
+    width: 50%;
+    padding: 3px 8px;
+    font-size: 13px;
+    vertical-align: top;
+  }}
+  
+  .match-table {{
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }}
+  .match-row {{ display: table-row; }}
+  .match-left {{ display: table-cell; width: 50%; padding: 3px 8px; vertical-align: top; }}
+  .match-right {{ display: table-cell; width: 50%; padding: 3px 8px; vertical-align: top; }}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">MY QUESTION PAPER</div>
+    <div class="subtitle">CLASS: {std}</div>
+    <div class="subtitle">SUBJECT: {subj_title}</div>
+  </div>
+  <table class="meta-table">
+    <tr>
+      <td class="meta-left">{time_text}</td>
+      <td class="meta-right">TOTAL MARKS: {marks_val}</td>
+    </tr>
+  </table>
+""")
+
+    # Sections & Questions
     qnum = 1
-    for sec in sections:
-        sec_name = sec.get("section") or sec.get("title") or "Part"
-        marks_per_q = sec.get("marks_per_question", None)
-        sec_label = f"<font name='Helvetica-Bold'>PART</font> {render_mixed(sec_name, font_bold, 'Helvetica-Bold')}"
-        if marks_per_q:
-            sec_label += f"  <font name='Helvetica-Bold'>({marks_per_q} mark{'s' if marks_per_q>1 else ''} each)</font>"
-        story.append(Paragraph(sec_label, english_section_style))
-
+    for sec in json_paper.get("sections", []):
+        sname = _escape_html(sec.get("section") or sec.get("title") or "Part")
+        marks_per_q = sec.get("marks_per_question")
+        marks_info = f" ({marks_per_q} mark{'s' if marks_per_q > 1 else ''} each)" if marks_per_q else ""
+        
+        html_parts.append(f"""<div class="section-hdr {bold_class}">PART {sname}{marks_info}</div>""")
+        
         sec_instr = sec.get("instruction") or "Read the questions carefully and answer."
-        story.append(Paragraph(f"<i>{render_mixed(sec_instr, font_reg)}</i>", instr_style))
-        story.append(Spacer(1, 10))
+        html_parts.append(f"""<div style="font-style:italic; margin-bottom:10px;" class="{lang_class}">{_escape_html(sec_instr)}</div>""")
 
         for q in sec.get("questions", []):
             if not isinstance(q, dict): continue
-
-            qtext = q.get("question", "").strip()
-            # Strip "Fill in the blank: " or "Fill in the blanks: " if it exists
+            qtext = _escape_html(q.get("question", "").strip())
             qtext = re.sub(r'^(Fill in the blank(s)?|Fill in the blank)\s*:\s*', '', qtext, flags=re.IGNORECASE)
             
             qtype = (q.get("type") or "").upper()
-            q_marks = q.get("marks", marks_per_q)
-            q_marks_str = f" <font name='Helvetica'>[{q_marks}]</font>" if q_marks else ""
+            qmarks = q.get("marks", marks_per_q)
+            qmarks_str = f" <b>[{qmarks}]</b>" if qmarks else ""
             
-            story.append(Paragraph(f"<b><font name='Helvetica'>{qnum}.</font></b> {render_mixed(qtext, font_reg)} {q_marks_str}", q_style))
-
-            # --- RENDER BY TYPE ---
+            html_parts.append(f"""
+<div class="question">
+  <div class="q-text {lang_class}"><b>{qnum}.</b> {qtext}{qmarks_str}</div>
+""")
             
             if qtype == "MCQ":
-                options = [str(o) for o in q.get("options", [])]
-                for idx, opt in enumerate(options):
-                    # Strip existing "A.", "B.", "A:", "1:", "A)", "(A)" etc to avoid repetition
-                    # We look for a Letter or Number at start followed by punctuation/spaces
-                    clean_opt = re.sub(r'^[A-Z0-9][\.\)\:\s-]+\s*', '', opt, flags=re.IGNORECASE)
-                    clean_opt = re.sub(r'^\([A-Z0-9]\)\s*', '', clean_opt, flags=re.IGNORECASE)
-                    # User requested: no brackets ( ) here
-                    story.append(Paragraph(f"<font name='Helvetica'>{chr(65+idx)}.</font> {render_mixed(clean_opt, font_reg)}", opt_style))
+                raw_options = [str(o) for o in q.get("options", [])]
+                cleaned_options = []
+                for opt in raw_options:
+                    c_opt = re.sub(r'^[A-Z0-9][\.\)\:\s-]+\s*', '', opt, flags=re.IGNORECASE)
+                    c_opt = re.sub(r'^\([A-Z0-9]\)\s*', '', c_opt, flags=re.IGNORECASE)
+                    cleaned_options.append(_escape_html(c_opt))
+                    
+                if len(cleaned_options) >= 4:
+                    html_parts.append(f"""
+  <div class="options-grid {lang_class}">
+    <div class="option-row">
+      <div class="option-cell">A. {cleaned_options[0]}</div>
+      <div class="option-cell">B. {cleaned_options[1]}</div>
+    </div>
+    <div class="option-row">
+      <div class="option-cell">C. {cleaned_options[2]}</div>
+      <div class="option-cell">D. {cleaned_options[3]}</div>
+    </div>
+  </div>
+""")
+                else:
+                    for idx, opt in enumerate(cleaned_options):
+                        html_parts.append(f"""<div style="margin-left:18px;" class="{lang_class}">{chr(65+idx)}. {opt}</div>""")
 
             elif qtype in ("TRUEFALSE", "TRUE/FALSE"):
-                # Simplified: No brackets, just the words for kids to circle
-                story.append(Paragraph("True &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; False", english_normal))
-
-            elif qtype == "FILLINTHEBLANKS":
-                story.append(Paragraph("Answer: ____________________________________", opt_style))
+                tf_opts = "ശരി &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; തെറ്റ്" if is_ml else ("सत्य &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; असत्य" if is_hi else "True &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; False")
+                html_parts.append(f"""<div style="margin-left:18px;" class="{lang_class}">{tf_opts}</div>""")
 
             elif qtype == "MATCHTHEFOLLOWING":
-                lefts, rights = q.get("left", []), q.get("right", [])
-                rows = [[Paragraph(f"<font name='Helvetica'>{i+1}.</font> {render_mixed(l, font_reg)}", opt_style), 
-                         "                  ", 
-                         Paragraph(render_mixed(r, font_reg), opt_style)] for i, (l, r) in enumerate(zip(lefts, rights))]
-                if rows:
-                    mtable = Table(rows, colWidths=[6.5*cm, 4*cm, 6.5*cm])
-                    mtable.setStyle(TableStyle([
-                        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-                        ("ALIGN", (1,0), (1,0), "CENTER")
-                    ]))
-                    story.append(mtable)
-                else:
-                    story.append(Paragraph("<i><font name='Helvetica'>(Match the following items were not provided correctly)</font></i>", opt_style))
+                lefts = [_escape_html(str(l)) for l in q.get("left", [])]
+                rights = [_escape_html(str(r)) for r in q.get("right", [])]
+                html_parts.append(f"""<div class="match-table {lang_class}">""")
+                for i, (l_item, r_item) in enumerate(zip(lefts, rights)):
+                    html_parts.append(f"""
+    <div class="match-row">
+      <div class="match-left">{i+1}. {l_item}</div>
+      <div class="match-right">{chr(65+i)}. {r_item}</div>
+    </div>
+""")
+                html_parts.append("""</div>""")
 
-            elif qtype == "PICTUREBASED":
-                story.append(Spacer(1, 8))
-                box = Table([[" [ DRAW OR LOOK AT PICTURE HERE ] "]], colWidths=[16*cm], rowHeights=[4*cm])
-                box.setStyle(TableStyle([
-                    ("BOX", (0,0), (-1,-1), 1, colors.grey),
-                    ("ALIGN", (0,0), (-1,-1), "CENTER"), ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-                    ("TEXTCOLOR", (0,0), (-1,-1), colors.lightgrey)
-                ]))
-                story.append(box)
-            
+            elif qtype == "FILLINTHEBLANKS":
+                html_parts.append(f"""<div style="margin-left:18px; margin-top:6px;" class="{lang_class}">Answer: ____________________________________</div>""")
+
             elif qtype in ("VERYSHORT", "SHORT"):
-                # Multi-line writing space
-                story.append(Spacer(1, 15))
-                story.append(HRFlowable(width="90%", thickness=0.5, color=colors.lightgrey, spaceBefore=10))
-                story.append(HRFlowable(width="90%", thickness=0.5, color=colors.lightgrey, spaceBefore=20))
+                html_parts.append("""<div style="height:40px;"></div>""")
 
-            story.append(Spacer(1, 12))
+            elif qtype in ("ESSAY", "LONG", "ANALYZE", "APPLY"):
+                html_parts.append("""<div style="height:80px;"></div>""")
+
+            html_parts.append("</div>")
             qnum += 1
 
-    # -------------------
-    # FOOTER
-    # -------------------
-    def _footer(canvas, doc):
-        canvas.saveState()
-        canvas.setFont("Helvetica-Bold", 10)
-        canvas.drawRightString(A4[0] - 40, 25, f"Page {canvas.getPageNumber()}")
-        canvas.drawCentredString(A4[0]/2, 25, "--- End of paper ---")
-        canvas.restoreState()
+    html_parts.append("""
+</body>
+</html>
+""")
 
-    doc.build(story, onFirstPage=_footer, onLaterPages=_footer)
-    return filename
+    full_html = "".join(html_parts)
+    
+    archive = fitz.Archive(base_dir)
+    story = fitz.Story(full_html, archive=archive)
+    writer = fitz.DocumentWriter(filename)
+
+    page_rect = fitz.Rect(0, 0, 595, 842)      # A4 Page Mediabox (0, 0, 595, 842)
+    content_rect = fitz.Rect(36, 36, 559, 806) # Printable Content Area (36pt margins)
+
+    more = True
+    while more:
+        device = writer.begin_page(page_rect)
+        more, _ = story.place(content_rect)
+        story.draw(device)
+        writer.end_page()
+
+    writer.close()
+    print(f"[PyMuPDF-PDF] Saved primary question paper PDF to {filename} ({os.path.getsize(filename)} bytes)")

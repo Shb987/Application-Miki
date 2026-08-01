@@ -14,16 +14,17 @@ templates = Jinja2Templates(directory="app/templates/admin/template")
 router = APIRouter(tags=["Admin Pages"])
 
 
-API_BASE = os.getenv("API_BASE", "http://localhost:8000")
+API_BASE = os.getenv("API_BASE")
 
 
 @router.get("/config.js", response_class=HTMLResponse)
 async def config_js(request: Request):
+    base_url = API_BASE or str(request.base_url).rstrip("/")
     return templates.TemplateResponse(
         "config.js",
         {
             "request": request,
-            "API_BASE": API_BASE
+            "API_BASE": base_url
         },
         media_type="application/javascript"
     )

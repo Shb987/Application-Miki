@@ -175,6 +175,11 @@
         <i class="fa fa-users"></i> Admin Users / Staff
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link" id="activity-tab" data-bs-toggle="tab" href="#activity-section" role="tab" aria-selected="false" onclick="fetchActivityLogs()">
+        <i class="fa fa-line-chart"></i> Staff Activity Monitor
+      </a>
+    </li>
   </ul>
 
   <!-- Tab Content -->
@@ -255,6 +260,71 @@
       </div>
 
     </div>
+
+    <!-- Staff Activity Monitor Tab -->
+    <div class="tab-pane" id="activity-section" role="tabpanel">
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="card h-100 border-0 shadow-sm" style="border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;">
+            <div class="card-header bg-white border-bottom py-3">
+              <h6 class="mb-0 fw-bold text-dark"><i class="fa fa-trophy text-warning"></i> &nbsp;Top Staff Uploaders</h6>
+            </div>
+            <div class="card-body p-3" id="leaderboard-container">
+              <div class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-secondary"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-8">
+          <div class="card h-100 border-0 shadow-sm" style="border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;">
+            <div class="card-header bg-white border-bottom py-3">
+              <h6 class="mb-0 fw-bold text-dark"><i class="fa fa-line-chart text-success"></i> &nbsp;Daily Uploads & Updates (Last 30 Days)</h6>
+            </div>
+            <div class="card-body p-3" id="trend-container">
+              <div class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-secondary"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm" style="border-radius:16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+          <h5 class="mb-0 fw-bold text-primary"><i class="fa fa-feed"></i> &nbsp;Live Staff Activity Feed</h5>
+          <button class="btn btn-sm btn-outline-primary px-3 rounded-pill shadow-sm" onclick="fetchActivityLogs()">
+            <i class="fa fa-refresh"></i> Refresh Log
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <table class="table table-hover table-striped mb-0">
+              <thead class="table-light" style="position: sticky; top: 0; z-index: 10;">
+                <tr>
+                  <th style="padding:12px 20px;">Staff Member</th>
+                  <th style="padding:12px 20px;">Role</th>
+                  <th style="padding:12px 20px;">Action performed</th>
+                  <th style="padding:12px 20px;">Status</th>
+                  <th style="padding:12px 20px;">Details</th>
+                  <th style="padding:12px 20px;">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="activity-logs-body">
+                <tr>
+                  <td colspan="6" class="text-center py-5 text-muted">
+                    <div class="spinner-border text-secondary mb-2" role="status"></div>
+                    <p class="mb-0">Retrieving staff activity logs...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 </div>
@@ -713,6 +783,93 @@ async function deleteAdmin(username) {
     fetchAdmins();
   } catch (e) {
     showToast(e.message, "error");
+  }
+}
+
+async function fetchActivityLogs() {
+  const leaderboardEl = document.getElementById("leaderboard-container");
+  const logsBody = document.getElementById("activity-logs-body");
+  const trendEl = document.getElementById("trend-container");
+
+  leaderboardEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary"></div></div>`;
+  logsBody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><div class="spinner-border text-secondary mb-2" role="status"></div><p class="mb-0">Retrieving staff activity logs...</p></td></tr>`;
+  trendEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary"></div></div>`;
+
+  try {
+    const res = await fetch(`${API}/admin-panel/stats/staff-activity`, {
+      headers: { Authorization: "Bearer " + TOKEN }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const result = await res.json();
+    const data = result.data || {};
+    
+    // Render Leaderboard
+    const leaderboard = data.leaderboard || [];
+    if (!leaderboard.length) {
+      leaderboardEl.innerHTML = `<p class="text-muted text-center py-3">No activity logs recorded yet.</p>`;
+    } else {
+      leaderboardEl.innerHTML = `
+        <ul class="list-group list-group-flush">
+          ${leaderboard.map((item, idx) => `
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-1">
+              <div>
+                <span class="badge bg-primary me-2">${idx + 1}</span>
+                <span class="fw-bold">@${item.username}</span>
+              </div>
+              <span class="badge rounded-pill bg-light text-primary fw-bold" style="font-size:0.75rem; color:#7366ff !important; background:rgba(115,102,255,0.1);">${item.count} actions</span>
+            </li>
+          `).join("")}
+        </ul>`;
+    }
+
+    // Render Daily Trend
+    const dailyTrend = data.daily_trend || [];
+    if (!dailyTrend.length) {
+      trendEl.innerHTML = `<p class="text-muted text-center py-3">No daily activity records.</p>`;
+    } else {
+      trendEl.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table class="table table-bordered table-striped mb-0 text-center">
+            <thead>
+              <tr>
+                ${dailyTrend.map(item => `<th style="font-size: 0.8rem; padding: 8px;">${item.date.split('-').slice(1).join('/')}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                ${dailyTrend.map(item => `<td class="fw-bold text-primary" style="padding: 10px; font-size: 1.1rem;">${item.count}</td>`).join("")}
+              </tr>
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    // Render Live Activity Feed
+    const recentLogs = data.recent_logs || [];
+    if (!recentLogs.length) {
+      logsBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">No recent activity found.</td>
+        </tr>`;
+    } else {
+      logsBody.innerHTML = recentLogs.map(log => `
+        <tr>
+          <td style="padding:12px 20px;"><strong>@${log.username}</strong></td>
+          <td style="padding:12px 20px;"><span class="badge bg-soft-primary text-primary" style="background: rgba(115,102,255,0.08);">${log.role || "staff"}</span></td>
+          <td style="padding:12px 20px;"><span class="text-primary fw-medium">${log.action}</span></td>
+          <td style="padding:12px 20px;">
+            <span class="badge ${log.status === "failed" ? "bg-danger" : log.status === "completed" ? "bg-success" : "bg-warning text-dark"}">
+              ${log.status || "success"}
+            </span>
+          </td>
+          <td style="padding:12px 20px;">${log.details || ""}</td>
+          <td style="padding:12px 20px;"><small class="text-muted">${new Date(log.timestamp).toLocaleString()}</small></td>
+        </tr>`).join("");
+    }
+  } catch (e) {
+    leaderboardEl.innerHTML = `<p class="text-danger text-center">Error loading leaderboard</p>`;
+    trendEl.innerHTML = `<p class="text-danger text-center">Error loading trend</p>`;
+    logsBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Failed to load activity logs: ${e.message}</td></tr>`;
   }
 }
 

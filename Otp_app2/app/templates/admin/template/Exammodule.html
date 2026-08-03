@@ -242,12 +242,17 @@
             ${item.status === 'pending' ? '<span class="badge bg-light text-dark">Ready</span>' :
         item.status === 'uploading' ? '<div class="spinner-border spinner-border-sm text-primary"></div> Uploading...' :
           item.status === 'processing' ? '<div class="spinner-border spinner-border-sm text-warning"></div> Processing...' :
-            item.status === 'success' ? '<span class="badge bg-success">Success</span>' :
-              `<span class="badge bg-danger">Error: ${item.error}</span>`}
+            item.status === 'success' ? '<span class="badge bg-success">✔ Success</span>' :
+              `<span class="badge bg-danger" role="button" data-bs-toggle="popover" data-bs-trigger="click" data-bs-placement="top" data-bs-content="${(item.error || 'Unknown error').replace(/"/g, '&quot;')}" title="Upload Failed">❌ Failed — click for details</span>`}
         </td>
         <td><button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="removeQueueItem('${item.id}')"><i data-feather="x" style="width:14px;"></i></button></td>
         </tr>
     `).join('');
+    feather.replace();
+    // Initialize Bootstrap popovers for error badges
+    document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+      new bootstrap.Popover(el, { html: false });
+    });
     feather.replace();
   }
 

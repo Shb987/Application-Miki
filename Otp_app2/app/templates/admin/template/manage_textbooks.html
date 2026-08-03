@@ -126,6 +126,46 @@
         </div>
     </div>
 
+    <!-- Stats Overview -->
+    <div id="stats-overview" class="row g-3 mb-4" style="display: none;">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="bg-light-primary p-3 rounded-circle me-3 text-primary" style="background-color: rgba(69, 43, 144, 0.1); display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;">
+                        <i data-feather="book-open" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark" id="stat-total-textbooks">0</h4>
+                        <small class="text-muted">Total Textbooks</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="bg-light-success p-3 rounded-circle me-3 text-success" style="background-color: rgba(40, 167, 69, 0.1); display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;">
+                        <i data-feather="file-text" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark" id="stat-total-chapters">0</h4>
+                        <small class="text-muted">Total Chapters</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                    <small class="text-muted fw-bold mb-2 d-block">Textbooks per Standard / Class</small>
+                    <div id="stat-standards-breakdown" class="d-flex flex-wrap gap-2 overflow-auto" style="max-height: 48px;">
+                        <!-- dynamic pills -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Manage Uploaded Textbooks Section -->
     <div class="card shadow-sm border-0 mt-4">
         <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center pb-3">
@@ -140,7 +180,7 @@
             <div id="textbooks-container">
                 <div class="text-center text-muted py-5">
                     <div class="spinner-border text-primary" role="status"><span
-                            class="visually-hidden">Loading...</span></div>
+                             class="visually-hidden">Loading...</span></div>
                     <div class="mt-2">Loading textbooks...</div>
                 </div>
             </div>
@@ -202,6 +242,33 @@
     }
 
     function renderTextbooks(textbooks) {
+        // Update stats breakdown
+        const totalTbs = textbooks.length;
+        const totalChs = textbooks.reduce((acc, tb) => acc + (tb.chapters || []).length, 0);
+        
+        document.getElementById("stat-total-textbooks").innerText = totalTbs;
+        document.getElementById("stat-total-chapters").innerText = totalChs;
+        
+        // Calculate standard-wise counts
+        const stdCounts = {};
+        textbooks.forEach(tb => {
+            const std = tb.standard || "N/A";
+            stdCounts[std] = (stdCounts[std] || 0) + 1;
+        });
+        
+        const breakdownContainer = document.getElementById("stat-standards-breakdown");
+        const sortedStds = Object.keys(stdCounts).sort((a, b) => parseInt(a) - parseInt(b));
+        
+        if (sortedStds.length === 0) {
+            breakdownContainer.innerHTML = '<span class="text-muted f-12">No data</span>';
+        } else {
+            breakdownContainer.innerHTML = sortedStds.map(std => {
+                return `<span class="badge bg-light-primary text-primary border border-primary f-12" style="background-color: rgba(69, 43, 144, 0.1); border-color: rgba(69, 43, 144, 0.3) !important;">Std ${std}: ${stdCounts[std]}</span>`;
+            }).join('');
+        }
+        
+        document.getElementById("stats-overview").style.display = "flex";
+
         const container = document.getElementById("textbooks-container");
         if (textbooks.length === 0) {
             container.innerHTML = `<div class="alert alert-light text-center border p-5 bg-white"><i data-feather="search" class="text-muted mb-3" style="width: 48px; height: 48px;"></i><h5 class="text-muted">No textbooks match these filters.</h5><button class="btn btn-outline-primary mt-3" onclick="resetFilters()">Clear Filters</a></div>`;

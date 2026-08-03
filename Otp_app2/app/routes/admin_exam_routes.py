@@ -36,6 +36,17 @@ GENERATED_PDF_DIR = "app/static/generated_papers"
 os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
 
 
+async def log_admin_activity(username: str, role: str, action: str, details: str, status: str = "success"):
+    await db.admin_activity_logs.insert_one({
+        "username": username,
+        "role": role,
+        "action": action,
+        "status": status,
+        "details": details,
+        "timestamp": datetime.now(timezone.utc),
+    })
+
+
 def determine_language_from_subject(subject: str, text_sample: str = None) -> str:
     """
     Language Routing Approach:
@@ -214,7 +225,7 @@ def validate_fix_marks(paper: dict, required_total: int):
     return paper
 
 
-@router.post("/textbook/upload-batch", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "create"))])
+@router.post("/textbook/upload-batch")
 async def upload_chapter_endpoint(
     background_tasks: BackgroundTasks,
     board: str = Form(...),
@@ -225,92 +236,132 @@ async def upload_chapter_endpoint(
     chapter_number: str = Form(...),
     textbook_name: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    current_admin: dict = Depends(require_permission("Exams, Textbooks & Syllabus", "create"))
 ):
     """
     Handle single chapter PDF upload. Immediately saves metadata and triggers
     background processing (extraction + embedding).
     """
-    if not file.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    try:
+        if not file.filename.endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
-    # 1. Save PDF
-    file_id = str(uuid.uuid4())
-    filename = f"ch_{chapter_number}_{file_id}.pdf"
-    file_path = os.path.join(UPLOAD_DIR, filename)
-    
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
+        # 1. Save PDF
+        file_id = str(uuid.uuid4())
+        filename = f"ch_{chapter_number}_{file_id}.pdf"
+        file_path = os.path.join(UPLOAD_DIR, filename)
 
-    # 2. Prepare Chapter Record in 'textbook' collection
-    textbook_query = {
-        "board": board,
-        "standard": standard,
-        "state": state,
-        "subject": subject
-    }
-    
-    if textbook_name and textbook_name.strip() and textbook_name.strip().lower() != "null":
-        textbook_query["textbook_name"] = textbook_name.strip()
-    else:
-        textbook_query["textbook_name"] = None
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
 
-    if category and category.strip() and category.strip().lower() != "null":
-        textbook_query["category"] = category.strip()
-    else:
-        textbook_query["category"] = None
-    
-    full_chapter_title = f"{chapter_number} {chapter_name}".strip()
-    
-    # Update/Reset chapter status in parent textbook
-    await db.textbook.update_one(
-        textbook_query,
-        {
-            "$addToSet": {"chapters": full_chapter_title},
-            "$setOnInsert": {
-                "created_at": datetime.now(timezone.utc),
-                "processed": True,
-                "status": "completed",
-                "progress": 100
-            }
-        },
-        upsert=True
-    )
-
-    # 2.5 Initialize Chapter Status for UI Polling
-    await db.chapter_status.update_one(
-        {
+        # 2. Prepare Chapter Record in 'textbook' collection
+        textbook_query = {
             "board": board,
             "standard": standard,
             "state": state,
-            "subject": subject,
-            "textbook_name": textbook_query["textbook_name"],
-            "chapter_title": full_chapter_title
-        },
-        {
-            "$set": {
-                "status": "processing",
-                "updated_at": datetime.now(timezone.utc)
-            }
-        },
-        upsert=True
-    )
-    
-    # 3. Queue Background Processing
-    background_tasks.add_task(
-        process_chapter_worker,
-        textbook_query=textbook_query,
-        full_chapter_title=full_chapter_title,
-        file_path=file_path,
-        original_filename=file.filename
-    )
+            "subject": subject
+        }
 
-    return {
-        "status": "processing",
-        "message": f"Chapter '{full_chapter_title}' received. Processing started in background.",
-    }
+        if textbook_name and textbook_name.strip() and textbook_name.strip().lower() != "null":
+            textbook_query["textbook_name"] = textbook_name.strip()
+        else:
+            textbook_query["textbook_name"] = None
 
-async def process_chapter_worker(textbook_query, full_chapter_title, file_path, original_filename):
+        if category and category.strip() and category.strip().lower() != "null":
+            textbook_query["category"] = category.strip()
+        else:
+            textbook_query["category"] = None
+
+        full_chapter_title = f"{chapter_number} {chapter_name}".strip()
+
+        # Update/Reset chapter status in parent textbook
+        await db.textbook.update_one(
+            textbook_query,
+            {
+                "$addToSet": {"chapters": full_chapter_title},
+                "$setOnInsert": {
+                    "created_at": datetime.now(timezone.utc),
+                    "processed": True,
+                    "status": "completed",
+                    "progress": 100
+                }
+            },
+            upsert=True
+        )
+
+        # 2.5 Initialize Chapter Status for UI Polling
+        await db.chapter_status.update_one(
+            {
+                "board": board,
+                "standard": standard,
+                "state": state,
+                "subject": subject,
+                "textbook_name": textbook_query["textbook_name"],
+                "chapter_title": full_chapter_title
+            },
+            {
+                "$set": {
+                    "status": "processing",
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+
+        activity_log = await db.admin_activity_logs.insert_one({
+            "username": current_admin["sub"],
+            "role": current_admin["role"],
+            "action": "upload_textbook",
+            "status": "processing",
+            "details": f"Uploading textbook chapter {chapter_number}: {chapter_name} for Class {standard} {subject} ({board})",
+            "timestamp": datetime.now(timezone.utc),
+        })
+
+        # 3. Queue Background Processing
+        background_tasks.add_task(
+            process_chapter_worker,
+            textbook_query=textbook_query,
+            full_chapter_title=full_chapter_title,
+            file_path=file_path,
+            original_filename=file.filename,
+            initiated_by_username=current_admin["sub"],
+            initiated_by_role=current_admin["role"],
+            activity_log_id=str(activity_log.inserted_id),
+        )
+
+        return {
+            "status": "processing",
+            "message": f"Chapter '{full_chapter_title}' received. Processing started in background.",
+        }
+    except HTTPException as exc:
+        await log_admin_activity(
+            current_admin["sub"],
+            current_admin["role"],
+            "upload_textbook",
+            f"Failed to upload textbook chapter {chapter_number}: {exc.detail}",
+            status="failed",
+        )
+        raise
+    except Exception as exc:
+        await log_admin_activity(
+            current_admin["sub"],
+            current_admin["role"],
+            "upload_textbook",
+            f"Failed to upload textbook chapter {chapter_number}: {exc}",
+            status="failed",
+        )
+        raise
+
+async def process_chapter_worker(
+    textbook_query,
+    full_chapter_title,
+    file_path,
+    original_filename,
+    initiated_by_username: str | None = None,
+    initiated_by_role: str | None = None,
+    activity_log_id: str | None = None,
+):
     """Background worker to extract text and generate embeddings for a single chapter."""
     status_query = {
         "board": textbook_query.get("board"),
@@ -395,9 +446,21 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
                 passages.append(text_content[i:i + PASSAGE_SIZE])
 
         valid_docs = []
+        embedding_errors = []   # Collect all error messages for reporting
         api_key = os.getenv("OPENAI_API_KEY", "").strip()
         if not api_key or api_key == "sk-placeholder":
-            print("[BG-CHAPTER] WARNING: OPENAI_API_KEY is not set in .env file. Skipping embedding generation. Set OPENAI_API_KEY in .env to enable vector search.")
+            err_msg = "OPENAI_API_KEY is not configured in .env. Cannot generate text embeddings — please set a valid OpenAI API key and re-upload."
+            print(f"[BG-CHAPTER] WARNING: {err_msg}")
+            await db.chapter_status.update_one(
+                status_query,
+                {"$set": {"status": "failed", "error": err_msg, "updated_at": datetime.now(timezone.utc)}}
+            )
+            if activity_log_id and initiated_by_username and initiated_by_role:
+                await db.admin_activity_logs.update_one(
+                    {"_id": ObjectId(activity_log_id)},
+                    {"$set": {"status": "failed", "details": f"Failed to upload textbook chapter {full_chapter_title}: {err_msg}"}}
+                )
+            return
         else:
             for p_idx, passage in enumerate(passages):
                 try:
@@ -423,7 +486,49 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
                         "created_at": datetime.now(timezone.utc),
                     })
                 except Exception as e:
-                    print(f"[BG-CHAPTER] Embedding error [P{p_idx}]: {e}")
+                    err_str = str(e)
+                    embedding_errors.append(err_str)
+                    print(f"[BG-CHAPTER] Embedding error [P{p_idx}]: {err_str}")
+
+        # --- Graceful failure: detect why ALL passages failed ---
+        if not valid_docs and embedding_errors:
+            first_error = embedding_errors[0]
+            # Identify common failure reasons and produce a human-readable message
+            if "credit_balance_exhausted" in first_error or "insufficient_quota" in first_error:
+                friendly_error = (
+                    "⚠️ OpenAI Credits Exhausted: Your OpenAI API account has no remaining credits. "
+                    "Please top up your balance at https://platform.openai.com/settings/organization/billing "
+                    "and then re-upload this chapter."
+                )
+            elif "invalid_api_key" in first_error or "Incorrect API key" in first_error:
+                friendly_error = (
+                    "🔑 Invalid OpenAI API Key: The API key in your .env file is incorrect or has been revoked. "
+                    "Please set a valid OPENAI_API_KEY and restart the server."
+                )
+            elif "RateLimitError" in first_error or "rate_limit" in first_error:
+                friendly_error = (
+                    "⏳ OpenAI Rate Limit Hit: Too many requests were sent in a short time. "
+                    "Please wait a few minutes and try re-uploading."
+                )
+            elif "Connection" in first_error or "timeout" in first_error.lower():
+                friendly_error = (
+                    "🌐 Network Error: Could not reach the OpenAI API. "
+                    "Please check your internet connection and re-upload."
+                )
+            else:
+                friendly_error = f"Embedding generation failed for all passages. Reason: {first_error}"
+
+            print(f"[BG-CHAPTER] FATAL: All {len(passages)} passages failed to embed. Marking as failed.")
+            await db.chapter_status.update_one(
+                status_query,
+                {"$set": {"status": "failed", "error": friendly_error, "updated_at": datetime.now(timezone.utc)}}
+            )
+            if activity_log_id and initiated_by_username and initiated_by_role:
+                await db.admin_activity_logs.update_one(
+                    {"_id": ObjectId(activity_log_id)},
+                    {"$set": {"status": "failed", "details": f"Failed to upload textbook chapter {full_chapter_title}: {friendly_error}"}}
+                )
+            return
 
         if valid_docs:
             # Atomic update: clear old and insert new
@@ -436,6 +541,11 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
                 status_query,
                 {"$set": {"status": "completed", "updated_at": datetime.now(timezone.utc)}}
             )
+            if activity_log_id and initiated_by_username and initiated_by_role:
+                await db.admin_activity_logs.update_one(
+                    {"_id": ObjectId(activity_log_id)},
+                    {"$set": {"status": "completed", "details": f"Uploaded textbook chapter {full_chapter_title} for {textbook_query['subject']} ({textbook_query['board']})"}}
+                )
             print(f"[BG-CHAPTER] SUCCESS: '{full_chapter_title}' processed with {len(valid_docs)} passages.")
 
     except Exception as e:
@@ -444,6 +554,11 @@ async def process_chapter_worker(textbook_query, full_chapter_title, file_path, 
             status_query,
             {"$set": {"status": "failed", "error": str(e), "updated_at": datetime.now(timezone.utc)}}
         )
+        if activity_log_id and initiated_by_username and initiated_by_role:
+            await db.admin_activity_logs.update_one(
+                {"_id": ObjectId(activity_log_id)},
+                {"$set": {"status": "failed", "details": f"Failed to upload textbook chapter {full_chapter_title}: {e}"}}
+            )
     finally:
         # Auto-Cleanup: Delete the PDF after processing (success or failure)
         file_abspath = os.path.abspath(file_path)
@@ -651,41 +766,73 @@ async def delete_textbook(textbook_id: str):
 # ROUTES - QUESTION GENERATION
 # --------------------------
 
-@router.post("/generate-questions", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "create"))])
-async def generate_questions_trigger(payload: dict = Body(...)):
-    standard = payload.get("standard")
-    subject = payload.get("subject")
-    chapters = payload.get("chapters", [])
-    # Align with question_generation.html payload keys: paper_count, total_marks
-    papers = int(payload.get("paper_count") or payload.get("papers") or 1)
-    marks = int(payload.get("total_marks") or payload.get("marks") or payload.get("TotalMarks") or 50)
-    time_limit = payload.get("time_limit") or payload.get("time")
+@router.post("/generate-questions")
+async def generate_questions_trigger(
+    payload: dict = Body(...),
+    current_admin: dict = Depends(require_permission("Exams, Textbooks & Syllabus", "create"))
+):
+    try:
+        standard = payload.get("standard")
+        subject = payload.get("subject")
+        chapters = payload.get("chapters", [])
+        # Align with question_generation.html payload keys: paper_count, total_marks
+        papers = int(payload.get("paper_count") or payload.get("papers") or 1)
+        marks = int(payload.get("total_marks") or payload.get("marks") or payload.get("TotalMarks") or 50)
+        time_limit = payload.get("time_limit") or payload.get("time")
 
-    if not standard or not subject or not chapters:
-        raise HTTPException(status_code=400, detail="standard, subject and chapters are required")
+        if not standard or not subject or not chapters:
+            raise HTTPException(status_code=400, detail="standard, subject and chapters are required")
 
-    # task_id = str(uuid.uuid4())  <-- REMOVED
-    task_doc = {
-        # "task_id": task_id,      <-- REMOVED
-        "standard": standard,
-        "subject": subject,
-        "chapters": chapters,
-        "papers": papers,
-        "marks": marks,
-        "time_limit": time_limit, # Save user's selected time
-        "status": "queued",
-        "progress": 0,
-        "created_at": datetime.now(timezone.utc)
-    }
-    result = await db.question_tasks.insert_one(task_doc)
-    task_oid = str(result.inserted_id)
+        # task_id = str(uuid.uuid4())  <-- REMOVED
+        task_doc = {
+            # "task_id": task_id,      <-- REMOVED
+            "standard": standard,
+            "subject": subject,
+            "chapters": chapters,
+            "papers": papers,
+            "marks": marks,
+            "time_limit": time_limit, # Save user's selected time
+            "status": "queued",
+            "progress": 0,
+            "created_at": datetime.now(timezone.utc)
+        }
+        result = await db.question_tasks.insert_one(task_doc)
+        task_oid = str(result.inserted_id)
 
-    asyncio.create_task(generate_questions_worker(task_oid))
-    return {"status": "started", "task_id": task_oid}
+        activity_log = await db.admin_activity_logs.insert_one({
+            "username": current_admin["sub"],
+            "role": current_admin["role"],
+            "action": "generate_questions",
+            "status": "processing",
+            "details": f"Generating {papers} question paper(s) of {marks} marks for Class {standard} {subject}",
+            "task_id": task_oid,
+            "timestamp": datetime.now(timezone.utc)
+        })
+
+        asyncio.create_task(generate_questions_worker(task_oid, str(activity_log.inserted_id)))
+        return {"status": "started", "task_id": task_oid}
+    except HTTPException as exc:
+        await log_admin_activity(
+            current_admin["sub"],
+            current_admin["role"],
+            "generate_questions",
+            f"Failed to generate questions for Class {payload.get('standard')} {payload.get('subject')}: {exc.detail}",
+            status="failed",
+        )
+        raise
+    except Exception as exc:
+        await log_admin_activity(
+            current_admin["sub"],
+            current_admin["role"],
+            "generate_questions",
+            f"Failed to generate questions for Class {payload.get('standard')} {payload.get('subject')}: {exc}",
+            status="failed",
+        )
+        raise
 
 
 
-async def generate_questions_worker(task_id: str):
+async def generate_questions_worker(task_id: str, activity_log_id: str | None = None):
     # Query using _id
     task = await db.question_tasks.find_one({"_id": ObjectId(task_id)})
     if not task:
@@ -966,11 +1113,43 @@ Respond with valid JSON only. No text outside JSON.
             )
 
     except Exception as e:
-        print(f"CRITICAL: Question Generation Worker Failed for task {task_id}: {e}")
+        err_str = str(e)
+        print(f"CRITICAL: Question Generation Worker Failed for task {task_id}: {err_str}")
+
+        # Classify the error into a friendly, human-readable message
+        if "credit_balance_exhausted" in err_str or "insufficient_quota" in err_str:
+            friendly_error = (
+                "⚠️ OpenAI Credits Exhausted: Your OpenAI API account has no remaining credits. "
+                "Please top up your balance at https://platform.openai.com/settings/organization/billing "
+                "and then try generating again."
+            )
+        elif "invalid_api_key" in err_str or "Incorrect API key" in err_str:
+            friendly_error = (
+                "🔑 Invalid OpenAI API Key: The API key in your .env file is incorrect or has been revoked. "
+                "Please set a valid OPENAI_API_KEY and restart the server."
+            )
+        elif "RateLimitError" in err_str or "rate_limit" in err_str:
+            friendly_error = (
+                "⏳ OpenAI Rate Limit Hit: Too many requests were sent in a short time. "
+                "Please wait a few minutes and try generating again."
+            )
+        elif "Connection" in err_str or "timeout" in err_str.lower():
+            friendly_error = (
+                "🌐 Network Error: Could not reach the OpenAI API during question generation. "
+                "Please check your internet connection and try again."
+            )
+        else:
+            friendly_error = f"Question generation failed. Reason: {err_str}"
+
         await db.question_tasks.update_one(
             {"_id": ObjectId(task_id)},
-            {"$set": {"status": "failed", "message": str(e)}}
+            {"$set": {"status": "failed", "message": friendly_error}}
         )
+        if activity_log_id:
+            await db.admin_activity_logs.update_one(
+                {"_id": ObjectId(activity_log_id)},
+                {"$set": {"status": "failed", "details": f"Failed to generate questions for task {task_id}: {friendly_error}"}}
+            )
         return
 
     # Mark job completed
@@ -978,6 +1157,13 @@ Respond with valid JSON only. No text outside JSON.
         {"_id": ObjectId(task_id)},
         {"$set": {"status": "completed", "generated": generated_ids}}
     )
+    if activity_log_id:
+        task = await db.question_tasks.find_one({"_id": ObjectId(task_id)})
+        if task:
+            await db.admin_activity_logs.update_one(
+                {"_id": ObjectId(activity_log_id)},
+                {"$set": {"status": "completed", "details": f"Generated {task.get('papers', 1)} question paper(s) of {task.get('marks', 0)} marks for Class {task.get('standard')} {task.get('subject')}"}}
+            )
 
 # --------------------------
 # ROUTES - JOB STATUS / GENERATED PAPERS

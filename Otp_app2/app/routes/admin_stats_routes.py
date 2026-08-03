@@ -427,3 +427,63 @@ async def get_students(admin=Depends(require_permission("Analytics", "read"))):
         "status": "success",
         "students": serialized_students
     }
+
+
+@router.get("/stats/staff-activity")
+async def get_staff_activity(current_admin: dict = Depends(require_permission("Analytics", "read"))):
+    """
+    Returns aggregated staff data-entry activity logs, including a leaderboard,
+    daily activity volume trend, and recent raw logs.
+    """
+    try:
+        # 1. Leaderboard
+        leaderboard_pipeline = [
+            {"$group": {"_id": "$username", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        leaderboard_cursor = db.admin_activity_logs.aggregate(leaderboard_pipeline)
+        leaderboard = await leaderboard_cursor.to_list(length=10)
+        
+        # 2. Daily Trend (last 30 days)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        daily_pipeline = [
+            {"$match": {"timestamp": {"$gte": thirty_days_ago}}},
+            {"$group": {
+                "_id": {
+                    "$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}
+                },
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"_id": 1}}
+        ]
+        daily_cursor = db.admin_activity_logs.aggregate(daily_pipeline)
+        daily_trend = await daily_cursor.to_list(length=30)
+        
+        # 3. Recent logs
+        recent_cursor = db.admin_activity_logs.find({}).sort("timestamp", -1).limit(50)
+        recent_logs = await recent_cursor.to_list(length=50)
+        
+        # Helper to serialize log docs
+        def serialize_log(log):
+            return {
+                "id": str(log["_id"]),
+                "username": log.get("username"),
+                "role": log.get("role"),
+                "action": log.get("action"),
+                "status": log.get("status", "success"),
+                "details": log.get("details"),
+                "task_id": log.get("task_id"),
+                "timestamp": log.get("timestamp").isoformat() if isinstance(log.get("timestamp"), datetime) else log.get("timestamp")
+            }
+            
+        return {
+            "status": "success",
+            "data": {
+                "leaderboard": [{"username": item["_id"], "count": item["count"]} for item in leaderboard],
+                "daily_trend": [{"date": item["_id"], "count": item["count"]} for item in daily_trend],
+                "recent_logs": [serialize_log(log) for log in recent_logs]
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

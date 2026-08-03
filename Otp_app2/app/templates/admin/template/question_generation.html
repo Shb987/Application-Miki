@@ -90,7 +90,20 @@
     papersInput.disabled = !e; marksSel.disabled = !e || !stdSel.value; generateBtn.disabled = !e;
   }
 
-  function showProgress(s, p) {
+  function showProgress(s, p, msg) {
+    if (s === "failed") {
+      taskStatusDiv.innerHTML = `
+        <div class="alert alert-danger border-0 shadow-sm rounded-3 mt-3" role="alert">
+          <div class="d-flex align-items-start gap-3">
+            <div style="font-size:1.8rem; line-height:1;">❌</div>
+            <div>
+              <h6 class="fw-bold mb-1">Question Generation Failed</h6>
+              <p class="mb-0" style="font-size:0.9rem;">${escapeHtml(msg || 'An unknown error occurred. Please try again.')}</p>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
     taskStatusDiv.innerHTML = `<div class="mb-2"><div class="d-flex justify-content-between"><div><strong>Status:</strong> ${escapeHtml(s)}</div><div><strong>${p}%</strong></div></div>
             <div class="progress mt-2"><div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${p}%"></div></div></div>`;
   }
@@ -143,7 +156,7 @@
     if (currentTaskPoll) clearInterval(currentTaskPoll);
     currentTaskPoll = setInterval(async () => {
       const res = await fetch(`/admin-panel/question-task-status/${id}`, { headers: { "Authorization": "Bearer " + token } });
-      const data = await res.json(); showProgress(data.status, data.progress);
+      const data = await res.json(); showProgress(data.status, data.progress, data.message);
       if (data.status === "completed") { clearInterval(currentTaskPoll); loadGeneratedPapers(id); setUIEnabled(true); }
       else if (data.status === "failed") { clearInterval(currentTaskPoll); setUIEnabled(true); }
     }, 2000);

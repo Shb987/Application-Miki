@@ -1475,7 +1475,7 @@
           </div>
           <div class="form-field">
             <label>Username</label>
-            <input type="text" id="detail-admin-username" disabled>
+            <input type="text" id="detail-admin-username" placeholder="e.g. data_entry_jane">
           </div>
           <div class="form-field">
             <label>Assigned Role *</label>
@@ -2108,6 +2108,7 @@ function setAdminDetailsMode(mode) {
   document.getElementById("detail-admin-email").disabled = isView;
   document.getElementById("detail-admin-phone").disabled = isView;
   document.getElementById("detail-admin-address").disabled = isView;
+  document.getElementById("detail-admin-username").disabled = isView;
   document.getElementById("detail-admin-role-select").disabled = isView;
   document.getElementById("detail-password-wrap").style.display = isView ? "none" : "block";
   document.getElementById("admin-details-save-btn").style.display = isView ? "none" : "inline-flex";
@@ -2175,15 +2176,16 @@ async function submitAdminDetails() {
   const email = document.getElementById("detail-admin-email").value.trim();
   const phone = document.getElementById("detail-admin-phone").value.trim();
   const address = document.getElementById("detail-admin-address").value.trim();
+  const username = document.getElementById("detail-admin-username").value.trim();
   const roleName = document.getElementById("detail-admin-role-select").value;
   const password = document.getElementById("detail-admin-password").value.trim();
 
-  if (!fullname || !email || !phone || !address || !roleName) {
+  if (!fullname || !email || !phone || !address || !username || !roleName) {
     showToast("All required fields must be filled", "error");
     return;
   }
 
-  const payload = { full_name: fullname, email, phone_number: phone, address, role_name: roleName };
+  const payload = { username, full_name: fullname, email, phone_number: phone, address, role_name: roleName };
   if (password) payload.password = password;
 
   try {

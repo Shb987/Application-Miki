@@ -153,6 +153,18 @@ async def update_admin(
         if not update_data:
             raise HTTPException(status_code=400, detail="No update data provided")
 
+        new_username = update_data.get("username")
+        if new_username is not None:
+            new_username = new_username.strip()
+            if not new_username:
+                raise HTTPException(status_code=400, detail="Username cannot be empty")
+            update_data["username"] = new_username
+
+        if new_username and new_username != username:
+            username_conflict = await db.admins.find_one({"username": new_username})
+            if username_conflict:
+                raise HTTPException(status_code=400, detail="Username already exists")
+
         if "password" in update_data:
             update_data["password"] = get_password_hash(update_data["password"])
 
@@ -161,7 +173,7 @@ async def update_admin(
             current_admin["sub"],
             current_admin["role"],
             "update_admin",
-            f"Updated admin staff account '{username}'",
+            f"Updated admin staff account '{username}'" + (f" to '{new_username}'" if new_username and new_username != username else ""),
         )
         return {"message": "Admin updated successfully"}
     except HTTPException as exc:

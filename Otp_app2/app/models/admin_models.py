@@ -16,6 +16,7 @@ class AdminCreate(BaseModel):
 
 
 class AdminUpdate(BaseModel):
+    username: Optional[str] = None
     full_name: Optional[str] = None
     email: Optional[str] = None
     phone_number: Optional[str] = None

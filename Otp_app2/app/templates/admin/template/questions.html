@@ -670,20 +670,23 @@
               <h5 class="card-title-premium">
                 <i class="fa fa-list-ul text-primary"></i> Current Questions
               </h5>
-              <div class="d-flex align-items-center gap-3">
-                <select id="type-filter" class="form-select premium-input py-1" style="width: auto; min-width: 180px;" onchange="filterQuestionsByType()">
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <select id="type-filter" class="form-select premium-input py-1" style="width: auto; min-width: 180px;" onchange="applyQuestionFilters()">
                   <option value="all">All Types ({{ total_count|default(questions|length) }})</option>
                   <option value="text">TEXT ({{ text_count|default(0) }})</option>
                   <option value="image">IMAGE ({{ image_count|default(0) }})</option>
                   <option value="rating">RATING ({{ rating_count|default(0) }})</option>
                 </select>
+                <input type="number" id="age-filter-min" class="form-control premium-input py-1" style="width: 130px;" placeholder="Min age" min="0" oninput="applyQuestionFilters()">
+                <input type="number" id="age-filter-max" class="form-control premium-input py-1" style="width: 130px;" placeholder="Max age" min="0" oninput="applyQuestionFilters()">
+                <button type="button" class="btn btn-outline-secondary btn-sm" style="border-radius: 10px;" onclick="clearAgeFilter()">Clear Age</button>
                 <div class="badge bg-primary rounded-pill px-3" id="questions-count">{{ questions|length }}</div>
               </div>
             </div>
             <div class="card-body p-4" id="questions-grid">
               <div class="row g-3">
                 {% for q in questions %}
-                <div class="col-12 question-item" data-id="{{ q._id }}">
+                <div class="col-12 question-item" data-id="{{ q._id }}" data-type="{{ q.type|default('text')|lower }}" data-age-min="{{ q.age_min }}" data-age-max="{{ q.age_max }}">
                   <div class="question-card">
                     <div class="d-flex justify-content-between align-items-start">
                       <div class="flex-grow-1">
@@ -1045,7 +1048,7 @@
     ------------------------------------------- */
     function createQuestionCardHtml(q) {
       return `
-        <div class="col-12 question-item" data-id="${q._id}">
+        <div class="col-12 question-item" data-id="${q._id}" data-type="${(q.type || 'text').toLowerCase()}" data-age-min="${q.age_min}" data-age-max="${q.age_max}">
           <div class="question-card">
             <div class="d-flex justify-content-between align-items-start">
               <div class="flex-grow-1">
@@ -1359,23 +1362,52 @@
       }
     }
 
+    function getAgeFilterValues() {
+      const minRaw = document.getElementById("age-filter-min").value.trim();
+      const maxRaw = document.getElementById("age-filter-max").value.trim();
+      return {
+        min: minRaw === "" ? null : parseInt(minRaw, 10),
+        max: maxRaw === "" ? null : parseInt(maxRaw, 10)
+      };
+    }
+
+    function clearAgeFilter() {
+      document.getElementById("age-filter-min").value = "";
+      document.getElementById("age-filter-max").value = "";
+      applyQuestionFilters();
+    }
+
     /* ------------------------------------------
-          FILTER BY TYPE
+          FILTER BY TYPE + AGE
     ------------------------------------------- */
-    function filterQuestionsByType() {
+    function applyQuestionFilters() {
       const selectedType = document.getElementById("type-filter").value;
+      const { min, max } = getAgeFilterValues();
       const questions = document.querySelectorAll(".question-item");
-      
+
       questions.forEach(item => {
-        const typeBadge = item.querySelector(".badge").innerText.toLowerCase();
-        if (selectedType === "all" || typeBadge === selectedType) {
-          item.style.display = "block";
-        } else {
-          item.style.display = "none";
-        }
+        const itemType = (item.dataset.type || "text").toLowerCase();
+        const itemMin = parseInt(item.dataset.ageMin, 10);
+        const itemMax = parseInt(item.dataset.ageMax, 10);
+
+        const typeMatches = selectedType === "all" || itemType === selectedType;
+        const minMatches = min === null || (!Number.isNaN(itemMax) && itemMax >= min);
+        const maxMatches = max === null || (!Number.isNaN(itemMin) && itemMin <= max);
+        const ageMatches = minMatches && maxMatches;
+
+        item.style.display = typeMatches && ageMatches ? "block" : "none";
       });
-      
+
+      updateVisibleQuestionCount();
       checkEmptyGrid();
+    }
+
+    function updateVisibleQuestionCount() {
+      const visibleItems = document.querySelectorAll("#questions-grid .question-item:not([style*='display: none'])");
+      const countBadge = document.getElementById("questions-count");
+      if (countBadge) {
+        countBadge.innerText = visibleItems.length;
+      }
     }
 
     /* ------------------------------------------
@@ -1408,10 +1440,7 @@
         select.options[3].text = `RATING (${ratingCount})`;
       }
 
-      const countBadge = document.getElementById("questions-count");
-      if (countBadge) {
-        countBadge.innerText = total;
-      }
+      applyQuestionFilters();
     }
 
 
@@ -1430,6 +1459,7 @@
     ------------------------------------------- */
     loadAdminProfile();
     updateTypeFilterCounts();
+    applyQuestionFilters();
 
   </script>
 </body>

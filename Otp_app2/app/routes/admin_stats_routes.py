@@ -429,6 +429,118 @@ async def get_students(admin=Depends(require_permission("Analytics", "read"))):
     }
 
 
+@router.get("/ai-stats/summary", response_model=Dict[str, Any])
+async def get_platform_ai_usage_summary(current_admin: dict = Depends(require_permission("Analytics", "read"))):
+    """
+    Returns platform-wide AI usage analytics (last 30 days)
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        thirty_days_ago = now - timedelta(days=30)
+
+        base_match = {
+            "timestamp": {"$gte": thirty_days_ago}
+        }
+
+        # -----------------------------
+        # TOTAL TOKENS
+        # -----------------------------
+        async def total_tokens():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": None, "total": {"$sum": "$total_tokens"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return result[0]["total"] if result else 0
+
+        # -----------------------------
+        # TOTAL CALLS
+        # -----------------------------
+        async def total_calls():
+            return await db.ai_usage_logs.count_documents(base_match)
+
+        # -----------------------------
+        # TOTAL COST
+        # -----------------------------
+        async def total_cost():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": None, "total": {"$sum": "$estimated_cost_usd"}}}
+            ]
+            result = await db.ai_usage_logs.aggregate(pipeline).to_list(1)
+            return round(result[0]["total"], 4) if result else 0.0
+
+        async def module_costs():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": "$action_type", "cost": {"$sum": "$estimated_cost_usd"}}}
+            ]
+            results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
+            labels = [r["_id"] if r["_id"] else "Other" for r in results]
+            costs = [round(r["cost"], 4) for r in results]
+            return {"labels": labels, "costs": costs}
+
+        # -----------------------------
+        # TOKENS BY MODEL
+        # -----------------------------
+        async def model_tokens():
+            pipeline = [
+                {"$match": base_match},
+                {"$group": {"_id": "$model_used", "tokens": {"$sum": "$total_tokens"}}}
+            ]
+            results = await db.ai_usage_logs.aggregate(pipeline).to_list(None)
+            labels = [r["_id"] if r["_id"] else "Other" for r in results]
+            tokens = [r["tokens"] for r in results]
+            return {"labels": labels, "tokens": tokens}
+
+        (tokens, calls, cost, module_data, model_data) = await asyncio.gather(
+            total_tokens(),
+            total_calls(),
+            total_cost(),
+            module_costs(),
+            model_tokens()
+        )
+
+        return {
+            "status": "success",
+            "data": {
+                "total_tokens": tokens,
+                "total_calls": calls,
+                "total_cost_usd": cost,
+                "module_costs": module_data,
+                "model_tokens": model_data
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def serialize_student(doc):
+    return {
+        "id": str(doc["_id"]),
+        "name": doc.get("student_name", "Unnamed Student"),
+        "class": doc.get("student_class"),
+        "image_url": doc.get("image_url")
+    }
+
+
+@router.get("/ai-stats/get_students")
+async def get_students(admin=Depends(require_permission("Analytics", "read"))):
+
+    cursor = db.students.find({})
+    students = await cursor.to_list(length=None)
+
+    serialized_students = [
+        serialize_student(student)
+        for student in students
+    ]
+
+    return {
+        "status": "success",
+        "students": serialized_students
+    }
+
+
 @router.get("/stats/staff-activity")
 async def get_staff_activity(current_admin: dict = Depends(require_permission("Analytics", "read"))):
     """
@@ -436,8 +548,9 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
     daily activity volume trend, and recent raw logs.
     """
     try:
-        # 1. Leaderboard
+        # 1. Leaderboard - Count all staff activity (any status except 'processing')
         leaderboard_pipeline = [
+            {"$match": {"status": {"$nin": ["processing"]}}},
             {"$group": {"_id": "$username", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
             {"$limit": 10}
@@ -445,27 +558,41 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
         leaderboard_cursor = db.admin_activity_logs.aggregate(leaderboard_pipeline)
         leaderboard = await leaderboard_cursor.to_list(length=10)
         
-        # 2. Daily Trend (last 30 days)
-        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        # 2. Daily Trend (last 30 days) - All statuses, group by date
+        # Use a simple date string group to avoid timezone comparison issues
         daily_pipeline = [
-            {"$match": {"timestamp": {"$gte": thirty_days_ago}}},
+            {"$match": {"status": {"$nin": ["processing"]}}},
+            {"$project": {
+                "date_str": {
+                    "$dateToString": {
+                        "format": "%Y-%m-%d",
+                        "date": "$timestamp"
+                    }
+                }
+            }},
             {"$group": {
-                "_id": {
-                    "$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}
-                },
+                "_id": "$date_str",
                 "count": {"$sum": 1}
             }},
-            {"$sort": {"_id": 1}}
+            {"$sort": {"_id": 1}},
+            {"$limit": 30}
         ]
         daily_cursor = db.admin_activity_logs.aggregate(daily_pipeline)
         daily_trend = await daily_cursor.to_list(length=30)
         
-        # 3. Recent logs
+        # 3. Recent logs (show all, including failures)
         recent_cursor = db.admin_activity_logs.find({}).sort("timestamp", -1).limit(50)
         recent_logs = await recent_cursor.to_list(length=50)
         
         # Helper to serialize log docs
         def serialize_log(log):
+            ts = log.get("timestamp")
+            if hasattr(ts, "isoformat"):
+                ts_str = ts.isoformat()
+            elif ts is not None:
+                ts_str = str(ts)
+            else:
+                ts_str = None
             return {
                 "id": str(log["_id"]),
                 "username": log.get("username"),
@@ -474,7 +601,7 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
                 "status": log.get("status", "success"),
                 "details": log.get("details"),
                 "task_id": log.get("task_id"),
-                "timestamp": log.get("timestamp").isoformat() if isinstance(log.get("timestamp"), datetime) else log.get("timestamp")
+                "timestamp": ts_str
             }
             
         return {
@@ -487,3 +614,4 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+

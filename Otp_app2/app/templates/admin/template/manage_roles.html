@@ -5,71 +5,672 @@
 {% block head %}
 <style>
   /* ── Page Layout ── */
-  .roles-page { padding: 24px; }
+  .roles-page {
+    padding: 24px;
+    background:
+      radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 26%),
+      radial-gradient(circle at top right, rgba(14, 165, 233, 0.10), transparent 20%),
+      linear-gradient(180deg, #f8fafc 0%, #f6f8fb 100%);
+  }
 
   /* ── Header Card ── */
   .page-header-card {
-    background: linear-gradient(135deg, #006666 0%, #004d4d 100%);
-    border-radius: 16px;
-    padding: 28px 32px;
+    background:
+      radial-gradient(circle at top right, rgba(255,255,255,0.14), transparent 24%),
+      linear-gradient(135deg, #0f766e 0%, #134e4a 52%, #0b1220 100%);
+    border-radius: 26px;
+    padding: 30px 32px;
     color: #fff;
     margin-bottom: 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 16px;
-    box-shadow: 0 8px 32px rgba(0,102,102,0.25);
+    gap: 18px;
+    box-shadow: 0 22px 60px rgba(11,18,32,0.18);
+    position: relative;
+    overflow: hidden;
   }
-  .page-header-card h2 { margin: 0; font-size: 1.6rem; font-weight: 700; }
-  .page-header-card p  { margin: 4px 0 0; opacity: 0.85; font-size: 0.9rem; }
+  .page-header-card::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 260px;
+    height: 260px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    pointer-events: none;
+  }
+  .page-header-card h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+  .page-header-card p  {
+    margin: 6px 0 0;
+    opacity: 0.86;
+    font-size: 0.94rem;
+    max-width: 720px;
+  }
+  .header-chip-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .header-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.11);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.94);
+    font-size: 0.86rem;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+  }
   .btn-create-role {
-    background: rgba(255,255,255,0.2);
-    border: 2px solid rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
     color: #fff;
-    border-radius: 10px;
-    padding: 10px 22px;
+    border-radius: 999px;
+    padding: 12px 22px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
   }
-  .btn-create-role:hover { background: rgba(255,255,255,0.35); }
+  .btn-create-role:hover {
+    background: rgba(255,255,255,0.20);
+    transform: translateY(-1px);
+  }
 
-  /* ── Two-column layout ── */
-  .roles-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
-  @media (max-width: 900px) { .roles-layout { grid-template-columns: 1fr; } }
+  /* ── Dashboard Strip ── */
+  .role-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 1100px) { .role-kpi-grid { grid-template-columns: 1fr; } }
+  .role-kpi-card {
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .role-kpi-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    flex: 0 0 auto;
+  }
+  .role-kpi-icon.teal { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+  .role-kpi-icon.sky { background: linear-gradient(135deg, #38bdf8, #0284c7); }
+  .role-kpi-icon.slate { background: linear-gradient(135deg, #64748b, #334155); }
+  .role-kpi-label {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .role-kpi-value {
+    margin: 2px 0 0;
+    color: #0f172a;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .role-kpi-sub {
+    margin: 3px 0 0;
+    color: #94a3b8;
+    font-size: 0.8rem;
+  }
+
+  /* ── Main Workspace ── */
+  .roles-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 992px) { .roles-layout { grid-template-columns: 1fr; } }
 
   /* ── Roles List ── */
-  .roles-panel { background: #fff; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); overflow: hidden; }
-  .roles-panel-header { padding: 18px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 700; font-size: 1rem; color: #333; display: flex; align-items: center; gap: 8px; }
-  .roles-panel-header i { color: #006666; }
+  .roles-panel,
+  .permissions-panel,
+  .monitor-panel {
+    background: rgba(255,255,255,0.96);
+    border-radius: 24px;
+    box-shadow: 0 16px 40px rgba(15,23,42,0.06);
+    border: 1px solid rgba(15,23,42,0.06);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+  .roles-panel-header,
+  .monitor-panel-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+    font-weight: 800;
+    font-size: 1rem;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .roles-panel-header i,
+  .monitor-panel-header i { color: #0f766e; }
+  .roles-panel-header small,
+  .monitor-panel-header small {
+    display: block;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin-top: 2px;
+  }
+  .roles-search {
+    position: relative;
+    flex: 1 1 190px;
+    max-width: 260px;
+  }
+  .roles-search input {
+    width: 100%;
+    border: 1px solid rgba(148,163,184,0.25);
+    background: #fff;
+    border-radius: 999px;
+    padding: 10px 14px 10px 38px;
+    outline: none;
+    font-size: 0.9rem;
+    color: #0f172a;
+  }
+  .roles-search i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+  }
   .role-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
-    border-bottom: 1px solid #f7f7f7;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(15,23,42,0.05);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.16s ease, transform 0.16s ease;
   }
-  .role-item:hover { background: #f0fafa; }
-  .role-item.active { background: #e6f5f5; border-left: 4px solid #006666; }
-  .role-item-name { font-weight: 600; color: #222; font-size: 0.95rem; }
-  .role-item-desc { font-size: 0.78rem; color: #888; margin-top: 2px; }
-  .role-actions { display: flex; gap: 8px; }
+  .role-item:hover {
+    background: #f7fffe;
+    transform: translateX(1px);
+  }
+  .role-item.active {
+    background: linear-gradient(90deg, rgba(15,118,110,0.12), rgba(15,118,110,0.04));
+    border-left: 4px solid #0f766e;
+  }
+  .role-item-name {
+    font-weight: 800;
+    color: #0f172a;
+    font-size: 0.96rem;
+    letter-spacing: -0.02em;
+  }
+  .role-item-desc {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+  .role-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
   .btn-icon {
-    border: none; background: transparent; padding: 6px; border-radius: 8px;
-    cursor: pointer; color: #888; transition: all 0.2s; font-size: 14px;
+    border: none;
+    background: transparent;
+    padding: 7px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s;
+    font-size: 14px;
   }
   .btn-icon:hover.delete { background: #fff0f0; color: #e53e3e; }
-  .btn-icon:hover.edit   { background: #f0fafa; color: #006666; }
+  .btn-icon:hover.edit   { background: #f0fafa; color: #0f766e; }
+
+  /* Staff Console */
+  .staff-console {
+    display: grid;
+    gap: 18px;
+  }
+
+  .staff-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 900px) {
+    .staff-stats { grid-template-columns: 1fr; }
+  }
+  .staff-stat-card {
+    background: #fff;
+    border-radius: 18px;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .staff-stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    flex: 0 0 auto;
+  }
+  .staff-stat-icon.teal { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+  .staff-stat-icon.amber { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .staff-stat-icon.slate { background: linear-gradient(135deg, #64748b, #334155); }
+  .staff-stat-label {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin: 0;
+  }
+  .staff-stat-value {
+    margin: 2px 0 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+  }
+  .staff-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  @media (max-width: 1100px) {
+    .staff-card-grid { grid-template-columns: 1fr; }
+  }
+  .staff-card {
+    background: #fff;
+    border: 1px solid rgba(15,23,42,0.08);
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    position: relative;
+  }
+  .staff-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(15,118,110,0.25);
+    box-shadow: 0 16px 36px rgba(15,23,42,0.10);
+  }
+  .staff-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .staff-profile {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .staff-avatar {
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, #0f766e, #0ea5e9);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+    flex: 0 0 auto;
+  }
+  .staff-name {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+  .staff-username {
+    margin: 2px 0 0;
+    color: #64748b;
+    font-size: 0.86rem;
+  }
+  .staff-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .staff-role-badge.superadmin {
+    background: rgba(15,118,110,0.12);
+    color: #0f766e;
+  }
+  .staff-role-badge.staff {
+    background: rgba(37,99,235,0.10);
+    color: #2563eb;
+  }
+  .staff-details {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .staff-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 0.88rem;
+  }
+  .staff-detail-row span:first-child {
+    color: #64748b;
+    font-weight: 600;
+  }
+  .staff-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .staff-action-btn {
+    flex: 1 1 120px;
+    border: 1px solid rgba(15,23,42,0.10);
+    background: #fff;
+    border-radius: 14px;
+    padding: 10px 12px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .staff-action-btn:hover { transform: translateY(-1px); }
+  .staff-action-btn.view { color: #0f766e; }
+  .staff-action-btn.view:hover { border-color: rgba(15,118,110,0.25); box-shadow: 0 10px 20px rgba(15,118,110,0.08); }
+  .staff-action-btn.edit { color: #b45309; }
+  .staff-action-btn.edit:hover { border-color: rgba(245,158,11,0.35); box-shadow: 0 10px 20px rgba(245,158,11,0.10); }
+  .staff-action-btn.delete { color: #dc2626; }
+  .staff-action-btn.delete:hover { border-color: rgba(220,38,38,0.25); box-shadow: 0 10px 20px rgba(220,38,38,0.08); }
+  .staff-empty {
+    background: #fff;
+    border: 1px dashed rgba(100,116,139,0.35);
+    border-radius: 20px;
+    padding: 42px 18px;
+    text-align: center;
+    color: #64748b;
+  }
+  .staff-empty i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #0f766e;
+  }
+  .staff-loading {
+    min-height: 240px;
+    display: grid;
+    place-items: center;
+    color: #64748b;
+  }
 
   /* ── Permissions Editor ── */
-  .permissions-panel { background: #fff; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); }
-  .permissions-panel-header { padding: 18px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
-  .permissions-panel-header h5 { margin: 0; font-weight: 700; color: #333; }
-  .permissions-panel-header .role-badge { background: #e6f5f5; color: #006666; border-radius: 20px; padding: 4px 14px; font-size: 0.82rem; font-weight: 600; }
+  .permissions-panel-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .permissions-panel-header h5 {
+    margin: 0;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+  }
+  .permissions-panel-header p {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 0.84rem;
+  }
+  .permissions-panel-header .role-badge {
+    background: linear-gradient(135deg, #0f766e, #134e4a);
+    color: #fff;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: center;
+    box-shadow: 0 8px 18px rgba(15,118,110,0.18);
+  }
+  .permission-toolbar {
+    padding: 18px 22px 0;
+  }
+  .permission-hero {
+    padding: 0 22px 18px;
+    display: grid;
+    gap: 12px;
+  }
+  .permission-hero-card {
+    background: linear-gradient(135deg, rgba(15,118,110,0.08), rgba(14,165,233,0.06));
+    border: 1px solid rgba(15,118,110,0.12);
+    border-radius: 20px;
+    padding: 16px 18px;
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .permission-hero-card h6 {
+    margin: 0;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+  }
+  .permission-hero-card p {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 0.84rem;
+  }
+  .permission-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .permission-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 11px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(148,163,184,0.18);
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .permission-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 900px) { .permission-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .permission-metric {
+    background: #f8fafc;
+    border: 1px solid rgba(15,23,42,0.05);
+    border-radius: 16px;
+    padding: 12px;
+    text-align: center;
+  }
+  .permission-metric strong {
+    display: block;
+    font-size: 1.15rem;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+  }
+  .permission-metric span {
+    display: block;
+    color: #64748b;
+    font-size: 0.77rem;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .permission-grid {
+    padding: 0 22px 18px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 1200px) {
+    .permission-grid { grid-template-columns: 1fr; }
+  }
+  .permission-card {
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 22px;
+    background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(15,23,42,0.05);
+  }
+  .permission-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid rgba(15,23,42,0.05);
+  }
+  .permission-card-title {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .permission-card-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    flex: 0 0 auto;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .permission-card-icon.teal { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+  .permission-card-icon.sky { background: linear-gradient(135deg, #38bdf8, #0284c7); }
+  .permission-card-icon.slate { background: linear-gradient(135deg, #64748b, #334155); }
+  .permission-card-name {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+  .permission-card-desc {
+    margin: 3px 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+  .permission-chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .permission-chip {
+    border: 1px solid rgba(148,163,184,0.18);
+    background: #fff;
+    color: #334155;
+    border-radius: 999px;
+    padding: 8px 11px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .permission-chip:hover {
+    border-color: rgba(15,118,110,0.22);
+    color: #0f766e;
+  }
+  .permission-card-body {
+    padding: 14px 16px 16px;
+  }
+  .permission-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .permission-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border: 1px solid rgba(148,163,184,0.16);
+    background: #fff;
+    border-radius: 16px;
+    padding: 11px 12px;
+  }
+  .permission-toggle label {
+    margin: 0;
+    color: #334155;
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-transform: capitalize;
+  }
+  .permission-toggle small {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    margin-top: 2px;
+  }
+  .permission-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #0f766e;
+    cursor: pointer;
+  }
+  .permission-foot {
+    padding: 0 22px 22px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .permission-foot .btn-save-perms {
+    border-radius: 999px;
+    padding: 12px 20px;
+  }
 
   .empty-state { padding: 60px 24px; text-align: center; color: #bbb; }
   .empty-state i { font-size: 3rem; display: block; margin-bottom: 12px; }
@@ -109,6 +710,222 @@
   .btn-save-perms:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,102,102,0.3); }
   .permissions-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
 
+  /* Monitoring Rail */
+  .monitor-panel {
+    position: sticky;
+    top: 20px;
+  }
+  .monitor-body {
+    padding: 18px;
+  }
+  .monitor-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .monitor-summary-card {
+    background: linear-gradient(180deg, #fff, #f8fafc);
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .monitor-summary-card .label {
+    color: #64748b;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0;
+  }
+  .monitor-summary-card .value {
+    margin: 6px 0 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .monitor-summary-card .hint {
+    margin: 3px 0 0;
+    color: #94a3b8;
+    font-size: 0.78rem;
+  }
+  .monitor-list {
+    display: grid;
+    gap: 12px;
+    max-height: 560px;
+    overflow: auto;
+    padding-right: 4px;
+  }
+  .monitor-item {
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 18px;
+    padding: 14px;
+    background: #fff;
+  }
+  .monitor-item-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .monitor-item-title {
+    margin: 0;
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 0.93rem;
+  }
+  .monitor-item-sub {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .status-pill.success { background: rgba(16,185,129,0.12); color: #059669; }
+  .status-pill.failed { background: rgba(239,68,68,0.12); color: #dc2626; }
+  .status-pill.pending { background: rgba(245,158,11,0.12); color: #d97706; }
+  .monitor-item-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    color: #94a3b8;
+    font-size: 0.76rem;
+  }
+
+  /* Activity Dashboard */
+  .activity-dashboard {
+    display: grid;
+    gap: 18px;
+  }
+
+  .activity-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 1100px) { .activity-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .activity-kpis { grid-template-columns: 1fr; } }
+  .activity-kpi-card {
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+  }
+  .activity-kpi-label {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .activity-kpi-value {
+    margin: 6px 0 0;
+    color: #0f172a;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+  .activity-kpi-hint {
+    margin: 4px 0 0;
+    color: #94a3b8;
+    font-size: 0.8rem;
+  }
+  .activity-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 1200px) { .activity-grid { grid-template-columns: 1fr; } }
+  .activity-panel {
+    background: rgba(255,255,255,0.96);
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 24px;
+    box-shadow: 0 16px 40px rgba(15,23,42,0.06);
+    overflow: hidden;
+  }
+  .activity-panel-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+  }
+  .activity-panel-header h5 {
+    margin: 0;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+  }
+  .activity-panel-header small {
+    display: block;
+    margin-top: 2px;
+    color: #64748b;
+    font-size: 0.8rem;
+  }
+  .activity-panel-body {
+    padding: 18px;
+  }
+  .activity-visual {
+    display: grid;
+    gap: 12px;
+  }
+  .activity-visual-card {
+    background: linear-gradient(180deg, #fff, #f8fafc);
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .activity-feed-wrap {
+    padding: 0;
+  }
+  .activity-feed-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+  }
+  .activity-feed-toolbar h5 {
+    margin: 0;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+  }
+  .activity-feed-toolbar p {
+    margin: 4px 0 0;
+    color: #64748b;
+    font-size: 0.84rem;
+  }
+  .activity-table-scroll {
+    max-height: 560px;
+    overflow: auto;
+  }
+  .activity-table-scroll table {
+    margin-bottom: 0;
+  }
+  .activity-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8fafc;
+  }
+
   /* ── Modal ── */
   .modal-backdrop-custom {
     display: none; position: fixed; inset: 0;
@@ -120,6 +937,90 @@
     background: #fff; border-radius: 16px; padding: 32px;
     width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
     animation: slideUp 0.25s ease;
+  }
+  .modal-box.modal-xl {
+    max-width: 980px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 24px;
+  }
+  .admin-detail-shell {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: 620px;
+  }
+  @media (max-width: 900px) {
+    .admin-detail-shell { grid-template-columns: 1fr; }
+  }
+  .admin-detail-side {
+    background: linear-gradient(180deg, #0f766e 0%, #134e4a 100%);
+    color: #fff;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .admin-detail-side::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    bottom: -80px;
+    width: 220px;
+    height: 220px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.10);
+    pointer-events: none;
+  }
+  .admin-detail-side h4 {
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .admin-detail-side p {
+    color: rgba(255,255,255,0.82);
+    margin-bottom: 22px;
+  }
+  .admin-detail-identity {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .admin-detail-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.14);
+    display: grid;
+    place-items: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+  }
+  .admin-detail-side .detail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.10);
+    margin-bottom: 10px;
+    width: 100%;
+    color: #fff;
+    font-size: 0.9rem;
+  }
+  .admin-detail-main {
+    padding: 30px;
+  }
+  .admin-detail-main .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 900px) {
+    .admin-detail-main .form-grid { grid-template-columns: 1fr; }
+  }
+  .detail-footer-note {
+    margin-top: 10px;
+    color: #64748b;
+    font-size: 0.84rem;
   }
   @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
   .modal-box h4 { margin: 0 0 20px; font-weight: 700; color: #333; }
@@ -186,19 +1087,56 @@
   <div class="tab-content" id="rolesTabContent">
     <!-- Roles Tab -->
     <div class="tab-pane show active" id="roles-section" role="tabpanel">
-      
-      <!-- Roles Action Header -->
-      <div class="d-flex justify-content-end mb-3">
-        <button class="btn btn-primary" onclick="openCreateModal()">
-          <i class="fa fa-plus"></i> &nbsp;Create New Role
+      <!-- Roles Action Bar -->
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+          <h4 class="mb-1 text-dark fw-bold"><i class="fa fa-shield text-teal me-2" style="color: #0f766e;"></i>Roles Control Center</h4>
+          <p class="text-muted mb-0 small">Design permissions, create structured access roles, and monitor role activity.</p>
+        </div>
+        <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold" onclick="openCreateModal()" style="background-color: #0f766e; border: none;">
+          <i class="fa fa-plus me-2"></i>Create New Role
         </button>
+      </div>
+
+      <div class="role-kpi-grid">
+        <div class="role-kpi-card">
+          <div class="role-kpi-icon teal"><i class="fa fa-shield"></i></div>
+          <div>
+            <p class="role-kpi-label">Total Roles</p>
+            <p class="role-kpi-value" id="roles-total-count">0</p>
+            <p class="role-kpi-sub">All configured access groups</p>
+          </div>
+        </div>
+        <div class="role-kpi-card">
+          <div class="role-kpi-icon sky"><i class="fa fa-check-square-o"></i></div>
+          <div>
+            <p class="role-kpi-label">Configured Roles</p>
+            <p class="role-kpi-value" id="roles-configured-count">0</p>
+            <p class="role-kpi-sub">Roles with permissions set</p>
+          </div>
+        </div>
+        <div class="role-kpi-card">
+          <div class="role-kpi-icon slate"><i class="fa fa-exclamation-triangle"></i></div>
+          <div>
+            <p class="role-kpi-label">Failed Role Events</p>
+            <p class="role-kpi-value" id="roles-failed-count">0</p>
+            <p class="role-kpi-sub">From live staff monitoring</p>
+          </div>
+        </div>
       </div>
 
       <div class="roles-layout">
         <!-- Left: Role List -->
         <div class="roles-panel">
           <div class="roles-panel-header">
-            <i class="fa fa-list-ul"></i> All Roles
+            <div>
+              <i class="fa fa-list-ul"></i> All Roles
+              <small>Search, select, edit, or delete access roles.</small>
+            </div>
+            <div class="roles-search">
+              <i class="fa fa-search"></i>
+              <input type="text" id="role-search" placeholder="Search roles">
+            </div>
           </div>
           <div id="roles-list">
             <div class="empty-state" style="padding:30px">
@@ -208,11 +1146,14 @@
           </div>
         </div>
 
-        <!-- Right: Permissions Editor -->
+        <!-- Middle: Permissions Editor -->
         <div class="permissions-panel" id="permissions-panel">
           <div class="permissions-panel-header">
-            <h5>Module Permissions</h5>
-            <span class="role-badge" id="selected-role-badge">Select a role →</span>
+            <div>
+              <h5>Module Permissions</h5>
+              <p id="selected-role-meta" class="text-muted mb-0 small">Select a role to view and edit its module permissions.</p>
+            </div>
+            <span class="role-badge" id="selected-role-badge" style="display:none"></span>
           </div>
           <div id="permissions-body">
             <div class="empty-state">
@@ -223,85 +1164,180 @@
         </div>
       </div>
 
+      <!-- Bottom Section: Live Monitoring -->
+      <div class="mt-4">
+        <aside class="monitor-panel">
+          <div class="monitor-panel-header">
+            <div>
+              <i class="fa fa-signal"></i> Live Monitoring
+              <small>Role-related admin actions and status updates.</small>
+            </div>
+            <button class="btn btn-sm btn-outline-success rounded-pill" onclick="fetchRoleMonitoring()">
+              <i class="fa fa-refresh me-1"></i> Refresh
+            </button>
+          </div>
+          <div class="monitor-body">
+            <div class="monitor-summary">
+              <div class="monitor-summary-card">
+                <p class="label">Role events</p>
+                <p class="value" id="monitor-total-events">0</p>
+                <p class="hint">Recent role actions tracked</p>
+              </div>
+              <div class="monitor-summary-card">
+                <p class="label">Failures</p>
+                <p class="value" id="monitor-failed-events">0</p>
+                <p class="hint">Failed attempts or errors</p>
+              </div>
+            </div>
+            <div class="monitor-list" id="role-monitor-list">
+              <div class="staff-loading" style="min-height:220px;">
+                <div class="text-center">
+                  <div class="spinner-border text-secondary mb-2" role="status"></div>
+                  <div>Loading live role monitoring...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
     </div>
 
     <!-- Admin Users Tab -->
     <div class="tab-pane" id="admins-section" role="tabpanel">
-      
-      <!-- Admin Action Header -->
-      <div class="d-flex justify-content-end mb-3">
-        <button class="btn btn-primary" onclick="openAdminModal()">
-          <i class="fa fa-user-plus"></i> &nbsp;Add Admin Staff
-        </button>
-      </div>
+      <div class="staff-console">
+        <!-- Admin Staff Action Bar -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+          <div>
+            <h4 class="mb-1 text-dark fw-bold"><i class="fa fa-users text-teal me-2" style="color: #0f766e;"></i>Admin Staff Directory</h4>
+            <p class="text-muted mb-0 small">View, update, and manage staff accounts with dedicated detail views.</p>
+          </div>
+          <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold" onclick="openAdminModal()" style="background-color: #0f766e; border: none;">
+            <i class="fa fa-user-plus me-2"></i>Add Staff
+          </button>
+        </div>
 
-      <div class="card" style="border-radius:16px; border:none; box-shadow: 0 2px 16px rgba(0,0,0,0.07)">
-        <div class="card-body p-0">
-          <div class="table-responsive custom-scrollbar" style="border-radius:16px overflow:hidden">
-            <table class="table table-bordered table-striped mb-0">
-              <thead>
-                <tr>
-                  <th>Staff Info</th>
-                  <th>Role</th>
-                  <th style="width: 150px; text-align: center;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="admins-list-body">
-                <tr>
-                  <td colspan="3" class="text-center">
-                    <div class="spinner-border text-secondary" role="status"></div>
-                    <p style="margin-top:10px">Loading admin staff...</p>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="staff-stats" id="staff-stats-row">
+          <div class="staff-stat-card">
+            <div class="staff-stat-icon teal"><i class="fa fa-users"></i></div>
+            <div>
+              <p class="staff-stat-label">Total Staff</p>
+              <p class="staff-stat-value" id="staff-stat-total">0</p>
+            </div>
+          </div>
+          <div class="staff-stat-card">
+            <div class="staff-stat-icon amber"><i class="fa fa-crown"></i></div>
+            <div>
+              <p class="staff-stat-label">Superadmins</p>
+              <p class="staff-stat-value" id="staff-stat-superadmins">0</p>
+            </div>
+          </div>
+          <div class="staff-stat-card">
+            <div class="staff-stat-icon slate"><i class="fa fa-id-badge"></i></div>
+            <div>
+              <p class="staff-stat-label">Roles Assigned</p>
+              <p class="staff-stat-value" id="staff-stat-roles">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="admins-list-body" class="staff-card-grid">
+          <div class="staff-loading">
+            <div class="text-center">
+              <div class="spinner-border text-secondary mb-2" role="status"></div>
+              <div>Loading admin staff...</div>
+            </div>
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- Staff Activity Monitor Tab -->
     <div class="tab-pane" id="activity-section" role="tabpanel">
-      <div class="row g-3 mb-4">
-        <div class="col-md-4">
-          <div class="card h-100 border-0 shadow-sm" style="border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;">
-            <div class="card-header bg-white border-bottom py-3">
-              <h6 class="mb-0 fw-bold text-dark"><i class="fa fa-trophy text-warning"></i> &nbsp;Top Staff Uploaders</h6>
-            </div>
-            <div class="card-body p-3" id="leaderboard-container">
-              <div class="text-center py-4">
-                <div class="spinner-border spinner-border-sm text-secondary"></div>
-              </div>
-            </div>
+      <div class="activity-dashboard">
+        <!-- Activity Action Bar -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+          <div>
+            <h4 class="mb-1 text-dark fw-bold"><i class="fa fa-line-chart text-teal me-2" style="color: #0f766e;"></i>Staff Activity Monitor</h4>
+            <p class="text-muted mb-0 small">Track successful actions, failed attempts, and recent admin activity.</p>
           </div>
-        </div>
-
-        <div class="col-md-8">
-          <div class="card h-100 border-0 shadow-sm" style="border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;">
-            <div class="card-header bg-white border-bottom py-3">
-              <h6 class="mb-0 fw-bold text-dark"><i class="fa fa-line-chart text-success"></i> &nbsp;Daily Uploads & Updates (Last 30 Days)</h6>
-            </div>
-            <div class="card-body p-3" id="trend-container">
-              <div class="text-center py-4">
-                <div class="spinner-border spinner-border-sm text-secondary"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card border-0 shadow-sm" style="border-radius:16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07) !important;">
-        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-          <h5 class="mb-0 fw-bold text-primary"><i class="fa fa-feed"></i> &nbsp;Live Staff Activity Feed</h5>
-          <button class="btn btn-sm btn-outline-primary px-3 rounded-pill shadow-sm" onclick="fetchActivityLogs()">
-            <i class="fa fa-refresh"></i> Refresh Log
+          <button class="btn btn-outline-primary rounded-pill px-4 py-2 shadow-sm fw-bold" onclick="fetchActivityLogs()" style="color: #0f766e; border-color: #0f766e;">
+            <i class="fa fa-refresh me-2"></i>Refresh Monitor
           </button>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-            <table class="table table-hover table-striped mb-0">
-              <thead class="table-light" style="position: sticky; top: 0; z-index: 10;">
+
+        <div class="activity-kpis">
+          <div class="activity-kpi-card">
+            <p class="activity-kpi-label">Total Activity</p>
+            <p class="activity-kpi-value" id="activity-total-events">0</p>
+            <p class="activity-kpi-hint">Recent staff actions tracked</p>
+          </div>
+          <div class="activity-kpi-card">
+            <p class="activity-kpi-label">Failed Actions</p>
+            <p class="activity-kpi-value" id="activity-failed-events">0</p>
+            <p class="activity-kpi-hint">Items with failed status</p>
+          </div>
+          <div class="activity-kpi-card">
+            <p class="activity-kpi-label">Top Contributor</p>
+            <p class="activity-kpi-value" id="activity-top-user">-</p>
+            <p class="activity-kpi-hint">Most active staff member</p>
+          </div>
+          <div class="activity-kpi-card">
+            <p class="activity-kpi-label">Last Refresh</p>
+            <p class="activity-kpi-value" id="activity-last-updated">-</p>
+            <p class="activity-kpi-hint">Dashboard update time</p>
+          </div>
+        </div>
+
+        <div class="activity-grid">
+          <section class="activity-panel">
+            <div class="activity-panel-header">
+              <div>
+                <h5>Leaderboard</h5>
+                <small>Most active staff accounts by event count.</small>
+              </div>
+              <i class="fa fa-trophy text-warning"></i>
+            </div>
+            <div class="activity-panel-body">
+              <div class="activity-visual" id="leaderboard-container">
+                <div class="text-center py-4">
+                  <div class="spinner-border spinner-border-sm text-secondary"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="activity-panel">
+            <div class="activity-panel-header">
+              <div>
+                <h5>Daily Trend</h5>
+                <small>Uploads and updates over the last 30 days.</small>
+              </div>
+              <i class="fa fa-line-chart text-success"></i>
+            </div>
+            <div class="activity-panel-body">
+              <div id="trend-container">
+                <div class="text-center py-4">
+                  <div class="spinner-border spinner-border-sm text-secondary"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="activity-panel activity-feed-wrap">
+          <div class="activity-feed-toolbar">
+            <div>
+              <h5>Live Staff Activity Feed</h5>
+              <p>Includes status badges so failures stay visible in monitoring.</p>
+            </div>
+            <button class="btn btn-sm btn-outline-primary px-3 rounded-pill shadow-sm" onclick="fetchActivityLogs()">
+              <i class="fa fa-refresh me-1"></i> Refresh Log
+            </button>
+          </div>
+          <div class="activity-table-scroll">
+            <table class="table table-hover table-striped">
+              <thead>
                 <tr>
                   <th style="padding:12px 20px;">Staff Member</th>
                   <th style="padding:12px 20px;">Role</th>
@@ -321,7 +1357,7 @@
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
     </div>
 
@@ -391,6 +1427,71 @@
   </div>
 </div>
 
+<!-- View / Edit Admin Staff Modal -->
+<div class="modal-backdrop-custom" id="adminDetailsModal">
+  <div class="modal-box modal-xl">
+    <div class="admin-detail-shell">
+      <aside class="admin-detail-side">
+        <div class="admin-detail-identity">
+          <div class="admin-detail-avatar" id="detail-avatar">A</div>
+          <div>
+            <h4 id="admin-details-title">Admin Staff Details</h4>
+            <p id="admin-details-subtitle">Read-only detail sheet</p>
+          </div>
+        </div>
+        <div class="detail-chip"><i class="fa fa-user"></i><span id="side-username">@username</span></div>
+        <div class="detail-chip"><i class="fa fa-envelope"></i><span id="side-email">email</span></div>
+        <div class="detail-chip"><i class="fa fa-phone"></i><span id="side-phone">phone</span></div>
+        <div class="detail-chip"><i class="fa fa-map-marker"></i><span id="side-address">address</span></div>
+        <div class="detail-chip"><i class="fa fa-shield"></i><span id="side-role">role</span></div>
+      </aside>
+      <main class="admin-detail-main">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h4 class="mb-1" id="admin-details-main-title" style="font-weight:800; letter-spacing:-0.03em;">Staff Profile</h4>
+            <p class="text-muted mb-0">Edit mode allows changes to be saved immediately.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn-cancel" onclick="closeAdminDetailsModal()">Close</button>
+            <button class="btn-submit" id="admin-details-save-btn" onclick="submitAdminDetails()">Save Changes</button>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-field full-width">
+            <label>Full Name *</label>
+            <input type="text" id="detail-admin-fullname" placeholder="e.g. Jane Doe">
+          </div>
+          <div class="form-field">
+            <label>Email *</label>
+            <input type="email" id="detail-admin-email" placeholder="e.g. jane@example.com">
+          </div>
+          <div class="form-field">
+            <label>Phone Number *</label>
+            <input type="text" id="detail-admin-phone" placeholder="e.g. +1234567890">
+          </div>
+          <div class="form-field full-width">
+            <label>Address *</label>
+            <input type="text" id="detail-admin-address" placeholder="e.g. 123 Main St, City">
+          </div>
+          <div class="form-field">
+            <label>Username</label>
+            <input type="text" id="detail-admin-username" disabled>
+          </div>
+          <div class="form-field">
+            <label>Assigned Role *</label>
+            <select id="detail-admin-role-select" style="width: 100%; padding: 10px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 0.9rem; outline: none; box-sizing: border-box;"></select>
+          </div>
+          <div class="form-field full-width" id="detail-password-wrap">
+            <label>New Password</label>
+            <input type="password" id="detail-admin-password" placeholder="Leave blank to keep current password">
+            <div class="detail-footer-note">Only enter a new password if you want to reset it.</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast-msg" id="toast"></div>
 
@@ -403,103 +1504,232 @@ const API   = window.API_BASE || "";
 
 // ─── ALL ADMIN MODULES ───────────────────────────────────────
 const MODULES = [
-  { key: "User Management",                      icon: "fa-users" },
-  { key: "Subscription Plans & Transactions",    icon: "fa-credit-card" },
-  { key: "Schools",                              icon: "fa-building" },
-  { key: "Questions Base",                       icon: "fa-question-circle" },
-  { key: "Exams, Textbooks & Syllabus",          icon: "fa-file-text" },
-  { key: "Quizzes",                              icon: "fa-pencil-square-o" },
-  { key: "Games",                                icon: "fa-gamepad" },
-  { key: "Tutorials",                            icon: "fa-youtube-play" },
-  { key: "Notifications",                        icon: "fa-bell" },
-  { key: "Analytics",                            icon: "fa-bar-chart" },
-  { key: "Special Days",                         icon: "fa-calendar" },
-  { key: "Social Content & Contributors",        icon: "fa-share-alt" },
-  { key: "AI Usage",                             icon: "fa-microchip" },
-  { key: "Roles & Permissions",                  icon: "fa-shield" },
+  { key: "User Management",                   icon: "fa-users" },
+  { key: "Subscription Plans & Transactions", icon: "fa-credit-card" },
+  { key: "Schools",                           icon: "fa-building" },
+  { key: "Questions Base",                    icon: "fa-question-circle" },
+  { key: "Exams, Textbooks & Syllabus",       icon: "fa-file-text" },
+  { key: "Quizzes",                           icon: "fa-pencil-square-o" },
+  { key: "Games",                             icon: "fa-gamepad" },
+  { key: "Tutorials",                         icon: "fa-youtube-play" },
+  { key: "Notifications",                     icon: "fa-bell" },
+  { key: "Analytics",                         icon: "fa-bar-chart" },
+  { key: "Special Days",                      icon: "fa-calendar" },
+  { key: "Social Content & Contributors",     icon: "fa-share-alt" },
+  { key: "AI Usage",                          icon: "fa-microchip" },
+  { key: "Roles & Permissions",               icon: "fa-shield" }
 ];
 
 const ACTIONS = ["read", "create", "update", "delete"];
 
 let roles = [];
 let selectedRole = null;
-let editingRoleName = null;  // null = create mode, string = edit mode
+let editingRoleName = null;
+let adminsList = [];
+let adminDetailsUsername = null;
+let roleSearchQuery = "";
+let roleMonitorLogs = [];
 
-// ─── FETCH roles ─────────────────────────────────────────────
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function countPermissions(permissionMap = {}) {
+  return ACTIONS.reduce((total, action) => {
+    return total + MODULES.reduce((moduleTotal, module) => {
+      const modulePerms = permissionMap[module.key] || {};
+      return moduleTotal + (modulePerms[action] ? 1 : 0);
+    }, 0);
+  }, 0);
+}
+
+function getConfiguredRoleCount() {
+  return roles.filter(role => countPermissions(role.permissions || {}) > 0).length;
+}
+
+function normalizeStatus(status) {
+  if (!status) return "success";
+  if (status === "completed") return "success";
+  return status;
+}
+
+function isRoleRelatedLog(log = {}) {
+  const action = String(log.action || "").toLowerCase();
+  const details = String(log.details || "").toLowerCase();
+  return action.includes("role") || action.includes("permission") || details.includes("role") || details.includes("permission");
+}
+
+function getModuleSummary(moduleName) {
+  const map = {
+    "User Management": "Manage admin and user records.",
+    "Subscription Plans & Transactions": "Control billing, plans, and payments.",
+    "Schools": "Handle school records and access.",
+    "Questions Base": "Create and maintain question banks.",
+    "Exams, Textbooks & Syllabus": "Manage exam and content modules.",
+    "Quizzes": "Run quiz content and settings.",
+    "Games": "Control gamified learning experiences.",
+    "Tutorials": "Manage tutorial content and publishing.",
+    "Notifications": "Send alerts and system messages.",
+    "Analytics": "View dashboards and usage reports.",
+    "Special Days": "Configure seasonal or event content.",
+    "Social Content & Contributors": "Moderate social and contributor content.",
+    "AI Usage": "Inspect AI usage and cost impact.",
+    "Roles & Permissions": "Manage access rules for roles."
+  };
+  return map[moduleName] || "Module access and settings.";
+}
+
+function getModuleTone(index) {
+  return ["teal", "sky", "slate"][index % 3];
+}
+
 async function fetchRoles() {
   try {
     const res = await fetch(`${API}/admin-panel/roles`, {
       headers: { Authorization: "Bearer " + TOKEN }
     });
     if (!res.ok) throw new Error(await res.text());
-    roles = await res.json();
+
+    const result = await res.json();
+    roles = Array.isArray(result) ? result : [];
+    if (selectedRole) {
+      selectedRole = roles.find(role => role.role_name === selectedRole.role_name) || null;
+    } else if (roles.length > 0) {
+      selectedRole = roles[0];
+    }
     renderRolesList();
+    updateRoleKpis();
   } catch (e) {
-    document.getElementById("roles-list").innerHTML =
-      `<div class="empty-state"><i class="fa fa-exclamation-triangle" style="color:#e53e3e"></i><p>Failed to load roles.<br><small>${e.message}</small></p></div>`;
+    document.getElementById("roles-list").innerHTML = `
+      <div class="empty-state">
+        <i class="fa fa-exclamation-triangle" style="color:#e53e3e"></i>
+        <p>Failed to load roles.<br><small>${e.message}</small></p>
+      </div>`;
   }
 }
 
-// ─── RENDER roles list ────────────────────────────────────────
+function updateRoleKpis() {
+  document.getElementById("roles-total-count").textContent = roles.length;
+  document.getElementById("roles-configured-count").textContent = getConfiguredRoleCount();
+  document.getElementById("roles-failed-count").textContent = roleMonitorLogs.filter(log => normalizeStatus(log.status) === "failed").length;
+}
+
 function renderRolesList() {
   const el = document.getElementById("roles-list");
-  if (!roles.length) {
-    el.innerHTML = `<div class="empty-state"><i class="fa fa-folder-open-o"></i><p>No roles yet. Create your first role!</p></div>`;
+  const filteredRoles = roles.filter(role => {
+    if (!roleSearchQuery) return true;
+    const name = String(role.role_name || "").toLowerCase();
+    const desc = String(role.description || "").toLowerCase();
+    return name.includes(roleSearchQuery) || desc.includes(roleSearchQuery);
+  });
+
+  if (!filteredRoles.length) {
+    if (roles.length) {
+      el.innerHTML = `
+        <div class="empty-state">
+          <i class="fa fa-search"></i>
+          <p>No roles match your search.</p>
+        </div>`;
+    } else {
+      el.innerHTML = `<div class="empty-state"><i class="fa fa-folder-open-o"></i><p>No roles yet. Create your first role!</p></div>`;
+    }
+    document.getElementById("permissions-body").innerHTML = `
+      <div class="empty-state">
+        <i class="fa fa-mouse-pointer"></i>
+        <p>Select a role from the left panel to view and edit its module permissions.</p>
+      </div>`;
+    document.getElementById("selected-role-badge").textContent = "";
+    document.getElementById("selected-role-badge").style.display = "none";
+    document.getElementById("selected-role-meta").textContent = "Select a role to inspect its permission matrix.";
     return;
   }
-  el.innerHTML = roles.map(r => `
-    <div class="role-item ${selectedRole && selectedRole.role_name === r.role_name ? 'active' : ''}"
-         onclick="selectRole('${r.role_name}')">
+
+  if (!roles.length) {
+    el.innerHTML = `<div class="empty-state"><i class="fa fa-folder-open-o"></i><p>No roles yet. Create your first role!</p></div>`;
+    document.getElementById("permissions-body").innerHTML = `
+      <div class="empty-state">
+        <i class="fa fa-mouse-pointer"></i>
+        <p>Select a role from the left panel to view and edit its module permissions.</p>
+      </div>`;
+    document.getElementById("selected-role-badge").textContent = "";
+    document.getElementById("selected-role-badge").style.display = "none";
+    document.getElementById("selected-role-meta").textContent = "Select a role to inspect its permission matrix.";
+    return;
+  }
+
+  el.innerHTML = filteredRoles.map(r => {
+    const roleNameEscaped = escapeHtml(JSON.stringify(r.role_name));
+    const isSelected = selectedRole && selectedRole.role_name === r.role_name;
+    return `
+    <div class="role-item ${isSelected ? "active" : ""}"
+         onclick="selectRole(${roleNameEscaped})">
       <div>
-        <div class="role-item-name">${r.role_name}</div>
-        <div class="role-item-desc">${r.description || 'No description'}</div>
+        <div class="role-item-name">${escapeHtml(r.role_name)}</div>
+        <div class="role-item-desc">${escapeHtml(r.description || "No description")}</div>
       </div>
       <div class="role-actions">
-        <button class="btn-icon edit" title="Edit role info" onclick="event.stopPropagation(); openEditModal('${r.role_name}')">
+        <button class="btn-icon edit" title="Edit role info" onclick="event.stopPropagation(); openEditModal(${roleNameEscaped})">
           <i class="fa fa-pencil"></i>
         </button>
-        <button class="btn-icon delete" title="Delete role" onclick="event.stopPropagation(); deleteRole('${r.role_name}')">
+        <button class="btn-icon delete" title="Delete role" onclick="event.stopPropagation(); deleteRole(${roleNameEscaped})">
           <i class="fa fa-trash"></i>
         </button>
       </div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
+
+  if (selectedRole) {
+    renderPermissionsEditor();
+  }
 }
 
-// ─── SELECT a role → show permissions editor ──────────────────
 function selectRole(roleName) {
-  selectedRole = roles.find(r => r.role_name === roleName);
+  selectedRole = roles.find(r => r.role_name === roleName) || null;
   renderRolesList();
   renderPermissionsEditor();
+  updateRoleKpis();
 }
 
-// ─── RENDER permissions editor ────────────────────────────────
 function renderPermissionsEditor() {
   if (!selectedRole) return;
-  document.getElementById("selected-role-badge").textContent = selectedRole.role_name;
-  const perms = selectedRole.permissions || {};
+
+  const permissions = selectedRole.permissions || {};
+
+  // Update panel header
+  const badge = document.getElementById("selected-role-badge");
+  badge.textContent = selectedRole.role_name;
+  badge.style.display = "inline-flex";
+  document.getElementById("selected-role-meta").textContent = selectedRole.description || "No description provided";
 
   const rows = MODULES.map((m, idx) => {
-    const mPerms = perms[m.key] || {};
-    const checkboxes = ACTIONS.map(a =>
-      `<td class="perm-check">
+    const mPerms = permissions[m.key] || {};
+    const checkboxes = ACTIONS.map(a => `
+      <td class="perm-check">
         <input type="checkbox" data-mod="${idx}" data-action="${a}" ${mPerms[a] ? "checked" : ""}>
-       </td>`
-    ).join("");
-    return `<tr>
-      <td><span class="module-name"><i class="fa ${m.icon} module-icon"></i>${m.key}</span></td>
-      ${checkboxes}
-    </tr>`;
+      </td>
+    `).join("");
+
+    return `
+      <tr>
+        <td><span class="module-name"><i class="fa ${m.icon} module-icon"></i>${m.key}</span></td>
+        ${checkboxes}
+      </tr>`;
   }).join("");
 
   document.getElementById("permissions-body").innerHTML = `
     <div style="overflow-x:auto">
-      <table class="table table-bordered table-striped mb-0">
+      <table class="modules-table">
         <colgroup>
           <col style="width:55%">
-          <col style="width:12%">
-          <col style="width:12%">
-          <col style="width:12%">
-          <col style="width:9%">
+          <col style="width:11%">
+          <col style="width:11%">
+          <col style="width:11%">
+          <col style="width:11%">
         </colgroup>
         <thead>
           <tr>
@@ -520,14 +1750,20 @@ function renderPermissionsEditor() {
     </div>`;
 }
 
-// ─── SAVE permissions ─────────────────────────────────────────
+function toggleModulePermissions(moduleIndex, enabled) {
+  document.querySelectorAll(`#permissions-body input[data-mod="${moduleIndex}"]`).forEach(input => {
+    input.checked = enabled;
+  });
+}
+
 async function savePermissions() {
   if (!selectedRole) return;
+
   const permissions = {};
   document.querySelectorAll("#permissions-body input[data-mod]").forEach(cb => {
-    const modIdx  = parseInt(cb.getAttribute("data-mod"));
-    const action  = cb.getAttribute("data-action");
-    const modKey  = MODULES[modIdx].key;
+    const modIdx = parseInt(cb.getAttribute("data-mod"), 10);
+    const action = cb.getAttribute("data-action");
+    const modKey = MODULES[modIdx].key;
     if (!permissions[modKey]) permissions[modKey] = {};
     permissions[modKey][action] = cb.checked;
   });
@@ -539,16 +1775,18 @@ async function savePermissions() {
       body: JSON.stringify({ permissions })
     });
     if (!res.ok) throw new Error(await res.text());
-    // Update local state
+
     selectedRole.permissions = permissions;
     roles = roles.map(r => r.role_name === selectedRole.role_name ? { ...r, permissions } : r);
     showToast("Permissions saved successfully!", "success");
+    renderRolesList();
+    updateRoleKpis();
+    await fetchRoleMonitoring();
   } catch (e) {
     showToast("Failed to save: " + e.message, "error");
   }
 }
 
-// ─── CREATE / EDIT modal ──────────────────────────────────────
 function openCreateModal() {
   editingRoleName = null;
   document.getElementById("modal-title").textContent = "Create New Role";
@@ -560,11 +1798,16 @@ function openCreateModal() {
 
 function openEditModal(roleName) {
   const r = roles.find(x => x.role_name === roleName);
+  if (!r) {
+    showToast("Role not found", "error");
+    return;
+  }
+
   editingRoleName = roleName;
   document.getElementById("modal-title").textContent = "Edit Role";
   document.getElementById("input-role-name").value = r.role_name;
   document.getElementById("input-role-desc").value = r.description || "";
-  document.getElementById("input-role-name").disabled = true; // cannot rename
+  document.getElementById("input-role-name").disabled = true;
   document.getElementById("roleModal").classList.add("show");
 }
 
@@ -575,13 +1818,15 @@ function closeModal() {
 async function submitRole() {
   const name = document.getElementById("input-role-name").value.trim();
   const desc = document.getElementById("input-role-desc").value.trim();
-  if (!name) { showToast("Role name is required", "error"); return; }
+
+  if (!name) {
+    showToast("Role name is required", "error");
+    return;
+  }
 
   try {
     if (editingRoleName) {
-      // Update description via permissions endpoint (add description field)
-      // For now just update permissions object to include description
-      const existing = roles.find(r => r.role_name === editingRoleName);
+      const existing = roles.find(r => r.role_name === editingRoleName) || {};
       const res = await fetch(`${API}/admin-panel/roles/${encodeURIComponent(editingRoleName)}/permissions`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
@@ -598,16 +1843,18 @@ async function submitRole() {
       if (!res.ok) throw new Error(await res.text());
       showToast("Role created!", "success");
     }
+
     closeModal();
     await fetchRoles();
-  } catch(e) {
+    await fetchRoleMonitoring();
+  } catch (e) {
     showToast("Error: " + e.message, "error");
   }
 }
 
-// ─── DELETE role ──────────────────────────────────────────────
 async function deleteRole(roleName) {
   if (!confirm(`Delete role "${roleName}"? This cannot be undone.`)) return;
+
   try {
     const res = await fetch(`${API}/admin-panel/roles/${encodeURIComponent(roleName)}`, {
       method: "DELETE",
@@ -617,23 +1864,119 @@ async function deleteRole(roleName) {
       const err = await res.json();
       throw new Error(err.detail || "Delete failed");
     }
+
     if (selectedRole && selectedRole.role_name === roleName) {
       selectedRole = null;
       document.getElementById("permissions-body").innerHTML = `
         <div class="empty-state">
           <i class="fa fa-mouse-pointer"></i>
-          <p>Select a role from the left panel.</p>
+          <p>Select a role from the left panel to view and edit its module permissions.</p>
         </div>`;
-      document.getElementById("selected-role-badge").textContent = "Select a role →";
+      document.getElementById("selected-role-badge").textContent = "Select a role ->";
+      document.getElementById("selected-role-meta").textContent = "Select a role to inspect its permission matrix.";
+      updatePermissionMetrics(null);
     }
+
     showToast("Role deleted.", "success");
     await fetchRoles();
-  } catch(e) {
+    await fetchRoleMonitoring();
+  } catch (e) {
     showToast(e.message, "error");
   }
 }
 
-// ─── TOAST ───────────────────────────────────────────────────
+function updatePermissionMetrics(selected) {
+  if (!selected) {
+    document.getElementById("metric-modules").textContent = "0";
+    document.getElementById("metric-read").textContent = "0";
+    document.getElementById("metric-write").textContent = "0";
+    document.getElementById("metric-total").textContent = "0";
+    return;
+  }
+
+  const permissions = selected.permissions || {};
+  document.getElementById("metric-modules").textContent = MODULES.length;
+  document.getElementById("metric-read").textContent = MODULES.reduce((count, module) => count + ((permissions[module.key] || {}).read ? 1 : 0), 0);
+  document.getElementById("metric-write").textContent = MODULES.reduce((count, module) => {
+    const modulePerms = permissions[module.key] || {};
+    return count + (modulePerms.create ? 1 : 0) + (modulePerms.update ? 1 : 0) + (modulePerms.delete ? 1 : 0);
+  }, 0);
+  document.getElementById("metric-total").textContent = countPermissions(permissions);
+}
+
+function formatMonitorTime(timestamp) {
+  try {
+    return new Date(timestamp).toLocaleString();
+  } catch {
+    return "Unknown time";
+  }
+}
+
+function renderRoleMonitoring(logs) {
+  const el = document.getElementById("role-monitor-list");
+  if (!logs.length) {
+    el.innerHTML = `
+      <div class="staff-empty" style="margin: 0;">
+        <i class="fa fa-rss"></i>
+        <div class="fw-bold">No role activity yet</div>
+        <div class="mt-1">Role changes, permission updates, and failed attempts will appear here.</div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = logs.slice(0, 8).map(log => {
+    const status = normalizeStatus(log.status);
+    return `
+      <article class="monitor-item">
+        <div class="monitor-item-top">
+          <div>
+            <p class="monitor-item-title">@${escapeHtml(log.username || "unknown")}</p>
+            <p class="monitor-item-sub">${escapeHtml(log.action || "activity")}<br>${escapeHtml(log.details || "")}</p>
+          </div>
+          <span class="status-pill ${status === "failed" ? "failed" : status === "pending" ? "pending" : "success"}">${status}</span>
+        </div>
+        <div class="monitor-item-meta">
+          <span>${escapeHtml(log.role || "staff")}</span>
+          <span>${formatMonitorTime(log.timestamp)}</span>
+        </div>
+      </article>`;
+  }).join("");
+}
+
+async function fetchRoleMonitoring() {
+  const el = document.getElementById("role-monitor-list");
+  el.innerHTML = `
+    <div class="staff-loading" style="min-height:220px;">
+      <div class="text-center">
+        <div class="spinner-border text-secondary mb-2" role="status"></div>
+        <div>Loading live role monitoring...</div>
+      </div>
+    </div>`;
+
+  try {
+    const res = await fetch(`${API}/admin-panel/stats/staff-activity`, {
+      headers: { Authorization: "Bearer " + TOKEN }
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    const result = await res.json();
+    const data = result.data || {};
+    const logs = (data.recent_logs || []).filter(isRoleRelatedLog);
+    roleMonitorLogs = logs;
+    document.getElementById("monitor-total-events").textContent = logs.length;
+    document.getElementById("monitor-failed-events").textContent = logs.filter(log => normalizeStatus(log.status) === "failed").length;
+    updateRoleKpis();
+    renderRoleMonitoring(logs);
+  } catch (e) {
+    el.innerHTML = `
+      <div class="staff-empty text-danger" style="margin: 0;">
+        <i class="fa fa-exclamation-triangle"></i>
+        <div class="fw-bold">Failed to load monitoring</div>
+        <div><small>${escapeHtml(e.message)}</small></div>
+      </div>`;
+  }
+}
+
 function showToast(msg, type = "success") {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -641,15 +1984,17 @@ function showToast(msg, type = "success") {
   setTimeout(() => t.classList.remove("show"), 3500);
 }
 
-// ─── Close modal on backdrop click ───────────────────────────
 document.getElementById("roleModal").addEventListener("click", function(e) {
   if (e.target === this) closeModal();
 });
 document.getElementById("adminModal").addEventListener("click", function(e) {
   if (e.target === this) closeAdminModal();
 });
+document.getElementById("adminDetailsModal").addEventListener("click", function(e) {
+  if (e.target === this) closeAdminDetailsModal();
+});
 
-// ─── ADMIN STAFF MANAGEMENT JS ──────────────────────────────
+// --- ADMIN STAFF MANAGEMENT JS ---
 async function fetchAdmins() {
   try {
     const res = await fetch(`${API}/admin-panel/admins`, {
@@ -657,66 +2002,83 @@ async function fetchAdmins() {
     });
     if (!res.ok) throw new Error(await res.text());
     const admins = await res.json();
-    renderAdmins(admins);
+    const safeAdmins = Array.isArray(admins) ? admins : [];
+    adminsList = safeAdmins;
+    renderStaffStats(safeAdmins);
+    renderAdmins(safeAdmins);
   } catch (e) {
     document.getElementById("admins-list-body").innerHTML = `
-      <tr>
-        <td colspan="3" class="text-center text-danger">
-          <i class="fa fa-exclamation-triangle"></i> Failed to load admin list: ${e.message}
-        </td>
-      </tr>`;
+      <div class="staff-empty text-danger">
+        <i class="fa fa-exclamation-triangle"></i>
+        <div class="fw-bold">Failed to load admin list</div>
+        <div><small>${e.message}</small></div>
+      </div>`;
   }
 }
 
+function renderStaffStats(admins) {
+  document.getElementById("staff-stat-total").textContent = admins.length;
+  document.getElementById("staff-stat-superadmins").textContent = admins.filter(a => (a.role_name || "superadmin") === "superadmin").length;
+  document.getElementById("staff-stat-roles").textContent = new Set(admins.map(a => a.role_name || "superadmin")).size;
+}
+
 function renderAdmins(admins) {
-  const tbody = document.getElementById("admins-list-body");
+  const el = document.getElementById("admins-list-body");
   if (!admins.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="3" class="text-center text-muted">No admin staff registered yet.</td>
-      </tr>`;
+    el.innerHTML = `
+      <div class="staff-empty">
+        <i class="fa fa-users"></i>
+        <div class="fw-bold">No admin staff registered yet</div>
+        <div class="mt-1">Create the first staff account to get started.</div>
+      </div>`;
     return;
   }
-  tbody.innerHTML = admins.map(admin => {
+
+  el.innerHTML = admins.map(admin => {
     const roleName = admin.role_name || "superadmin";
     const isSuperAdmin = roleName === "superadmin";
-    const badgeBg = isSuperAdmin ? "#004d4d" : "#e6f5f5";
-    const badgeColor = isSuperAdmin ? "#fff" : "#006666";
     const displayRole = roleName.charAt(0).toUpperCase() + roleName.slice(1);
+    const initials = (admin.full_name || admin.username || "?")
+      .split(" ")
+      .map(part => part.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
     return `
-    <tr>
-      <td>
-        <strong>${admin.full_name || admin.username}</strong><br>
-        <span style="font-size: 0.85rem; color: #777;">@${admin.username} | ${admin.email || "No email"} | ${admin.phone_number || "No phone"}</span><br>
-        <span style="font-size: 0.8rem; color: #999;">📍 ${admin.address || "No address"}</span>
-      </td>
-      <td>
-        <span style="
-          display:inline-block;
-          padding: 4px 14px;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          background: ${badgeBg};
-          color: ${badgeColor};
-          border: 1.5px solid ${isSuperAdmin ? '#006666' : '#b2dada'};
-        ">${displayRole}</span>
-      </td>
-      <td style="text-align: center;">
-        <button class="btn btn-sm" style="border:1.5px solid #e53e3e; color:#e53e3e; background:transparent; border-radius:8px; padding: 4px 12px;" onclick="deleteAdmin('${admin.username}')" title="Delete staff account">
-          <i class="fa fa-trash"></i> Delete
-        </button>
-      </td>
-    </tr>`;
+      <article class="staff-card">
+        <div class="staff-card-top">
+          <div class="staff-profile">
+            <div class="staff-avatar">${initials}</div>
+            <div>
+              <h4 class="staff-name">${admin.full_name || admin.username}</h4>
+              <div class="staff-username">@${admin.username}</div>
+            </div>
+          </div>
+          <span class="staff-role-badge ${isSuperAdmin ? "superadmin" : "staff"}">
+            <i class="fa ${isSuperAdmin ? "fa-crown" : "fa-user"}"></i>
+            ${displayRole}
+          </span>
+        </div>
+
+        <div class="staff-details">
+          <div class="staff-detail-row"><span>Email</span><span>${admin.email || "No email"}</span></div>
+          <div class="staff-detail-row"><span>Phone</span><span>${admin.phone_number || "No phone"}</span></div>
+          <div class="staff-detail-row"><span>Address</span><span>${admin.address || "No address"}</span></div>
+        </div>
+
+        <div class="staff-actions">
+          <button class="staff-action-btn view" onclick='openViewAdminModal(${JSON.stringify(admin.username)})'><i class="fa fa-eye"></i> View</button>
+          <button class="staff-action-btn edit" onclick='openEditAdminModal(${JSON.stringify(admin.username)})'><i class="fa fa-pencil"></i> Edit</button>
+          <button class="staff-action-btn delete" onclick='deleteAdmin(${JSON.stringify(admin.username)})'><i class="fa fa-trash"></i> Delete</button>
+        </div>
+      </article>`;
   }).join("");
 }
 
 function openAdminModal() {
-  // Populate Roles select
   const select = document.getElementById("admin-role-select");
-  select.innerHTML = '<option value="superadmin">Superadmin (All Permissions)</option>' + 
-    roles.map(r => `<option value="${r.role_name}">${r.role_name}</option>`).join("");
-    
+  select.innerHTML = '<option value="superadmin">Superadmin (All Permissions)</option>' + roles.map(r => `<option value="${r.role_name}">${r.role_name}</option>`).join("");
   document.getElementById("admin-fullname").value = "";
   document.getElementById("admin-email").value = "";
   document.getElementById("admin-phone").value = "";
@@ -728,6 +2090,118 @@ function openAdminModal() {
 
 function closeAdminModal() {
   document.getElementById("adminModal").classList.remove("show");
+}
+
+function getAdminByUsername(username) {
+  return adminsList.find(a => a.username === username);
+}
+
+function populateAdminRoleSelect(selectedRole) {
+  const select = document.getElementById("detail-admin-role-select");
+  select.innerHTML = '<option value="superadmin">Superadmin (All Permissions)</option>' + roles.map(r => `<option value="${r.role_name}">${r.role_name}</option>`).join("");
+  if (selectedRole) select.value = selectedRole;
+}
+
+function setAdminDetailsMode(mode) {
+  const isView = mode === "view";
+  document.getElementById("detail-admin-fullname").disabled = isView;
+  document.getElementById("detail-admin-email").disabled = isView;
+  document.getElementById("detail-admin-phone").disabled = isView;
+  document.getElementById("detail-admin-address").disabled = isView;
+  document.getElementById("detail-admin-role-select").disabled = isView;
+  document.getElementById("detail-password-wrap").style.display = isView ? "none" : "block";
+  document.getElementById("admin-details-save-btn").style.display = isView ? "none" : "inline-flex";
+}
+
+function fillAdminDetailsModal(admin) {
+  document.getElementById("detail-admin-fullname").value = admin.full_name || "";
+  document.getElementById("detail-admin-email").value = admin.email || "";
+  document.getElementById("detail-admin-phone").value = admin.phone_number || "";
+  document.getElementById("detail-admin-address").value = admin.address || "";
+  document.getElementById("detail-admin-username").value = admin.username || "";
+  document.getElementById("side-username").textContent = `@${admin.username || ""}`;
+  document.getElementById("side-email").textContent = admin.email || "No email";
+  document.getElementById("side-phone").textContent = admin.phone_number || "No phone";
+  document.getElementById("side-address").textContent = admin.address || "No address";
+  document.getElementById("side-role").textContent = admin.role_name || "superadmin";
+  document.getElementById("detail-avatar").textContent = (admin.full_name || admin.username || "?")
+    .split(" ")
+    .map(part => part.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  populateAdminRoleSelect(admin.role_name || "superadmin");
+}
+
+function openViewAdminModal(username) {
+  const admin = getAdminByUsername(username);
+  if (!admin) {
+    showToast("Admin staff record not found", "error");
+    return;
+  }
+  adminDetailsUsername = username;
+  document.getElementById("admin-details-title").textContent = "View Admin Staff";
+  document.getElementById("admin-details-main-title").textContent = "Staff Profile";
+  document.getElementById("admin-details-subtitle").textContent = `Read-only details for @${username}`;
+  fillAdminDetailsModal(admin);
+  setAdminDetailsMode("view");
+  document.getElementById("adminDetailsModal").classList.add("show");
+}
+
+function openEditAdminModal(username) {
+  const admin = getAdminByUsername(username);
+  if (!admin) {
+    showToast("Admin staff record not found", "error");
+    return;
+  }
+  adminDetailsUsername = username;
+  document.getElementById("admin-details-title").textContent = "Edit Admin Staff";
+  document.getElementById("admin-details-main-title").textContent = "Edit Staff Profile";
+  document.getElementById("admin-details-subtitle").textContent = `Update details for @${username}`;
+  fillAdminDetailsModal(admin);
+  document.getElementById("detail-admin-password").value = "";
+  setAdminDetailsMode("edit");
+  document.getElementById("adminDetailsModal").classList.add("show");
+}
+
+function closeAdminDetailsModal() {
+  document.getElementById("adminDetailsModal").classList.remove("show");
+  adminDetailsUsername = null;
+}
+
+async function submitAdminDetails() {
+  if (!adminDetailsUsername) return;
+  const fullname = document.getElementById("detail-admin-fullname").value.trim();
+  const email = document.getElementById("detail-admin-email").value.trim();
+  const phone = document.getElementById("detail-admin-phone").value.trim();
+  const address = document.getElementById("detail-admin-address").value.trim();
+  const roleName = document.getElementById("detail-admin-role-select").value;
+  const password = document.getElementById("detail-admin-password").value.trim();
+
+  if (!fullname || !email || !phone || !address || !roleName) {
+    showToast("All required fields must be filled", "error");
+    return;
+  }
+
+  const payload = { full_name: fullname, email, phone_number: phone, address, role_name: roleName };
+  if (password) payload.password = password;
+
+  try {
+    const res = await fetch(`${API}/admin-panel/admins/${encodeURIComponent(adminDetailsUsername)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Update failed");
+    }
+    showToast("Admin staff account updated!", "success");
+    closeAdminDetailsModal();
+    fetchAdmins();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
 }
 
 async function submitAdmin() {
@@ -752,14 +2226,12 @@ async function submitAdmin() {
     const res = await fetch(`${API}/admin-panel/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOKEN },
-      body: JSON.stringify({ full_name: fullname, email: email, phone_number: phone, address: address, username: username, password: password, role_name: roleName })
+      body: JSON.stringify({ full_name: fullname, email, phone_number: phone, address, username, password, role_name: roleName })
     });
-    
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.detail || "Registration failed");
     }
-    
     showToast("Admin staff account created!", "success");
     closeAdminModal();
     fetchAdmins();
@@ -802,9 +2274,16 @@ async function fetchActivityLogs() {
     if (!res.ok) throw new Error(await res.text());
     const result = await res.json();
     const data = result.data || {};
-    
-    // Render Leaderboard
+
     const leaderboard = data.leaderboard || [];
+    const recentLogs = data.recent_logs || [];
+    const failedCount = recentLogs.filter(log => normalizeStatus(log.status) === "failed").length;
+
+    document.getElementById("activity-total-events").textContent = recentLogs.length;
+    document.getElementById("activity-failed-events").textContent = failedCount;
+    document.getElementById("activity-top-user").textContent = leaderboard.length ? `@${leaderboard[0].username}` : "-";
+    document.getElementById("activity-last-updated").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
     if (!leaderboard.length) {
       leaderboardEl.innerHTML = `<p class="text-muted text-center py-3">No activity logs recorded yet.</p>`;
     } else {
@@ -822,7 +2301,6 @@ async function fetchActivityLogs() {
         </ul>`;
     }
 
-    // Render Daily Trend
     const dailyTrend = data.daily_trend || [];
     if (!dailyTrend.length) {
       trendEl.innerHTML = `<p class="text-muted text-center py-3">No daily activity records.</p>`;
@@ -844,8 +2322,6 @@ async function fetchActivityLogs() {
         </div>`;
     }
 
-    // Render Live Activity Feed
-    const recentLogs = data.recent_logs || [];
     if (!recentLogs.length) {
       logsBody.innerHTML = `
         <tr>
@@ -873,7 +2349,26 @@ async function fetchActivityLogs() {
   }
 }
 
-// ─── INIT ────────────────────────────────────────────────────
+// --- INIT ---
+const roleSearchInput = document.getElementById("role-search");
+if (roleSearchInput) {
+  roleSearchInput.addEventListener("input", (event) => {
+    roleSearchQuery = event.target.value.trim().toLowerCase();
+    renderRolesList();
+  });
+}
+
+const rolesTab = document.getElementById("roles-tab");
+if (rolesTab) {
+  rolesTab.addEventListener("shown.bs.tab", () => {
+    fetchRoles();
+    fetchRoleMonitoring();
+  });
+}
+
 fetchRoles();
+fetchRoleMonitoring();
+fetchActivityLogs();
 </script>
 {% endblock %}
+

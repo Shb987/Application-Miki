@@ -14,7 +14,7 @@ from app.utils.admin_auth import (
     get_current_admin,
     require_permission,
 )
-from app.models.admin_models import AdminLogin, AdminCreate
+from app.models.admin_models import AdminLogin, AdminCreate, AdminUpdate
 from app.models.question_models import Question
 
 # Router setup
@@ -133,6 +133,55 @@ async def list_admins(current_admin: dict = Depends(get_current_admin)):
         if not a.get("role_name"):
             a["role_name"] = "superadmin"
     return admins
+
+
+@router.put("/admins/{username}")
+async def update_admin(
+    username: str,
+    admin_update: AdminUpdate,
+    current_admin: dict = Depends(get_current_admin)
+):
+    try:
+        if current_admin.get("role") != "superadmin":
+            raise HTTPException(status_code=403, detail="Only superadmins can edit admins")
+
+        existing = await db.admins.find_one({"username": username})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Admin user not found")
+
+        update_data = admin_update.model_dump(exclude_none=True)
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No update data provided")
+
+        if "password" in update_data:
+            update_data["password"] = get_password_hash(update_data["password"])
+
+        await db.admins.update_one({"username": username}, {"$set": update_data})
+        await log_admin_activity(
+            current_admin["sub"],
+            current_admin["role"],
+            "update_admin",
+            f"Updated admin staff account '{username}'",
+        )
+        return {"message": "Admin updated successfully"}
+    except HTTPException as exc:
+        await log_admin_activity(
+            current_admin["sub"],
+            current_admin["role"],
+            "update_admin",
+            f"Failed to update admin staff account '{username}': {exc.detail}",
+            status="failed",
+        )
+        raise
+    except Exception as exc:
+        await log_admin_activity(
+            current_admin["sub"],
+            current_admin["role"],
+            "update_admin",
+            f"Failed to update admin staff account '{username}': {exc}",
+            status="failed",
+        )
+        raise
 
 
 # ✅ Delete an admin

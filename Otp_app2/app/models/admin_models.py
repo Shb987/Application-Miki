@@ -14,6 +14,15 @@ class AdminCreate(BaseModel):
     address: str
     role_name: Optional[str] = "superadmin"
 
+
+class AdminUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    address: Optional[str] = None
+    role_name: Optional[str] = None
+    password: Optional[str] = None
+
 class Permission(BaseModel):
     create: bool = False
     read: bool = False
@@ -34,4 +43,3 @@ class RoleInDB(BaseModel):
     role_name: str
     description: Optional[str] = ""
     permissions: Dict[str, Any] = {}
-

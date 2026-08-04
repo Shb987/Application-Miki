@@ -176,7 +176,7 @@ def normalize_text(text: str) -> str:
     text = re.sub(r'([A-Za-z])\1([A-Za-z])\2', de_double, text)
     return text
 
-async def extract_text_via_vision(file_path: str) -> str:
+async def extract_text_via_vision(file_path: str, status_query: dict = None) -> str:
     """Converts PDF pages to images and uses GPT-4o-mini Vision to extract text."""
     print(f"[VISION-EXTRACT] Starting Vision-based extraction for: {file_path}")
     combined_text = ""
@@ -210,6 +210,13 @@ async def extract_text_via_vision(file_path: str) -> str:
             page_text = response.choices[0].message.content
             combined_text += page_text + "\n\n"
             print(f"[VISION-EXTRACT] Page {i+1} extracted successfully.")
+            
+            if status_query:
+                progress_pct = 10 + int(((i + 1) / len(doc)) * 39)
+                await db.chapter_status.update_one(
+                    status_query,
+                    {"$set": {"progress": progress_pct, "updated_at": datetime.now(timezone.utc)}}
+                )
         
         doc.close()
         return combined_text
@@ -376,6 +383,11 @@ async def process_chapter_worker(
         
         # 1. Extract Text
         print(f"[BG-CHAPTER] Step 1: Extracting text (File: {file_path})")
+        
+        await db.chapter_status.update_one(
+            status_query,
+            {"$set": {"progress": 10, "updated_at": datetime.now(timezone.utc)}}
+        )
         text_content = ""
         
         # Branching: Use Vision for Standard 1-5 or as fallback
@@ -384,22 +396,30 @@ async def process_chapter_worker(
         
         if use_vision:
             print(f"[BG-CHAPTER] Standard {standard_val} detected. Using VISION-BASED extraction for better quality.")
-            text_content = await extract_text_via_vision(file_path)
+            text_content = await extract_text_via_vision(file_path, status_query)
         else:
             print(f"[BG-CHAPTER] Using standard text extraction (pdfplumber)...")
             with pdfplumber.open(file_path) as pdf:
-                for page in pdf.pages:
+                total_pages = len(pdf.pages)
+                for idx, page in enumerate(pdf.pages):
                     page_text = page.extract_text() or ""
                     # Filter fragmented lines
                     lines = page_text.split('\n')
                     cleaned_lines = [l.strip() for l in lines if l.strip() and not (len(l.strip()) < 3 and l.strip().isdigit())]
                     text_content += "\n".join(cleaned_lines) + "\n"
+                    
+                    # Update progress: 10% to 49%
+                    progress_pct = 10 + int(((idx + 1) / total_pages) * 39)
+                    await db.chapter_status.update_one(
+                        status_query,
+                        {"$set": {"progress": progress_pct, "updated_at": datetime.now(timezone.utc)}}
+                    )
             
             text_content = normalize_text(text_content)
             
             if not text_content.strip():
                 print(f"[BG-CHAPTER] pdfplumber extracted NO text. Falling back to VISION-BASED extraction...")
-                text_content = await extract_text_via_vision(file_path)
+                text_content = await extract_text_via_vision(file_path, status_query)
 
         if not text_content.strip():
             print(f"[BG-CHAPTER] ERROR: Extraction failed completely (No text from pdfplumber or vision).")
@@ -435,6 +455,12 @@ async def process_chapter_worker(
 
         # 3. Generate Embeddings & Save Passages
         print(f"[BG-CHAPTER] Step 3: Generating embeddings for {len(text_content)} characters...")
+        
+        await db.chapter_status.update_one(
+            status_query,
+            {"$set": {"progress": 50, "updated_at": datetime.now(timezone.utc)}}
+        )
+        
         PASSAGE_SIZE = 4000
         PASSAGE_OVERLAP = 400
         passages = []
@@ -485,6 +511,13 @@ async def process_chapter_worker(
                         "detected_language": detected_language,
                         "created_at": datetime.now(timezone.utc),
                     })
+                    
+                    # Update progress percentage (scale 50% to 99%)
+                    progress_pct = 50 + int(((p_idx + 1) / len(passages)) * 49)
+                    await db.chapter_status.update_one(
+                        status_query,
+                        {"$set": {"progress": progress_pct, "updated_at": datetime.now(timezone.utc)}}
+                    )
                 except Exception as e:
                     err_str = str(e)
                     embedding_errors.append(err_str)
@@ -539,7 +572,7 @@ async def process_chapter_worker(
             await db.textbook_chapters.insert_many(valid_docs)
             await db.chapter_status.update_one(
                 status_query,
-                {"$set": {"status": "completed", "updated_at": datetime.now(timezone.utc)}}
+                {"$set": {"status": "completed", "progress": 100, "updated_at": datetime.now(timezone.utc)}}
             )
             if activity_log_id and initiated_by_username and initiated_by_role:
                 await db.admin_activity_logs.update_one(
@@ -651,6 +684,7 @@ async def get_chapter_status(
     return {
         "status": status_doc.get("status"),
         "error": status_doc.get("error"),
+        "progress": status_doc.get("progress", 0),
         "updated_at": status_doc.get("updated_at")
     }
 

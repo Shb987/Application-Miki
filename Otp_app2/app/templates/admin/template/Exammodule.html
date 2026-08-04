@@ -241,7 +241,7 @@
         <td class="status-cell">
             ${item.status === 'pending' ? '<span class="badge bg-light text-dark">Ready</span>' :
         item.status === 'uploading' ? '<div class="spinner-border spinner-border-sm text-primary"></div> Uploading...' :
-          item.status === 'processing' ? '<div class="spinner-border spinner-border-sm text-warning"></div> Processing...' :
+          item.status === 'processing' ? `<div class="spinner-border spinner-border-sm text-warning"></div> Processing... <span class="fw-bold ms-1 text-primary">${item.progress !== undefined ? item.progress + '%' : '0%'}</span>` :
             item.status === 'success' ? '<span class="badge bg-success">✔ Success</span>' :
               `<span class="badge bg-danger" role="button" data-bs-toggle="popover" data-bs-trigger="click" data-bs-placement="top" data-bs-content="${(item.error || 'Unknown error').replace(/"/g, '&quot;')}" title="Upload Failed">❌ Failed — click for details</span>`}
         </td>
@@ -323,6 +323,10 @@
           updateBatchTable();
         } else {
           // Keep processing, check again in 3 seconds
+          if (item.status === 'processing') {
+             item.progress = data.progress || 0;
+             updateBatchTable();
+          }
           setTimeout(check, 3000);
         }
       } catch (err) {

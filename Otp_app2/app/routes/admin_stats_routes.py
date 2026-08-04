@@ -615,3 +615,123 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/stats/staff-profile/{username}", response_model=Dict[str, Any])
+async def get_staff_profile(
+    username: str,
+    current_admin: dict = Depends(require_permission("Analytics", "read"))
+):
+    """
+    Returns a detailed productivity profile for a single staff member.
+    Includes all-time KPIs, action breakdown by type, and recent logs.
+    """
+    try:
+        base_match = {"username": username}
+
+        # ── 1. Total events ────────────────────────────────────────
+        async def total_events():
+            return await db.admin_activity_logs.count_documents(base_match)
+
+        # ── 2. Success count ───────────────────────────────────────
+        async def success_count():
+            return await db.admin_activity_logs.count_documents(
+                {**base_match, "status": {"$in": ["success", "completed"]}}
+            )
+
+        # ── 3. Failed count ────────────────────────────────────────
+        async def failed_count():
+            return await db.admin_activity_logs.count_documents(
+                {**base_match, "status": "failed"}
+            )
+
+        # ── 4. Action breakdown (group by action type) ─────────────
+        async def action_breakdown():
+            pipeline = [
+                {"$match": {**base_match, "status": {"$nin": ["processing"]}}},
+                {
+                    "$group": {
+                        "_id": "$action",
+                        "total": {"$sum": 1},
+                        "success": {
+                            "$sum": {
+                                "$cond": [
+                                    {"$in": ["$status", ["success", "completed"]]},
+                                    1, 0
+                                ]
+                            }
+                        },
+                        "failed": {
+                            "$sum": {
+                                "$cond": [{"$eq": ["$status", "failed"]}, 1, 0]
+                            }
+                        },
+                        "last_done": {"$max": "$timestamp"}
+                    }
+                },
+                {"$sort": {"total": -1}}
+            ]
+            results = await db.admin_activity_logs.aggregate(pipeline).to_list(None)
+            return [
+                {
+                    "action": r["_id"] or "Unknown",
+                    "total": r["total"],
+                    "success": r["success"],
+                    "failed": r["failed"],
+                    "last_done": r["last_done"].isoformat() if r.get("last_done") else None
+                }
+                for r in results
+            ]
+
+        # ── 5. Recent logs (last 25) ───────────────────────────────
+        async def recent_logs():
+            cursor = db.admin_activity_logs.find(base_match).sort("timestamp", -1).limit(25)
+            logs = await cursor.to_list(length=25)
+
+            def serialize(log):
+                ts = log.get("timestamp")
+                ts_str = ts.isoformat() if hasattr(ts, "isoformat") else str(ts) if ts else None
+                return {
+                    "id": str(log["_id"]),
+                    "action": log.get("action", ""),
+                    "status": log.get("status", "success"),
+                    "details": log.get("details", ""),
+                    "timestamp": ts_str
+                }
+
+            return [serialize(l) for l in logs]
+
+        # ── 6. Last active timestamp ───────────────────────────────
+        async def last_active():
+            doc = await db.admin_activity_logs.find_one(
+                base_match,
+                sort=[("timestamp", -1)]
+            )
+            if doc and doc.get("timestamp"):
+                return doc["timestamp"].isoformat()
+            return None
+
+        # ── Run all in parallel ────────────────────────────────────
+        (total, success, failed, breakdown, logs, last_ts) = await asyncio.gather(
+            total_events(),
+            success_count(),
+            failed_count(),
+            action_breakdown(),
+            recent_logs(),
+            last_active()
+        )
+
+        return {
+            "status": "success",
+            "data": {
+                "username": username,
+                "total_events": total,
+                "success_count": success,
+                "failed_count": failed,
+                "action_breakdown": breakdown,
+                "recent_logs": logs,
+                "last_active": last_ts
+            }
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

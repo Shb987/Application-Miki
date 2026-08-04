@@ -8,28 +8,30 @@
   .roles-page {
     padding: 24px;
     background:
-      radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 26%),
-      radial-gradient(circle at top right, rgba(14, 165, 233, 0.10), transparent 20%),
-      linear-gradient(180deg, #f8fafc 0%, #f6f8fb 100%);
+      radial-gradient(circle at top left, rgba(15, 118, 110, 0.08), transparent 30%),
+      radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 30%),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    min-height: calc(100vh - 60px);
   }
 
   /* ── Header Card ── */
   .page-header-card {
     background:
-      radial-gradient(circle at top right, rgba(255,255,255,0.14), transparent 24%),
-      linear-gradient(135deg, #0f766e 0%, #134e4a 52%, #0b1220 100%);
-    border-radius: 26px;
-    padding: 30px 32px;
+      radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 28%),
+      linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #064e3b 100%);
+    border-radius: 28px;
+    padding: 36px 40px;
     color: #fff;
-    margin-bottom: 28px;
+    margin-bottom: 32px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 18px;
-    box-shadow: 0 22px 60px rgba(11,18,32,0.18);
+    gap: 24px;
+    box-shadow: 0 20px 40px -12px rgba(6, 78, 59, 0.4);
     position: relative;
     overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.15);
   }
   .page-header-card::after {
     content: "";
@@ -89,53 +91,106 @@
     transform: translateY(-1px);
   }
 
+  /* ── Navigation Tabs ── */
+  .nav-tabs.border-tab {
+    border-bottom: none;
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(203, 213, 225, 0.6);
+    border-radius: 16px;
+    padding: 6px;
+    gap: 6px;
+    margin-bottom: 32px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+  .nav-tabs.border-tab .nav-item {
+    margin-bottom: 0;
+  }
+  .nav-tabs.border-tab .nav-link {
+    border: none !important;
+    border-radius: 12px;
+    padding: 10px 20px;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.94rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-tabs.border-tab .nav-link i {
+    font-size: 1.1em;
+    opacity: 0.8;
+  }
+  .nav-tabs.border-tab .nav-link:hover {
+    color: #0f766e;
+    background: rgba(255, 255, 255, 0.8);
+  }
+  .nav-tabs.border-tab .nav-link.active {
+    background: #fff;
+    color: #0f766e;
+    box-shadow: 0 4px 12px rgba(15, 118, 110, 0.12);
+  }
+
   /* ── Dashboard Strip ── */
   .role-kpi-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 20px;
+    margin-bottom: 24px;
   }
   @media (max-width: 1100px) { .role-kpi-grid { grid-template-columns: 1fr; } }
   .role-kpi-card {
     background: rgba(255,255,255,0.92);
-    border: 1px solid rgba(15,23,42,0.06);
-    border-radius: 20px;
-    padding: 18px;
-    box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 20px;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .role-kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
   }
   .role-kpi-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
     display: grid;
     place-items: center;
     color: #fff;
+    font-size: 1.4rem;
     flex: 0 0 auto;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
   }
-  .role-kpi-icon.teal { background: linear-gradient(135deg, #14b8a6, #0f766e); }
-  .role-kpi-icon.sky { background: linear-gradient(135deg, #38bdf8, #0284c7); }
-  .role-kpi-icon.slate { background: linear-gradient(135deg, #64748b, #334155); }
+  .role-kpi-icon.teal { background: linear-gradient(135deg, #2dd4bf, #0f766e); }
+  .role-kpi-icon.sky { background: linear-gradient(135deg, #38bdf8, #0369a1); }
+  .role-kpi-icon.slate { background: linear-gradient(135deg, #94a3b8, #334155); }
   .role-kpi-label {
     margin: 0;
     color: #64748b;
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
   .role-kpi-value {
-    margin: 2px 0 0;
+    margin: 4px 0 0;
     color: #0f172a;
-    font-size: 1.35rem;
+    font-size: 1.8rem;
     font-weight: 800;
     letter-spacing: -0.03em;
+    line-height: 1;
   }
   .role-kpi-sub {
-    margin: 3px 0 0;
+    margin: 6px 0 0;
     color: #94a3b8;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
 
   /* ── Main Workspace ── */
@@ -151,12 +206,16 @@
   .roles-panel,
   .permissions-panel,
   .monitor-panel {
-    background: rgba(255,255,255,0.96);
-    border-radius: 24px;
-    box-shadow: 0 16px 40px rgba(15,23,42,0.06);
-    border: 1px solid rgba(15,23,42,0.06);
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 28px;
+    box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(255, 255, 255, 1);
     overflow: hidden;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .roles-panel:hover, .permissions-panel:hover, .monitor-panel:hover {
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.1), 0 8px 10px -4px rgba(0, 0, 0, 0.04);
   }
   .roles-panel-header,
   .monitor-panel-header {
@@ -206,23 +265,40 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 18px;
-    border-bottom: 1px solid rgba(15,23,42,0.05);
+    padding: 20px;
+    border-bottom: 1px solid rgba(203, 213, 225, 0.4);
     cursor: pointer;
-    transition: background 0.16s ease, transform 0.16s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .role-item::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0; width: 4px;
+    background: #0f766e;
+    transform: scaleY(0);
+    transform-origin: left;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .role-item:hover {
-    background: #f7fffe;
-    transform: translateX(1px);
+    background: rgba(255, 255, 255, 1);
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    z-index: 1;
+    border-radius: 12px;
   }
   .role-item.active {
-    background: linear-gradient(90deg, rgba(15,118,110,0.12), rgba(15,118,110,0.04));
-    border-left: 4px solid #0f766e;
+    background: linear-gradient(90deg, rgba(15, 118, 110, 0.08), rgba(255, 255, 255, 0));
+    border-left: none;
+  }
+  .role-item.active::before {
+    transform: scaleY(1);
   }
   .role-item-name {
     font-weight: 800;
     color: #0f172a;
-    font-size: 0.96rem;
+    font-size: 1.05rem;
     letter-spacing: -0.02em;
   }
   .role-item-desc {
@@ -264,14 +340,20 @@
     .staff-stats { grid-template-columns: 1fr; }
   }
   .staff-stat-card {
-    background: #fff;
-    border-radius: 18px;
-    border: 1px solid rgba(15, 23, 42, 0.06);
-    box-shadow: 0 10px 30px rgba(15,23,42,0.06);
-    padding: 18px;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 1);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    padding: 24px;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .staff-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
   }
   .staff-stat-icon {
     width: 50px;
@@ -306,18 +388,19 @@
     .staff-card-grid { grid-template-columns: 1fr; }
   }
   .staff-card {
-    background: #fff;
-    border: 1px solid rgba(15,23,42,0.08);
-    border-radius: 22px;
-    padding: 18px;
-    box-shadow: 0 10px 30px rgba(15,23,42,0.06);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 1);
+    border-radius: 26px;
+    padding: 24px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    backdrop-filter: blur(10px);
   }
   .staff-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(15,118,110,0.25);
-    box-shadow: 0 16px 36px rgba(15,23,42,0.10);
+    transform: translateY(-4px);
+    border-color: rgba(15, 118, 110, 0.3);
+    box-shadow: 0 20px 30px -10px rgba(15, 118, 110, 0.15), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
   }
   .staff-card-top {
     display: flex;
@@ -439,6 +522,130 @@
     place-items: center;
     color: #64748b;
   }
+
+  /* ── Staff Profile Drawer ── */
+  .profile-drawer-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.5); z-index: 2000;
+    backdrop-filter: blur(4px);
+  }
+  .profile-drawer-backdrop.show { display: block; }
+  .profile-drawer {
+    position: fixed; top: 0; right: -700px; bottom: 0;
+    width: min(680px, 96vw);
+    background: #f8fafc;
+    z-index: 2001;
+    transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex; flex-direction: column;
+    box-shadow: -20px 0 60px rgba(0,0,0,0.15);
+    border-radius: 28px 0 0 28px;
+    overflow: hidden;
+  }
+  .profile-drawer.open { right: 0; }
+  .profile-drawer-head {
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #064e3b 100%);
+    padding: 28px 32px 24px;
+    display: flex; align-items: flex-start; gap: 18px;
+    flex-shrink: 0;
+  }
+  .profile-drawer-avatar {
+    width: 70px; height: 70px; border-radius: 22px;
+    background: rgba(255,255,255,0.18);
+    border: 2px solid rgba(255,255,255,0.25);
+    display: grid; place-items: center;
+    font-size: 1.7rem; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+  }
+  .profile-drawer-head h3 { margin: 0; font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; }
+  .profile-drawer-head p { margin: 5px 0 0; color: rgba(255,255,255,0.75); font-size: 0.88rem; }
+  .profile-drawer-role-badge {
+    margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .profile-drawer-close {
+    margin-left: auto; background: rgba(255,255,255,0.12); border: none;
+    border-radius: 12px; width: 36px; height: 36px; cursor: pointer;
+    color: #fff; font-size: 16px; display: grid; place-items: center;
+    transition: background 0.2s; flex-shrink: 0;
+  }
+  .profile-drawer-close:hover { background: rgba(255,255,255,0.22); }
+  .profile-drawer-body {
+    flex: 1; overflow-y: auto; padding: 24px 28px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .profile-kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .profile-kpi-card {
+    background: #fff; border-radius: 18px;
+    border: 1px solid rgba(15,23,42,0.06);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    padding: 16px; text-align: center;
+  }
+  .profile-kpi-value { font-size: 1.6rem; font-weight: 800; color: #0f172a; letter-spacing: -0.04em; margin: 0; }
+  .profile-kpi-label { font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 5px 0 0; }
+  .profile-kpi-card.success .profile-kpi-value { color: #059669; }
+  .profile-kpi-card.failed .profile-kpi-value { color: #dc2626; }
+  .profile-section-title {
+    font-size: 0.82rem; font-weight: 800; color: #64748b;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 0 0 12px;
+  }
+  .profile-breakdown-table {
+    width: 100%; border-collapse: collapse;
+    background: #fff; border-radius: 18px; overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    border: 1px solid rgba(15,23,42,0.06);
+  }
+  .profile-breakdown-table thead th {
+    background: #f8fafc; padding: 10px 16px;
+    font-size: 0.75rem; font-weight: 700; color: #64748b;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+    text-align: left;
+  }
+  .profile-breakdown-table thead th:not(:first-child) { text-align: center; }
+  .profile-breakdown-table td {
+    padding: 11px 16px; font-size: 0.88rem; color: #334155;
+    border-bottom: 1px solid rgba(15,23,42,0.04);
+  }
+  .profile-breakdown-table tr:last-child td { border-bottom: none; }
+  .profile-breakdown-table tr:hover td { background: #f0fdfa; }
+  .profile-breakdown-table td:not(:first-child) { text-align: center; }
+  .profile-action-name { font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+  .profile-action-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, rgba(15,118,110,0.12), rgba(14,165,233,0.10));
+    color: #0f766e; font-size: 12px; flex-shrink: 0;
+  }
+  .profile-badge-success { background: rgba(16,185,129,0.1); color: #059669; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; }
+  .profile-badge-failed { background: rgba(239,68,68,0.1); color: #dc2626; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; }
+  .profile-progress {
+    height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 4px;
+  }
+  .profile-progress-bar {
+    height: 100%; background: linear-gradient(90deg, #0d9488, #0ea5e9);
+    border-radius: 999px; transition: width 0.6s ease;
+  }
+  .profile-timeline { display: flex; flex-direction: column; gap: 10px; }
+  .profile-timeline-item {
+    background: #fff; border-radius: 16px; padding: 12px 16px;
+    border: 1px solid rgba(15,23,42,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .profile-timeline-dot {
+    width: 10px; height: 10px; border-radius: 999px; flex-shrink: 0;
+  }
+  .profile-timeline-dot.success { background: #10b981; }
+  .profile-timeline-dot.failed { background: #ef4444; }
+  .profile-timeline-dot.pending { background: #f59e0b; }
+  .profile-timeline-action { font-weight: 700; color: #0f172a; font-size: 0.88rem; }
+  .profile-timeline-details { color: #64748b; font-size: 0.8rem; margin-top: 2px; }
+  .profile-timeline-time { margin-left: auto; color: #94a3b8; font-size: 0.76rem; flex-shrink: 0; }
 
   /* ── Permissions Editor ── */
   .permissions-panel-header {
@@ -702,12 +909,13 @@
 
   /* ── Save Button ── */
   .btn-save-perms {
-    background: linear-gradient(135deg, #006666, #00a0a0);
-    color: #fff; border: none; border-radius: 10px;
-    padding: 12px 28px; font-weight: 700; font-size: 0.95rem;
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+    color: #fff; border: none; border-radius: 12px;
+    padding: 14px 32px; font-weight: 700; font-size: 0.95rem;
     cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
   }
-  .btn-save-perms:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,102,102,0.3); }
+  .btn-save-perms:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3); }
   .permissions-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
 
   /* Monitoring Rail */
@@ -929,20 +1137,22 @@
   /* ── Modal ── */
   .modal-backdrop-custom {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.4); z-index: 1000;
+    background: rgba(15, 23, 42, 0.6); z-index: 1000;
     align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
   }
   .modal-backdrop-custom.show { display: flex; }
   .modal-box {
-    background: #fff; border-radius: 16px; padding: 32px;
-    width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-    animation: slideUp 0.25s ease;
+    background: rgba(255, 255, 255, 0.98); border-radius: 28px; padding: 40px;
+    width: 100%; max-width: 520px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
   }
   .modal-box.modal-xl {
-    max-width: 980px;
+    max-width: 1000px;
     padding: 0;
     overflow: hidden;
-    border-radius: 24px;
+    border-radius: 32px;
   }
   .admin-detail-shell {
     display: grid;
@@ -1024,32 +1234,88 @@
   }
   @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
   .modal-box h4 { margin: 0 0 20px; font-weight: 700; color: #333; }
-  .form-field { margin-bottom: 16px; }
-  .form-field label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: 600; color: #555; }
-  .form-field input, .form-field textarea {
-    width: 100%; padding: 10px 14px; border: 1.5px solid #e0e0e0;
-    border-radius: 10px; font-size: 0.9rem; outline: none;
-    transition: border-color 0.2s; box-sizing: border-box;
+  .form-field { margin-bottom: 20px; }
+  .form-field label { display: block; margin-bottom: 8px; font-size: 0.88rem; font-weight: 600; color: #475569; }
+  .form-field input, .form-field textarea, .form-field select {
+    width: 100%; padding: 12px 16px; border: 1.5px solid #cbd5e1;
+    border-radius: 12px; font-size: 0.95rem; outline: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-sizing: border-box;
+    background: #f8fafc;
   }
-  .form-field input:focus, .form-field textarea:focus { border-color: #006666; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-field select {
+    display: none !important;
+  }
+  .custom-select-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .custom-select-trigger {
+    width: 100%; padding: 12px 40px 12px 16px; border: 1.5px solid #cbd5e1;
+    border-radius: 12px; font-size: 0.95rem; box-sizing: border-box;
+    background-color: #f8fafc;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    cursor: pointer;
+    user-select: none;
+    color: #0f172a;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+  }
+  .custom-select-trigger:focus-within,
+  .custom-select-trigger.open {
+    border-color: #0f766e;
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.1);
+    outline: none;
+  }
+  .custom-select-options {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0; right: 0;
+    background: #fff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
+    z-index: 9999;
+    max-height: 220px;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px -5px rgba(0,0,0,0.12);
+    padding: 6px;
+  }
+  .custom-select-options.open { display: block; }
+  .custom-select-option {
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #334155;
+    transition: background 0.15s;
+  }
+  .custom-select-option:hover { background: #f0fdfa; color: #0f766e; }
+  .custom-select-option.selected { background: rgba(15,118,110,0.08); color: #0f766e; font-weight: 600; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
   .form-grid .form-field { margin-bottom: 0; }
   .form-grid .full-width { grid-column: 1 / -1; }
-  .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
-  .btn-cancel { background: #f1f1f1; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 600; cursor: pointer; color: #555; }
-  .btn-submit { background: #006666; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-weight: 600; cursor: pointer; }
-  .btn-submit:hover { background: #004d4d; }
+  .modal-actions { display: flex; gap: 14px; justify-content: flex-end; margin-top: 16px; }
+  .btn-cancel { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 24px; font-weight: 600; cursor: pointer; color: #475569; transition: all 0.2s; }
+  .btn-cancel:hover { background: #e2e8f0; color: #0f172a; }
+  .btn-submit { background: linear-gradient(135deg, #0d9488, #0f766e); color: #fff; border: none; border-radius: 12px; padding: 12px 28px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25); }
+  .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(15, 118, 110, 0.35); }
 
   /* Toast */
   .toast-msg {
-    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-    padding: 14px 22px; border-radius: 12px; color: #fff; font-weight: 600;
-    font-size: 0.9rem; opacity: 0; transform: translateY(10px);
-    transition: all 0.3s; pointer-events: none;
+    position: fixed; bottom: 32px; right: 32px; z-index: 9999;
+    padding: 16px 24px; border-radius: 14px; color: #fff; font-weight: 600;
+    font-size: 0.95rem; opacity: 0; transform: translateY(20px);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
   }
   .toast-msg.show { opacity: 1; transform: translateY(0); }
-  .toast-msg.success { background: #006666; }
-  .toast-msg.error   { background: #e53e3e; }
+  .toast-msg.success { background: linear-gradient(135deg, #0d9488, #0f766e); }
+  .toast-msg.error   { background: linear-gradient(135deg, #ef4444, #b91c1c); }
 </style>
 {% endblock %}
 
@@ -1289,6 +1555,43 @@
           </div>
         </div>
 
+        <!-- Staff Selector Bar -->
+        <div style="background:#fff;border-radius:20px;padding:18px 24px;margin-bottom:20px;border:1px solid rgba(15,23,42,0.07);box-shadow:0 4px 15px rgba(0,0,0,0.04);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:220px;">
+            <i class="fa fa-user-circle" style="color:#0f766e;font-size:1.2rem;"></i>
+            <div>
+              <div style="font-size:0.75rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;">Select Staff Member</div>
+              <div style="font-size:0.85rem;color:#94a3b8;margin-top:1px;">Choose a user to inspect their work profile</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div id="staff-picker-chips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+            <div id="staff-picker-label" style="font-size:0.85rem;color:#94a3b8;font-style:italic;">Click a staff member below to view their profile</div>
+          </div>
+        </div>
+
+        <!-- Inline User Work Profile (hidden until staff selected) -->
+        <div id="inline-profile-section" style="display:none;margin-bottom:24px;">
+          <!-- Profile Header -->
+          <div style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 40%,#064e3b 100%);border-radius:24px;padding:24px 28px;margin-bottom:16px;display:flex;align-items:center;gap:18px;">
+            <div id="ip-avatar" style="width:66px;height:66px;border-radius:20px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.25);display:grid;place-items:center;font-size:1.6rem;font-weight:800;color:#fff;flex-shrink:0;">A</div>
+            <div style="flex:1;">
+              <h4 id="ip-name" style="margin:0;font-size:1.2rem;font-weight:800;color:#fff;letter-spacing:-0.03em;">Staff Member</h4>
+              <p id="ip-username" style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:0.88rem;">@username</p>
+              <span id="ip-role" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:0.76rem;font-weight:700;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;text-transform:uppercase;letter-spacing:0.06em;"><i class="fa fa-shield"></i> <span id="ip-role-text">Role</span></span>
+            </div>
+            <button onclick="clearInlineProfile()" style="background:rgba(255,255,255,0.12);border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;color:#fff;font-size:14px;display:grid;place-items:center;" title="Close profile">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          <!-- KPI + Profile body -->
+          <div id="ip-body">
+            <div style="display:grid;place-items:center;min-height:120px;color:#64748b;">
+              <div class="text-center"><div class="spinner-border text-secondary mb-2" role="status"></div><div>Loading profile...</div></div>
+            </div>
+          </div>
+        </div>
+
         <div class="activity-grid">
           <section class="activity-panel">
             <div class="activity-panel-header">
@@ -1415,9 +1718,11 @@
       </div>
       <div class="form-field full-width">
         <label>Assigned Role *</label>
-        <select id="admin-role-select" style="width: 100%; padding: 10px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 0.9rem; outline: none; box-sizing: border-box;">
-          <!-- Filled dynamically -->
-        </select>
+        <select id="admin-role-select"></select>
+        <div class="custom-select-wrap" id="admin-role-wrap">
+          <div class="custom-select-trigger" id="admin-role-trigger" tabindex="0">Superadmin (All Permissions)</div>
+          <div class="custom-select-options" id="admin-role-options"></div>
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -1479,7 +1784,11 @@
           </div>
           <div class="form-field">
             <label>Assigned Role *</label>
-            <select id="detail-admin-role-select" style="width: 100%; padding: 10px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 0.9rem; outline: none; box-sizing: border-box;"></select>
+            <select id="detail-admin-role-select"></select>
+            <div class="custom-select-wrap" id="detail-admin-role-wrap">
+              <div class="custom-select-trigger" id="detail-admin-role-trigger" tabindex="0">Superadmin (All Permissions)</div>
+              <div class="custom-select-options" id="detail-admin-role-options"></div>
+            </div>
           </div>
           <div class="form-field full-width" id="detail-password-wrap">
             <label>New Password</label>
@@ -1494,6 +1803,34 @@
 
 <!-- Toast -->
 <div class="toast-msg" id="toast"></div>
+
+<!-- Staff Work Profile Drawer -->
+<div class="profile-drawer-backdrop" id="profileDrawerBackdrop" onclick="closeProfileDrawer()"></div>
+<aside class="profile-drawer" id="profileDrawer">
+  <!-- Header -->
+  <div class="profile-drawer-head">
+    <div class="profile-drawer-avatar" id="pdAvatar">A</div>
+    <div style="flex:1; min-width:0;">
+      <h3 id="pdName">Staff Member</h3>
+      <p id="pdUsername">@username</p>
+      <div class="profile-drawer-role-badge" id="pdRole">
+        <i class="fa fa-shield"></i> <span id="pdRoleText">Role</span>
+      </div>
+    </div>
+    <button class="profile-drawer-close" onclick="closeProfileDrawer()">
+      <i class="fa fa-times"></i>
+    </button>
+  </div>
+  <!-- Body -->
+  <div class="profile-drawer-body" id="pdBody">
+    <div style="display:grid;place-items:center;min-height:300px;color:#64748b;">
+      <div class="text-center">
+        <div class="spinner-border text-secondary mb-2" role="status"></div>
+        <div>Loading work profile...</div>
+      </div>
+    </div>
+  </div>
+</aside>
 
 {% endblock %}
 
@@ -2068,6 +2405,7 @@ function renderAdmins(admins) {
         </div>
 
         <div class="staff-actions">
+          <button class="staff-action-btn view" onclick='openProfileDrawer(${JSON.stringify(admin.username)}, ${JSON.stringify(admin.full_name || admin.username)}, ${JSON.stringify(roleName)})'><i class="fa fa-bar-chart"></i> Work Profile</button>
           <button class="staff-action-btn view" onclick='openViewAdminModal(${JSON.stringify(admin.username)})'><i class="fa fa-eye"></i> View</button>
           <button class="staff-action-btn edit" onclick='openEditAdminModal(${JSON.stringify(admin.username)})'><i class="fa fa-pencil"></i> Edit</button>
           <button class="staff-action-btn delete" onclick='deleteAdmin(${JSON.stringify(admin.username)})'><i class="fa fa-trash"></i> Delete</button>
@@ -2077,15 +2415,19 @@ function renderAdmins(admins) {
 }
 
 function openAdminModal() {
-  const select = document.getElementById("admin-role-select");
-  select.innerHTML = '<option value="superadmin">Superadmin (All Permissions)</option>' + roles.map(r => `<option value="${r.role_name}">${r.role_name}</option>`).join("");
-  document.getElementById("admin-fullname").value = "";
-  document.getElementById("admin-email").value = "";
-  document.getElementById("admin-phone").value = "";
-  document.getElementById("admin-address").value = "";
-  document.getElementById("admin-username").value = "";
-  document.getElementById("admin-password").value = "";
-  document.getElementById("adminModal").classList.add("show");
+  const options = [{ value: 'superadmin', label: 'Superadmin (All Permissions)' }, ...roles.map(r => ({ value: r.role_name, label: r.role_name }))];
+  populateCustomSelect('admin-role', options, 'superadmin');
+  // keep hidden select in sync
+  const select = document.getElementById('admin-role-select');
+  select.innerHTML = options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+  select.value = 'superadmin';
+  document.getElementById('admin-fullname').value = '';
+  document.getElementById('admin-email').value = '';
+  document.getElementById('admin-phone').value = '';
+  document.getElementById('admin-address').value = '';
+  document.getElementById('admin-username').value = '';
+  document.getElementById('admin-password').value = '';
+  document.getElementById('adminModal').classList.add('show');
 }
 
 function closeAdminModal() {
@@ -2097,8 +2439,11 @@ function getAdminByUsername(username) {
 }
 
 function populateAdminRoleSelect(selectedRole) {
-  const select = document.getElementById("detail-admin-role-select");
-  select.innerHTML = '<option value="superadmin">Superadmin (All Permissions)</option>' + roles.map(r => `<option value="${r.role_name}">${r.role_name}</option>`).join("");
+  const options = [{ value: 'superadmin', label: 'Superadmin (All Permissions)' }, ...roles.map(r => ({ value: r.role_name, label: r.role_name }))];
+  populateCustomSelect('detail-admin-role', options, selectedRole || 'superadmin');
+  // keep hidden select in sync
+  const select = document.getElementById('detail-admin-role-select');
+  select.innerHTML = options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
   if (selectedRole) select.value = selectedRole;
 }
 
@@ -2292,15 +2637,32 @@ async function fetchActivityLogs() {
       leaderboardEl.innerHTML = `
         <ul class="list-group list-group-flush">
           ${leaderboard.map((item, idx) => `
-            <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-1">
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-1" style="cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#f0fdfa'" onmouseout="this.style.background=''" onclick="loadInlineProfile('${escapeHtml(item.username)}', '${escapeHtml(item.username)}', 'Staff')">
               <div>
                 <span class="badge bg-primary me-2">${idx + 1}</span>
                 <span class="fw-bold">@${item.username}</span>
               </div>
-              <span class="badge rounded-pill bg-light text-primary fw-bold" style="font-size:0.75rem; color:#7366ff !important; background:rgba(115,102,255,0.1);">${item.count} actions</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="badge rounded-pill bg-light text-primary fw-bold" style="font-size:0.75rem; color:#7366ff !important; background:rgba(115,102,255,0.1);">${item.count} actions</span>
+                <span style="font-size:0.75rem;color:#0f766e;font-weight:700;"><i class="fa fa-bar-chart"></i></span>
+              </div>
             </li>
           `).join("")}
         </ul>`;
+
+      // Also populate staff picker chips
+      const chips = document.getElementById('staff-picker-chips');
+      const label = document.getElementById('staff-picker-label');
+      if (chips) {
+        chips.innerHTML = leaderboard.slice(0, 6).map(item => `
+          <button onclick="loadInlineProfile('${escapeHtml(item.username)}', '${escapeHtml(item.username)}', 'Staff')"
+            style="padding:6px 14px;border-radius:999px;border:1.5px solid #cbd5e1;background:#f8fafc;font-size:0.82rem;font-weight:700;color:#334155;cursor:pointer;transition:all 0.2s;"
+            onmouseover="this.style.background='#0f766e';this.style.color='#fff';this.style.borderColor='#0f766e';"
+            onmouseout="this.style.background='#f8fafc';this.style.color='#334155';this.style.borderColor='#cbd5e1';"
+          ><i class="fa fa-user me-1"></i>@${item.username}</button>
+        `).join('');
+        if (label) label.style.display = 'none';
+      }
     }
 
     const dailyTrend = data.daily_trend || [];
@@ -2350,6 +2712,208 @@ async function fetchActivityLogs() {
     logsBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Failed to load activity logs: ${e.message}</td></tr>`;
   }
 }
+
+// --- Staff Work Profile Drawer ---
+async function openProfileDrawer(username, fullName, roleName) {
+  // Set header identity
+  const initials = (fullName || username || '?')
+    .split(' ').map(p => p.charAt(0)).join('').slice(0, 2).toUpperCase();
+  document.getElementById('pdAvatar').textContent = initials;
+  document.getElementById('pdName').textContent = fullName || username;
+  document.getElementById('pdUsername').textContent = '@' + username;
+  document.getElementById('pdRoleText').textContent = roleName;
+
+  // Show loading state
+  document.getElementById('pdBody').innerHTML = `
+    <div style="display:grid;place-items:center;min-height:300px;color:#64748b;">
+      <div class="text-center">
+        <div class="spinner-border text-secondary mb-2" role="status"></div>
+        <div>Loading work profile...</div>
+      </div>
+    </div>`;
+
+  // Open drawer
+  document.getElementById('profileDrawerBackdrop').classList.add('show');
+  document.getElementById('profileDrawer').classList.add('open');
+
+  // Fetch data
+  try {
+    const res = await fetch(`${API}/admin-panel/stats/staff-profile/${encodeURIComponent(username)}`, {
+      headers: { Authorization: 'Bearer ' + TOKEN }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const result = await res.json();
+    renderProfileDrawer(result.data);
+  } catch (e) {
+    document.getElementById('pdBody').innerHTML = `
+      <div style="padding:40px; text-align:center; color:#dc2626;">
+        <i class="fa fa-exclamation-triangle" style="font-size:2rem;margin-bottom:10px;display:block;"></i>
+        <div style="font-weight:700;">Failed to load work profile</div>
+        <div style="font-size:0.85rem;color:#94a3b8;margin-top:4px;">${e.message}</div>
+      </div>`;
+  }
+}
+
+function closeProfileDrawer() {
+  document.getElementById('profileDrawerBackdrop').classList.remove('show');
+  document.getElementById('profileDrawer').classList.remove('open');
+}
+
+function renderProfileDrawer(data) {
+  const total = data.total_events || 0;
+  const success = data.success_count || 0;
+  const failed = data.failed_count || 0;
+  const rate = total > 0 ? Math.round((success / total) * 100) : 0;
+  const lastActive = data.last_active
+    ? new Date(data.last_active).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'Never';
+
+  const breakdown = data.action_breakdown || [];
+  const recentLogs = data.recent_logs || [];
+
+  // Build breakdown table rows
+  const breakdownRows = breakdown.length > 0 ? breakdown.map(item => {
+    const pct = total > 0 ? Math.round((item.total / total) * 100) : 0;
+    return `
+      <tr>
+        <td>
+          <div class="profile-action-name">
+            <div class="profile-action-icon"><i class="fa fa-tasks"></i></div>
+            ${escapeHtml(item.action)}
+          </div>
+          <div class="profile-progress">
+            <div class="profile-progress-bar" style="width:${pct}%"></div>
+          </div>
+        </td>
+        <td><strong>${item.total}</strong></td>
+        <td><span class="profile-badge-success">${item.success}</span></td>
+        <td><span class="profile-badge-failed">${item.failed}</span></td>
+        <td style="font-size:0.78rem;color:#94a3b8;">${item.last_done ? new Date(item.last_done).toLocaleDateString() : '-'}</td>
+      </tr>`;
+  }).join('') : `<tr><td colspan="5" style="text-align:center;padding:24px;color:#94a3b8;">No activity recorded yet</td></tr>`;
+
+  // Build recent timeline
+  const timelineItems = recentLogs.length > 0 ? recentLogs.map(log => {
+    const status = (log.status === 'completed' || log.status === 'success') ? 'success'
+                 : log.status === 'failed' ? 'failed' : 'pending';
+    const time = log.timestamp ? new Date(log.timestamp).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }) : '';
+    return `
+      <div class="profile-timeline-item">
+        <div class="profile-timeline-dot ${status}"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="profile-timeline-action">${escapeHtml(log.action || 'Action')}</div>
+          ${log.details ? `<div class="profile-timeline-details">${escapeHtml(log.details)}</div>` : ''}
+        </div>
+        <div class="profile-timeline-time">${time}</div>
+      </div>`;
+  }).join('') : `<div style="text-align:center;padding:24px;color:#94a3b8;">No recent activity</div>`;
+
+  document.getElementById('pdBody').innerHTML = `
+    <!-- KPI Row -->
+    <div class="profile-kpi-row">
+      <div class="profile-kpi-card">
+        <p class="profile-kpi-value">${total}</p>
+        <p class="profile-kpi-label">Total Tasks</p>
+      </div>
+      <div class="profile-kpi-card success">
+        <p class="profile-kpi-value">${success}</p>
+        <p class="profile-kpi-label">Completed</p>
+      </div>
+      <div class="profile-kpi-card failed">
+        <p class="profile-kpi-value">${failed}</p>
+        <p class="profile-kpi-label">Failed</p>
+      </div>
+      <div class="profile-kpi-card">
+        <p class="profile-kpi-value">${rate}%</p>
+        <p class="profile-kpi-label">Success Rate</p>
+      </div>
+    </div>
+
+    <!-- Last Active -->
+    <div style="background:#fff;border-radius:16px;padding:14px 18px;border:1px solid rgba(15,23,42,0.06);display:flex;align-items:center;gap:12px;">
+      <i class="fa fa-clock-o" style="color:#0f766e;font-size:1.1rem;"></i>
+      <div>
+        <div style="font-size:0.78rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Last Active</div>
+        <div style="font-weight:700;color:#0f172a;font-size:0.95rem;margin-top:2px;">${lastActive}</div>
+      </div>
+    </div>
+
+    <!-- Work Breakdown -->
+    <div>
+      <p class="profile-section-title"><i class="fa fa-table me-1"></i> Work Breakdown by Type</p>
+      <table class="profile-breakdown-table">
+        <thead>
+          <tr>
+            <th>Task Type</th>
+            <th>Total</th>
+            <th>Done</th>
+            <th>Failed</th>
+            <th>Last Done</th>
+          </tr>
+        </thead>
+        <tbody>${breakdownRows}</tbody>
+      </table>
+    </div>
+
+    <!-- Recent Activity Timeline -->
+    <div>
+      <p class="profile-section-title"><i class="fa fa-history me-1"></i> Recent Activity (last 25)</p>
+      <div class="profile-timeline">${timelineItems}</div>
+    </div>
+  `;
+}
+
+// --- Custom Select Dropdown Logic ---
+function populateCustomSelect(prefix, options, selectedValue) {
+
+  const trigger = document.getElementById(prefix + '-trigger');
+  const optionsEl = document.getElementById(prefix + '-options');
+  if (!trigger || !optionsEl) return;
+
+  const selectedLabel = (options.find(o => o.value === selectedValue) || options[0] || {}).label || '';
+  trigger.textContent = selectedLabel;
+
+  optionsEl.innerHTML = options.map(o => `
+    <div class="custom-select-option${o.value === selectedValue ? ' selected' : ''}" data-value="${o.value}">${o.label}</div>
+  `).join('');
+
+  // click on trigger => toggle
+  trigger.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = optionsEl.classList.contains('open');
+    // close all
+    document.querySelectorAll('.custom-select-options.open').forEach(el => el.classList.remove('open'));
+    document.querySelectorAll('.custom-select-trigger.open').forEach(el => el.classList.remove('open'));
+    if (!isOpen) {
+      optionsEl.classList.add('open');
+      trigger.classList.add('open');
+    }
+  };
+
+  // click on option
+  optionsEl.querySelectorAll('.custom-select-option').forEach(opt => {
+    opt.onclick = (e) => {
+      e.stopPropagation();
+      const val = opt.getAttribute('data-value');
+      trigger.textContent = opt.textContent;
+      optionsEl.querySelectorAll('.custom-select-option').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      optionsEl.classList.remove('open');
+      trigger.classList.remove('open');
+      // sync hidden select
+      const hiddenSelect = document.getElementById(prefix + '-select');
+      if (hiddenSelect) hiddenSelect.value = val;
+    };
+  });
+}
+
+// Close custom dropdowns on outside click
+document.addEventListener('click', () => {
+  document.querySelectorAll('.custom-select-options.open').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.custom-select-trigger.open').forEach(el => el.classList.remove('open'));
+});
 
 // --- INIT ---
 const roleSearchInput = document.getElementById("role-search");

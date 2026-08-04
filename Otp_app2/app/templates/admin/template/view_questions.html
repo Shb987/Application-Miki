@@ -42,6 +42,36 @@
   <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
   <!-- Responsive css-->
   <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
+  <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
+  <style>
+    .paper-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 16px;
+    }
+    .paper-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08) !important;
+    }
+    .btn-miki {
+        background: linear-gradient(135deg, #19a1a1 0%, #086b6b 100%) !important;
+        border: none !important;
+        color: white !important;
+    }
+    .btn-miki:hover {
+        background: linear-gradient(135deg, #086b6b 0%, #064d4d 100%) !important;
+        box-shadow: 0 4px 15px rgba(25, 161, 161, 0.3);
+    }
+    .btn-outline-miki {
+        border: 2px solid #19a1a1 !important;
+        color: #086b6b !important;
+        background: transparent;
+        transition: all 0.3s;
+    }
+    .btn-outline-miki:hover {
+        background: rgba(25, 161, 161, 0.1);
+        color: #064d4d !important;
+    }
+  </style>
 </head>
 
 <body>
@@ -445,10 +475,10 @@
         <div class="container-fluid mt-4 mb-5">
           <div class="row">
             <div class="col-sm-12 col-xl-12 mx-auto">
-              <div class="card shadow rounded-3 border-0">
-                <div class="card-header bg-primary text-white rounded-top-3 d-flex align-items-center mb-0">
+              <div class="card shadow rounded-4 border-0">
+                <div class="card-header text-white rounded-top-4 d-flex align-items-center mb-0" style="background: linear-gradient(135deg, #19a1a1 0%, #086b6b 100%) !important; padding: 20px 24px;">
                   <i data-feather="monitor" class="me-2 text-white"></i>
-                  <h4 class="mb-0 text-white">View Question Papers</h4>
+                  <h4 class="mb-0 text-white fw-bold">View Question Papers</h4>
                 </div>
 
                 <div class="card-body p-4 bg-white">
@@ -466,7 +496,7 @@
                     </div>
 
                     <div class="col-md-2 d-flex align-items-end">
-                      <button class="btn btn-primary w-100 rounded-pill py-2 shadow" onclick="loadGeneratedFiltered()">
+                      <button class="btn btn-miki w-100 rounded-pill py-2 shadow" onclick="loadGeneratedFiltered()">
                         <i class="icofont icofont-search-job me-1"></i> Search
                       </button>
                     </div>
@@ -604,27 +634,57 @@
             return;
           }
 
+          const rowDiv = document.createElement("div");
+          rowDiv.className = "row g-4";
+          container.appendChild(rowDiv);
+
           papers.forEach(p => {
-            const card = document.createElement("div");
-            card.className = "card mb-3";
+            const col = document.createElement("div");
+            col.className = "col-xl-6 col-md-12";
 
-            card.innerHTML = `
-                        <div class="card-body">
-                            <h5 class="card-title">Paper: ${p.paper.paper_id}</h5>
-                            <p><b>Chapters Used:</b> ${p.paper.chapters_used.join(", ")}</p>
-                            <p><b>Created:</b> ${new Date(p.created_at).toLocaleString()}</p>
-
-                            <a href="${p.pdf_url}" target="_blank" class="btn btn-success btn-sm">
-                                View / Download PDF
+            col.innerHTML = `
+                <div class="card shadow-sm border-0 h-100 paper-card">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="fw-bold mb-0 text-dark d-flex align-items-center">
+                                <i data-feather="file-text" style="color:#19a1a1;" class="me-2"></i>
+                                <span class="text-truncate" style="max-width: 200px;" title="${p.paper.paper_id}">${p.paper.paper_id}</span>
+                            </h5>
+                            <span class="badge bg-light text-dark shadow-sm px-3 py-2 border rounded-pill d-flex align-items-center">
+                                <i data-feather="calendar" class="me-1" style="width:14px;height:14px;"></i> 
+                                ${new Date(p.created_at).toLocaleDateString()}
+                            </span>
+                        </div>
+                        
+                        <div class="mb-4 flex-grow-1">
+                            <h6 class="text-muted fw-bold mb-2 text-uppercase" style="font-size:0.75rem; letter-spacing:0.5px;">Chapters Included</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                ${p.paper.chapters_used.map(chap => `
+                                    <span class="badge px-3 py-2" style="background-color:rgba(25,161,161,0.12); color:#086b6b; border:1px solid rgba(25,161,161,0.25); font-weight:600; font-size:0.8rem;">
+                                        <i data-feather="book-open" class="me-1" style="width:12px;height:12px; margin-top:-2px;"></i> ${chap}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2 border-top pt-4 mt-auto">
+                            <a href="${p.pdf_url}" target="_blank" class="btn btn-outline-miki flex-grow-1 rounded-pill fw-bold d-flex align-items-center justify-content-center">
+                                <i data-feather="download" class="me-2" style="width:18px;"></i> Download PDF
                             </a>
-
-                            <button class="btn btn-danger btn-sm" onclick="deletePaper('${p._id}')">
-                                Delete
+                            <button class="btn btn-danger rounded-pill fw-bold px-4 d-flex align-items-center justify-content-center shadow-sm" onclick="deletePaper('${p._id}')" title="Delete">
+                                <i data-feather="trash-2" style="width:18px;"></i>
                             </button>
                         </div>
-                    `;
-            container.appendChild(card);
+                    </div>
+                </div>
+            `;
+            rowDiv.appendChild(col);
           });
+          
+          // Initialize feather icons for new DOM elements
+          if (typeof feather !== 'undefined') {
+              feather.replace();
+          }
         } catch (err) {
           alert("Error loading papers: " + err.message);
         }

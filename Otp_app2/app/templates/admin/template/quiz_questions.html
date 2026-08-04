@@ -4,6 +4,95 @@
 
 {% block head %}
 <link rel="stylesheet" type="text/css" href="/assets/css/vendors/datatables.css">
+<style>
+    .bg-gradient-green {
+        background: linear-gradient(135deg, #19a1a1 0%, #086b6b 100%) !important;
+        color: white !important;
+    }
+    .bg-gradient-green h5 {
+        color: white !important;
+    }
+    .btn-gradient-green {
+        background: linear-gradient(135deg, #19a1a1 0%, #086b6b 100%) !important;
+        border: none !important;
+        color: white !important;
+    }
+    .btn-gradient-green:hover {
+        background: linear-gradient(135deg, #086b6b 0%, #064d4d 100%) !important;
+    }
+    .badge-domain {
+        background-color: rgba(25, 161, 161, 0.15) !important;
+        color: #0d7e7e !important;
+        border: 1px solid rgba(25, 161, 161, 0.3);
+        padding: 6px 12px;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+    .badge-type {
+        background-color: rgba(115, 102, 255, 0.15) !important;
+        color: #5c4fce !important;
+        border: 1px solid rgba(115, 102, 255, 0.3);
+        padding: 6px 12px;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+    /* Adding some subtle shadows and rounded corners for attractiveness */
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+        border: none;
+        overflow: hidden;
+    }
+    
+    /* Premium Modal Styles */
+    .premium-form-control {
+        border: 2px solid #eef2f7;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        background-color: #f8fafc;
+        transition: all 0.3s;
+    }
+    .premium-form-control:focus {
+        border-color: #19a1a1;
+        background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(25, 161, 161, 0.1);
+        outline: none;
+    }
+    .premium-form-label {
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .view-card {
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+    .view-card-title {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #64748b;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+    }
+    .view-option-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #334155;
+    }
+
+</style>
 {% endblock %}
 
 {% block content %}
@@ -33,10 +122,10 @@
         <div class="col-sm-12">
             <!-- Filters Card -->
             <div class="card">
-                <div class="card-header pb-0">
+                <div class="card-header pb-0 bg-gradient-green">
                     <h5>Filters</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body mt-3">
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">Domain</label>
@@ -78,11 +167,11 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <button class="btn btn-primary" onclick="loadQuestions()"><i data-feather="filter"></i>
+                            <button class="btn btn-gradient-green" onclick="loadQuestions()"><i data-feather="filter"></i>
                                 Apply Filters</button>
                             <button class="btn btn-secondary" onclick="clearFilters()"><i data-feather="x"></i>
                                 Clear</button>
-                            <a href="/admin-panel/quiz/add-question-page" class="btn btn-success float-end"><i
+                            <a href="/admin-panel/quiz/add-question-page" class="btn btn-gradient-green float-end"><i
                                     data-feather="plus"></i> Add Question</a>
                         </div>
                     </div>
@@ -90,11 +179,12 @@
             </div>
 
             <!-- Questions Table Card -->
-            <div class="card">
-                <div class="card-header pb-0">
-                    <h5>Questions List <span id="totalCount" class="badge badge-primary">0</span></h5>
+            <div class="card mt-4">
+                <div class="card-header pb-0 bg-gradient-green d-flex align-items-center pb-3">
+                    <h5 class="mb-0">Questions List</h5>
+                    <span id="totalCount" class="badge rounded-pill bg-white text-dark shadow-sm ms-3 px-3 py-2" style="font-size: 0.85rem; font-weight: 600;">0</span>
                 </div>
-                <div class="card-body">
+                <div class="card-body mt-3">
                     <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
                         <table class="table table-hover table-striped" id="questionsTable">
                             <thead class="table-dark">
@@ -129,9 +219,9 @@
 <div class="modal fade" id="viewQuestionModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-gradient-green">
                 <h5 class="modal-title">Question Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="questionDetails">
                 <!-- Question details will be loaded here -->
@@ -139,10 +229,127 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Question Modal -->
+<div class="modal fade" id="editQuestionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-green">
+                <h5 class="modal-title">Edit Question</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editQuestionForm">
+                    <input type="hidden" id="editQuestionId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Domain</label>
+                            <input type="text" class="form-control premium-form-control" id="editDomain" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Question Type</label>
+                            <select class="form-select premium-form-control" id="editQuestionType" required onchange="toggleEditOptions()">
+                                <option value="MCQ">MCQ</option>
+                                <option value="TrueFalse">True/False</option>
+                                <option value="FillInBlank">Fill in the Blank</option>
+                                <option value="PatternRecognition">Pattern Recognition</option>
+                                <option value="LogicalReasoning">Logical Reasoning</option>
+                                <option value="Analogy">Analogy</option>
+                                <option value="Puzzle">Puzzle</option>
+                                <option value="SentenceCorrection">Sentence Correction</option>
+                                <option value="ErrorSpotting">Error Spotting</option>
+                                <option value="Vocabulary">Vocabulary</option>
+                                <option value="PartsOfSpeech">Parts of Speech</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Question Text</label>
+                            <textarea class="form-control premium-form-control" id="editQuestionText" rows="3" required></textarea>
+                        </div>
+                        <div class="col-12" id="editOptionsSection" style="display: none;">
+                            <label class="form-label">Options</label>
+                            <div id="editOptionsList">
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addEditOption()"><i
+                                    data-feather="plus"></i> Add Option</button>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Correct Answer</label>
+                            <input type="text" class="form-control premium-form-control" id="editCorrectAnswer" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Marks</label>
+                            <input type="number" class="form-control premium-form-control" id="editMarks" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Class Range</label>
+                            <select class="form-select premium-form-control" id="editClassRange" required>
+                                <option value="1-3">1-3</option>
+                                <option value="3-5">3-5</option>
+                                <option value="6-8">6-8</option>
+                                <option value="9-10">9-10</option>
+                                <option value="11-12">11-12</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Difficulty Level</label>
+                            <select class="form-select premium-form-control" id="editDifficultyLevel" required>
+                                <option value="Easy">Easy</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Hard">Hard</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="editIsActive">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Explanation</label>
+                            <textarea class="form-control" id="editExplanation" rows="2"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Hints</label>
+                            <textarea class="form-control" id="editHints" rows="2"></textarea>
+                        </div>
+                        <div class="col-12 text-end mt-3">
+                            <button type="submit" class="btn btn-gradient-green"><i data-feather="save"></i> Update</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-center" style="border-radius: 15px; border: none; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <i data-feather="check-circle" style="width: 50px; height: 50px; color: #19a1a1;"></i>
+                </div>
+                <h5 class="mb-3" id="successModalMessage" style="color: #2b2b2b;">Action Successful</h5>
+                <button type="button" class="btn btn-gradient-green w-100" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Success Popup Function
+    function showSuccessPopup(message) {
+        document.getElementById('successModalMessage').innerText = message;
+        feather.replace();
+        const successModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('successModal'));
+        successModal.show();
+    }
+
     // Load domains for filter
     async function loadDomains() {
         try {
@@ -203,18 +410,23 @@
                 ${escapeHtml(q.question_text)}
                 </div>
             </td>
-            <td><span class="badge badge-info">${q.domain}</span></td>
-            <td><span class="badge badge-secondary">${q.question_type}</span></td>
+            <td><span class="badge badge-domain">${q.domain}</span></td>
+            <td><span class="badge badge-type">${q.question_type}</span></td>
             <td>${q.class_range}</td>
             <td><span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${q.difficulty_level}</span></td>
             <td>${q.marks}</td>
             <td>
-                <button class="btn btn-sm btn-primary" onclick="viewQuestion('${q.question_id}')" title="View">
-                <i data-feather="eye"></i>
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="deleteQuestion('${q.question_id}')" title="Delete">
-                <i data-feather="trash-2"></i>
-                </button>
+                <div class="action-group">
+                    <button class="action-btn btn-view" onclick="viewQuestion('${q.question_id}')" title="View">
+                    <i data-feather="eye"></i>
+                    </button>
+                    <button class="action-btn btn-edit" onclick="openEditModal('${q.question_id}')" title="Edit">
+                    <i data-feather="edit-2"></i>
+                    </button>
+                    <button class="action-btn btn-delete" onclick="deleteQuestion('${q.question_id}')" title="Delete">
+                    <i data-feather="trash-2"></i>
+                    </button>
+                </div>
             </td>
             </tr>
         `).join('');
@@ -231,57 +443,57 @@
             let optionsHtml = '';
             if (q.options && q.options.length > 0) {
                 optionsHtml = `
-                    <div class="mb-3">
-                    <strong>Options:</strong>
-                    <ul>
-                        ${q.options.map(opt => `<li>${escapeHtml(opt)}</li>`).join('')}
-                    </ul>
+                    <div class="view-card">
+                        <div class="view-card-title">Options</div>
+                        <div>
+                            ${q.options.map(opt => `<div class="view-option-item">${escapeHtml(opt)}</div>`).join('')}
+                        </div>
                     </div>
                 `;
             }
             document.getElementById("questionDetails").innerHTML = `
-                <div class="mb-3">
-                <strong>Question:</strong>
-                <p>${escapeHtml(q.question_text)}</p>
+                <div class="view-card" style="border-left: 4px solid #19a1a1;">
+                    <div class="view-card-title">Question</div>
+                    <p class="fs-5 mb-0 text-dark" style="font-weight: 500;">${escapeHtml(q.question_text)}</p>
                 </div>
                 ${optionsHtml}
-                <div class="mb-3">
-                <strong>Correct Answer:</strong>
-                <p class="text-success">${escapeHtml(q.correct_answer)}</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="view-card">
+                            <div class="view-card-title text-success"><i data-feather="check-circle" style="width: 16px; margin-top: -3px;" class="me-1"></i> Correct Answer</div>
+                            <p class="fs-6 mb-0 fw-bold text-success">${escapeHtml(q.correct_answer)}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="view-card">
+                            <div class="view-card-title">Metadata</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge badge-domain">${q.domain}</span>
+                                <span class="badge badge-type">${q.question_type}</span>
+                                <span class="badge bg-light text-dark border">Class: ${q.class_range}</span>
+                                <span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${q.difficulty_level}</span>
+                                <span class="badge bg-light text-dark border">Marks: ${q.marks}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="row mb-3">
-                <div class="col-md-6">
-                    <strong>Domain:</strong> ${q.domain}
-                </div>
-                <div class="col-md-6">
-                    <strong>Type:</strong> ${q.question_type}
-                </div>
-                </div>
-                <div class="row mb-3">
-                <div class="col-md-4">
-                    <strong>Class:</strong> ${q.class_range}
-                </div>
-                <div class="col-md-4">
-                    <strong>Difficulty:</strong> ${q.difficulty_level}
-                </div>
-                <div class="col-md-4">
-                    <strong>Marks:</strong> ${q.marks}
-                </div>
-                </div>
+                
                 ${q.explanation ? `
-                <div class="mb-3">
-                    <strong>Explanation:</strong>
-                    <p>${escapeHtml(q.explanation)}</p>
+                <div class="view-card">
+                    <div class="view-card-title"><i data-feather="info" style="width: 16px; margin-top: -3px;" class="me-1"></i> Explanation</div>
+                    <p class="mb-0 text-muted">${escapeHtml(q.explanation)}</p>
                 </div>
                 ` : ''}
                 ${q.hints ? `
-                <div class="mb-3">
-                    <strong>Hints:</strong>
-                    <p>${escapeHtml(q.hints)}</p>
+                <div class="view-card">
+                    <div class="view-card-title"><i data-feather="help-circle" style="width: 16px; margin-top: -3px;" class="me-1"></i> Hints</div>
+                    <p class="mb-0 text-muted">${escapeHtml(q.hints)}</p>
                 </div>
                 ` : ''}
             `;
-            new bootstrap.Modal(document.getElementById('viewQuestionModal')).show();
+            feather.replace();
+            const viewModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('viewQuestionModal'));
+            viewModal.show();
         } catch (err) {
             console.error("Error viewing question:", err);
             alert("Error loading question details");
@@ -296,7 +508,7 @@
                 headers: { "Authorization": "Bearer " + token }
             });
             if (res.ok) {
-                alert("Question deleted successfully");
+                showSuccessPopup("Question deleted successfully!");
                 loadQuestions();
             } else {
                 alert("Error deleting question");
@@ -306,6 +518,115 @@
             alert("Error deleting question");
         }
     }
+
+    function toggleEditOptions() {
+        const type = document.getElementById("editQuestionType").value;
+        const section = document.getElementById("editOptionsSection");
+        const withOptions = ['MCQ', 'Analogy', 'PatternRecognition', 'LogicalReasoning', 'Puzzle', 'SentenceCorrection', 'ErrorSpotting', 'Vocabulary', 'PartsOfSpeech', 'FillInBlank'];
+        section.style.display = withOptions.includes(type) ? 'block' : 'none';
+    }
+
+    function addEditOption(val = '') {
+        const list = document.getElementById("editOptionsList");
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML = `<input type="text" class="form-control edit-option-input" value="${escapeHtml(val)}" placeholder="Option ${list.children.length + 1}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i data-feather="x"></i></button>`;
+        list.appendChild(div); feather.replace();
+    }
+
+    async function openEditModal(questionId) {
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/quiz/question/${questionId}`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const result = await res.json();
+            const q = result.data;
+            
+            document.getElementById("editQuestionId").value = q.question_id;
+            document.getElementById("editDomain").value = q.domain || '';
+            document.getElementById("editQuestionType").value = q.question_type || 'MCQ';
+            document.getElementById("editQuestionText").value = q.question_text || '';
+            document.getElementById("editCorrectAnswer").value = q.correct_answer || '';
+            document.getElementById("editMarks").value = q.marks || 1;
+            document.getElementById("editClassRange").value = q.class_range || '';
+            document.getElementById("editDifficultyLevel").value = q.difficulty_level || '';
+            document.getElementById("editIsActive").value = q.is_active ? 'true' : 'false';
+            document.getElementById("editExplanation").value = q.explanation || '';
+            document.getElementById("editHints").value = q.hints || '';
+
+            toggleEditOptions();
+            document.getElementById("editOptionsList").innerHTML = '';
+            if (q.options && q.options.length > 0) {
+                q.options.forEach(opt => addEditOption(opt));
+            } else {
+                addEditOption(''); addEditOption('');
+            }
+            const editModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editQuestionModal'));
+            editModal.show();
+        } catch (err) {
+            console.error("Error fetching question for edit:", err);
+            alert("Error loading question details for editing.");
+        }
+    }
+
+    document.getElementById("editQuestionForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const questionId = document.getElementById("editQuestionId").value;
+        const type = document.getElementById("editQuestionType").value;
+        let options = null;
+        if (document.getElementById("editOptionsSection").style.display !== 'none') {
+            options = Array.from(document.querySelectorAll(".edit-option-input")).map(i => i.value.trim()).filter(v => v !== '');
+            if (options.length < 2) { alert("Provide at least 2 options"); return; }
+        }
+        
+        let correctStr = document.getElementById("editCorrectAnswer").value.trim();
+        let correct_answer = parseInt(correctStr);
+        if (isNaN(correct_answer) && options) {
+            let idx = options.findIndex(opt => opt.toLowerCase() === correctStr.toLowerCase());
+            if (idx !== -1) {
+                correct_answer = idx + 1;
+            } else {
+                alert("Error: Correct answer text does not match any options! Please type the exact option text or the option number (1, 2, etc).");
+                return;
+            }
+        } else if (isNaN(correct_answer)) {
+            alert("Please enter a valid correct answer number.");
+            return;
+        }
+
+        const data = {
+            domain: document.getElementById("editDomain").value.trim(),
+            question_text: document.getElementById("editQuestionText").value.trim(),
+            question_type: type,
+            options,
+            correct_answer: correct_answer,
+            difficulty_level: document.getElementById("editDifficultyLevel").value,
+            class_range: document.getElementById("editClassRange").value,
+            marks: parseInt(document.getElementById("editMarks").value),
+            explanation: document.getElementById("editExplanation").value.trim() || null,
+            hints: document.getElementById("editHints").value.trim() || null,
+            is_active: document.getElementById("editIsActive").value === "true"
+        };
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/quiz/update-question/${questionId}`, {
+                method: "PUT",
+                headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                showSuccessPopup("Question updated successfully!");
+                const editModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editQuestionModal'));
+                editModal.hide();
+                loadQuestions();
+            } else {
+                const r = await res.json();
+                alert("Error: " + (r.detail || "Failed to update"));
+            }
+        } catch (err) {
+            console.error("Error updating question:", err);
+            alert("Error updating question");
+        }
+    });
 
     function clearFilters() {
         document.getElementById("filterDomain").value = "";

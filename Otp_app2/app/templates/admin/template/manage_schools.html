@@ -41,7 +41,7 @@
   }
   
   .modal-header {
-    background: linear-gradient(135deg, #7366ff 0%, #51bbfe 100%) !important;
+    background: linear-gradient(135deg, #19a1a1 0%, #086b6b 100%) !important;
     padding: 22px 28px !important;
     border-bottom: none;
   }
@@ -115,14 +115,14 @@
   
   .input-wrapper-premium .form-control:focus,
   .input-wrapper-premium .form-select:focus {
-    border-color: #7366ff;
+    border-color: #19a1a1;
     background-color: #fff;
-    box-shadow: 0 0 0 4px rgba(115, 102, 255, 0.1) !important;
+    box-shadow: 0 0 0 4px rgba(25, 161, 161, 0.1) !important;
   }
   
   .input-wrapper-premium .form-control:focus + i,
   .input-wrapper-premium .form-select:focus + i {
-    color: #7366ff;
+    color: #19a1a1;
   }
   
   .modal-footer {
@@ -154,14 +154,14 @@
   }
   
   .modal-footer .btn-primary {
-    background: linear-gradient(135deg, #7366ff 0%, #51bbfe 100%) !important;
+    background: linear-gradient(135deg, #19a1a1 0%, #086b6b 100%) !important;
     border: none !important;
     color: #fff !important;
-    box-shadow: 0 4px 15px rgba(115, 102, 255, 0.2) !important;
+    box-shadow: 0 4px 15px rgba(25, 161, 161, 0.2) !important;
   }
   
   .modal-footer .btn-primary:hover {
-    box-shadow: 0 6px 18px rgba(115, 102, 255, 0.3) !important;
+    box-shadow: 0 6px 18px rgba(25, 161, 161, 0.3) !important;
     transform: translateY(-1px);
     opacity: 0.95;
   }
@@ -173,7 +173,7 @@
   <div class="page-title">
     <div class="row">
       <div class="col-6">
-        <h4><i class="fa fa-university" style="color:#7366ff; margin-right: 8px;"></i> Schools</h4>
+        <h4><i class="fa fa-university" style="color:#19a1a1; margin-right: 8px;"></i> Schools</h4>
       </div>
     </div>
   </div>
@@ -182,7 +182,7 @@
     <div class="card-body p-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0">Manage Schools</h5>
-        <button class="btn btn-primary btn-sm d-flex align-items-center" onclick="openAddModal()" style="background: linear-gradient(135deg, #7366ff 0%, #51bbfe 100%) !important; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 700; color: #fff; box-shadow: 0 4px 12px rgba(115,102,255,0.25);">
+        <button class="btn btn-primary btn-sm d-flex align-items-center" onclick="openAddModal()" style="background: linear-gradient(135deg, #19a1a1 0%, #086b6b 100%) !important; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 700; color: #fff; box-shadow: 0 4px 12px rgba(25, 161, 161, 0.25);">
           <i class="fa fa-plus" style="margin-right: 6px;"></i> Add School
         </button>
       </div>
@@ -263,17 +263,20 @@
         <td><span class="badge bg-primary text-white rounded-pill px-3">${s.student_count || 0}</span></td>
         <td>${createdDate}</td>
         <td>
-          <button class="btn btn-sm btn-outline-primary action-btn me-1" onclick="editSchool('${s._id}')">
-            <i class="fa fa-pencil"></i> Edit
-          </button>
-          <button class="btn btn-sm btn-outline-danger action-btn" onclick="deleteSchool('${s._id}')">
-            <i class="fa fa-trash"></i> Delete
-          </button>
+          <div class="action-group d-flex gap-2">
+            <button class="action-btn btn-edit" onclick="editSchool('${s._id}')" title="Edit">
+              <i data-feather="edit-2"></i>
+            </button>
+            <button class="action-btn btn-delete" onclick="deleteSchool('${s._id}')" title="Delete">
+              <i data-feather="trash-2"></i>
+            </button>
+          </div>
         </td>
       </tr>`;
     });
     html += `</tbody></table>`;
     wrapper.innerHTML = html;
+    if (typeof feather !== 'undefined') feather.replace();
   }
 
   function clearForm() {

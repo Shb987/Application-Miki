@@ -41,8 +41,8 @@
     }
 
     .fc .fc-button {
-        background-color: #7366ff !important;
-        border-color: #7366ff !important;
+        background: linear-gradient(135deg, #56dfdf 0%, #19a1a1 100%) !important;
+        border: none !important;
         color: #ffffff !important;
         opacity: 1 !important;
         visibility: visible !important;
@@ -61,8 +61,8 @@
     .fc button.fc-prev-button,
     .fc button.fc-next-button,
     .fc button.fc-today-button {
-        background-color: #7366ff !important;
-        border-color: #7366ff !important;
+        background: linear-gradient(135deg, #56dfdf 0%, #19a1a1 100%) !important;
+        border: none !important;
         color: #ffffff !important;
     }
 
@@ -74,13 +74,13 @@
     }
 
     .fc .fc-button:hover {
-        background-color: #5c4fce !important;
+        background: linear-gradient(135deg, #19a1a1 0%, #56dfdf 100%) !important;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
         transform: translateY(-1px);
     }
 
     .fc-daygrid-day.fc-day-today {
-        background-color: rgba(115, 102, 255, 0.08) !important;
+        background-color: rgba(25, 161, 161, 0.08) !important;
     }
 
     #calendar {
@@ -96,8 +96,8 @@
     }
 
     input[type="radio"]:checked+.type-select-card {
-        border-color: #7366ff;
-        background-color: rgba(115, 102, 255, 0.08);
+        border-color: #19a1a1;
+        background-color: rgba(25, 161, 161, 0.08);
         transform: scale(1.02);
     }
 </style>
@@ -279,7 +279,7 @@
         if (type === 'Holiday') return '#ff6b6b';
         if (type === 'Exam') return '#2c3e50';
         if (type === 'Celebration') return '#ffd93b';
-        return '#7366ff';
+        return '#19a1a1';
     }
 
     function openModal(event, dateStr) {

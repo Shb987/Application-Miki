@@ -35,6 +35,68 @@
     <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
     <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
 
+    <style>
+        .action-group {
+            display: flex;
+            gap: 8px;
+        }
+        .action-btn {
+            position: relative;
+            width: 42px;
+            height: 42px;
+            display: inline-block;
+            border-radius: 8px;
+            border: none;
+            transition: all 0.3s ease;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+        }
+        .action-btn svg,
+        .action-btn svg.feather {
+            width: 24px !important;
+            height: 24px !important;
+            stroke-width: 2.5 !important;
+            pointer-events: none;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .btn-view {
+            color: #19a1a1;
+            background: rgba(25, 161, 161, 0.1);
+        }
+        .btn-view:hover {
+            background: #19a1a1;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(25, 161, 161, 0.3);
+        }
+        .btn-edit {
+            color: #f39c12;
+            background: rgba(243, 156, 18, 0.1);
+        }
+        .btn-edit:hover {
+            background: #f39c12;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+        }
+        .btn-delete {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+        .btn-delete:hover {
+            background: #e74c3c;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+    </style>
+
     {% block head %}{% endblock %}
 </head>
 

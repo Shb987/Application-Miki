@@ -53,19 +53,19 @@
     <!-- Stats -->
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
-            <div class="nc-stat" style="background:linear-gradient(135deg,#f73164,#ff9f40);">
+            <div class="nc-stat" style="background:linear-gradient(135deg,#56dfdf,#19a1a1);">
                 <h3 id="stat-today">—</h3>
                 <p>Broadcasts Today</p>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="nc-stat" style="background:linear-gradient(135deg,#7366ff,#6610f2);">
+            <div class="nc-stat" style="background:linear-gradient(135deg,#56dfdf,#19a1a1);">
                 <h3 id="stat-week">—</h3>
                 <p>This Week</p>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="nc-stat" style="background:linear-gradient(135deg,#13c9ca,#54ba4a);">
+            <div class="nc-stat" style="background:linear-gradient(135deg,#56dfdf,#19a1a1);">
                 <h3 id="stat-month">—</h3>
                 <p>This Month</p>
             </div>
@@ -77,7 +77,7 @@
         <div class="col-lg-5 mb-4">
             <div class="card" style="border-radius:16px;">
                 <div class="card-header"
-                    style="background:linear-gradient(135deg,#7366ff,#f73164);color:#fff;border-radius:16px 16px 0 0;">
+                    style="background:linear-gradient(135deg,#56dfdf,#19a1a1);color:#fff;border-radius:16px 16px 0 0;">
                     <h6 class="mb-0">Compose Notification</h6>
                 </div>
                 <div class="card-body p-4">
@@ -102,8 +102,7 @@
                         <label class="form-label" style="font-size:.85rem;font-weight:600;">Class</label>
                         <select id="nc-class" class="form-select" style="border-radius:8px;"></select>
                     </div>
-                    <button class="btn btn-primary w-100" style="border-radius:8px;font-weight:600;"
-                        onclick="openConfirm()">Send Notification</button>
+                    <button class="btn btn-primary w-100" style="background:linear-gradient(135deg,#3cdddd,#19a1a1); color:#fff; border:none; border-radius:8px; font-weight:600;" onclick="openConfirm()">Send Notification</button>
                 </div>
             </div>
         </div>
@@ -239,3 +238,4 @@
     loadClasses(); loadStats(); loadHistory();
 </script>
 {% endblock %}
+

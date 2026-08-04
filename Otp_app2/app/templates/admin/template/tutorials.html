@@ -51,8 +51,9 @@
                         <div class="mb-3"><label class="form-label">Student Class</label>
                             <select class="form-select" id="studentClass" required>
                                 <option value="">Select Class</option>
-                                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">${c}th</option>
-                                `).join('')}
+                                {% for c in range(1, 13) %}
+                                <option value="{{ c }}">Class {{ c }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="mb-3"><label class="form-label">Subject</label><input class="form-control"

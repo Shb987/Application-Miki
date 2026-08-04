@@ -21,9 +21,9 @@
     }
 
     .game-tab-btn.active[id="tab-wordle"] {
-        background: rgba(115, 102, 255, 0.1);
-        color: #7366ff;
-        border-color: #7366ff;
+        background: rgba(25, 161, 161, 0.1);
+        color: #19a1a1;
+        border-color: #19a1a1;
     }
 
     .game-tab-btn.active[id="tab-squares"] {
@@ -33,8 +33,8 @@
     }
 
     .range-badge {
-        background: #7366ff22;
-        color: #7366ff;
+        background: rgba(25, 161, 161, 0.1);
+        color: #19a1a1;
         border-radius: 10px;
         padding: 2px 10px;
         font-size: .74rem;
@@ -75,7 +75,7 @@
     .stat-icon {
         width: 18px;
         height: 18px;
-        color: #7366ff;
+        color: #19a1a1;
     }
 
     .divider {
@@ -90,6 +90,67 @@
         right: 24px;
         z-index: 9999;
         min-width: 200px;
+    }
+
+    /* Premium Modal Form Styles */
+    .premium-form-control {
+        border: 2px solid #eef2f7;
+        border-radius: 12px;
+        padding: 10px 16px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        background-color: #f8fafc;
+    }
+    .premium-form-control:focus {
+        border-color: #19a1a1;
+        background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(25, 161, 161, 0.1);
+        outline: none;
+    }
+    .premium-form-label {
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Squares Game Grid */
+    .squares-grid-editor {
+        background: #f1f5f9;
+        padding: 16px;
+        border-radius: 16px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .sq-grid-cell {
+        border: 2px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        background: #fff !important;
+        color: #1e293b !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+    }
+    .sq-grid-cell:focus {
+        border-color: #19a1a1 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 12px -2px rgba(25, 161, 161, 0.25);
+    }
+    
+    /* Hints List styling */
+    .hint-input-wrapper {
+        position: relative;
+        margin-bottom: 12px;
+    }
+    .hint-input-wrapper i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+    .hint-input-wrapper input {
+        padding-left: 40px;
     }
 </style>
 {% endblock %}
@@ -141,7 +202,7 @@
                     <input type="text" id="wordle-search" class="form-control"
                         style="max-width:180px;border-radius:8px;font-size:.85rem;" placeholder="Search word..."
                         oninput="loadWordle()">
-                    <button class="btn btn-success btn-sm ms-auto" style="border-radius:8px;"
+                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #19a1a1;"
                         onclick="openWordleModal()">+ Add Word</button>
                     <span class="text-muted" id="wordle-count" style="font-size:.82rem;"></span>
                 </div>
@@ -173,7 +234,7 @@
                         <option value="9-10">Class 9-10</option>
                         <option value="11-12">Class 11-12</option>
                     </select>
-                    <button class="btn btn-success btn-sm ms-auto" style="border-radius:8px;"
+                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #19a1a1;"
                         onclick="openSquaresModal()">+ Add Level</button>
                     <span class="text-muted" id="squares-count" style="font-size:.82rem;"></span>
                 </div>
@@ -191,7 +252,7 @@
 <div class="modal fade" id="wordleModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header bg-primary text-white" style="border-radius:16px 16px 0 0;">
+            <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #19a1a1;">
                 <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -199,26 +260,26 @@
                 <input type="hidden" id="wordle-edit-id">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Word *</label>
-                        <input id="w-word" type="text" class="form-control" style="text-transform:uppercase;"
+                        <label class="premium-form-label">Word *</label>
+                        <input id="w-word" type="text" class="form-control premium-form-control" style="text-transform:uppercase; font-weight: 700; letter-spacing: 2px;"
                             placeholder="E.G. APPLE">
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">Level *</label>
-                        <input id="w-level" type="number" class="form-control">
+                        <label class="premium-form-label">Level *</label>
+                        <input id="w-level" type="number" class="form-control premium-form-control">
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">Difficulty *</label>
-                        <select id="w-difficulty" class="form-select">
+                        <label class="premium-form-label">Difficulty *</label>
+                        <select id="w-difficulty" class="form-select premium-form-control">
                             <option value="Easy">Easy</option>
                             <option value="Medium">Medium</option>
                             <option value="Hard">Hard</option>
                         </select>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Class Range *</label>
-                    <select id="w-range" class="form-select">
+                <div class="mb-4">
+                    <label class="premium-form-label">Class Range *</label>
+                    <select id="w-range" class="form-select premium-form-control">
                         <option value="">Select...</option>
                         <option value="1-3">Class 1-3</option>
                         <option value="3-5">Class 3-5</option>
@@ -228,20 +289,23 @@
                     </select>
                 </div>
                 <hr>
-                <h6>Hints (Up to 5)</h6>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-light p-2 rounded-circle me-2"><i data-feather="help-circle" style="color: #19a1a1; width: 18px;"></i></div>
+                    <h6 class="mb-0" style="font-weight: 700; color: #334155;">Hints (Up to 5)</h6>
+                </div>
                 <div id="wordle-hints-container">
-                    <div class="mb-2"><input type="text" class="form-control w-hint-input"
+                    <div class="hint-input-wrapper"><i data-feather="hash" style="width: 14px;"></i><input type="text" class="form-control premium-form-control w-hint-input"
                             placeholder="Hint 1 (Most obscure)"></div>
-                    <div class="mb-2"><input type="text" class="form-control w-hint-input" placeholder="Hint 2"></div>
-                    <div class="mb-2"><input type="text" class="form-control w-hint-input" placeholder="Hint 3"></div>
-                    <div class="mb-2"><input type="text" class="form-control w-hint-input" placeholder="Hint 4"></div>
-                    <div class="mb-2"><input type="text" class="form-control w-hint-input"
+                    <div class="hint-input-wrapper"><i data-feather="hash" style="width: 14px;"></i><input type="text" class="form-control premium-form-control w-hint-input" placeholder="Hint 2"></div>
+                    <div class="hint-input-wrapper"><i data-feather="hash" style="width: 14px;"></i><input type="text" class="form-control premium-form-control w-hint-input" placeholder="Hint 3"></div>
+                    <div class="hint-input-wrapper"><i data-feather="hash" style="width: 14px;"></i><input type="text" class="form-control premium-form-control w-hint-input" placeholder="Hint 4"></div>
+                    <div class="hint-input-wrapper"><i data-feather="hash" style="width: 14px;"></i><input type="text" class="form-control premium-form-control w-hint-input"
                             placeholder="Hint 5 (Most obvious)"></div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" onclick="saveWord()">Save Word</button>
+                <button class="btn text-white" style="background: #19a1a1;" onclick="saveWord()">Save Word</button>
             </div>
         </div>
     </div>
@@ -250,21 +314,21 @@
 <div class="modal fade" id="squaresModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header bg-success text-white" style="border-radius:16px 16px 0 0;">
+            <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #19a1a1;">
                 <h6 class="modal-title" id="squares-modal-title">Add Squares Level</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="squares-edit-id">
                 <div class="row">
-                    <div class="col-xl-4 col-lg-5">
+                    <div class="col-xl-5 col-lg-6">
                         <div class="mb-3">
-                            <label class="form-label">Level Number *</label>
-                            <input id="sq-level" type="number" class="form-control">
+                            <label class="premium-form-label">Level Number *</label>
+                            <input id="sq-level" type="number" class="form-control premium-form-control">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Class Range *</label>
-                            <select id="sq-range" class="form-select">
+                            <label class="premium-form-label">Class Range *</label>
+                            <select id="sq-range" class="form-select premium-form-control">
                                 <option value="">Select...</option>
                                 <option value="1-3">Class 1-3</option>
                                 <option value="3-5">Class 3-5</option>
@@ -274,22 +338,22 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Topic Hint *</label>
-                            <input id="sq-hint" type="text" class="form-control" placeholder="E.G. Animals, Space...">
+                            <label class="premium-form-label">Topic Hint *</label>
+                            <input id="sq-hint" type="text" class="form-control premium-form-control" placeholder="E.G. Animals, Space...">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Main Words (comma-separated) *</label>
-                            <textarea id="sq-main-words" class="form-control" rows="3"
-                                style="text-transform:uppercase;"></textarea>
+                            <label class="premium-form-label">Main Words (comma-separated) *</label>
+                            <textarea id="sq-main-words" class="form-control premium-form-control" rows="2"
+                                style="text-transform:uppercase; font-weight: 600;"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Bonus Words (optional)</label>
-                            <textarea id="sq-bonus-words" class="form-control" rows="2"
-                                style="text-transform:uppercase;"></textarea>
+                            <label class="premium-form-label">Bonus Words (optional)</label>
+                            <textarea id="sq-bonus-words" class="form-control premium-form-control" rows="2"
+                                style="text-transform:uppercase; font-weight: 600;"></textarea>
                         </div>
                     </div>
-                    <div class="col-xl-8 col-lg-7">
-                        <label class="form-label d-block text-center">4x4 Grid Board *</label>
+                    <div class="col-xl-7 col-lg-6 d-flex flex-column justify-content-center align-items-center">
+                        <label class="premium-form-label d-block text-center mb-4">4x4 Grid Board *</label>
                         <div class="squares-grid-editor mx-auto mb-3"
                             style="width:280px; display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;">
                             <!-- JS will populate 16 inputs -->
@@ -335,7 +399,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-success" onclick="saveSquares()">Save Level</button>
+                <button class="btn text-white" style="background: #19a1a1;" onclick="saveSquares()">Save Level</button>
             </div>
         </div>
     </div>
@@ -374,10 +438,19 @@
             const hintsStr = JSON.stringify(w.hints || []).replace(/'/g, "\\'");
             html += `<tr><td>${i + 1}</td><td><strong>${w.word}</strong></td><td><span class="badge ${w.difficulty === 'Easy' ? 'bg-success' : w.difficulty === 'Medium' ? 'bg-warning' : 'bg-danger'}">${w.difficulty}</span></td>
             <td>${w.level}</td><td><span class="range-badge">${w.class_range}</span></td><td><small>${w.hints ? w.hints.length : 0} hints</small></td>
-            <td><button class="btn btn-sm btn-outline-primary" onclick='editWord("${w.id}","${w.word}",${hintsStr},${w.level},"${w.class_range}","${w.difficulty}")'>Edit</button>
-            <button class="btn btn-sm btn-outline-danger ms-1" onclick='deleteWord("${w.id}","${w.word}")'>Delete</button></td></tr>`;
+            <td>
+                <div class="action-group">
+                    <button class="action-btn btn-edit" onclick='editWord("${w.id}","${w.word}",${hintsStr},${w.level},"${w.class_range}","${w.difficulty}")' title="Edit">
+                        <i data-feather="edit-2"></i>
+                    </button>
+                    <button class="action-btn btn-delete" onclick='deleteWord("${w.id}","${w.word}")' title="Delete">
+                        <i data-feather="trash-2"></i>
+                    </button>
+                </div>
+            </td></tr>`;
         });
         document.getElementById("wordle-table-wrapper").innerHTML = html + `</tbody></table>`;
+        feather.replace();
     }
 
     async function loadWordleStats() {
@@ -403,7 +476,7 @@
                         </div>
                         <div class="divider"></div>
                         <div class="stat-item">
-                            <i data-feather="play-circle" class="stat-icon" style="color:#7366ff;"></i>
+                            <i data-feather="play-circle" class="stat-icon" style="color:#19a1a1;"></i>
                             <span class="stat-label">Sessions:</span>
                             <span class="stat-value">${d.total_sessions}</span>
                         </div>
@@ -477,10 +550,19 @@
 
             html += `<tr><td>${i + 1}</td><td>${lv.level}</td><td><span class="range-badge">${lv.class_range}</span></td><td>${lv.hint || "—"}</td>
             <td><small>Main: ${lv.main_words.length}, Bonus: ${lv.bonus_words.length}</small></td>
-            <td><button class="btn btn-sm btn-outline-primary" onclick='editSquares("${lv.id}",${lv.level},"${lv.class_range}",${mWords},${bWords},${gridJson},"${hint}")'>Edit</button>
-            <button class="btn btn-sm btn-outline-danger ms-1" onclick='deleteSquares("${lv.id}",${lv.level})'>Delete</button></td></tr>`;
+            <td>
+                <div class="action-group">
+                    <button class="action-btn btn-edit" onclick='editSquares("${lv.id}",${lv.level},"${lv.class_range}",${mWords},${bWords},${gridJson},"${hint}")' title="Edit">
+                        <i data-feather="edit-2"></i>
+                    </button>
+                    <button class="action-btn btn-delete" onclick='deleteSquares("${lv.id}",${lv.level})' title="Delete">
+                        <i data-feather="trash-2"></i>
+                    </button>
+                </div>
+            </td></tr>`;
         });
         document.getElementById("squares-table-wrapper").innerHTML = html + `</tbody></table>`;
+        feather.replace();
     }
 
     async function loadSquaresStats() {
@@ -506,7 +588,7 @@
                         </div>
                         <div class="divider"></div>
                         <div class="stat-item">
-                            <i data-feather="play-circle" class="stat-icon" style="color:#7366ff;"></i>
+                            <i data-feather="play-circle" class="stat-icon" style="color:#19a1a1;"></i>
                             <span class="stat-label">Sessions:</span>
                             <span class="stat-value">${d.total_sessions}</span>
                         </div>

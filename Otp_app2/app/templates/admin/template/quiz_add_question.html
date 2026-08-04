@@ -125,15 +125,47 @@
         </div>
     </div>
 </div>
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-center" style="border-radius: 15px; border: none; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <i data-feather="check-circle" style="width: 50px; height: 50px; color: #19a1a1;"></i>
+                </div>
+                <h5 class="mb-3" id="successModalMessage" style="color: #2b2b2b;">Action Successful</h5>
+                <button type="button" class="btn btn-gradient-green w-100" style="background: linear-gradient(135deg, #56dfdf 0%, #19a1a1 100%); border: none; color: white;" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
     const token = localStorage.getItem("admin_token");
+    
+    // Success Popup Function with optional callback
+    function showSuccessPopup(message, callback) {
+        document.getElementById('successModalMessage').innerText = message;
+        feather.replace();
+        const successModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('successModal'));
+        
+        if (callback) {
+            document.getElementById('successModal').addEventListener('hidden.bs.modal', function onHidden() {
+                document.getElementById('successModal').removeEventListener('hidden.bs.modal', onHidden);
+                callback();
+            });
+        }
+        
+        successModal.show();
+    }
+
     function toggleOptions() {
         const type = document.getElementById("questionType").value;
         const section = document.getElementById("optionsSection");
-        const withOptions = ['MCQ', 'Analogy', 'PatternRecognition', 'LogicalReasoning', 'Puzzle', 'SentenceCorrection', 'ErrorSpotting', 'Vocabulary', 'PartsOfSpeech'];
+        const withOptions = ['MCQ', 'Analogy', 'PatternRecognition', 'LogicalReasoning', 'Puzzle', 'SentenceCorrection', 'ErrorSpotting', 'Vocabulary', 'PartsOfSpeech', 'FillInBlank'];
         section.style.display = withOptions.includes(type) ? 'block' : 'none';
     }
 
@@ -158,9 +190,25 @@
             options = Array.from(document.querySelectorAll(".option-input")).map(i => i.value.trim()).filter(v => v !== '');
             if (options.length < 2) { alert("Provide at least 2 options"); return; }
         }
+        
+        let correctStr = document.getElementById("correctAnswer").value.trim();
+        let correct_answer = parseInt(correctStr);
+        if (isNaN(correct_answer) && options) {
+            let idx = options.findIndex(opt => opt.toLowerCase() === correctStr.toLowerCase());
+            if (idx !== -1) {
+                correct_answer = idx + 1;
+            } else {
+                alert("Error: Correct answer text does not match any options! Please type the exact option text or the option number (1, 2, etc).");
+                return;
+            }
+        } else if (isNaN(correct_answer)) {
+            alert("Please enter a valid correct answer number.");
+            return;
+        }
+
         const data = {
             domain: document.getElementById("domain").value.trim(), question_text: document.getElementById("questionText").value.trim(),
-            question_type: type, options, correct_answer: document.getElementById("correctAnswer").value.trim(),
+            question_type: type, options, correct_answer: correct_answer,
             difficulty_level: document.getElementById("difficultyLevel").value, class_range: document.getElementById("classRange").value,
             marks: parseInt(document.getElementById("marks").value), explanation: document.getElementById("explanation").value.trim() || null,
             hints: document.getElementById("hints").value.trim() || null, is_active: document.getElementById("isActive").value === "true"
@@ -169,7 +217,11 @@
             const res = await fetch(`${API_BASE}/admin-panel/quiz/add-question`, {
                 method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(data)
             });
-            if (res.ok) { alert("Question added!"); window.location.href = "/admin-panel/quiz/questions-page"; }
+            if (res.ok) { 
+                showSuccessPopup("Question added successfully!", () => {
+                    window.location.href = "/admin-panel/quiz/questions-page";
+                });
+            }
             else { const r = await res.json(); alert("Error: " + (r.detail || "Failed")); }
         } catch (err) { alert("Error adding question"); }
     });

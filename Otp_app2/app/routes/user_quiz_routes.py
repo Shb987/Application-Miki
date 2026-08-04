@@ -49,7 +49,7 @@ def serialize_question_for_user(question: dict) -> QuizQuestionResponse:
         domain=domain,
         question_text=question["question_text"],
         question_type=question["question_type"],
-        options=question.get("options"),
+        options=question.get("options") if question["question_type"] != "FillInBlank" else None,
         image_url=image_url,
         difficulty_level=question["difficulty_level"],
         marks=question["marks"],
@@ -182,7 +182,18 @@ async def submit_quiz(
         user_index = answer.user_answer_index
         correct_index = question.get("correct_answer")
         
-        is_correct = user_index == correct_index
+        is_correct = False
+        if isinstance(user_index, str):
+            options = question.get("options") or []
+            # Find matching option ignoring case/whitespace
+            matched_idx = -1
+            for i, opt in enumerate(options):
+                if opt.strip().lower() == user_index.strip().lower():
+                    matched_idx = i + 1
+                    break
+            is_correct = (matched_idx == correct_index)
+        else:
+            is_correct = (int(user_index) == int(correct_index))
         
         marks_awarded = question["marks"] if is_correct else 0
         total_marks += question["marks"]

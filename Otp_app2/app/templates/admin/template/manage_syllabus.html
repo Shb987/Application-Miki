@@ -111,6 +111,42 @@
 
 {% block scripts %}
 <script>
+    function showCenterPopup(title, text, type) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: type,
+                confirmButtonColor: '#19a1a1'
+            });
+        } else {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+            const box = document.createElement('div');
+            box.style.cssText = 'background:white;padding:30px 40px;border-radius:16px;text-align:center;max-width:400px;box-shadow:0 15px 35px rgba(0,0,0,0.2);animation: popIn 0.3s ease-out;';
+            const iconStr = type === 'success' 
+                ? '<div style="color:#19a1a1;font-size:50px;margin-bottom:15px;"><i class="fa fa-check-circle"></i></div>' 
+                : '<div style="color:#dc3545;font-size:50px;margin-bottom:15px;"><i class="fa fa-times-circle"></i></div>';
+            
+            box.innerHTML = iconStr + `
+                <h4 style="margin-bottom:12px;font-weight:700;color:#2d3748;">${title}</h4>
+                <p style="color:#718096;margin-bottom:24px;font-size:0.95rem;">${text}</p>
+                <button class="btn btn-primary px-4 py-2" style="background:linear-gradient(135deg, #19a1a1 0%, #086b6b 100%);border:none;border-radius:8px;font-weight:600;" onclick="this.parentElement.parentElement.remove()">OK</button>
+            `;
+            
+            // Add keyframe animation if not exists
+            if (!document.getElementById('popup-anim')) {
+                const style = document.createElement('style');
+                style.id = 'popup-anim';
+                style.innerHTML = `@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }`;
+                document.head.appendChild(style);
+            }
+            
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        }
+    }
+
     let globalSyllabuses = [];
     let textbooksData = [];
 
@@ -157,7 +193,7 @@
         const subject = document.getElementById("gen-subject").value;
         
         if(!standard || !subject) {
-            alert("Please select both Standard and Subject.");
+            showCenterPopup("Missing Fields", "Please select both Standard and Subject.", "error");
             return;
         }
 
@@ -178,11 +214,11 @@
             
             if (!res.ok) throw new Error(data.detail || "Failed to generate syllabus");
             
-            alert(data.message);
+            showCenterPopup("Success!", data.message || "Syllabus generated successfully.", "success");
             loadSyllabuses();
             
         } catch(e) {
-            alert("Error: " + e.message);
+            showCenterPopup("Generation Error", e.message, "error");
         } finally {
             btn.innerHTML = `<i data-feather="cpu" style="width: 16px;"></i> Generate Syllabus`;
             btn.disabled = false;
@@ -209,7 +245,7 @@
     function renderSyllabuses() {
         const container = document.getElementById("syllabuses-container");
         if (globalSyllabuses.length === 0) {
-            container.innerHTML = `<div class="alert alert-light text-center border p-5 bg-white"><i data-feather="inbox" class="text-muted mb-3" style="width: 48px; height: 48px;"></i><h5 class="text-muted">No syllabuses generated yet.</h5><p class="text-muted mb-0">Use the form above to generate one via AI from existing textbooks.</p></div>`;
+            container.innerHTML = `<div class="alert alert-light text-center border p-5 bg-white"><div class="mb-3"><i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px; display: inline-block;"></i></div><h5 class="text-muted">No syllabuses generated yet.</h5><p class="text-muted mb-0">Use the form above to generate one via AI from existing textbooks.</p></div>`;
             feather.replace(); return;
         }
         
@@ -334,7 +370,7 @@
         });
 
         if(newTopics.length === 0) {
-            alert("Syllabus must have at least one valid topic.");
+            showCenterPopup("Validation Error", "Syllabus must have at least one valid topic.", "error");
             return;
         }
 
@@ -351,11 +387,11 @@
             const data = await res.json();
             if(!res.ok) throw new Error(data.detail || "Failed to update syllabus");
             
-            alert("Syllabus updated successfully!");
+            showCenterPopup("Success!", "Syllabus updated successfully!", "success");
             // Refresh to get clean state
             loadSyllabuses();
         } catch(e) {
-            alert("Error: " + e.message);
+            showCenterPopup("Update Error", e.message, "error");
         } finally {
             document.body.style.cursor = 'default';
         }

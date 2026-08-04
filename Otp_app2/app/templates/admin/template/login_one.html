@@ -121,6 +121,25 @@
                 </div>
 
               </form>
+    <script>
+      // Show/Hide Password Toggle
+      document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.querySelector('.show-hide');
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', function() {
+            const passwordInput = document.querySelector('input[name="password"]');
+            const showSpan = document.querySelector('.show');
+            if (passwordInput.type === "password") {
+              passwordInput.type = "text";
+              showSpan.classList.add('hide');
+            } else {
+              passwordInput.type = "password";
+              showSpan.classList.remove('hide');
+            }
+          });
+        }
+      });
+    </script>
             </div>
           </div>
         </div>

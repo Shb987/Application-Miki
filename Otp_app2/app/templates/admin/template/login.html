@@ -105,6 +105,31 @@
     <!-- Plugins JS Ends-->
     <!-- Theme js-->
     <script src="../assets/js/script.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        // Remove any conflicting click events added by script.js
+        $('.show-hide').off('click');
+        $('.show-hide span').off('click');
+
+        // Add our own robust click listener
+        var showHideBtn = document.querySelector('.show-hide');
+        var pwdInput = document.querySelector('input[name="login[password]"]');
+        var spanIcon = showHideBtn.querySelector('span');
+
+        showHideBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (pwdInput.type === 'password') {
+            pwdInput.type = 'text';
+            spanIcon.classList.remove('show');
+            spanIcon.classList.add('hide'); // Add visual feedback
+          } else {
+            pwdInput.type = 'password';
+            spanIcon.classList.remove('hide');
+            spanIcon.classList.add('show');
+          }
+        });
+      });
+    </script>
   </div>
 </body>
 

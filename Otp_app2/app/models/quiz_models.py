@@ -74,9 +74,11 @@ class QuizFilter(BaseModel):
     difficulty_level: Optional[DifficultyLevel] = None
     limit: int = Field(default=20, ge=1, le=50)
 
+from typing import Union
+
 class QuizAnswerSubmission(BaseModel):
     question_id: str
-    user_answer_index: int # Index starting from 1
+    user_answer_index: Union[int, str] # Index starting from 1 or exact string for FillInBlank
 
 class QuizSubmitRequest(BaseModel):
     student_class: int

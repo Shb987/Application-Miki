@@ -627,6 +627,10 @@
 
                 <!-- 🔹 Image-based MCQ fields -->
                 <div id="image-options" class="col-12" style="display: none;">
+                  <div class="col-md-12 mb-3">
+                    <label class="form-label-premium">Question Image (Optional)</label>
+                    <input type="file" class="form-control premium-input" id="new-question-image" accept="image/*" />
+                  </div>
                   <label class="form-label-premium">Image Options</label>
                   <div class="row g-3">
                     <div class="col-md-6">
@@ -691,6 +695,9 @@
                     <div class="d-flex justify-content-between align-items-start">
                       <div class="flex-grow-1">
                         <h6 class="mb-2 question-text-display">{{ q.text }}</h6>
+                        {% if q.question_image %}
+                        <img src="{{ q.question_image }}" alt="Question Image" style="max-height: 80px; border-radius: 5px; margin-bottom: 10px;">
+                        {% endif %}
                         <div class="question-meta">
                           <span><i class="fa fa-user-circle me-1"></i> Age: {{ q.age_min }}-{{ q.age_max }}</span>
                           <span class="badge bg-light text-dark">{{ q.type|default('text')|upper }}</span>
@@ -776,6 +783,13 @@
 
                   <!-- 🔹 Image-based MCQ fields (Edit) -->
                   <div id="edit-image-options" class="col-12" style="display: none;">
+                    <div class="col-md-12 mb-3">
+                      <label class="form-label-premium">Question Image (Optional)</label>
+                      <div id="edit-question-image-preview-container" class="mb-2" style="display: none;">
+                        <img id="edit-question-image-preview" src="" alt="Question Image" style="max-height: 100px; border-radius: 5px;">
+                      </div>
+                      <input type="file" class="form-control premium-input" id="edit-question-image" accept="image/*" />
+                    </div>
                     <label class="form-label-premium">Replace Image Options (Optional)</label>
                     <div class="row g-3">
                       <div class="col-md-6">
@@ -1053,6 +1067,7 @@
             <div class="d-flex justify-content-between align-items-start">
               <div class="flex-grow-1">
                 <h6 class="mb-2 question-text-display">${q.text}</h6>
+                ${q.question_image ? `<img src="${q.question_image}" alt="Question Image" style="max-height: 80px; border-radius: 5px; margin-bottom: 10px;">` : ''}
                 <div class="question-meta">
                   <span><i class="fa fa-user-circle me-1"></i> Age: ${q.age_min}-${q.age_max}</span>
                   <span class="badge bg-light text-dark">${(q.type || 'text').toUpperCase()}</span>
@@ -1060,7 +1075,8 @@
               </div>
               <div class="question-actions">
                 <button class="btn btn-warning btn-action text-white" 
-                  onclick='openEditModal("${q._id}", ${JSON.stringify(q.text).replace(/"/g, '&quot;')}, ${q.age_min}, ${q.age_max})'>
+                  data-question='${JSON.stringify(q).replace(/'/g, "&#39;")}'
+                  onclick='openEditModalFromButton(this)'>
                   <i class="fa fa-pencil"></i>
                 </button>
                 <button class="btn btn-danger btn-action" onclick="deleteQuestion('${q._id}')">
@@ -1113,6 +1129,8 @@
           const file = document.getElementById(id).files[0];
           if (file) formData.append(`option${i + 1}`, file);
         });
+        const qImage = document.getElementById("new-question-image").files[0];
+        if (qImage) formData.append("question_image", qImage);
       }
 
       try {
@@ -1133,7 +1151,8 @@
             text: text,
             age_min: age_min,
             age_max: age_max,
-            type: type
+            type: type,
+            question_image: data.question_image
           };
 
           grid.insertAdjacentHTML('afterbegin', createQuestionCardHtml(newQuestion));
@@ -1144,7 +1163,7 @@
             const el = document.getElementById(id);
             if (el) el.value = "";
           });
-          ["img1", "img2", "img3", "img4"].forEach(id => {
+          ["img1", "img2", "img3", "img4", "new-question-image"].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = null;
           });
@@ -1208,6 +1227,16 @@
         document.getElementById("edit-correct-index").value = 
           (q.correct_index !== undefined) ? (q.correct_index + 1) : "";
         
+        const qImagePreview = document.getElementById("edit-question-image-preview");
+        const qImageContainer = document.getElementById("edit-question-image-preview-container");
+        if (q.question_image) {
+          qImagePreview.src = q.question_image;
+          qImageContainer.style.display = "block";
+        } else {
+          qImagePreview.src = "";
+          qImageContainer.style.display = "none";
+        }
+        
         for (let i = 1; i <= 4; i++) {
           const previewContainer = document.getElementById(`edit-img${i}-preview-container`);
           const previewImg = document.getElementById(`edit-img${i}-preview`);
@@ -1261,6 +1290,8 @@
           const file = document.getElementById(`edit-img${i}`).files[0];
           if (file) formData.append(`option${i}`, file);
         }
+        const qImage = document.getElementById("edit-question-image").files[0];
+        if (qImage) formData.append("question_image", qImage);
       }
 
       const btn = document.querySelector("#editModal .btn-primary");

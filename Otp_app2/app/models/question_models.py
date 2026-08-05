@@ -9,6 +9,7 @@ class Question(BaseModel):
 
     options: Optional[List[str]] = None         # for text-based MCQs
     image_options: Optional[List[str]] = None   # for image-based MCQs
+    question_image: Optional[str] = None        # optional image for the question itself
     correct_index: Optional[int] = None         # index of correct answer
     correct_answer: Optional[str] = None        # text of correct answer (for normal MCQs)
     age_min: Optional[int] = None

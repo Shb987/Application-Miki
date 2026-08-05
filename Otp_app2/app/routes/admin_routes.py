@@ -252,6 +252,7 @@ async def create_question(
     option2: UploadFile | None = File(None),
     option3: UploadFile | None = File(None),
     option4: UploadFile | None = File(None),
+    question_image: UploadFile | None = File(None),
     current_admin: dict = Depends(require_permission("Questions Base", "create"))  # 🔐 Protection added
 ):
     try:
@@ -276,11 +277,20 @@ async def create_question(
             if correct_index is None:
                 raise HTTPException(status_code=400, detail="Missing correct_index for image question")
 
+            question_image_path = None
+            if question_image:
+                filename = f"{ObjectId()}_{question_image.filename}"
+                file_path = os.path.join(UPLOAD_DIR, filename)
+                with open(file_path, "wb") as buffer:
+                    buffer.write(await question_image.read())
+                question_image_path = f"/uploads/{filename}"
+
             question_data = Question(
                 category=category,
                 text=text,
                 type="image",
                 image_options=image_options,
+                question_image=question_image_path,
                 correct_index=correct_index,
                 age_min=age_min,
                 age_max=age_max,
@@ -335,6 +345,7 @@ async def create_question(
             "message": "Question added successfully",
             "id": str(result.inserted_id),
             "type": question_data.type,
+            "question_image": getattr(question_data, "question_image", None)
         }
     except HTTPException as exc:
         await log_admin_activity(
@@ -372,6 +383,7 @@ async def update_question(
     option2: UploadFile | None = File(None),
     option3: UploadFile | None = File(None),
     option4: UploadFile | None = File(None),
+    question_image: UploadFile | None = File(None),
     current_admin: dict = Depends(require_permission("Questions Base", "update")),
 ):
     """Update a question (text or image-based)"""
@@ -407,6 +419,13 @@ async def update_question(
             update_data["image_options"] = image_options
             if correct_index is not None:
                 update_data["correct_index"] = correct_index
+
+        if question_image:
+            filename = f"{ObjectId()}_{question_image.filename}"
+            file_path = os.path.join(UPLOAD_DIR, filename)
+            with open(file_path, "wb") as buffer:
+                buffer.write(await question_image.read())
+            update_data["question_image"] = f"/uploads/{filename}"
 
         # 📝 Otherwise, allow text updates
         elif options:
@@ -469,6 +488,12 @@ async def delete_question(
                 disk_path = os.path.join(UPLOAD_DIR, filename)
                 if os.path.exists(disk_path):
                     os.remove(disk_path)
+
+        if "question_image" in existing and existing["question_image"]:
+            filename = os.path.basename(existing["question_image"])
+            disk_path = os.path.join(UPLOAD_DIR, filename)
+            if os.path.exists(disk_path):
+                os.remove(disk_path)
 
         await db.questions.delete_one({"_id": ObjectId(question_id)})
         await log_admin_activity(

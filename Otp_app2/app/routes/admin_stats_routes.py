@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import asyncio
 
 from app.core.database import db
@@ -619,6 +619,8 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
 @router.get("/stats/staff-profile/{username}", response_model=Dict[str, Any])
 async def get_staff_profile(
     username: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     current_admin: dict = Depends(require_permission("Analytics", "read"))
 ):
     """
@@ -627,6 +629,22 @@ async def get_staff_profile(
     """
     try:
         base_match = {"username": username}
+        
+        date_query = {}
+        if start_date:
+            try:
+                dt_start = datetime.strptime(start_date, "%Y-%m-%d")
+                date_query["$gte"] = dt_start
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                dt_end = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1, microseconds=-1)
+                date_query["$lte"] = dt_end
+            except ValueError:
+                pass
+        if date_query:
+            base_match["timestamp"] = date_query
 
         # ── 1. Total events ────────────────────────────────────────
         async def total_events():
@@ -710,20 +728,45 @@ async def get_staff_profile(
                 return doc["timestamp"].isoformat()
             return None
 
+        # ── 7. Admin Info & Rank ───────────────────────────────────
+        async def admin_info():
+            user = await db.admins.find_one({"username": username})
+            role = user.get("role_name", "Staff") if user else "Staff"
+            
+            rank_match = {}
+            if date_query:
+                rank_match["timestamp"] = date_query
+            
+            rank_pipeline = [
+                {"$match": rank_match},
+                {"$group": {"_id": "$username", "count": {"$sum": 1}}},
+                {"$sort": {"count": -1}}
+            ]
+            rank_results = await db.admin_activity_logs.aggregate(rank_pipeline).to_list(None)
+            rank = "-"
+            for idx, r in enumerate(rank_results):
+                if r["_id"] == username:
+                    rank = str(idx + 1)
+                    break
+            return {"role": role, "rank": rank}
+
         # ── Run all in parallel ────────────────────────────────────
-        (total, success, failed, breakdown, logs, last_ts) = await asyncio.gather(
+        (total, success, failed, breakdown, logs, last_ts, info) = await asyncio.gather(
             total_events(),
             success_count(),
             failed_count(),
             action_breakdown(),
             recent_logs(),
-            last_active()
+            last_active(),
+            admin_info()
         )
 
         return {
             "status": "success",
             "data": {
                 "username": username,
+                "role": info["role"],
+                "leaderboard_rank": info["rank"],
                 "total_events": total,
                 "success_count": success,
                 "failed_count": failed,
@@ -733,5 +776,89 @@ async def get_staff_profile(
             }
         }
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats/all-staff-tasks", response_model=Dict[str, Any])
+async def get_all_staff_tasks(days: Optional[int] = None, current_admin: dict = Depends(require_permission("Analytics", "read"))):
+    """
+    Returns aggregated task KPIs for all staff members.
+    """
+    try:
+        match_stage = {"status": {"$nin": ["processing"]}}
+        if days is not None:
+            cutoff = datetime.utcnow() - timedelta(days=days)
+            match_stage["timestamp"] = {"$gte": cutoff}
+
+        pipeline = [
+            {"$match": match_stage},
+            {
+                "$group": {
+                    "_id": {
+                        "username": "$username",
+                        "action": "$action"
+                    },
+                    "total": {"$sum": 1},
+                    "success": {
+                        "$sum": {
+                            "$cond": [{"$in": ["$status", ["success", "completed"]]}, 1, 0]
+                        }
+                    },
+                    "failed": {
+                        "$sum": {
+                            "$cond": [{"$eq": ["$status", "failed"]}, 1, 0]
+                        }
+                    },
+                    "last_done": {"$max": "$timestamp"}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$_id.username",
+                    "total_events": {"$sum": "$total"},
+                    "success_count": {"$sum": "$success"},
+                    "failed_count": {"$sum": "$failed"},
+                    "tasks": {
+                        "$push": {
+                            "action": "$_id.action",
+                            "total": "$total",
+                            "success": "$success",
+                            "failed": "$failed",
+                            "last_done": "$last_done"
+                        }
+                    }
+                }
+            }
+        ]
+        results = await db.admin_activity_logs.aggregate(pipeline).to_list(None)
+
+        formatted_results = []
+        for r in results:
+            tasks = []
+            for t in r.get("tasks", []):
+                last_done = t.get("last_done")
+                tasks.append({
+                    "action": t["action"] or "Unknown",
+                    "total": t["total"],
+                    "success": t["success"],
+                    "failed": t["failed"],
+                    "last_done": last_done.isoformat() if hasattr(last_done, 'isoformat') else str(last_done) if last_done else None
+                })
+            # sort tasks by total descending
+            tasks.sort(key=lambda x: x["total"], reverse=True)
+            
+            formatted_results.append({
+                "username": r["_id"] or "Unknown",
+                "total_events": r.get("total_events", 0),
+                "success_count": r.get("success_count", 0),
+                "failed_count": r.get("failed_count", 0),
+                "tasks": tasks
+            })
+
+        return {
+            "status": "success",
+            "data": formatted_results
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

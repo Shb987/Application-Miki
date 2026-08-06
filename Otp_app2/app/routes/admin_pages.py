@@ -219,3 +219,10 @@ async def manage_social_content_page(request: Request):
 async def manage_roles_page(request: Request):
     """Render the Roles & Permissions management page (superadmin only)."""
     return templates.TemplateResponse("manage_roles.html", {"request": request})
+
+@router.get("/staff-task-monitoring-page", response_class=HTMLResponse)
+async def staff_task_monitoring_page(request: Request):
+    """Render the Staff Task Monitoring page."""
+    return templates.TemplateResponse("staff_tasks_monitoring.html", {"request": request})
+
+

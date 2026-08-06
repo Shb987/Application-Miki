@@ -523,129 +523,59 @@
     color: #64748b;
   }
 
-  /* ── Staff Profile Drawer ── */
-  .profile-drawer-backdrop {
-    display: none; position: fixed; inset: 0;
-    background: rgba(15, 23, 42, 0.5); z-index: 2000;
-    backdrop-filter: blur(4px);
+  /* ── Detailed Profile View ── */
+  .profile-header {
+    background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
   }
-  .profile-drawer-backdrop.show { display: block; }
-  .profile-drawer {
-    position: fixed; top: 0; right: -700px; bottom: 0;
-    width: min(680px, 96vw);
-    background: #f8fafc;
-    z-index: 2001;
-    transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex; flex-direction: column;
-    box-shadow: -20px 0 60px rgba(0,0,0,0.15);
-    border-radius: 28px 0 0 28px;
-    overflow: hidden;
-  }
-  .profile-drawer.open { right: 0; }
-  .profile-drawer-head {
-    background: linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #064e3b 100%);
-    padding: 28px 32px 24px;
-    display: flex; align-items: flex-start; gap: 18px;
-    flex-shrink: 0;
-  }
-  .profile-drawer-avatar {
-    width: 70px; height: 70px; border-radius: 22px;
-    background: rgba(255,255,255,0.18);
-    border: 2px solid rgba(255,255,255,0.25);
-    display: grid; place-items: center;
-    font-size: 1.7rem; font-weight: 800; color: #fff;
-    flex-shrink: 0;
-  }
-  .profile-drawer-head h3 { margin: 0; font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; }
-  .profile-drawer-head p { margin: 5px 0 0; color: rgba(255,255,255,0.75); font-size: 0.88rem; }
-  .profile-drawer-role-badge {
-    margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700;
-    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
-    color: #fff; text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .profile-drawer-close {
-    margin-left: auto; background: rgba(255,255,255,0.12); border: none;
-    border-radius: 12px; width: 36px; height: 36px; cursor: pointer;
-    color: #fff; font-size: 16px; display: grid; place-items: center;
-    transition: background 0.2s; flex-shrink: 0;
-  }
-  .profile-drawer-close:hover { background: rgba(255,255,255,0.22); }
-  .profile-drawer-body {
-    flex: 1; overflow-y: auto; padding: 24px 28px;
-    display: flex; flex-direction: column; gap: 20px;
-  }
-  .profile-kpi-row {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
-  }
-  .profile-kpi-card {
-    background: #fff; border-radius: 18px;
-    border: 1px solid rgba(15,23,42,0.06);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-    padding: 16px; text-align: center;
-  }
-  .profile-kpi-value { font-size: 1.6rem; font-weight: 800; color: #0f172a; letter-spacing: -0.04em; margin: 0; }
-  .profile-kpi-label { font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 5px 0 0; }
+  .profile-identity { display: flex; align-items: center; gap: 16px; }
+  .profile-avatar { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #0f766e, #14b8a6); color: #fff; font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .profile-name { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+  .profile-role-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: rgba(15,118,110,0.1); color: #0f766e; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; }
+  
+  .rank-badge { display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #fff; border-radius: 12px; padding: 12px 24px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); }
+  .rank-badge-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+  .rank-badge-value { font-size: 1.5rem; font-weight: 800; margin: 0; }
+
+  .filter-bar { background: #fff; border-radius: 12px; padding: 16px 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; gap: 16px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 12px; }
+  .filter-group label { font-size: 0.85rem; font-weight: 600; color: #475569; margin: 0; }
+  .filter-input { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 0.9rem; color: #334155; outline: none; transition: border-color 0.2s; }
+  .filter-input:focus { border-color: #0f766e; }
+
+  .profile-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .profile-kpi-card { background: #fff; border-radius: 16px; padding: 24px; text-align: center; border: 1px solid rgba(15,23,42,0.04); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+  .profile-kpi-value { font-size: 2rem; font-weight: 800; color: #0f172a; margin: 0 0 4px; letter-spacing: -0.5px; }
+  .profile-kpi-label { font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; margin: 0; }
   .profile-kpi-card.success .profile-kpi-value { color: #059669; }
   .profile-kpi-card.failed .profile-kpi-value { color: #dc2626; }
-  .profile-section-title {
-    font-size: 0.82rem; font-weight: 800; color: #64748b;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    margin: 0 0 12px;
-  }
-  .profile-breakdown-table {
-    width: 100%; border-collapse: collapse;
-    background: #fff; border-radius: 18px; overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-    border: 1px solid rgba(15,23,42,0.06);
-  }
-  .profile-breakdown-table thead th {
-    background: #f8fafc; padding: 10px 16px;
-    font-size: 0.75rem; font-weight: 700; color: #64748b;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    border-bottom: 1px solid rgba(15,23,42,0.06);
-    text-align: left;
-  }
-  .profile-breakdown-table thead th:not(:first-child) { text-align: center; }
-  .profile-breakdown-table td {
-    padding: 11px 16px; font-size: 0.88rem; color: #334155;
-    border-bottom: 1px solid rgba(15,23,42,0.04);
-  }
-  .profile-breakdown-table tr:last-child td { border-bottom: none; }
-  .profile-breakdown-table tr:hover td { background: #f0fdfa; }
-  .profile-breakdown-table td:not(:first-child) { text-align: center; }
-  .profile-action-name { font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px; }
-  .profile-action-icon {
-    width: 28px; height: 28px; border-radius: 8px;
-    display: grid; place-items: center;
-    background: linear-gradient(135deg, rgba(15,118,110,0.12), rgba(14,165,233,0.10));
-    color: #0f766e; font-size: 12px; flex-shrink: 0;
-  }
-  .profile-badge-success { background: rgba(16,185,129,0.1); color: #059669; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; }
-  .profile-badge-failed { background: rgba(239,68,68,0.1); color: #dc2626; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; }
-  .profile-progress {
-    height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 4px;
-  }
-  .profile-progress-bar {
-    height: 100%; background: linear-gradient(90deg, #0d9488, #0ea5e9);
-    border-radius: 999px; transition: width 0.6s ease;
-  }
-  .profile-timeline { display: flex; flex-direction: column; gap: 10px; }
-  .profile-timeline-item {
-    background: #fff; border-radius: 16px; padding: 12px 16px;
-    border: 1px solid rgba(15,23,42,0.06);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    display: flex; align-items: center; gap: 12px;
-  }
-  .profile-timeline-dot {
-    width: 10px; height: 10px; border-radius: 999px; flex-shrink: 0;
-  }
-  .profile-timeline-dot.success { background: #10b981; }
-  .profile-timeline-dot.failed { background: #ef4444; }
-  .profile-timeline-dot.pending { background: #f59e0b; }
-  .profile-timeline-action { font-weight: 700; color: #0f172a; font-size: 0.88rem; }
-  .profile-timeline-details { color: #64748b; font-size: 0.8rem; margin-top: 2px; }
-  .profile-timeline-time { margin-left: auto; color: #94a3b8; font-size: 0.76rem; flex-shrink: 0; }
+
+  .section-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 24px 0 16px; display: flex; align-items: center; gap: 8px; }
+  
+  .profile-breakdown-table { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+  .profile-breakdown-table th { background: #f8fafc; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; padding: 12px 16px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+  .profile-breakdown-table td { padding: 16px; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; color: #334155; }
+  .profile-action-name { font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .profile-action-icon { width: 28px; height: 28px; border-radius: 8px; background: #f1f5f9; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
+  .profile-progress { height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+  .profile-progress-bar { height: 100%; background: #0f766e; border-radius: 999px; }
+  .profile-badge-success { background: rgba(5,150,105,0.1); color: #059669; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
+  .profile-badge-failed { background: rgba(220,38,38,0.1); color: #dc2626; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; }
+
+  .profile-timeline { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+  .profile-timeline-item { display: flex; gap: 16px; position: relative; padding-bottom: 24px; }
+  .profile-timeline-item:last-child { padding-bottom: 0; }
+  .profile-timeline-item::before { content: ''; position: absolute; left: 6px; top: 20px; bottom: 0; width: 2px; background: #e2e8f0; }
+  .profile-timeline-item:last-child::before { display: none; }
+  .profile-timeline-dot { width: 14px; height: 14px; border-radius: 50%; background: #e2e8f0; border: 3px solid #fff; position: relative; z-index: 2; margin-top: 4px; box-shadow: 0 0 0 1px #e2e8f0; }
+  .profile-timeline-dot.success { background: #10b981; box-shadow: 0 0 0 1px #10b981; }
+  .profile-timeline-dot.failed { background: #ef4444; box-shadow: 0 0 0 1px #ef4444; }
+  .profile-timeline-action { font-weight: 600; color: #0f172a; font-size: 0.95rem; }
+  .profile-timeline-details { font-size: 0.85rem; color: #64748b; margin-top: 4px; }
+  .profile-timeline-time { font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-align: right; white-space: nowrap; }
+
+  .last-active-card { background: #fff; border-radius: 12px; padding: 16px 24px; display: flex; align-items: center; gap: 16px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid rgba(15,23,42,0.04); }
+
 
   /* ── Permissions Editor ── */
   .permissions-panel-header {
@@ -1520,7 +1450,7 @@
 
     <!-- Staff Activity Monitor Tab -->
     <div class="tab-pane" id="activity-section" role="tabpanel">
-      <div class="activity-dashboard">
+      <div class="activity-dashboard" id="mainActivityView">
         <!-- Activity Action Bar -->
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
           <div>
@@ -1555,44 +1485,8 @@
           </div>
         </div>
 
-        <!-- Staff Selector Bar -->
-        <div style="background:#fff;border-radius:20px;padding:18px 24px;margin-bottom:20px;border:1px solid rgba(15,23,42,0.07);box-shadow:0 4px 15px rgba(0,0,0,0.04);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:220px;">
-            <i class="fa fa-user-circle" style="color:#0f766e;font-size:1.2rem;"></i>
-            <div>
-              <div style="font-size:0.75rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;">Select Staff Member</div>
-              <div style="font-size:0.85rem;color:#94a3b8;margin-top:1px;">Choose a user to inspect their work profile</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <div id="staff-picker-chips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-            <div id="staff-picker-label" style="font-size:0.85rem;color:#94a3b8;font-style:italic;">Click a staff member below to view their profile</div>
-          </div>
-        </div>
 
-        <!-- Inline User Work Profile (hidden until staff selected) -->
-        <div id="inline-profile-section" style="display:none;margin-bottom:24px;">
-          <!-- Profile Header -->
-          <div style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 40%,#064e3b 100%);border-radius:24px;padding:24px 28px;margin-bottom:16px;display:flex;align-items:center;gap:18px;">
-            <div id="ip-avatar" style="width:66px;height:66px;border-radius:20px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.25);display:grid;place-items:center;font-size:1.6rem;font-weight:800;color:#fff;flex-shrink:0;">A</div>
-            <div style="flex:1;">
-              <h4 id="ip-name" style="margin:0;font-size:1.2rem;font-weight:800;color:#fff;letter-spacing:-0.03em;">Staff Member</h4>
-              <p id="ip-username" style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:0.88rem;">@username</p>
-              <span id="ip-role" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:0.76rem;font-weight:700;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);color:#fff;text-transform:uppercase;letter-spacing:0.06em;"><i class="fa fa-shield"></i> <span id="ip-role-text">Role</span></span>
-            </div>
-            <button onclick="clearInlineProfile()" style="background:rgba(255,255,255,0.12);border:none;border-radius:12px;width:36px;height:36px;cursor:pointer;color:#fff;font-size:14px;display:grid;place-items:center;" title="Close profile">
-              <i class="fa fa-times"></i>
-            </button>
-          </div>
-          <!-- KPI + Profile body -->
-          <div id="ip-body">
-            <div style="display:grid;place-items:center;min-height:120px;color:#64748b;">
-              <div class="text-center"><div class="spinner-border text-secondary mb-2" role="status"></div><div>Loading profile...</div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="activity-grid">
+          <div class="activity-grid">
           <section class="activity-panel">
             <div class="activity-panel-header">
               <div>
@@ -1616,7 +1510,11 @@
                 <h5>Daily Trend</h5>
                 <small>Uploads and updates over the last 30 days.</small>
               </div>
-              <i class="fa fa-line-chart text-success"></i>
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary rounded-pill" id="trend-toggle-btn" onclick="toggleTrendView()" style="font-size:0.75rem;">
+                  <i class="fa fa-line-chart me-1"></i> View Chart
+                </button>
+              </div>
             </div>
             <div class="activity-panel-body">
               <div id="trend-container">
@@ -1624,6 +1522,7 @@
                   <div class="spinner-border spinner-border-sm text-secondary"></div>
                 </div>
               </div>
+              <div id="trend-chart-container" style="display: none; min-height: 250px;"></div>
             </div>
           </section>
         </div>
@@ -1662,8 +1561,8 @@
           </div>
         </section>
       </div>
+      </div>
     </div>
-
   </div>
 
 </div>
@@ -1804,38 +1703,62 @@
 <!-- Toast -->
 <div class="toast-msg" id="toast"></div>
 
-<!-- Staff Work Profile Drawer -->
-<div class="profile-drawer-backdrop" id="profileDrawerBackdrop" onclick="closeProfileDrawer()"></div>
-<aside class="profile-drawer" id="profileDrawer">
-  <!-- Header -->
-  <div class="profile-drawer-head">
-    <div class="profile-drawer-avatar" id="pdAvatar">A</div>
-    <div style="flex:1; min-width:0;">
-      <h3 id="pdName">Staff Member</h3>
-      <p id="pdUsername">@username</p>
-      <div class="profile-drawer-role-badge" id="pdRole">
-        <i class="fa fa-shield"></i> <span id="pdRoleText">Role</span>
-      </div>
-    </div>
-    <button class="profile-drawer-close" onclick="closeProfileDrawer()">
-      <i class="fa fa-times"></i>
-    </button>
-  </div>
-  <!-- Body -->
-  <div class="profile-drawer-body" id="pdBody">
-    <div style="display:grid;place-items:center;min-height:300px;color:#64748b;">
-      <div class="text-center">
-        <div class="spinner-border text-secondary mb-2" role="status"></div>
-        <div>Loading work profile...</div>
-      </div>
-    </div>
-  </div>
-</aside>
 
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
+// --- TREND TOGGLE LOGIC ---
+let isTrendChartView = false;
+let trendApexChart = null;
+let trendDataCache = [];
+
+function toggleTrendView() {
+  isTrendChartView = !isTrendChartView;
+  const btn = document.getElementById("trend-toggle-btn");
+  const tableContainer = document.getElementById("trend-container");
+  const chartContainer = document.getElementById("trend-chart-container");
+  
+  if (isTrendChartView) {
+    btn.innerHTML = '<i class="fa fa-table me-1"></i> View Table';
+    tableContainer.style.display = 'none';
+    chartContainer.style.display = 'block';
+    renderTrendChart();
+  } else {
+    btn.innerHTML = '<i class="fa fa-line-chart me-1"></i> View Chart';
+    tableContainer.style.display = 'block';
+    chartContainer.style.display = 'none';
+  }
+}
+
+function renderTrendChart() {
+  if (trendApexChart) {
+    trendApexChart.destroy();
+  }
+  if (!trendDataCache || trendDataCache.length === 0) {
+    document.getElementById("trend-chart-container").innerHTML = '<p class="text-muted text-center py-3">No daily activity records.</p>';
+    return;
+  }
+  const dates = trendDataCache.map(item => item.date.split('-').slice(1).join('/'));
+  const counts = trendDataCache.map(item => item.count);
+
+  const options = {
+    series: [{ name: "Actions", data: counts }],
+    chart: { type: 'area', height: 250, toolbar: { show: false }, zoom: { enabled: false }, fontFamily: 'Inter, sans-serif' },
+    colors: ['#0f766e'],
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 3 },
+    xaxis: { categories: dates, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#64748b' } } },
+    yaxis: { labels: { style: { colors: '#64748b' } } },
+    grid: { borderColor: 'rgba(148,163,184,0.15)', strokeDashArray: 4 }
+  };
+  
+  trendApexChart = new ApexCharts(document.querySelector("#trend-chart-container"), options);
+  trendApexChart.render();
+}
+
 const TOKEN = localStorage.getItem("admin_token");
 const API   = window.API_BASE || "";
 
@@ -2637,7 +2560,7 @@ async function fetchActivityLogs() {
       leaderboardEl.innerHTML = `
         <ul class="list-group list-group-flush">
           ${leaderboard.map((item, idx) => `
-            <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-1" style="cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#f0fdfa'" onmouseout="this.style.background=''" onclick="loadInlineProfile('${escapeHtml(item.username)}', '${escapeHtml(item.username)}', 'Staff')">
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-1" style="cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#f0fdfa'" onmouseout="this.style.background=''" onclick="window.location.href='/admin-panel/staff-task-monitoring-page?user=' + encodeURIComponent('${escapeHtml(item.username)}')">
               <div>
                 <span class="badge bg-primary me-2">${idx + 1}</span>
                 <span class="fw-bold">@${item.username}</span>
@@ -2650,22 +2573,12 @@ async function fetchActivityLogs() {
           `).join("")}
         </ul>`;
 
-      // Also populate staff picker chips
-      const chips = document.getElementById('staff-picker-chips');
-      const label = document.getElementById('staff-picker-label');
-      if (chips) {
-        chips.innerHTML = leaderboard.slice(0, 6).map(item => `
-          <button onclick="loadInlineProfile('${escapeHtml(item.username)}', '${escapeHtml(item.username)}', 'Staff')"
-            style="padding:6px 14px;border-radius:999px;border:1.5px solid #cbd5e1;background:#f8fafc;font-size:0.82rem;font-weight:700;color:#334155;cursor:pointer;transition:all 0.2s;"
-            onmouseover="this.style.background='#0f766e';this.style.color='#fff';this.style.borderColor='#0f766e';"
-            onmouseout="this.style.background='#f8fafc';this.style.color='#334155';this.style.borderColor='#cbd5e1';"
-          ><i class="fa fa-user me-1"></i>@${item.username}</button>
-        `).join('');
-        if (label) label.style.display = 'none';
-      }
+
     }
 
     const dailyTrend = data.daily_trend || [];
+    trendDataCache = dailyTrend;
+    if (isTrendChartView) renderTrendChart();
     if (!dailyTrend.length) {
       trendEl.innerHTML = `<p class="text-muted text-center py-3">No daily activity records.</p>`;
     } else {
@@ -2713,157 +2626,8 @@ async function fetchActivityLogs() {
   }
 }
 
-// --- Staff Work Profile Drawer ---
-async function openProfileDrawer(username, fullName, roleName) {
-  // Set header identity
-  const initials = (fullName || username || '?')
-    .split(' ').map(p => p.charAt(0)).join('').slice(0, 2).toUpperCase();
-  document.getElementById('pdAvatar').textContent = initials;
-  document.getElementById('pdName').textContent = fullName || username;
-  document.getElementById('pdUsername').textContent = '@' + username;
-  document.getElementById('pdRoleText').textContent = roleName;
 
-  // Show loading state
-  document.getElementById('pdBody').innerHTML = `
-    <div style="display:grid;place-items:center;min-height:300px;color:#64748b;">
-      <div class="text-center">
-        <div class="spinner-border text-secondary mb-2" role="status"></div>
-        <div>Loading work profile...</div>
-      </div>
-    </div>`;
 
-  // Open drawer
-  document.getElementById('profileDrawerBackdrop').classList.add('show');
-  document.getElementById('profileDrawer').classList.add('open');
-
-  // Fetch data
-  try {
-    const res = await fetch(`${API}/admin-panel/stats/staff-profile/${encodeURIComponent(username)}`, {
-      headers: { Authorization: 'Bearer ' + TOKEN }
-    });
-    if (!res.ok) throw new Error(await res.text());
-    const result = await res.json();
-    renderProfileDrawer(result.data);
-  } catch (e) {
-    document.getElementById('pdBody').innerHTML = `
-      <div style="padding:40px; text-align:center; color:#dc2626;">
-        <i class="fa fa-exclamation-triangle" style="font-size:2rem;margin-bottom:10px;display:block;"></i>
-        <div style="font-weight:700;">Failed to load work profile</div>
-        <div style="font-size:0.85rem;color:#94a3b8;margin-top:4px;">${e.message}</div>
-      </div>`;
-  }
-}
-
-function closeProfileDrawer() {
-  document.getElementById('profileDrawerBackdrop').classList.remove('show');
-  document.getElementById('profileDrawer').classList.remove('open');
-}
-
-function renderProfileDrawer(data) {
-  const total = data.total_events || 0;
-  const success = data.success_count || 0;
-  const failed = data.failed_count || 0;
-  const rate = total > 0 ? Math.round((success / total) * 100) : 0;
-  const lastActive = data.last_active
-    ? new Date(data.last_active).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : 'Never';
-
-  const breakdown = data.action_breakdown || [];
-  const recentLogs = data.recent_logs || [];
-
-  // Build breakdown table rows
-  const breakdownRows = breakdown.length > 0 ? breakdown.map(item => {
-    const pct = total > 0 ? Math.round((item.total / total) * 100) : 0;
-    return `
-      <tr>
-        <td>
-          <div class="profile-action-name">
-            <div class="profile-action-icon"><i class="fa fa-tasks"></i></div>
-            ${escapeHtml(item.action)}
-          </div>
-          <div class="profile-progress">
-            <div class="profile-progress-bar" style="width:${pct}%"></div>
-          </div>
-        </td>
-        <td><strong>${item.total}</strong></td>
-        <td><span class="profile-badge-success">${item.success}</span></td>
-        <td><span class="profile-badge-failed">${item.failed}</span></td>
-        <td style="font-size:0.78rem;color:#94a3b8;">${item.last_done ? new Date(item.last_done).toLocaleDateString() : '-'}</td>
-      </tr>`;
-  }).join('') : `<tr><td colspan="5" style="text-align:center;padding:24px;color:#94a3b8;">No activity recorded yet</td></tr>`;
-
-  // Build recent timeline
-  const timelineItems = recentLogs.length > 0 ? recentLogs.map(log => {
-    const status = (log.status === 'completed' || log.status === 'success') ? 'success'
-                 : log.status === 'failed' ? 'failed' : 'pending';
-    const time = log.timestamp ? new Date(log.timestamp).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    }) : '';
-    return `
-      <div class="profile-timeline-item">
-        <div class="profile-timeline-dot ${status}"></div>
-        <div style="flex:1;min-width:0;">
-          <div class="profile-timeline-action">${escapeHtml(log.action || 'Action')}</div>
-          ${log.details ? `<div class="profile-timeline-details">${escapeHtml(log.details)}</div>` : ''}
-        </div>
-        <div class="profile-timeline-time">${time}</div>
-      </div>`;
-  }).join('') : `<div style="text-align:center;padding:24px;color:#94a3b8;">No recent activity</div>`;
-
-  document.getElementById('pdBody').innerHTML = `
-    <!-- KPI Row -->
-    <div class="profile-kpi-row">
-      <div class="profile-kpi-card">
-        <p class="profile-kpi-value">${total}</p>
-        <p class="profile-kpi-label">Total Tasks</p>
-      </div>
-      <div class="profile-kpi-card success">
-        <p class="profile-kpi-value">${success}</p>
-        <p class="profile-kpi-label">Completed</p>
-      </div>
-      <div class="profile-kpi-card failed">
-        <p class="profile-kpi-value">${failed}</p>
-        <p class="profile-kpi-label">Failed</p>
-      </div>
-      <div class="profile-kpi-card">
-        <p class="profile-kpi-value">${rate}%</p>
-        <p class="profile-kpi-label">Success Rate</p>
-      </div>
-    </div>
-
-    <!-- Last Active -->
-    <div style="background:#fff;border-radius:16px;padding:14px 18px;border:1px solid rgba(15,23,42,0.06);display:flex;align-items:center;gap:12px;">
-      <i class="fa fa-clock-o" style="color:#0f766e;font-size:1.1rem;"></i>
-      <div>
-        <div style="font-size:0.78rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Last Active</div>
-        <div style="font-weight:700;color:#0f172a;font-size:0.95rem;margin-top:2px;">${lastActive}</div>
-      </div>
-    </div>
-
-    <!-- Work Breakdown -->
-    <div>
-      <p class="profile-section-title"><i class="fa fa-table me-1"></i> Work Breakdown by Type</p>
-      <table class="profile-breakdown-table">
-        <thead>
-          <tr>
-            <th>Task Type</th>
-            <th>Total</th>
-            <th>Done</th>
-            <th>Failed</th>
-            <th>Last Done</th>
-          </tr>
-        </thead>
-        <tbody>${breakdownRows}</tbody>
-      </table>
-    </div>
-
-    <!-- Recent Activity Timeline -->
-    <div>
-      <p class="profile-section-title"><i class="fa fa-history me-1"></i> Recent Activity (last 25)</p>
-      <div class="profile-timeline">${timelineItems}</div>
-    </div>
-  `;
-}
 
 // --- Custom Select Dropdown Logic ---
 function populateCustomSelect(prefix, options, selectedValue) {
@@ -2935,6 +2699,20 @@ if (rolesTab) {
 fetchRoles();
 fetchRoleMonitoring();
 fetchActivityLogs();
+
+// Check if tab=activity is in the URL to activate Staff Activity Monitor tab directly
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get("tab") === "activity") {
+  const actTab = document.getElementById("activity-tab");
+  if (actTab) {
+    if (window.bootstrap && bootstrap.Tab) {
+      const tabTrigger = new bootstrap.Tab(actTab);
+      tabTrigger.show();
+    } else {
+      actTab.click();
+    }
+  }
+}
 </script>
 {% endblock %}
 

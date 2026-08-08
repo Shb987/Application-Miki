@@ -19,7 +19,7 @@ from app.routes import (
     admin_notification_routes, admin_games_routes, user_tuition_routes,
     payment_routes, admin_plan_routes, admin_school_routes, public_school_routes,
     external_registration_routes, admin_social_routes, contributor_routes, user_social_routes,
-    edusoft_routes
+    edusoft_routes, user_sudoku_routes
 ) 
 
 from fastapi.responses import JSONResponse
@@ -122,6 +122,7 @@ app.include_router(user_game_wordle.router, prefix="/user", tags=["Game - Wordle
 app.include_router(user_game_squares.router, prefix="/user", tags=["Game - Squares"])
 app.include_router(user_game_chess.router, prefix="/user", tags=["Game - Chess"])
 app.include_router(user_game_puzzle.router, prefix="/user", tags=["Game - Puzzle"])
+app.include_router(user_sudoku_routes.router, prefix="/api/v1/sudoku", tags=["Game - Sudoku"])
 
 # Special Days
 app.include_router(admin_special_day_routes.router, prefix="/admin-panel", tags=["Special Days - Admin"])

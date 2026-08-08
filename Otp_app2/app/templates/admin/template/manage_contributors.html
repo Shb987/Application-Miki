@@ -4,73 +4,354 @@
 
 {% block head %}
 <style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #7366ff 0%, #51bbfe 100%);
+        --glass-bg: rgba(255, 255, 255, 0.92);
+        --glass-border: rgba(255, 255, 255, 0.6);
+        --glass-shadow: 0 10px 30px rgba(31, 38, 135, 0.05);
+    }
+
     .glass-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
-    }
-    
-    .table th {
-        font-size: 0.85rem;
-        font-weight: 600;
-        border-top: none !important;
-        text-transform: uppercase;
-        color: #555;
-    }
-
-    .table td {
-        vertical-align: middle;
-        font-size: 0.9rem;
-    }
-
-    .status-badge {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
         border-radius: 20px;
-        padding: 5px 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
+        box-shadow: var(--glass-shadow);
     }
-    
+
+    /* Stats Card Styling */
+    .stat-card {
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 22px;
+        border: 1px solid rgba(230, 235, 245, 0.8);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(115, 102, 255, 0.1);
+    }
+
+    .stat-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .stat-icon.purple {
+        background: rgba(115, 102, 255, 0.12);
+        color: #7366ff;
+    }
+
+    .stat-icon.blue {
+        background: rgba(81, 187, 254, 0.12);
+        color: #51bbfe;
+    }
+
+    .stat-icon.emerald {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+    }
+
+    /* Table styling */
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0 10px;
+    }
+
+    .custom-table thead th {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #8898aa;
+        border: none;
+        padding: 12px 20px;
+    }
+
+    .custom-table tbody tr {
+        background: #ffffff;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        border-radius: 14px;
+        transition: all 0.25s ease;
+    }
+
+    .custom-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(115, 102, 255, 0.09);
+    }
+
+    .custom-table tbody td {
+        padding: 16px 20px;
+        vertical-align: middle;
+        border: none;
+    }
+
+    .custom-table tbody td:first-child {
+        border-top-left-radius: 14px;
+        border-bottom-left-radius: 14px;
+    }
+
+    .custom-table tbody td:last-child {
+        border-top-right-radius: 14px;
+        border-bottom-right-radius: 14px;
+    }
+
+    /* Avatar styling */
+    .avatar-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.15rem;
+        color: #ffffff;
+        background: var(--primary-gradient);
+        box-shadow: 0 4px 12px rgba(115, 102, 255, 0.25);
+        flex-shrink: 0;
+    }
+
+    /* Status Badge */
+    .status-badge-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: capitalize;
+    }
+
+    .status-badge-pill.active {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+    }
+
+    .status-badge-pill.active .status-dot {
+        background: #10b981;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    }
+
+    .status-badge-pill.inactive {
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+    }
+
+    .status-badge-pill.inactive .status-dot {
+        background: #ef4444;
+    }
+
+    .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+    }
+
+    /* Buttons */
     .add-btn {
         border-radius: 30px;
-        padding: 8px 20px;
+        padding: 10px 24px;
         font-weight: 600;
-        background: linear-gradient(135deg, #7366ff, #51bbfe);
+        background: var(--primary-gradient);
         color: white;
         border: none;
-        box-shadow: 0 4px 12px rgba(115, 102, 255, 0.3);
-        transition: transform 0.2s ease;
+        box-shadow: 0 6px 16px rgba(115, 102, 255, 0.3);
+        transition: all 0.25s ease;
     }
 
     .add-btn:hover {
         transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(115, 102, 255, 0.4);
         color: white;
     }
 
-    .form-control, .form-select {
-        border-radius: 8px;
-        padding: 10px 15px;
-        border: 1px solid #e0e0e0;
+    .btn-view-posts {
+        background: rgba(115, 102, 255, 0.08);
+        color: #7366ff;
+        border: 1px solid rgba(115, 102, 255, 0.15);
+        border-radius: 10px;
+        padding: 8px 18px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
-    
-    .form-control:focus, .form-select:focus {
+
+    .btn-view-posts:hover {
+        background: #7366ff;
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(115, 102, 255, 0.3);
+    }
+
+    /* Search Box */
+    .search-input-group {
+        position: relative;
+        max-width: 320px;
+    }
+
+    .search-input-group input {
+        border-radius: 25px;
+        padding: 9px 18px 9px 42px;
+        border: 1px solid rgba(220, 226, 235, 0.9);
+        font-size: 0.88rem;
+        background: #ffffff;
+        transition: all 0.2s ease;
+    }
+
+    .search-input-group input:focus {
         border-color: #7366ff;
-        box-shadow: 0 0 10px rgba(115, 102, 255, 0.1);
+        box-shadow: 0 0 14px rgba(115, 102, 255, 0.15);
+    }
+
+    .search-icon-inside {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #a0aec0;
+        pointer-events: none;
+    }
+
+    /* Post Card in Modal */
+    .post-card {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .post-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 14px 28px rgba(115, 102, 255, 0.12);
+        border-color: rgba(115, 102, 255, 0.3);
+    }
+
+    .post-media-container {
+        position: relative;
+        width: 100%;
+        height: 160px;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .post-media-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+
+    .post-card:hover .post-media-container img {
+        transform: scale(1.06);
+    }
+
+    .media-placeholder-icon {
+        color: #94a3b8;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .media-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(4px);
+        color: white;
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .class-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(115, 102, 255, 0.9);
+        backdrop-filter: blur(4px);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    .tag-chip {
+        background: rgba(115, 102, 255, 0.08);
+        color: #7366ff;
+        border-radius: 8px;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .modal-content-glass {
+        border-radius: 24px;
+        border: none;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    .modal-header-hero {
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+        color: white;
+        padding: 24px 30px;
+        border-bottom: none;
+    }
+
+    .modal-body-scrollable::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .modal-body-scrollable::-webkit-scrollbar-thumb {
+        background-color: rgba(115, 102, 255, 0.3);
+        border-radius: 10px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <div class="page-title">
-        <div class="row">
+    <div class="page-title mb-3">
+        <div class="row align-items-center">
             <div class="col-6">
-                <h4><i data-feather="users" style="width:20px;height:20px;color:#7366ff;"></i> Manage Contributors</h4>
+                <h4 class="f-w-700 mb-0" style="color: #2c3e50;">
+                    <i data-feather="users" style="width:22px;height:22px;color:#7366ff;margin-right:8px;"></i>
+                    Manage Contributors
+                </h4>
             </div>
             <div class="col-6">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="/admin-panel/manage-contributors-page"><svg class="stroke-icon">
+                <ol class="breadcrumb justify-content-end mb-0">
+                    <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg class="stroke-icon">
                                 <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
                             </svg></a></li>
                     <li class="breadcrumb-item">Social Media</li>
@@ -82,28 +363,72 @@
 </div>
 
 <div class="container-fluid">
+    <!-- Top Metrics Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i data-feather="users" style="width:26px;height:26px;"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1 font-weight-normal" style="font-size: 0.82rem;">Total Contributors</h6>
+                    <h3 class="mb-0 f-w-700" id="totalContributorsCount" style="color: #1e293b;">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon emerald">
+                    <i data-feather="user-check" style="width:26px;height:26px;"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1 font-weight-normal" style="font-size: 0.82rem;">Active Accounts</h6>
+                    <h3 class="mb-0 f-w-700" id="activeContributorsCount" style="color: #1e293b;">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <i data-feather="layers" style="width:26px;height:26px;"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1 font-weight-normal" style="font-size: 0.82rem;">Educational Feed Creators</h6>
+                    <h3 class="mb-0 f-w-700" style="color: #1e293b;">Active</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table Card -->
     <div class="row">
         <div class="col-md-12">
             <div class="card glass-card">
                 <div class="card-header pb-0 bg-transparent border-0 d-flex justify-content-between align-items-center mt-3 mx-2">
                     <div>
-                        <h5 class="mb-1 f-w-700">Social Media Contributors</h5>
+                        <h5 class="mb-1 f-w-700" style="color: #1e293b;">Social Media Contributors</h5>
                         <p class="text-muted mb-0" style="font-size: 0.85rem;">Manage content creators for the educational social feed.</p>
                     </div>
-                    <button class="btn add-btn d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addContributorModal">
-                        <i data-feather="plus-circle" style="width:16px;height:16px;"></i> Register Contributor
-                    </button>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="search-input-group d-none d-sm-block">
+                            <i data-feather="search" class="search-icon-inside" style="width:16px;height:16px;"></i>
+                            <input type="text" id="contributorSearchInput" class="form-control" placeholder="Search contributors..." onkeyup="filterContributorsTable()" />
+                        </div>
+                        <button class="btn add-btn d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addContributorModal">
+                            <i data-feather="plus-circle" style="width:16px;height:16px;"></i> Register Contributor
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body p-4">
                     <div class="table-responsive">
-                        <table class="table table-hover" id="contributorsTable">
+                        <table class="table custom-table" id="contributorsTable">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Contributor</th>
                                     <th>Username</th>
                                     <th>Status</th>
                                     <th>Joined On</th>
-                                    <th>Actions</th>
+                                    <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -120,29 +445,38 @@
 <!-- Add Contributor Modal -->
 <div class="modal fade" id="addContributorModal" tabindex="-1" aria-labelledby="addContributorModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-      <div class="modal-header bg-light" style="border-radius: 16px 16px 0 0; border-bottom: 1px solid #eee;">
-        <h5 class="modal-title f-w-600" id="addContributorModalLabel">
-            <i data-feather="user-plus" style="width:18px;height:18px; color:#7366ff; margin-right: 8px;"></i>
+    <div class="modal-content modal-content-glass">
+      <div class="modal-header bg-gradient-primary text-white p-4" style="background: linear-gradient(135deg, #7366ff, #51bbfe); border: none;">
+        <h5 class="modal-title f-w-700 text-white mb-0" id="addContributorModalLabel">
+            <i data-feather="user-plus" style="width:20px;height:20px; margin-right: 8px; vertical-align: middle;"></i>
             Register New Contributor
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4">
         <form id="addContributorForm">
             <div class="mb-3">
-                <label class="form-label f-w-600">Full Name</label>
-                <input type="text" id="contributorName" class="form-control" placeholder="e.g. John Doe" required />
+                <label class="form-label f-w-600" style="color: #475569;">Full Name</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;"><i data-feather="user" style="width:16px;height:16px;color:#94a3b8;"></i></span>
+                    <input type="text" id="contributorName" class="form-control border-start-0" placeholder="e.g. John Doe" required style="border-radius: 0 10px 10px 0;" />
+                </div>
             </div>
             <div class="mb-3">
-                <label class="form-label f-w-600">Username</label>
-                <input type="text" id="contributorUsername" class="form-control" placeholder="Choose a unique username" required />
+                <label class="form-label f-w-600" style="color: #475569;">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;"><i data-feather="at-sign" style="width:16px;height:16px;color:#94a3b8;"></i></span>
+                    <input type="text" id="contributorUsername" class="form-control border-start-0" placeholder="Choose a unique username" required style="border-radius: 0 10px 10px 0;" />
+                </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label f-w-600">Temporary Password</label>
-                <input type="password" id="contributorPassword" class="form-control" placeholder="Enter password" required />
+            <div class="mb-4">
+                <label class="form-label f-w-600" style="color: #475569;">Temporary Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;"><i data-feather="lock" style="width:16px;height:16px;color:#94a3b8;"></i></span>
+                    <input type="password" id="contributorPassword" class="form-control border-start-0" placeholder="Enter temporary password" required style="border-radius: 0 10px 10px 0;" />
+                </div>
             </div>
-            <button type="submit" class="btn w-100" style="background: #7366ff; color: white; border-radius: 8px; font-weight: 600; padding: 10px;">
+            <button type="submit" class="btn w-100 py-3" style="background: linear-gradient(135deg, #7366ff, #51bbfe); color: white; border-radius: 12px; font-weight: 700; box-shadow: 0 6px 18px rgba(115,102,255,0.3);">
                 Complete Registration
             </button>
         </form>
@@ -154,16 +488,19 @@
 <!-- View Posts Modal -->
 <div class="modal fade" id="viewPostsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-      <div class="modal-header bg-light" style="border-radius: 16px 16px 0 0; border-bottom: 1px solid #eee;">
-        <h5 class="modal-title f-w-600">
-            <i data-feather="layout" style="width:18px;height:18px; color:#7366ff; margin-right: 8px;"></i>
-            Posts by <span id="viewPostsAuthorName" class="text-primary"></span>
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-content modal-content-glass">
+      <div class="modal-header modal-header-hero d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+            <div id="viewPostsAuthorAvatar" class="avatar-circle" style="width: 48px; height: 48px; font-size: 1.3rem;">S</div>
+            <div>
+                <h5 class="modal-title f-w-700 text-white mb-0" id="viewPostsAuthorName">Author Posts</h5>
+                <span id="viewPostsAuthorUsername" class="text-light opacity-75" style="font-size: 0.85rem;">@username</span>
+            </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body p-4 bg-light">
-        <div class="row g-3" id="authorPostsGrid">
+      <div class="modal-body p-4 modal-body-scrollable" style="background: #f8fafc; min-height: 380px;">
+        <div class="row g-4" id="authorPostsGrid">
             <!-- Loaded via JS -->
         </div>
       </div>
@@ -175,6 +512,8 @@
 
 {% block scripts %}
 <script>
+    let allContributorsCache = [];
+
     document.addEventListener("DOMContentLoaded", () => {
         loadContributors();
         if (typeof feather !== 'undefined') {
@@ -184,8 +523,8 @@
         document.getElementById('addContributorForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
-                name: document.getElementById('contributorName').value,
-                username: document.getElementById('contributorUsername').value,
+                name: document.getElementById('contributorName').value.trim(),
+                username: document.getElementById('contributorUsername').value.trim(),
                 password: document.getElementById('contributorPassword').value
             };
 
@@ -195,9 +534,13 @@
             submitBtn.disabled = true;
 
             try {
+                const authToken = window.token || localStorage.getItem("admin_token");
                 const res = await fetch(`${API_BASE}/admin-panel/social/contributors/register`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
                     body: JSON.stringify(payload)
                 });
                 
@@ -209,11 +552,11 @@
                     loadContributors();
                 } else {
                     const errorData = await res.json();
-                    alert(`Failed: ${errorData.detail}`);
+                    alert(`Failed: ${errorData.detail || 'Registration failed'}`);
                 }
             } catch (err) {
                 console.error(err);
-                alert("An error occurred");
+                alert("An error occurred during registration");
             } finally {
                 submitBtn.innerText = originalText;
                 submitBtn.disabled = false;
@@ -221,95 +564,199 @@
         });
     });
 
+    function formatDateStr(dateStr) {
+        if (!dateStr) return "N/A";
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return "N/A";
+        return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
     async function loadContributors() {
         const tbody = document.querySelector('#contributorsTable tbody');
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted" style="font-size:0.85rem;">Loading contributors...</p></td></tr>';
 
         try {
-            const res = await fetch(`${API_BASE}/admin-panel/social/contributors`);
-            const contributors = await res.json();
-            
-            tbody.innerHTML = '';
-            
-            if(contributors.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No contributors registered yet.</td></tr>';
-                return;
-            }
-
-            contributors.forEach(c => {
-                const tr = document.createElement('tr');
-                const badgeClass = c.status === 'active' ? 'bg-success' : 'bg-danger';
-                
-                const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
-                const joinedStr = new Date(c.created_at).toLocaleDateString(undefined, dateOpts);
-
-                tr.innerHTML = `
-                    <td><strong>${c.name}</strong></td>
-                    <td class="text-muted">@${c.username}</td>
-                    <td><span class="badge ${badgeClass} status-badge">${c.status}</span></td>
-                    <td>${joinedStr}</td>
-                    <td>
-                        <button class="btn btn-sm" style="background: rgba(115,102,255,0.1); color: #7366ff; border-radius: 8px; font-weight: 600;" onclick="viewAuthorPosts('${c._id}', '${c.name.replace(/'/g, "\\'")}')">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            View Posts
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+            const authToken = window.token || localStorage.getItem("admin_token");
+            const res = await fetch(`${API_BASE}/admin-panel/social/contributors`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
             });
-            feather.replace();
+            const contributors = await res.json();
+            allContributorsCache = contributors || [];
+            
+            updateStatsSummary(allContributorsCache);
+            renderContributorsTable(allContributorsCache);
+
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Failed to load contributors.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4"><i data-feather="alert-circle" class="me-1"></i> Failed to load contributors.</td></tr>';
+            feather.replace();
         }
     }
 
-    async function viewAuthorPosts(contributorId, authorName) {
-        document.getElementById('viewPostsAuthorName').innerText = authorName;
+    function updateStatsSummary(contributors) {
+        document.getElementById('totalContributorsCount').innerText = contributors.length;
+        const activeCount = contributors.filter(c => c.status === 'active').length;
+        document.getElementById('activeContributorsCount').innerText = activeCount;
+    }
+
+    function renderContributorsTable(contributors) {
+        const tbody = document.querySelector('#contributorsTable tbody');
+        tbody.innerHTML = '';
+        
+        if (contributors.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5"><i data-feather="user-x" style="width:32px;height:32px;display:block;margin:0 auto 8px;opacity:0.5;"></i>No contributors found.</td></tr>';
+            feather.replace();
+            return;
+        }
+
+        contributors.forEach(c => {
+            const tr = document.createElement('tr');
+            const isActive = (c.status === 'active');
+            const statusClass = isActive ? 'active' : 'inactive';
+            const statusText = isActive ? 'Active' : (c.status || 'Inactive');
+            
+            const joinedStr = formatDateStr(c.created_at);
+            const initial = (c.name || 'C').charAt(0).toUpperCase();
+            
+            // Palette generation based on initial
+            const bgGradients = [
+                'linear-gradient(135deg, #7366ff, #51bbfe)',
+                'linear-gradient(135deg, #f73164, #ff8084)',
+                'linear-gradient(135deg, #f59e0b, #fbbf24)',
+                'linear-gradient(135deg, #10b981, #34d399)',
+                'linear-gradient(135deg, #8b5cf6, #c084fc)'
+            ];
+            const charCode = initial.charCodeAt(0);
+            const gradient = bgGradients[charCode % bgGradients.length];
+
+            tr.innerHTML = `
+                <td>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-circle" style="background: ${gradient};">${initial}</div>
+                        <div>
+                            <div class="f-w-700" style="color:#1e293b; font-size:0.95rem;">${escapeHtml(c.name || 'Unnamed')}</div>
+                            <small class="text-muted d-block d-sm-none">@${escapeHtml(c.username || '')}</small>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="text-muted fw-semibold">@${escapeHtml(c.username || '')}</span></td>
+                <td>
+                    <span class="status-badge-pill ${statusClass}">
+                        <span class="status-dot"></span> ${statusText}
+                    </span>
+                </td>
+                <td><span class="text-muted" style="font-size:0.88rem;"><i data-feather="calendar" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:#a0aec0;"></i>${joinedStr}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-view-posts" onclick="viewAuthorPosts('${c._id}', '${escapeJsStr(c.name || '')}', '${escapeJsStr(c.username || '')}')">
+                        <i data-feather="grid" style="width:14px;height:14px;"></i>
+                        View Posts
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        feather.replace();
+    }
+
+    function filterContributorsTable() {
+        const query = document.getElementById('contributorSearchInput').value.toLowerCase().trim();
+        if (!query) {
+            renderContributorsTable(allContributorsCache);
+            return;
+        }
+
+        const filtered = allContributorsCache.filter(c => 
+            (c.name && c.name.toLowerCase().includes(query)) ||
+            (c.username && c.username.toLowerCase().includes(query))
+        );
+        renderContributorsTable(filtered);
+    }
+
+    async function viewAuthorPosts(contributorId, authorName, authorUsername) {
+        document.getElementById('viewPostsAuthorName').innerText = authorName || 'Contributor';
+        document.getElementById('viewPostsAuthorUsername').innerText = authorUsername ? `@${authorUsername}` : '';
+        
+        const avatarEl = document.getElementById('viewPostsAuthorAvatar');
+        avatarEl.innerText = (authorName || 'C').charAt(0).toUpperCase();
+
         const grid = document.getElementById('authorPostsGrid');
-        grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div></div>';
+        grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Fetching published posts...</p></div>';
         
         const modal = new bootstrap.Modal(document.getElementById('viewPostsModal'));
         modal.show();
 
         try {
-            // Note: reusing the contributor portal API endpoint since it accepts contributor_id
-            const res = await fetch(`${API_BASE}/contributor/content?contributor_id=${contributorId}`);
+            const authToken = window.token || localStorage.getItem("admin_token");
+            const res = await fetch(`${API_BASE}/contributor/content?contributor_id=${contributorId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
             const contents = await res.json();
 
-            if (contents.length === 0) {
-                grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">This contributor has not published any content yet.</div>';
+            if (!contents || contents.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <div style="background: rgba(115, 102, 255, 0.08); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <i data-feather="folder-off" style="width:28px;height:28px;color:#7366ff;"></i>
+                        </div>
+                        <h6 class="f-w-700 text-dark mb-1">No Posts Found</h6>
+                        <p class="text-muted mb-0" style="font-size:0.88rem;">This contributor has not published any social media content yet.</p>
+                    </div>
+                `;
+                feather.replace();
                 return;
             }
 
             grid.innerHTML = '';
             contents.forEach(c => {
-                const tagsHtml = c.skill_tags.map(t => `<span class="badge" style="background: rgba(115,102,255,0.1); color: #7366ff; margin-right: 4px;">${t}</span>`).join('');
+                const tagsHtml = (c.skill_tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join(' ');
                 
-                const imageHtml = (c.media_type === 'image' && c.media_url)
-                    ? `<img src="${c.media_url}" alt="${c.title}" style="width:100%; height:140px; object-fit:cover; border-radius:10px 10px 0 0;" onerror="this.style.display='none'">`
-                    : '';
+                let mediaHeader = '';
+                if (c.media_type === 'image' && c.media_url) {
+                    mediaHeader = `
+                        <div class="post-media-container">
+                            <img src="${escapeHtml(c.media_url)}" alt="${escapeHtml(c.title || '')}" onerror="this.onerror=null; this.parentNode.innerHTML='<div class=\\'media-placeholder-icon\\'><i data-feather=\\'image\\' style=\\'width:32px;height:32px;\\'></i><span>Image Unavailable</span></div>'; feather.replace();">
+                            <span class="media-badge">Image</span>
+                            <span class="class-badge">Class ${c.target_class || 'All'}</span>
+                        </div>
+                    `;
+                } else {
+                    const iconName = c.media_type === 'video' ? 'video' : 'file-text';
+                    mediaHeader = `
+                        <div class="post-media-container">
+                            <div class="media-placeholder-icon">
+                                <i data-feather="${iconName}" style="width:36px;height:36px;color:#7366ff;"></i>
+                                <span style="font-size:0.78rem;font-weight:600;color:#64748b;text-transform:uppercase;">${c.media_type || 'Content'}</span>
+                            </div>
+                            <span class="media-badge">${c.media_type || 'Post'}</span>
+                            <span class="class-badge">Class ${c.target_class || 'All'}</span>
+                        </div>
+                    `;
+                }
                 
                 grid.innerHTML += `
-                    <div class="col-md-4">
-                        <div class="card h-100" style="border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 12px; overflow: hidden;">
-                            ${imageHtml}
-                            <div class="card-body">
-                                <h6 class="card-title f-w-700">${c.title}</h6>
-                                <p class="card-text text-muted" style="font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${c.description}</p>
-                                <div class="mb-2" style="font-size: 0.8rem;">
-                                    <span class="badge bg-secondary text-uppercase me-1">${c.media_type}</span>
-                                    <span class="text-muted">Class ${c.target_class || 'All'}</span>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="post-card">
+                            ${mediaHeader}
+                            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                <div>
+                                    <h6 class="card-title f-w-700 text-dark mb-2" style="font-size:0.95rem; line-height: 1.4;">${escapeHtml(c.title || 'Untitled')}</h6>
+                                    <p class="card-text text-muted mb-3" style="font-size: 0.84rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5;">${escapeHtml(c.description || '')}</p>
                                 </div>
-                                <div>${tagsHtml}</div>
+                                <div class="d-flex flex-wrap gap-1 mt-auto pt-2">
+                                    ${tagsHtml}
+                                </div>
                             </div>
-                            <div class="card-footer bg-white d-flex justify-content-between align-items-center" style="border-top: 1px solid #f8f9fa;">
-                                <small style="color:#51bbfe; font-weight:600;">
-                                    <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='vertical-align:middle;margin-right:3px;'><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'></path><circle cx='12' cy='12' r='3'></circle></svg>${c.views_count}
-                                </small>
-                                <small style="color:#f73164; font-weight:600;">
-                                    <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' style='vertical-align:middle;margin-right:3px;'><path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'></path></svg>${c.likes_count}
-                                </small>
+                            <div class="card-footer bg-light p-3 d-flex justify-content-between align-items-center" style="border-top: 1px solid #f1f5f9;">
+                                <span style="color:#51bbfe; font-weight:700; font-size:0.82rem;">
+                                    <i data-feather="eye" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;"></i>${c.views_count || 0}
+                                </span>
+                                <span style="color:#f73164; font-weight:700; font-size:0.82rem;">
+                                    <i data-feather="heart" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;"></i>${c.likes_count || 0}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -318,8 +765,19 @@
             feather.replace();
         } catch (err) {
             console.error(err);
-            grid.innerHTML = '<div class="col-12 text-center py-5 text-danger">Failed to load posts.</div>';
+            grid.innerHTML = '<div class="col-12 text-center py-5 text-danger"><i data-feather="alert-circle" class="me-1"></i> Failed to load author posts.</div>';
+            feather.replace();
         }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function escapeJsStr(str) {
+        if (!str) return '';
+        return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
     }
 </script>
 {% endblock %}

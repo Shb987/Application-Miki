@@ -4,49 +4,143 @@
 
 {% block head %}
 <style>
-    .glass-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
-    }
-    
-    .table th {
-        font-size: 0.85rem;
-        font-weight: 600;
-        border-top: none !important;
-        text-transform: uppercase;
-        color: #555;
+    :root {
+        --primary-gradient: linear-gradient(135deg, #7366ff 0%, #51bbfe 100%);
+        --glass-bg: rgba(255, 255, 255, 0.92);
+        --glass-border: rgba(255, 255, 255, 0.6);
+        --glass-shadow: 0 10px 30px rgba(31, 38, 135, 0.05);
     }
 
-    .table td {
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        box-shadow: var(--glass-shadow);
+    }
+
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0 10px;
+    }
+
+    .custom-table thead th {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #8898aa;
+        border: none;
+        padding: 12px 20px;
+    }
+
+    .custom-table tbody tr {
+        background: #ffffff;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        border-radius: 14px;
+        transition: all 0.25s ease;
+    }
+
+    .custom-table tbody tr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(115, 102, 255, 0.09);
+    }
+
+    .custom-table tbody td {
+        padding: 16px 20px;
         vertical-align: middle;
-        font-size: 0.9rem;
+        border: none;
+    }
+
+    .custom-table tbody td:first-child {
+        border-top-left-radius: 14px;
+        border-bottom-left-radius: 14px;
+    }
+
+    .custom-table tbody td:last-child {
+        border-top-right-radius: 14px;
+        border-bottom-right-radius: 14px;
     }
 
     .tag-badge {
-        background: rgba(115, 102, 255, 0.1);
+        background: rgba(115, 102, 255, 0.08);
         color: #7366ff;
-        border: 1px solid rgba(115, 102, 255, 0.2);
-        border-radius: 12px;
-        padding: 4px 10px;
+        border: 1px solid rgba(115, 102, 255, 0.15);
+        border-radius: 8px;
+        padding: 3px 9px;
         font-size: 0.75rem;
+        font-weight: 600;
         margin-right: 4px;
         display: inline-block;
+    }
+
+    .format-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .format-badge.image {
+        background: rgba(81, 187, 254, 0.12);
+        color: #51bbfe;
+    }
+
+    .format-badge.video {
+        background: rgba(247, 49, 100, 0.12);
+        color: #f73164;
+    }
+
+    .format-badge.text {
+        background: rgba(115, 102, 255, 0.12);
+        color: #7366ff;
+    }
+
+    .search-input-group {
+        position: relative;
+        max-width: 320px;
+    }
+
+    .search-input-group input {
+        border-radius: 25px;
+        padding: 9px 18px 9px 42px;
+        border: 1px solid rgba(220, 226, 235, 0.9);
+        font-size: 0.88rem;
+        background: #ffffff;
+        transition: all 0.2s ease;
+    }
+
+    .search-input-group input:focus {
+        border-color: #7366ff;
+        box-shadow: 0 0 14px rgba(115, 102, 255, 0.15);
+    }
+
+    .search-icon-inside {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #a0aec0;
+        pointer-events: none;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <div class="page-title">
-        <div class="row">
+    <div class="page-title mb-3">
+        <div class="row align-items-center">
             <div class="col-6">
-                <h4><i data-feather="layout" style="width:20px;height:20px;color:#7366ff;"></i> Social Content</h4>
+                <h4 class="f-w-700 mb-0" style="color: #2c3e50;">
+                    <i data-feather="layout" style="width:22px;height:22px;color:#7366ff;margin-right:8px;"></i>
+                    Social Content
+                </h4>
             </div>
             <div class="col-6">
-                <ol class="breadcrumb">
+                <ol class="breadcrumb justify-content-end mb-0">
                     <li class="breadcrumb-item"><a href="/admin-panel/dashboard"><svg class="stroke-icon">
                                 <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
                             </svg></a></li>
@@ -64,21 +158,25 @@
             <div class="card glass-card">
                 <div class="card-header pb-0 bg-transparent border-0 d-flex justify-content-between align-items-center mt-3 mx-2">
                     <div>
-                        <h5 class="mb-1 f-w-700">Published Content</h5>
-                        <p class="text-muted mb-0" style="font-size: 0.85rem;">Review posts created by all contributors.</p>
+                        <h5 class="mb-1 f-w-700" style="color: #1e293b;">Published Feed Posts</h5>
+                        <p class="text-muted mb-0" style="font-size: 0.85rem;">Review educational content submitted by all registered contributors.</p>
+                    </div>
+                    <div class="search-input-group d-none d-sm-block">
+                        <i data-feather="search" class="search-icon-inside" style="width:16px;height:16px;"></i>
+                        <input type="text" id="contentSearchInput" class="form-control" placeholder="Search title, author or topic..." onkeyup="filterContentTable()" />
                     </div>
                 </div>
                 <div class="card-body p-4">
                     <div class="table-responsive">
-                        <table class="table table-hover" id="contentTable">
+                        <table class="table custom-table" id="contentTable">
                             <thead>
                                 <tr>
-                                    <th>Title</th>
+                                    <th>Content Title</th>
                                     <th>Author</th>
                                     <th>Format</th>
                                     <th>Target Class</th>
                                     <th>Topics</th>
-                                    <th>Metrics</th>
+                                    <th class="text-end">Metrics</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -95,6 +193,8 @@
 
 {% block scripts %}
 <script>
+    let allContentCache = [];
+
     document.addEventListener("DOMContentLoaded", () => {
         loadContent();
         if (typeof feather !== 'undefined') {
@@ -104,46 +204,82 @@
 
     async function loadContent() {
         const tbody = document.querySelector('#contentTable tbody');
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted" style="font-size:0.85rem;">Loading content feed...</p></td></tr>';
 
         try {
-            const res = await fetch(`${API_BASE}/admin-panel/social/content`);
-            const contents = await res.json();
-            
-            tbody.innerHTML = '';
-            
-            if(contents.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No content has been published yet.</td></tr>';
-                return;
-            }
-
-            contents.forEach(c => {
-                const tr = document.createElement('tr');
-                
-                const tagsHtml = c.skill_tags.map(t => `<span class="tag-badge">${t}</span>`).join('');
-                
-                // Truncate title if too long
-                const shortTitle = c.title.length > 40 ? c.title.substring(0, 40) + '...' : c.title;
-
-                tr.innerHTML = `
-                    <td><strong>${shortTitle}</strong></td>
-                    <td class="text-muted">${c.contributor_name || 'Unknown'}</td>
-                    <td><span class="badge bg-secondary text-uppercase">${c.media_type}</span></td>
-                    <td>${c.target_class ? 'Class ' + c.target_class : 'All'}</td>
-                    <td>${tagsHtml}</td>
-                    <td>
-                        <span class="me-2" title="Views"><i data-feather="eye" style="width:12px;height:12px;color:#51bbfe;"></i> ${c.views_count || 0}</span>
-                        <span class="me-2" title="Likes"><i data-feather="heart" style="width:12px;height:12px;color:#f73164;"></i> ${c.likes_count || 0}</span>
-                        <span title="Shares"><i data-feather="share-2" style="width:12px;height:12px;color:#7366ff;"></i> ${c.shares_count || 0}</span>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+            const authToken = window.token || localStorage.getItem("admin_token");
+            const res = await fetch(`${API_BASE}/admin-panel/social/content`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
             });
-            feather.replace();
+            const contents = await res.json();
+            allContentCache = contents || [];
+            
+            renderContentTable(allContentCache);
+
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load content.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4"><i data-feather="alert-circle" class="me-1"></i> Failed to load published content.</td></tr>';
+            feather.replace();
         }
+    }
+
+    function renderContentTable(contents) {
+        const tbody = document.querySelector('#contentTable tbody');
+        tbody.innerHTML = '';
+        
+        if (!contents || contents.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-5"><i data-feather="file-off" style="width:32px;height:32px;display:block;margin:0 auto 8px;opacity:0.5;"></i>No social content has been published yet.</td></tr>';
+            feather.replace();
+            return;
+        }
+
+        contents.forEach(c => {
+            const tr = document.createElement('tr');
+            
+            const tagsHtml = (c.skill_tags || []).map(t => `<span class="tag-badge">${escapeHtml(t)}</span>`).join('');
+            const shortTitle = (c.title || 'Untitled').length > 50 ? (c.title || '').substring(0, 50) + '...' : (c.title || 'Untitled');
+            const mediaType = (c.media_type || 'text').toLowerCase();
+            const formatClass = (mediaType === 'image') ? 'image' : ((mediaType === 'video') ? 'video' : 'text');
+
+            tr.innerHTML = `
+                <td>
+                    <div class="f-w-700" style="color:#1e293b; font-size:0.92rem;">${escapeHtml(shortTitle)}</div>
+                </td>
+                <td><span class="text-muted fw-semibold"><i data-feather="user" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:#7366ff;"></i>${escapeHtml(c.contributor_name || 'Unknown')}</span></td>
+                <td><span class="format-badge ${formatClass}">${escapeHtml(mediaType)}</span></td>
+                <td><span class="badge bg-light text-dark border" style="font-weight:600;font-size:0.78rem;">${c.target_class ? 'Class ' + escapeHtml(String(c.target_class)) : 'All Classes'}</span></td>
+                <td>${tagsHtml}</td>
+                <td class="text-end">
+                    <span class="me-3" title="Views" style="color:#51bbfe; font-weight:700; font-size:0.85rem;"><i data-feather="eye" style="width:14px;height:14px;margin-right:3px;vertical-align:middle;"></i> ${c.views_count || 0}</span>
+                    <span class="me-3" title="Likes" style="color:#f73164; font-weight:700; font-size:0.85rem;"><i data-feather="heart" style="width:14px;height:14px;margin-right:3px;vertical-align:middle;"></i> ${c.likes_count || 0}</span>
+                    <span title="Shares" style="color:#7366ff; font-weight:700; font-size:0.85rem;"><i data-feather="share-2" style="width:14px;height:14px;margin-right:3px;vertical-align:middle;"></i> ${c.shares_count || 0}</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        feather.replace();
+    }
+
+    function filterContentTable() {
+        const query = document.getElementById('contentSearchInput').value.toLowerCase().trim();
+        if (!query) {
+            renderContentTable(allContentCache);
+            return;
+        }
+
+        const filtered = allContentCache.filter(c => 
+            (c.title && c.title.toLowerCase().includes(query)) ||
+            (c.contributor_name && c.contributor_name.toLowerCase().includes(query)) ||
+            (c.skill_tags && c.skill_tags.some(t => t.toLowerCase().includes(query)))
+        );
+        renderContentTable(filtered);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 </script>
 {% endblock %}

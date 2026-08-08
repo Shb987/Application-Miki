@@ -58,10 +58,11 @@ async def get_subjects_and_chapters(standard: str):
             "information&communicationtechnology": "IT.jpeg"
         }
         
+        if "information" in subject.lower():
+            return "subject_images/IT.jpeg"
+            
         if normalized_subject in special_cases:
-            target_image = special_cases[normalized_subject]
-            if target_image in image_files:
-                return f"subject_images/{target_image}"
+            return f"subject_images/{special_cases[normalized_subject]}"
         else:
             # Search for loosely matching image
             for img in image_files:

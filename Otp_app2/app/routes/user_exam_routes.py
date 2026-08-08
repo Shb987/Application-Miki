@@ -53,7 +53,9 @@ async def get_subjects_and_chapters(standard: str):
             "mathematics": "maths.jpg",
             "socialscience": "socialscience.jpg",
             "informationandtechnology": "IT.jpg",
-            "informationandcommunicationtechnology": "IT.jpg"
+            "informationandcommunicationtechnology": "IT.jpeg",
+            "information&technology": "IT.jpeg",
+            "information&communicationtechnology": "IT.jpeg"
         }
         
         if normalized_subject in special_cases:

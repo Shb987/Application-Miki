@@ -9,7 +9,7 @@ from app.models.puzzle_models import (
     PuzzleCompleteResponse
 )
 
-router = APIRouter(prefix="/puzzle", tags=["Games - Puzzle"])
+router = APIRouter()
 
 @router.get("/levels", response_model=PuzzleLevelsResponse)
 async def get_puzzle_levels(

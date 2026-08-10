@@ -3,7 +3,7 @@ from typing import Dict, List
 from app.models.chess_models import ChessBotMoveRequest, ChessMoveCommand
 from app.services.chess_service import ChessService
 
-router = APIRouter(prefix="/chess", tags=["Chess"])
+router = APIRouter()
 
 @router.post("/bot/move")
 async def get_bot_move(request: ChessBotMoveRequest):

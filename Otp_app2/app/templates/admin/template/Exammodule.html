@@ -143,6 +143,14 @@
                   Textbook Name (Optional)</label>
                 <input type="text" class="form-control shadow-sm border-light-subtle" id="textbook_name" placeholder="Enter textbook name (e.g., NCERT Physics Part 1)">
               </div>
+              <div class="col-md-12 mb-3">
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="force_vision" value="true">
+                  <label class="form-check-label fw-bold font-primary" for="force_vision">
+                    Force Vision Extraction (GPT-4o-mini) <small class="text-muted fw-normal">- Use this if standard extraction fails with "invalid float value" errors.</small>
+                  </label>
+                </div>
+              </div>
               <div class="col-md-12 mb-4">
                 <label class="form-label fw-bold font-primary"><i class="icofont icofont-file-pdf me-1"></i> Upload
                   Chapter PDFs (Bulk)</label>
@@ -305,6 +313,8 @@
       if (publicationYear) {
         formData.append("publication_year", publicationYear);
       }
+      const forceVision = document.getElementById("force_vision").checked ? "true" : "false";
+      formData.append("force_vision", forceVision);
       formData.append("chapter_number", item.chNumber);
       formData.append("chapter_name", item.chName);
       formData.append("file", item.file);

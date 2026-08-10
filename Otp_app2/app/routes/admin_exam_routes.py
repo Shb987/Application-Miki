@@ -244,6 +244,7 @@ async def upload_chapter_endpoint(
     textbook_name: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
     publication_year: str = Form(...),
+    force_vision: Optional[str] = Form(None),
     file: UploadFile = File(...),
     current_admin: dict = Depends(require_permission("Exams, Textbooks & Syllabus", "create"))
 ):
@@ -338,6 +339,7 @@ async def upload_chapter_endpoint(
             initiated_by_username=current_admin["sub"],
             initiated_by_role=current_admin["role"],
             activity_log_id=str(activity_log.inserted_id),
+            force_vision=(force_vision == "true")
         )
 
         return {
@@ -371,6 +373,7 @@ async def process_chapter_worker(
     initiated_by_username: str | None = None,
     initiated_by_role: str | None = None,
     activity_log_id: str | None = None,
+    force_vision: bool = False
 ):
     """Background worker to extract text and generate embeddings for a single chapter."""
     status_query = {
@@ -396,10 +399,13 @@ async def process_chapter_worker(
         
         # Branching: Use Vision for Standard 1-5 or as fallback
         standard_val = int(textbook_query.get("standard", 0))
-        use_vision = standard_val > 0 and standard_val <= 5
+        use_vision = force_vision or (standard_val > 0 and standard_val <= 5)
         
         if use_vision:
-            print(f"[BG-CHAPTER] Standard {standard_val} detected. Using VISION-BASED extraction for better quality.")
+            if force_vision:
+                print(f"[BG-CHAPTER] Force Vision Extraction toggle enabled. Using VISION-BASED extraction.")
+            else:
+                print(f"[BG-CHAPTER] Standard {standard_val} detected. Using VISION-BASED extraction for better quality.")
             text_content = await extract_text_via_vision(file_path, status_query)
         else:
             print(f"[BG-CHAPTER] Using standard text extraction (pdfplumber)...")

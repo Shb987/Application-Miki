@@ -33,14 +33,16 @@ class PuzzleService:
             })
             highest_level = progress.get("highest_level", 1) if progress else 1
             
-            # Get total levels available for this difficulty
-            total_levels_count = await db.puzzle_levels.count_documents({"difficulty": difficulty})
-            # Ensure at least 1 level is shown if none exist yet to avoid completely empty UI
-            if total_levels_count == 0:
-                total_levels_count = 0
+            # Get all levels available for this difficulty
+            puzzle_levels_cursor = db.puzzle_levels.find({"difficulty": difficulty}).sort("level", 1)
+            puzzle_levels = await puzzle_levels_cursor.to_list(length=None)
+            total_levels_count = len(puzzle_levels)
             
             levels = []
-            for i in range(1, total_levels_count + 1):
+            for doc in puzzle_levels:
+                i = doc.get("level")
+                image_url = doc.get("image_url", "")
+                
                 if i < highest_level:
                     status, playable = "completed", True
                 elif i == highest_level:
@@ -51,7 +53,8 @@ class PuzzleService:
                 levels.append({
                     "level": i,
                     "status": status,
-                    "playable": playable
+                    "playable": playable,
+                    "image_url": image_url
                 })
                 
             return {

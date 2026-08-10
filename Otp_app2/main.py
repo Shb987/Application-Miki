@@ -65,9 +65,17 @@ except Exception as e:
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     print("[ERROR] Validation Error:", exc.errors())
     print("[ERROR] Body Received:", exc.body)
+    
+    safe_errors = []
+    for err in exc.errors():
+        safe_err = err.copy()
+        if 'ctx' in safe_err and 'error' in safe_err['ctx']:
+            safe_err['ctx']['error'] = str(safe_err['ctx']['error'])
+        safe_errors.append(safe_err)
+        
     return JSONResponse(
         status_code=422,
-        content={"detail": exc.errors(), "body": exc.body},
+        content={"detail": safe_errors, "body": exc.body},
     )
 
 

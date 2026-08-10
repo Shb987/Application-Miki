@@ -6,6 +6,7 @@ class PuzzleLevelInfo(BaseModel):
     level: int
     status: str  # "locked", "unlocked", "completed"
     playable: bool
+    image_url: Optional[str] = ""
 
 class PuzzleLevelsResponse(BaseModel):
     student_id: str

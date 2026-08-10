@@ -30,10 +30,20 @@ def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
 @router.get("/standard/{standard}")
-async def get_subjects_and_chapters(standard: str):
-    # Fetch all processed textbooks for this standard
+async def get_subjects_and_chapters(standard: str, category: str = "NCERT", student_id: Optional[str] = None):
+    # If student_id is provided, fetch their category dynamically
+    if student_id:
+        try:
+            student = await db.students.find_one({"_id": ObjectId(student_id)})
+            if student and student.get("category"):
+                category = student.get("category")
+        except Exception:
+            pass
+            
+    # Fetch all processed textbooks for this standard and category
     docs = await db.textbook.find({
         "standard": standard,
+        "category": category,
         "processed": True
     }).to_list(None)
 
@@ -55,7 +65,8 @@ async def get_subjects_and_chapters(standard: str):
             "informationandtechnology": "IT.jpg",
             "informationandcommunicationtechnology": "IT.jpeg",
             "information&technology": "IT.jpeg",
-            "information&communicationtechnology": "IT.jpeg"
+            "information&communicationtechnology": "IT.jpeg",
+            "socialscience-1": "socialscience.jpg"
         }
         
         if "information" in subject.lower():

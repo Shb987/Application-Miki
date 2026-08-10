@@ -122,7 +122,7 @@ app.include_router(user_game_wordle.router, prefix="/user", tags=["Game - Wordle
 app.include_router(user_game_squares.router, prefix="/user", tags=["Game - Squares"])
 app.include_router(user_game_chess.router, prefix="/user", tags=["Game - Chess"])
 app.include_router(user_game_puzzle.router, prefix="/user", tags=["Game - Puzzle"])
-app.include_router(user_sudoku_routes.router, prefix="/api/v1/sudoku", tags=["Game - Sudoku"])
+app.include_router(user_sudoku_routes.router, prefix="/user/sudoku", tags=["Game - Sudoku"])
 
 # Special Days
 app.include_router(admin_special_day_routes.router, prefix="/admin-panel", tags=["Special Days - Admin"])

@@ -243,6 +243,7 @@ async def upload_chapter_endpoint(
     chapter_number: str = Form(...),
     textbook_name: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
+    publication_year: str = Form(...),
     file: UploadFile = File(...),
     current_admin: dict = Depends(require_permission("Exams, Textbooks & Syllabus", "create"))
 ):
@@ -267,7 +268,8 @@ async def upload_chapter_endpoint(
             "board": board,
             "standard": standard,
             "state": state,
-            "subject": subject
+            "subject": subject,
+            "publication_year": publication_year
         }
 
         if textbook_name and textbook_name.strip() and textbook_name.strip().lower() != "null":
@@ -305,6 +307,7 @@ async def upload_chapter_endpoint(
                 "state": state,
                 "subject": subject,
                 "textbook_name": textbook_query["textbook_name"],
+                "publication_year": publication_year,
                 "chapter_title": full_chapter_title
             },
             {
@@ -376,6 +379,7 @@ async def process_chapter_worker(
         "state": textbook_query.get("state"),
         "subject": textbook_query.get("subject"),
         "textbook_name": textbook_query.get("textbook_name"),
+        "publication_year": textbook_query.get("publication_year"),
         "chapter_title": full_chapter_title
     }
     try:
@@ -504,6 +508,7 @@ async def process_chapter_worker(
                         "standard": textbook_query["standard"],
                         "state": textbook_query["state"],
                         "subject": textbook_query["subject"],
+                        "publication_year": textbook_query.get("publication_year"),
                         "chapter_title": full_chapter_title,
                         "content": passage.strip(),
                         "passage_index": p_idx,
@@ -660,6 +665,7 @@ async def get_chapter_status(
     state: str,
     subject: str,
     chapter_title: str,
+    publication_year: Optional[str] = None,
     textbook_name: Optional[str] = None
 ):
     """Check the processing status of a specific chapter."""
@@ -671,6 +677,9 @@ async def get_chapter_status(
         "chapter_title": chapter_title
     }
     
+    if publication_year:
+        query["publication_year"] = publication_year
+
     if textbook_name and textbook_name.strip() and textbook_name.strip().lower() != "null":
         query["textbook_name"] = textbook_name.strip()
     else:

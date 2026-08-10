@@ -22,6 +22,7 @@ class ExternalStudentRegistration(BaseModel):
     guardian_name: str = Field(..., description="Name of parent / guardian")
     guardian_phone: str = Field(..., description="Guardian's 10-digit mobile number")
     link: str = Field(..., description="Unique school identifier link (used to look up the school)")
+    category: str = Field(..., description="Curriculum category (e.g. NCERT, SCERT)")
 
     @field_validator("guardian_phone")
     @classmethod
@@ -39,6 +40,14 @@ class ExternalStudentRegistration(BaseModel):
         except ValueError:
             raise ValueError("dob must be in YYYY-MM-DD format")
         return v
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: str) -> str:
+        v_upper = v.strip().upper()
+        if v_upper not in ["NCERT", "SCERT"]:
+            raise ValueError("Category must be either NCERT or SCERT")
+        return v_upper
 
 
 # ─────────────────────────────────────────────
@@ -138,7 +147,8 @@ async def external_register_student(
         },
         "usage_buckets": initial_buckets,
         "is_user": False,
-        "is_new_user": True
+        "is_new_user": True,
+        "category": payload.category
     }
 
     student_result = await db.students.insert_one(student_doc)

@@ -124,6 +124,20 @@
                   <option value="SCERT">SCERT</option>
                 </select>
               </div>
+              <div class="col-md-6 mb-2">
+                <label class="form-label fw-bold font-primary"><i class="icofont icofont-calendar me-1"></i> Publication Year</label>
+                <select class="form-select shadow-sm border-light-subtle" id="publication_year" required>
+                  <option value="">-- Select Year --</option>
+                  <script>
+                    const currentYear = new Date().getFullYear();
+                    for(let i = currentYear; i >= 2010; i--) {
+                      const nextYear = (i + 1).toString().slice(-2);
+                      const academicYear = `${i}-${nextYear}`;
+                      document.write(`<option value="${academicYear}">${academicYear}</option>`);
+                    }
+                  </script>
+                </select>
+              </div>
               <div class="col-md-12 mb-2" id="textbook-name-container">
                 <label class="form-label fw-bold font-primary"><i class="icofont icofont-book me-1"></i>
                   Textbook Name (Optional)</label>
@@ -287,6 +301,10 @@
       if (category) {
         formData.append("category", category);
       }
+      const publicationYear = document.getElementById("publication_year").value;
+      if (publicationYear) {
+        formData.append("publication_year", publicationYear);
+      }
       formData.append("chapter_number", item.chNumber);
       formData.append("chapter_name", item.chName);
       formData.append("file", item.file);
@@ -294,7 +312,7 @@
         const res = await fetch("/admin-panel/textbook/upload-batch", { method: "POST", headers: { "Authorization": "Bearer " + token }, body: formData });
         if (res.ok) { 
           item.status = 'processing'; 
-          pollStatus(item, board, standard, state, subject, textbookName);
+          pollStatus(item, board, standard, state, subject, textbookName, publicationYear);
         }
         else { const errData = await res.json(); item.status = 'error'; item.error = errData.detail || "Upload failed"; }
       } catch (err) { item.status = 'error'; item.error = "Network error"; }
@@ -303,12 +321,15 @@
     submitBtn.disabled = false;
   });
 
-  async function pollStatus(item, board, standard, state, subject, textbookName) {
+  async function pollStatus(item, board, standard, state, subject, textbookName, publicationYear) {
     const check = async () => {
       try {
         let url = `/admin-panel/chapter-status?board=${encodeURIComponent(board)}&standard=${encodeURIComponent(standard)}&state=${encodeURIComponent(state)}&subject=${encodeURIComponent(subject)}&chapter_title=${encodeURIComponent(item.chNumber + " " + item.chName).trim()}`;
         if (textbookName) {
           url += `&textbook_name=${encodeURIComponent(textbookName)}`;
+        }
+        if (publicationYear) {
+          url += `&publication_year=${encodeURIComponent(publicationYear)}`;
         }
         const res = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
         if (!res.ok) return;

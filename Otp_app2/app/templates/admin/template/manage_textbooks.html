@@ -115,11 +115,20 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i data-feather="calendar"
+                                class="text-muted" style="width: 14px;"></i></span>
+                        <select id="filter-year" class="form-select border-start-0 ps-0" onchange="applyFilters()">
+                            <option value="">All Years</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-1">
                     <button
                         class="btn btn-primary btn-sm w-100 shadow-sm d-flex align-items-center justify-content-center gap-2"
-                        onclick="resetFilters()">
-                        <i data-feather="refresh-ccw" style="width: 14px;"></i> Reset Filters
+                        onclick="resetFilters()" title="Reset Filters">
+                        <i data-feather="refresh-ccw" style="width: 14px;"></i> 
                     </button>
                 </div>
             </div>
@@ -212,9 +221,11 @@
         const boards = [...new Set(allTextbooks.map(tb => tb.board))].sort();
         const standards = [...new Set(allTextbooks.map(tb => tb.standard))].sort((a, b) => parseInt(a) - parseInt(b));
         const subjects = [...new Set(allTextbooks.map(tb => tb.subject))].sort();
+        const years = [...new Set(allTextbooks.map(tb => tb.publication_year).filter(y => y))].sort((a, b) => parseInt(b) - parseInt(a));
         updateSelect("filter-board", boards, "All Boards");
         updateSelect("filter-standard", standards, "All Standards");
         updateSelect("filter-subject", subjects, "All Subjects");
+        updateSelect("filter-year", years, "All Years");
     }
 
     function updateSelect(id, items, defaultText) {
@@ -228,8 +239,12 @@
         const board = document.getElementById("filter-board").value;
         const standard = document.getElementById("filter-standard").value;
         const subject = document.getElementById("filter-subject").value;
+        const year = document.getElementById("filter-year").value;
         const filtered = allTextbooks.filter(tb => {
-            return (!board || tb.board === board) && (!standard || tb.standard === standard) && (!subject || tb.subject === subject);
+            return (!board || tb.board === board) && 
+                   (!standard || tb.standard === standard) && 
+                   (!subject || tb.subject === subject) &&
+                   (!year || tb.publication_year === year);
         });
         renderTextbooks(filtered);
     }
@@ -238,6 +253,7 @@
         document.getElementById("filter-board").value = "";
         document.getElementById("filter-standard").value = "";
         document.getElementById("filter-subject").value = "";
+        document.getElementById("filter-year").value = "";
         renderTextbooks(allTextbooks);
     }
 
@@ -276,7 +292,7 @@
         }
         let html = '<div class="accordion border-0" id="textbookAccordion">';
         textbooks.forEach((tb, index) => {
-            const title = `${tb.standard} Std - ${tb.subject}${tb.textbook_name ? ' (' + tb.textbook_name + ')' : ''} (${tb.board} - ${tb.state})${tb.category ? ' [' + tb.category + ']' : ''}`;
+            const title = `${tb.standard} Std - ${tb.subject}${tb.textbook_name ? ' (' + tb.textbook_name + ')' : ''} (${tb.board} - ${tb.state})${tb.category ? ' [' + tb.category + ']' : ''}${tb.publication_year ? ' [' + tb.publication_year + ']' : ''}`;
             const chapters = tb.chapters || [];
             let statusBadge = tb.status === 'completed' ? '<span class="badge rounded-pill badge-success text-white py-2 px-3"><i class="icofont icofont-check-circled me-1"></i> Completed</span>' : (tb.status === 'extracting' || tb.status === 'embedding' ? `<span class="badge rounded-pill bg-warning text-dark py-2 px-3"><i class="icofont icofont-spinner fa-spin me-1"></i> ${tb.status}</span>` : `<span class="badge rounded-pill bg-info text-white py-2 px-3">${tb.status}</span>`);
             html += `<div class="accordion-item mb-3 bg-white rounded border shadow-sm overflow-hidden"><h2 class="accordion-header" id="heading${index}"><div class="accordion-button bg-white text-dark fw-bold collapsed" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}" style="cursor: pointer;"><div class="d-flex justify-content-between align-items-center w-100 pe-3"><div class="d-flex align-items-center"><div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book"></i></div><span class="f-16">${title}</span></div><div class="d-flex align-items-center gap-3"><span class="text-muted f-12 fw-normal"><i class="icofont icofont-clock-time"></i> ${new Date(tb.created_at).toLocaleDateString()}</span>${statusBadge}<button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="event.stopPropagation(); deleteTextbook('${tb._id}', '${title.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></div></div></div></h2><div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#textbookAccordion"><div class="accordion-body bg-light border-top p-0"><div class="p-3 bg-white border-bottom custom-info-bar"><div class="row align-items-center"><div class="col-8"><span class="text-muted fw-bold me-2">ID:</span> <span class="badge bg-light text-dark font-monospace">${tb._id}</span>${tb.textbook_name ? `<span class="text-muted fw-bold ms-3 me-2">Textbook:</span> <span class="badge bg-light-primary text-primary">${tb.textbook_name}</span>` : ''}</div><div class="col-4 text-end"><span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span></div></div></div>`;

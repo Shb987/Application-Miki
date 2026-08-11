@@ -75,7 +75,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
 
     try:
         async with client.beta.realtime.connect(
-            model="gpt-4o-mini-realtime-preview"
+            model="gpt-realtime"
         ) as session:
 
             # Define tools for the Realtime session
@@ -110,6 +110,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                 session={
                     "instructions": instructions,
                     "modalities": ["audio", "text"],
+                    "voice": "alloy",
                     "input_audio_transcription": {"model": "whisper-1"},
                     "temperature": 0.6,
                     "max_response_output_tokens": 1200,
@@ -375,7 +376,7 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                         # Log usage
                         if resp and hasattr(resp, 'usage') and resp.usage:
                             from app.utils.ai_usage_logger import log_ai_usage
-                            await log_ai_usage(student_id, "Voice Assistant", "gpt-4o-mini-realtime-preview", resp.usage)
+                            await log_ai_usage(student_id, "Voice Assistant", "gpt-realtime", resp.usage)
 
                         # Reset after a full completed turn (only if no tool calls are pending)
                         if not has_tool_call:
@@ -398,16 +399,146 @@ async def handle_realtime_voice(websocket: WebSocket, student_id: str, session_i
                 except:
                     pass
 
-    except Exception as e:
-        logger.error(f"Realtime session error: {e}")
-    finally:
-        try:
-            if websocket.client_state.name != "DISCONNECTED":
-                await websocket.close()
-        except:
-            pass
+            for task in done:
+                exc = task.exception()
+                if exc:
+                    raise exc
 
-    
+    except Exception as e:
+        import traceback
+        print(f"⚠️ Realtime session error: {e}. Switching to Voice Fallback Engine...", flush=True)
+        logger.warning(f"Realtime session error: {e}. Switching to Voice Fallback Engine...")
+        raise e  # Propagate to endpoint for fallback handling
+
+
+async def handle_fallback_voice(websocket: WebSocket, student_id: str, session_id: str, student_data: dict):
+    """
+    High-Reliability Voice Engine fallback using standard GPT-4o + OpenAI TTS + Whisper.
+    Executes seamlessly if OpenAI Realtime WebSockets API returns beta_api_shape_disabled on the API key.
+    """
+    student_name = student_data.get("student_name", "Student")
+    student_class = str(student_data.get("student_class", "general"))
+    instructions = ai_tutor_service.get_persona_instructions(student_name, student_class)
+    instructions += "\n- Be extremely conversational and brief. Speak in plain natural sentences (1-3 sentences, no markdown)."
+
+    print(f"🎙️ Voice Assistant Active (High-Reliability Mode) for Student: {student_id}", flush=True)
+
+    import io
+    import wave
+
+    def pcm_to_wav_file(pcm_data: bytes, sample_rate: int = 24000) -> io.BytesIO:
+        wav_io = io.BytesIO()
+        wav_io.name = "input_audio.wav"
+        with wave.open(wav_io, "wb") as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(pcm_data)
+        wav_io.seek(0)
+        return wav_io
+
+    pcm_buffer = bytearray()
+
+    while True:
+        try:
+            msg = await websocket.receive()
+            if msg["type"] == "websocket.disconnect":
+                break
+
+            user_text = ""
+            if msg.get("text"):
+                text_content = msg.get("text")
+                if text_content.strip() in ["_END_OF_SPEECH_", "_INTERRUPT_"]:
+                    if text_content.strip() == "_END_OF_SPEECH_":
+                        break
+                    continue
+
+                try:
+                    data = json.loads(text_content)
+                    if isinstance(data, dict):
+                        if data.get("type") == "end_of_speech":
+                            break
+                        elif data.get("type") == "interrupt":
+                            continue
+                except:
+                    pass
+                user_text = text_content
+
+            elif msg.get("bytes"):
+                audio_bytes = msg["bytes"]
+                if len(audio_bytes) <= 10:
+                    continue
+                
+                pcm_buffer.extend(audio_bytes)
+                
+                # Accumulate at least 0.5 sec of PCM audio (24,000 bytes for 24kHz 16-bit mono)
+                if len(pcm_buffer) < 24000:
+                    continue
+
+                wav_file = pcm_to_wav_file(bytes(pcm_buffer), sample_rate=24000)
+                pcm_buffer.clear()
+
+                try:
+                    transcript_res = await client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=wav_file
+                    )
+                    user_text = transcript_res.text
+                except Exception as t_err:
+                    print(f"⚠️ Transcription error: {t_err}", flush=True)
+
+            if not user_text or not user_text.strip():
+                continue
+
+            print(f"👤 User (Speech/Text): {user_text}", flush=True)
+            await save_chat_event(student_id, session_id, "user", user_text)
+
+            # Generate AI text response
+            response = await client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": instructions},
+                    {"role": "user", "content": user_text}
+                ],
+                max_tokens=300
+            )
+            ai_text = response.choices[0].message.content.strip()
+            print(f"🤖 Miki: {ai_text}", flush=True)
+
+            # Send text response back to Flutter / Client UI
+            await websocket.send_text(json.dumps({"type": "text_response", "text": ai_text}))
+            await save_chat_event(student_id, session_id, "assistant", ai_text)
+
+            # Generate audio speech stream (PCM 24kHz)
+            tts_res = await client.audio.speech.create(
+                model="tts-1",
+                voice="alloy",
+                input=ai_text,
+                response_format="pcm"
+            )
+            
+            # Stream binary audio bytes to client
+            audio_bytes = tts_res.content
+            chunk_size = 2048
+            for i in range(0, len(audio_bytes), chunk_size):
+                await websocket.send_bytes(audio_bytes[i:i + chunk_size])
+
+            if hasattr(response, 'usage') and response.usage:
+                from app.utils.ai_usage_logger import log_ai_usage
+                await log_ai_usage(student_id, "Voice Assistant", "gpt-4o+tts", response.usage)
+
+        except WebSocketDisconnect:
+            break
+        except Exception as e:
+            logger.error(f"Fallback voice error: {e}")
+            break
+
+    try:
+        if websocket.client_state.name != "DISCONNECTED":
+            await websocket.close()
+    except:
+        pass
+
 
 @router.websocket("/ws/{student_id}/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: str):
@@ -415,16 +546,17 @@ async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: 
     try:
         s_oid = ObjectId(student_id)
     except:
+        print(f"❌ WebSocket Rejected: Invalid student_id format ({student_id})", flush=True)
         await websocket.accept()
-        await websocket.send_text("Invalid student_id format.")
+        await websocket.send_text(json.dumps({"type": "error", "code": "invalid_student_id", "message": "Invalid student_id format."}))
         await websocket.close(code=1003)
         return
 
     student = await db.students.find_one({"_id": s_oid})
     if not student:
-        print('not found')
+        print(f"❌ WebSocket Rejected: Student ID {student_id} NOT FOUND in MongoDB.", flush=True)
         await websocket.accept()
-        await websocket.send_text("Student not found.")
+        await websocket.send_text(json.dumps({"type": "error", "code": "student_not_found", "message": "Student not found."}))
         await websocket.close(code=1003)
         return
 
@@ -434,8 +566,9 @@ async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: 
     try:
         await check_and_use_quota(student_id, "voice", cost=1)
     except HTTPException as e:
+        print(f"❌ WebSocket Rejected for Student {student_id}: {e.detail}", flush=True)
         await websocket.accept()
-        await websocket.send_text(str(e.detail))
+        await websocket.send_text(json.dumps({"type": "error", "code": "insufficient_quota", "message": str(e.detail)}))
         await websocket.close(code=1008)
         return
 
@@ -450,7 +583,8 @@ async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: 
                 await check_and_use_quota(student_id, "voice", cost=1)
         except HTTPException as e:
             try:
-                await websocket.send_text(str(e.detail))
+                print(f"⚠️ Voice Quota Exhausted Mid-Call for Student {student_id}", flush=True)
+                await websocket.send_text(json.dumps({"type": "error", "code": "insufficient_quota", "message": str(e.detail)}))
                 await websocket.close(code=1008)
             except:
                 pass
@@ -462,6 +596,10 @@ async def websocket_endpoint(websocket: WebSocket, student_id: str, session_id: 
     try:
         await handle_realtime_voice(websocket, student_id, session_id, student)
     except Exception as e:
-        logger.error(f"WebSocket endpoint error: {e}")
+        print(f"⚠️ Realtime Voice API unavailable ({e}). Engaging High-Reliability Voice Engine...", flush=True)
+        try:
+            await handle_fallback_voice(websocket, student_id, session_id, student)
+        except Exception as fb_err:
+            logger.error(f"Voice engine error: {fb_err}")
     finally:
         quota_task.cancel()

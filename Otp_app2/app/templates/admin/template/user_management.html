@@ -446,23 +446,18 @@
 </div>
 
 
-<!-- Confirm Delete Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header bg-danger text-white" style="border-radius:16px 16px 0 0;">
-                <h6 class="modal-title">Confirm Delete</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to <strong>permanently delete</strong> <span id="delete-student-name"
-                        class="text-danger"></span>?</p>
-                <p class="text-muted" style="font-size:0.8rem;">This will remove all associated answers, career
-                    analysis, and notifications.</p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-sm btn-danger" onclick="confirmDelete()">Delete</button>
+<!-- CUSTOM CONFIRM MODAL -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-body p-4 text-center">
+                <i data-feather="alert-circle" style="width: 48px; height: 48px; color: #f39c12; margin-bottom: 16px;"></i>
+                <h5 class="font-weight-bold text-dark mb-2">Are you sure?</h5>
+                <p id="confirm-modal-msg" class="text-muted mb-4" style="font-size: 0.95rem;"></p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light font-weight-bold px-4" style="border-radius: 8px;" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirm-modal-yes" class="btn btn-danger font-weight-bold px-4" style="border-radius: 8px;">Delete</button>
+                </div>
             </div>
         </div>
     </div>
@@ -484,8 +479,22 @@
     let studentSkip = 0;
     const studentLimit = 20;
     let studentTotal = 0;
-    let pendingDeleteId = null;
-    let pendingDeleteName = null;
+
+    function showCustomConfirm(msg, onConfirm) {
+        document.getElementById('confirm-modal-msg').innerHTML = msg;
+        const confirmBtn = document.getElementById('confirm-modal-yes');
+        
+        // Remove old event listeners by cloning
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        
+        const modal = new bootstrap.Modal(document.getElementById('customConfirmModal'));
+        newConfirmBtn.addEventListener('click', async () => {
+            modal.hide();
+            await onConfirm();
+        });
+        modal.show();
+    }
 
     function switchTab(tab) {
         currentTab = tab;
@@ -585,12 +594,14 @@
         <td>${s.guardian_name || "—"}</td>
         <td><span class="badge ${isActive ? "bg-success" : "bg-secondary"}">${isActive ? "Active" : "Inactive"}</span></td>
         <td>
-        <button class="btn btn-sm btn-outline-primary action-btn me-1" onclick="location.href='/admin-panel/student-profile-page?id=${s._id}'">
-            <i class="fa fa-eye" style="font-size:12px;"></i> View
-        </button>
-        <button class="btn btn-sm btn-outline-danger action-btn" onclick="promptDelete('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')" title="Delete">
-            <i class="fa fa-trash" style="font-size:12px;"></i>
-        </button>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" style="border-radius:8px;" onclick="location.href='/admin-panel/student-profile-page?id=${s._id}'">
+                    <i class="fa fa-eye" style="font-size:14px;"></i> View
+                </button>
+                <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="border-radius:8px; width:30px; height:30px; padding:0;" onclick="promptDelete('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')" title="Delete">
+                    <i class="fa fa-trash" style="font-size:14px;"></i>
+                </button>
+            </div>
         </td>
     </tr>`;
         });
@@ -614,19 +625,13 @@
     }
 
     function promptDelete(id, name) {
-        pendingDeleteId = id;
-        pendingDeleteName = name;
-        document.getElementById("delete-student-name").textContent = name;
-        new bootstrap.Modal(document.getElementById("deleteModal")).show();
-    }
-
-    async function confirmDelete() {
-        bootstrap.Modal.getInstance(document.getElementById("deleteModal")).hide();
-        const res = await fetch(`${API_BASE}/admin-panel/users/student/${pendingDeleteId}`, {
-            method: "DELETE", headers: { Authorization: "Bearer " + token }
+        showCustomConfirm(`Are you sure you want to permanently delete <strong class="text-danger">${name}</strong>?<br><small class="text-muted d-block mt-2">This will remove all associated answers, career analysis, and notifications.</small>`, async () => {
+            const res = await fetch(`${API_BASE}/admin-panel/users/student/${id}`, {
+                method: "DELETE", headers: { Authorization: "Bearer " + token }
+            });
+            if (res.ok) { showToast(`${name} deleted`, "success"); loadStudents(); }
+            else { showToast("Delete failed", "danger"); }
         });
-        if (res.ok) { showToast(`${pendingDeleteName} deleted`, "success"); loadStudents(); }
-        else { showToast("Delete failed", "danger"); }
     }
 
     async function loadParents(reset = false) {
@@ -668,8 +673,11 @@
                 <div class="parent-row">
                     <div class="parent-id-circle">${i + 1}</div>
                     <div class="parent-info-main">
-                        <span class="parent-mobile-text">${p.mobile_number || "—"}</span>
-                        <span class="parent-date-text"><i data-feather="calendar" style="width:10px;height:10px;margin-right:4px;"></i>Member since ${date}</span>
+                        <span class="parent-mobile-text">${p.guardian_name || "Unknown Guardian"}</span>
+                        <span class="parent-date-text">
+                            <i data-feather="phone" style="width:10px;height:10px;margin-right:4px;"></i>${p.mobile_number || "—"} &nbsp;|&nbsp;
+                            <i data-feather="calendar" style="width:10px;height:10px;margin-right:4px;"></i>Since ${date}
+                        </span>
                     </div>
                     <div class="parent-students-area">
                         ${students || '<span class="text-muted" style="font-size:0.75rem;">No students linked</span>'}
@@ -677,7 +685,7 @@
                     <div class="parent-actions">
                         <button class="btn btn-sm btn-outline-danger" style="border-radius:8px; width:36px; height:36px; padding:0;" 
                                 onclick="deleteParent('${p.mobile_number}')" title="Remove Guardian">
-                            <i data-feather="trash-2" style="width:16px;height:16px;"></i>
+                            <i class="fa fa-trash" style="font-size:16px;"></i>
                         </button>
                     </div>
                 </div>`;
@@ -696,12 +704,13 @@
     }
 
     async function deleteParent(mobile) {
-        if (!confirm(`Remove parent ${mobile}?`)) return;
-        const res = await fetch(`${API_BASE}/admin-panel/users/parent/${encodeURIComponent(mobile)}`, {
-            method: "DELETE", headers: { Authorization: "Bearer " + token }
+        showCustomConfirm(`Remove parent with mobile number <strong>${mobile}</strong>?`, async () => {
+            const res = await fetch(`${API_BASE}/admin-panel/users/parent/${encodeURIComponent(mobile)}`, {
+                method: "DELETE", headers: { Authorization: "Bearer " + token }
+            });
+            if (res.ok) { showToast("Parent removed", "success"); loadParents(); }
+            else { showToast("Failed", "danger"); }
         });
-        if (res.ok) { showToast("Parent removed", "success"); loadParents(); }
-        else { showToast("Failed", "danger"); }
     }
 
     function showToast(msg, type = "success") {

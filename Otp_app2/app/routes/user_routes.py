@@ -37,11 +37,11 @@ async def register_student(
     parent_mobile: str = Query(...),
     profile_image: Optional[UploadFile] = File(None),
     school_id: Optional[str] = Form(None),
-    category: str = Form(...),
+    syllabus: str = Form(...),
     current=Depends(admin_or_user)
 ):
-    if category.upper() not in ["NCERT", "SCERT"]:
-        raise HTTPException(status_code=400, detail="Category must be either NCERT or SCERT")
+    if syllabus.upper() not in ["NCERT", "SCERT"]:
+        raise HTTPException(status_code=400, detail="Syllabus must be either NCERT or SCERT")
         
     usertype = current.get("usertype")
     # 🔑 Decide is_user
@@ -81,7 +81,7 @@ async def register_student(
         "is_user": is_user,
         "is_new_user": True,
         "school_id": school_id,
-        "category": category
+        "syllabus": syllabus
     }
 
     # ✅ INSERT STUDENT ONCE
@@ -145,14 +145,14 @@ async def register_student_public(
     parent_mobile: str = Form(...),  # Required for public registration
     profile_image: Optional[UploadFile] = File(None),
     school_id: Optional[str] = Form(None),
-    category: str = Form(...)
+    syllabus: str = Form(...)
 ):
     """
     Public endpoint for parents to register students without logging in first.
     """
     
-    if category.upper() not in ["NCERT", "SCERT"]:
-        raise HTTPException(status_code=400, detail="Category must be either NCERT or SCERT")
+    if syllabus.upper() not in ["NCERT", "SCERT"]:
+        raise HTTPException(status_code=400, detail="Syllabus must be either NCERT or SCERT")
 
     # 1️⃣ Handle Image Upload
     image_url = None
@@ -189,7 +189,7 @@ async def register_student_public(
         "is_user": False,  # Child is not the user
         "is_new_user": True,
         "school_id": school_id,
-        "category": category
+        "syllabus": syllabus
     }
 
     # Insert into DB
@@ -231,7 +231,7 @@ async def update_student(
     address: Optional[str] = Form(None),
     guardian_name: Optional[str] = Form(None),
     school_id: Optional[str] = Form(None),
-    category: Optional[str] = Form(None),
+    syllabus: Optional[str] = Form(None),
     profile_image: Optional[UploadFile] = File(None),
     current=Depends(admin_or_user)
 ):
@@ -253,10 +253,10 @@ async def update_student(
     if address is not None: update_data["address"] = address
     if guardian_name is not None: update_data["guardian_name"] = guardian_name
     if school_id is not None: update_data["school_id"] = school_id
-    if category is not None: 
-        if category.upper() not in ["NCERT", "SCERT"]:
-            raise HTTPException(status_code=400, detail="Category must be either NCERT or SCERT")
-        update_data["category"] = category.upper()
+    if syllabus is not None: 
+        if syllabus.upper() not in ["NCERT", "SCERT"]:
+            raise HTTPException(status_code=400, detail="Syllabus must be either NCERT or SCERT")
+        update_data["syllabus"] = syllabus.upper()
 
     if profile_image:
         file_extension = os.path.splitext(profile_image.filename)[1]

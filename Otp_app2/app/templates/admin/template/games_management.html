@@ -288,6 +288,9 @@
                         <option value="Intermediate">Intermediate (4x4 Grid)</option>
                         <option value="Advanced">Advanced (5x5 Grid)</option>
                     </select>
+                    <button id="pz-delete-selected-btn" class="btn btn-sm btn-danger d-none" style="border-radius:8px;" onclick="deleteSelectedPuzzles()">
+                        <i data-feather="trash-2" style="width: 14px; height: 14px; margin-bottom: 2px;"></i> Delete Selected
+                    </button>
                     <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #19a1a1;"
                         onclick="openPuzzleModal()">+ Add Puzzle Level</button>
                     <span class="text-muted" id="puzzle-count" style="font-size:.82rem;"></span>
@@ -485,7 +488,7 @@
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label font-weight-bold text-dark mb-1">Level Number</label>
-                            <input type="number" id="pz-level" class="form-control form-control-lg" style="border-radius: 10px; font-size: 0.95rem; border: 1.5px solid #cbd5e1;" placeholder="1, 2, 3..." min="1">
+                            <input type="number" id="pz-level" class="form-control form-control-lg" style="border-radius: 10px; font-size: 0.95rem; border: 1.5px solid #cbd5e1;" placeholder="1, 2, 3..." min="1" oninput="updateMultiFileLevels()">
                         </div>
                         <div class="col-6">
                             <label class="form-label font-weight-bold text-dark mb-1">Target Grid</label>
@@ -505,9 +508,13 @@
                         
                         <div class="pz-dropzone mb-2" onclick="document.getElementById('pz-file-input').click()">
                             <i data-feather="upload-cloud" style="width: 32px; height: 32px; color: #19a1a1;" class="mb-2"></i>
-                            <div class="font-weight-bold text-dark">Click to browse or drop image file</div>
+                            <div class="font-weight-bold text-dark">Click to browse or drop image files</div>
                             <small class="text-muted">Auto-saves to <code>/static/games/puzzle/&lt;Difficulty&gt;/</code></small>
-                            <input type="file" id="pz-file-input" class="d-none" accept="image/*" onchange="previewPuzzleImage(this)">
+                            <input type="file" id="pz-file-input" class="d-none" accept="image/*" multiple onchange="handlePuzzleFilesSelect(this)">
+                        </div>
+                        
+                        <div id="pz-multi-preview-container" class="mt-3 pz-preview-card p-2" style="display:none; max-height: 250px; overflow-y: auto;">
+                            <!-- Populated by JS -->
                         </div>
 
                         <div id="pz-preview-container" class="mt-3 pz-preview-card p-2 text-center" style="display:none;">
@@ -534,6 +541,23 @@
     </div>
 </div>
 
+<!-- CUSTOM CONFIRM MODAL -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-body p-4 text-center">
+                <i data-feather="alert-circle" style="width: 48px; height: 48px; color: #f39c12; margin-bottom: 16px;"></i>
+                <h5 class="font-weight-bold text-dark mb-2">Are you sure?</h5>
+                <p id="confirm-modal-msg" class="text-muted mb-4" style="font-size: 0.95rem;"></p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light font-weight-bold px-4" style="border-radius: 8px;" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirm-modal-yes" class="btn btn-danger font-weight-bold px-4" style="border-radius: 8px;">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="toast-gm" class="toast align-items-center text-white border-0"
     style="display:none; position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
     <div class="d-flex">
@@ -546,6 +570,31 @@
 <script>
     const token = window.token || localStorage.getItem("admin_token");
     const API_BASE = window.API_BASE;
+    function showToastGm(msg, type='success') {
+        const toast = document.getElementById('toast-gm');
+        const toastBody = document.getElementById('toast-gm-msg');
+        toast.className = 'toast align-items-center text-white border-0 bg-' + (type === 'success' ? 'success' : 'danger');
+        toastBody.innerHTML = msg;
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    function showCustomConfirm(msg, onConfirm) {
+        document.getElementById('confirm-modal-msg').innerText = msg;
+        const confirmBtn = document.getElementById('confirm-modal-yes');
+        
+        // Remove old event listeners by cloning
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        
+        const modal = new bootstrap.Modal(document.getElementById('customConfirmModal'));
+        newConfirmBtn.addEventListener('click', async () => {
+            modal.hide();
+            await onConfirm();
+        });
+        modal.show();
+    }
+
     function switchTab(tab) {
         document.getElementById("panel-wordle").style.display = tab === "wordle" ? "" : "none";
         document.getElementById("panel-squares").style.display = tab === "squares" ? "" : "none";
@@ -792,29 +841,93 @@
     // PUZZLE MANAGEMENT JS
     // ══════════════════════════════════════════════
 
+    let currentPuzzleFiles = [];
+
     function updateGridPreviewHint() {
         const diff = document.getElementById("pz-difficulty").value;
         const hintMap = { "Beginner": "3x3 Grid (Classes 1-6)", "Intermediate": "4x4 Grid (Classes 7-10)", "Advanced": "5x5 Grid (Classes 11-12)" };
         document.getElementById("pz-grid-hint").value = hintMap[diff] || "3x3 Grid";
     }
 
-    function previewPuzzleImage(input) {
-        const container = document.getElementById("pz-preview-container");
-        const img = document.getElementById("pz-img-preview");
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                img.src = e.target.result;
-                container.style.display = "block";
-            };
-            reader.readAsDataURL(input.files[0]);
+    function handlePuzzleFilesSelect(input) {
+        if (!input.files || !input.files.length) return;
+        
+        currentPuzzleFiles = Array.from(input.files);
+        
+        const container = document.getElementById("pz-multi-preview-container");
+        container.style.display = "block";
+        document.getElementById("pz-preview-container").style.display = "none";
+        
+        renderMultiFilePreview();
+    }
+    
+    function renderMultiFilePreview() {
+        const container = document.getElementById("pz-multi-preview-container");
+        let html = '<div class="list-group">';
+        
+        const startLevel = parseInt(document.getElementById("pz-level").value) || 1;
+        
+        currentPuzzleFiles.forEach((file, index) => {
+            const url = URL.createObjectURL(file);
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-3">
+                        <img src="${url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;">
+                        <div>
+                            <div class="font-weight-bold" style="font-size: 0.9rem;">${file.name}</div>
+                            <div class="d-flex align-items-center mt-1">
+                                <small class="text-muted me-2">Assigned Level:</small>
+                                <input type="number" class="form-control form-control-sm pz-multi-level-input" style="width: 70px; padding: 2px 6px;" value="${startLevel + index}">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-light text-danger" onclick="removePuzzleFile(${index})">
+                        <i data-feather="x" style="width: 14px; height: 14px;"></i>
+                    </button>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+        feather.replace();
+    }
+    
+    function removePuzzleFile(index) {
+        currentPuzzleFiles.splice(index, 1);
+        if (currentPuzzleFiles.length === 0) {
+            clearPuzzleImage();
+        } else {
+            renderMultiFilePreview();
+        }
+    }
+    
+    function updateMultiFileLevels() {
+        if (currentPuzzleFiles.length > 0) {
+            renderMultiFilePreview();
         }
     }
 
     function clearPuzzleImage() {
         document.getElementById("pz-file-input").value = "";
         document.getElementById("pz-url").value = "";
+        document.getElementById("pz-multi-preview-container").style.display = "none";
         document.getElementById("pz-preview-container").style.display = "none";
+        currentPuzzleFiles = [];
+    }
+    
+    function toggleAllPuzzleSelect(checkbox) {
+        const rows = document.querySelectorAll('.pz-row-checkbox');
+        rows.forEach(r => r.checked = checkbox.checked);
+        updateDeleteSelectedBtnVisibility();
+    }
+    
+    function updateDeleteSelectedBtnVisibility() {
+        const checked = document.querySelectorAll('.pz-row-checkbox:checked');
+        const btn = document.getElementById('pz-delete-selected-btn');
+        if(btn) {
+            if(checked.length > 0) btn.classList.remove('d-none');
+            else btn.classList.add('d-none');
+        }
     }
 
     async function loadPuzzle() {
@@ -827,13 +940,16 @@
             const json = await res.json();
             document.getElementById("puzzle-count").textContent = `${json.total || 0} levels`;
 
-            let html = `<table class="table table-hover table-bordered align-middle"><thead class="table-dark"><tr><th>#</th><th>Preview</th><th>Difficulty</th><th>Level</th><th>Grid Size</th><th>Title / Image Path</th><th>Actions</th></tr></thead><tbody>`;
+            let html = `<table class="table table-hover table-bordered align-middle"><thead class="table-dark"><tr>
+                <th style="width:40px;"><input type="checkbox" id="pz-select-all" onclick="toggleAllPuzzleSelect(this)"></th>
+                <th>#</th><th>Preview</th><th>Difficulty</th><th>Level</th><th>Grid Size</th><th>Title / Image Path</th><th>Actions</th></tr></thead><tbody>`;
             (json.data || []).forEach((lv, i) => {
                 const imgUrl = lv.image_url || '';
-                const titleEsc = (lv.title || '').replace(/'/g, "\\'");
+                const titleEsc = (lv.title || '').replace(/'/g, "\'");
                 const diffBadge = lv.difficulty === 'Beginner' ? 'bg-success' : lv.difficulty === 'Intermediate' ? 'bg-warning' : 'bg-danger';
 
                 html += `<tr>
+                    <td><input type="checkbox" class="pz-row-checkbox" value="${lv.id}" data-level="${lv.level}" data-diff="${lv.difficulty}" onchange="updateDeleteSelectedBtnVisibility()"></td>
                     <td>${i + 1}</td>
                     <td style="width: 80px;">
                         ${imgUrl ? `<img src="${imgUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;" onerror="this.onerror=null; this.src='/assets/images/other-images/boxbg.jpg';">` : '<span class="text-muted">No Image</span>'}
@@ -856,6 +972,7 @@
             });
             document.getElementById("puzzle-table-wrapper").innerHTML = html + `</tbody></table>`;
             feather.replace();
+            updateDeleteSelectedBtnVisibility();
         } catch (err) { console.error(err); }
     }
 
@@ -901,19 +1018,18 @@
         document.getElementById("pz-level").value = level;
         document.getElementById("pz-title").value = title;
         document.getElementById("pz-url").value = imageUrl;
-        document.getElementById("pz-file-input").value = "";
+        clearPuzzleImage();
         
         const previewContainer = document.getElementById("pz-preview-container");
         const previewImg = document.getElementById("pz-img-preview");
         if (imageUrl) {
             previewImg.src = imageUrl;
             previewContainer.style.display = "block";
-        } else {
-            previewContainer.style.display = "none";
         }
 
         updateGridPreviewHint();
-        document.getElementById("puzzle-modal-title").innerText = id ? "Edit Puzzle Level" : "Add Puzzle Level";
+        document.getElementById("puzzle-modal-title").innerHTML = id ? `<i data-feather="edit"></i> Edit Puzzle Level` : `<i data-feather="grid"></i> Add Puzzle Level`;
+        feather.replace();
         new bootstrap.Modal(document.getElementById("puzzleModal")).show();
     }
 
@@ -924,65 +1040,177 @@
     async function savePuzzle() {
         const id = document.getElementById("pz-edit-id").value;
         const difficulty = document.getElementById("pz-difficulty").value;
-        const level = document.getElementById("pz-level").value;
+        const startLevel = parseInt(document.getElementById("pz-level").value) || 1;
         const title = document.getElementById("pz-title").value.trim();
         const imageUrl = document.getElementById("pz-url").value.trim();
-        const fileInput = document.getElementById("pz-file-input");
 
-        if (!difficulty || !level) {
-            alert("Please select difficulty and enter level number.");
+        if (!difficulty || !startLevel) {
+            showToastGm("Please select difficulty and enter starting level.", "danger");
             return;
         }
 
-        if (!id && !fileInput.files.length && !imageUrl) {
-            alert("Please upload an image file or provide an image URL.");
+        if (!id && currentPuzzleFiles.length === 0 && !imageUrl) {
+            showToastGm("Please upload image(s) or provide an image URL.", "danger");
             return;
         }
+        
+        let hasError = false;
+        
+        const saveBtn = document.querySelector('#puzzleModal .btn-primary, #puzzleModal [onclick="savePuzzle()"]');
+        const origText = saveBtn ? saveBtn.innerHTML : 'Save Puzzle Level';
+        if(saveBtn) saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
 
-        const formData = new FormData();
-        formData.append("difficulty", difficulty);
-        formData.append("level", level);
-        if (title) formData.append("title", title);
-        if (imageUrl) formData.append("image_url", imageUrl);
-        if (fileInput.files[0]) formData.append("image_file", fileInput.files[0]);
+        if (id) {
+            // Edit mode (single)
+            const formData = new FormData();
+            formData.append("difficulty", difficulty);
+            formData.append("level", startLevel);
+            if (title) formData.append("title", title);
+            if (imageUrl) formData.append("image_url", imageUrl);
+            if (currentPuzzleFiles[0]) formData.append("image_file", currentPuzzleFiles[0]);
 
-        const url = id ? `${API_BASE}/admin-panel/games/puzzle/levels/${id}` : `${API_BASE}/admin-panel/games/puzzle/levels`;
-        const method = id ? "PUT" : "POST";
-
-        try {
-            const res = await fetch(url, {
-                method: method,
-                headers: { Authorization: "Bearer " + token },
-                body: formData
-            });
-
-            const json = await res.json();
-            if (res.ok) {
-                bootstrap.Modal.getInstance(document.getElementById("puzzleModal")).hide();
-                loadPuzzle();
-                loadPuzzleStats();
-            } else {
-                alert(json.detail || "Failed to save puzzle level.");
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/games/puzzle/levels/${id}`, {
+                    method: "PUT",
+                    headers: { Authorization: "Bearer " + token },
+                    body: formData
+                });
+                const json = await res.json();
+                if (!res.ok) {
+                    showToastGm(json.detail || "Failed to update puzzle", "danger");
+                    hasError = true;
+                }
+            } catch (err) {
+                showToastGm("Error: " + err, "danger");
+                hasError = true;
             }
-        } catch (err) {
-            alert("Error saving puzzle level: " + err);
+        } else {
+            // Create mode (Batch or Single)
+            if (currentPuzzleFiles.length > 0) {
+                const formData = new FormData();
+                formData.append("difficulty", difficulty);
+                if (title) formData.append("title", title);
+                
+                const levelInputs = document.querySelectorAll(".pz-multi-level-input");
+                let levelsArray = [];
+                levelInputs.forEach(input => levelsArray.push(parseInt(input.value)));
+                
+                formData.append("levels", JSON.stringify(levelsArray));
+                
+                for (let i = 0; i < currentPuzzleFiles.length; i++) {
+                    formData.append("image_files", currentPuzzleFiles[i]);
+                }
+                
+                try {
+                    const res = await fetch(`${API_BASE}/admin-panel/games/puzzle/levels/batch`, {
+                        method: "POST",
+                        headers: { Authorization: "Bearer " + token },
+                        body: formData
+                    });
+                    const json = await res.json();
+                    if (!res.ok) {
+                        showToastGm(json.detail || "Failed to batch create puzzle levels", "danger");
+                        hasError = true;
+                    }
+                } catch (err) {
+                    showToastGm("Error: " + err, "danger");
+                    hasError = true;
+                }
+            } else if (imageUrl) {
+                const formData = new FormData();
+                formData.append("difficulty", difficulty);
+                formData.append("level", startLevel);
+                if (title) formData.append("title", title);
+                formData.append("image_url", imageUrl);
+                try {
+                    const res = await fetch(`${API_BASE}/admin-panel/games/puzzle/levels`, {
+                        method: "POST",
+                        headers: { Authorization: "Bearer " + token },
+                        body: formData
+                    });
+                    if (!res.ok) {
+                        const json = await res.json();
+                        showToastGm(json.detail || "Failed to create puzzle level", "danger");
+                        hasError = true;
+                    }
+                } catch (err) {
+                    showToastGm("Error: " + err, "danger");
+                    hasError = true;
+                }
+            }
+        }
+        
+        if(saveBtn) saveBtn.innerHTML = origText;
+        
+        if (!hasError) {
+            showToastGm(id ? "Puzzle updated successfully!" : "Puzzle(s) created successfully!");
+            bootstrap.Modal.getInstance(document.getElementById("puzzleModal")).hide();
+            loadPuzzle();
+            loadPuzzleStats();
         }
     }
 
-    async function deletePuzzle(id, level, diff) {
-        if (confirm(`Delete ${diff} Level ${level}?`)) {
-            const res = await fetch(`${API_BASE}/admin-panel/games/puzzle/levels/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: "Bearer " + token }
-            });
-            if (res.ok) {
-                loadPuzzle();
-                loadPuzzleStats();
+    function deletePuzzle(id, level, diff) {
+        showCustomConfirm(`Delete ${diff} Level ${level}?`, async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/games/puzzle/levels/${id}`, {
+                    method: "DELETE",
+                    headers: { Authorization: "Bearer " + token }
+                });
+                if (res.ok) {
+                    showToastGm("Puzzle deleted successfully.");
+                    loadPuzzle();
+                    loadPuzzleStats();
+                } else {
+                    const json = await res.json();
+                    showToastGm(json.detail || "Failed to delete.", "danger");
+                }
+            } catch(e) {
+                showToastGm("Error: " + e, "danger");
             }
-        }
+        });
+    }
+    
+    function deleteSelectedPuzzles() {
+        const checked = document.querySelectorAll('.pz-row-checkbox:checked');
+        if (checked.length === 0) return;
+        
+        showCustomConfirm(`Delete ${checked.length} selected levels?`, async () => {
+            let errorCount = 0;
+            
+            const btn = document.getElementById('pz-delete-selected-btn');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Deleting...';
+            btn.disabled = true;
+            
+            for(let box of checked) {
+                const id = box.value;
+                try {
+                    const res = await fetch(`${API_BASE}/admin-panel/games/puzzle/levels/${id}`, {
+                        method: "DELETE",
+                        headers: { Authorization: "Bearer " + token }
+                    });
+                    if (!res.ok) errorCount++;
+                } catch(e) {
+                    errorCount++;
+                }
+            }
+            
+            btn.innerHTML = origHtml;
+            btn.disabled = false;
+            
+            if(errorCount > 0) showToastGm(`Deleted with ${errorCount} errors.`, "danger");
+            else showToastGm(`Successfully deleted ${checked.length} levels.`);
+            
+            document.getElementById('pz-select-all').checked = false;
+            updateDeleteSelectedBtnVisibility();
+            loadPuzzle();
+            loadPuzzleStats();
+        });
     }
 
-    // Initialize based on URL query param ?tab=puzzle
+    // Initialize based on URL query param
+// Initialize based on URL query param ?tab=puzzle
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get("tab") || "wordle";
     switchTab(initialTab);

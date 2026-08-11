@@ -2166,7 +2166,7 @@ function updatePermissionMetrics(selected) {
 
 function formatMonitorTime(timestamp) {
   try {
-    return new Date(timestamp).toLocaleString();
+    return new Date(timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   } catch {
     return "Unknown time";
   }
@@ -2552,7 +2552,7 @@ async function fetchActivityLogs() {
     document.getElementById("activity-total-events").textContent = recentLogs.length;
     document.getElementById("activity-failed-events").textContent = failedCount;
     document.getElementById("activity-top-user").textContent = leaderboard.length ? `@${leaderboard[0].username}` : "-";
-    document.getElementById("activity-last-updated").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    document.getElementById("activity-last-updated").textContent = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: "2-digit", minute: "2-digit" });
 
     if (!leaderboard.length) {
       leaderboardEl.innerHTML = `<p class="text-muted text-center py-3">No activity logs recorded yet.</p>`;
@@ -2616,7 +2616,7 @@ async function fetchActivityLogs() {
             </span>
           </td>
           <td style="padding:12px 20px;">${log.details || ""}</td>
-          <td style="padding:12px 20px;"><small class="text-muted">${new Date(log.timestamp).toLocaleString()}</small></td>
+          <td style="padding:12px 20px;"><small class="text-muted">${new Date(log.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</small></td>
         </tr>`).join("");
     }
   } catch (e) {

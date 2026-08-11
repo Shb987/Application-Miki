@@ -366,6 +366,77 @@ async def list_puzzle_levels(
     }
 
 
+@router.post("/admin-panel/games/puzzle/levels/batch")
+async def add_puzzle_levels_batch(
+    difficulty: str = Form(...),
+    levels: str = Form(...),
+    title: Optional[str] = Form(None),
+    image_files: List[UploadFile] = File(...),
+    current_admin: dict = Depends(require_permission("Games", "create"))
+):
+    """
+    Add multiple Puzzle levels at once.
+    """
+    import json
+    try:
+        levels_list = json.loads(levels)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid levels format")
+        
+    if len(levels_list) != len(image_files):
+        raise HTTPException(status_code=400, detail="Number of levels must match number of images")
+
+    diff = difficulty.strip().capitalize()
+    if diff not in PUZZLE_DIFFICULTIES:
+        raise HTTPException(status_code=400, detail=f"difficulty must be one of {PUZZLE_DIFFICULTIES}")
+
+    grid_size = GRID_SIZE_MAP.get(diff, 3)
+    folder_dir = os.path.join("app", "static", "games", "puzzle", diff)
+    os.makedirs(folder_dir, exist_ok=True)
+    
+    inserted_ids = []
+    
+    for i, file in enumerate(image_files):
+        current_level = int(levels_list[i])
+        
+        # Check duplicate
+        existing = await db.puzzle_levels.find_one({"difficulty": diff, "level": current_level})
+        if existing:
+            continue
+            
+        if file.filename:
+            ext = os.path.splitext(file.filename)[1].lower()
+            if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+                ext = ".jpg"
+            
+            file_name = f"{uuid.uuid4().hex}{ext}"
+            file_path = os.path.join(folder_dir, file_name)
+            
+            content_bytes = await file.read()
+            with open(file_path, "wb") as f_out:
+                f_out.write(content_bytes)
+                
+            final_image_url = f"/static/games/puzzle/{diff}/{file_name}"
+            
+            doc = {
+                "difficulty": diff,
+                "level": current_level,
+                "title": (f"{title} (Part {i+1})" if title and len(image_files) > 1 else title.strip()) if title else f"{diff} Level {current_level}",
+                "image_url": final_image_url,
+                "grid_size": grid_size,
+                "created_at": datetime.utcnow(),
+                "created_by": current_admin.get("sub", "admin")
+            }
+            result = await db.puzzle_levels.insert_one(doc)
+            inserted_ids.append(str(result.inserted_id))
+
+    return {
+        "status": "success",
+        "message": f"Successfully added {len(inserted_ids)} puzzle levels.",
+        "inserted_ids": inserted_ids
+    }
+
+
 @router.post("/admin-panel/games/puzzle/levels")
 async def add_puzzle_level(
     difficulty: str = Form(...),

@@ -31,12 +31,12 @@ def natural_sort_key(s):
 
 @router.get("/standard/{standard}")
 async def get_subjects_and_chapters(standard: str, category: str = "NCERT", student_id: Optional[str] = None):
-    # If student_id is provided, fetch their category dynamically
+    # If student_id is provided, fetch their syllabus dynamically
     if student_id:
         try:
             student = await db.students.find_one({"_id": ObjectId(student_id)})
-            if student and student.get("category"):
-                category = student.get("category")
+            if student and student.get("syllabus"):
+                category = student.get("syllabus")
         except Exception:
             pass
             

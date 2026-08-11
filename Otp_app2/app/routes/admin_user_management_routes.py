@@ -260,12 +260,14 @@ async def list_parents(
     # Remove duplicates
     all_student_ids = list(set(all_student_ids))
 
-    # 2️⃣ Fetch student names
+    # 2️⃣ Fetch student names and guardian names
     student_map = {}
+    guardian_map = {}
     if all_student_ids:
-        s_cursor = db.students.find({"_id": {"$in": all_student_ids}}, {"_id": 1, "student_name": 1})
+        s_cursor = db.students.find({"_id": {"$in": all_student_ids}}, {"_id": 1, "student_name": 1, "guardian_name": 1})
         async for s in s_cursor:
             student_map[str(s["_id"])] = s.get("student_name", "Unknown")
+            guardian_map[str(s["_id"])] = s.get("guardian_name", "Unknown")
 
     # 3️⃣ Build result
     result = []
@@ -275,6 +277,10 @@ async def list_parents(
         # Resolve student names
         s_ids = p.get("student_ids", [])
         p_data["student_names"] = [student_map.get(str(sid), "Unknown") for sid in s_ids]
+        
+        # Get guardian name from the first linked student, if available
+        p_data["guardian_name"] = guardian_map.get(str(s_ids[0]), "Guardian") if s_ids else "Guardian"
+        
         p_data["student_count"] = len(s_ids)
         result.append(p_data)
 

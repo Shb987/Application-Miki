@@ -26,10 +26,34 @@
         border-color: #19a1a1;
     }
 
-    .game-tab-btn.active[id="tab-squares"] {
-        background: rgba(84, 186, 74, 0.1);
-        color: #54ba4a;
-        border-color: #54ba4a;
+    .game-tab-btn.active[id="tab-puzzle"] {
+        background: rgba(243, 156, 18, 0.12);
+        color: #d35400;
+        border-color: #f39c12;
+    }
+
+    /* Dropzone & Premium Form Styling */
+    .pz-dropzone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 14px;
+        padding: 24px 16px;
+        text-align: center;
+        background: #f8fafc;
+        transition: all 0.25s ease;
+        cursor: pointer;
+    }
+
+    .pz-dropzone:hover {
+        border-color: #19a1a1;
+        background: #f0fdfa;
+    }
+
+    .pz-preview-card {
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        background: #fff;
     }
 
     .range-badge {
@@ -176,8 +200,8 @@
     <!-- Tabs -->
     <div class="d-flex gap-2 mb-4">
         <button class="btn game-tab-btn active" id="tab-wordle" onclick="switchTab('wordle')">🔤 Wordle</button>
-        <button class="btn btn-outline-secondary game-tab-btn" id="tab-squares" onclick="switchTab('squares')">🟦
-            Squares</button>
+        <button class="btn btn-outline-secondary game-tab-btn" id="tab-squares" onclick="switchTab('squares')">🟦 Squares</button>
+        <button class="btn btn-outline-secondary game-tab-btn" id="tab-puzzle" onclick="switchTab('puzzle')">🧩 Puzzle</button>
     </div>
 
     <!-- WORDLE PANEL -->
@@ -241,6 +265,36 @@
                 <div class="table-responsive" id="squares-table-wrapper">
                     <div class="text-center py-4">
                         <div class="spinner-border text-primary"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PUZZLE PANEL -->
+    <div id="panel-puzzle" style="display:none;">
+        <div class="row mb-3" id="puzzle-stats-row">
+            <div class="col-12">
+                <div class="stat-mini bg-light text-muted">Loading stats...</div>
+            </div>
+        </div>
+        <div class="card" style="border-radius:14px;">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <select id="puzzle-filter-diff" class="form-select"
+                        style="max-width:180px;border-radius:8px;font-size:.85rem;" onchange="loadPuzzle()">
+                        <option value="">All Difficulties</option>
+                        <option value="Beginner">Beginner (3x3 Grid)</option>
+                        <option value="Intermediate">Intermediate (4x4 Grid)</option>
+                        <option value="Advanced">Advanced (5x5 Grid)</option>
+                    </select>
+                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #19a1a1;"
+                        onclick="openPuzzleModal()">+ Add Puzzle Level</button>
+                    <span class="text-muted" id="puzzle-count" style="font-size:.82rem;"></span>
+                </div>
+                <div class="table-responsive" id="puzzle-table-wrapper">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-warning"></div>
                     </div>
                 </div>
             </div>
@@ -405,6 +459,81 @@
     </div>
 </div>
 
+<!-- PUZZLE MODAL -->
+<div class="modal fade" id="puzzleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header border-0 text-white p-4" style="background: linear-gradient(135deg, #19a1a1 0%, #0e7a7a 100%);">
+                <h5 class="modal-title font-weight-bold d-flex align-items-center gap-2" id="puzzle-modal-title">
+                    <i data-feather="grid"></i> Add Puzzle Level
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" style="background: #f8fafc;">
+                <input type="hidden" id="pz-edit-id">
+                
+                <div class="card border-0 shadow-sm p-3 mb-3" style="border-radius: 14px;">
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold text-dark mb-1">Difficulty Category</label>
+                        <select id="pz-difficulty" class="form-select form-control-lg" style="border-radius: 10px; font-size: 0.95rem; border: 1.5px solid #cbd5e1;" onchange="updateGridPreviewHint()">
+                            <option value="Beginner">🟢 Beginner (Classes 1–6 • 3x3 Grid)</option>
+                            <option value="Intermediate">🟡 Intermediate (Classes 7–10 • 4x4 Grid)</option>
+                            <option value="Advanced">🔴 Advanced (Classes 11–12 • 5x5 Grid)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label font-weight-bold text-dark mb-1">Level Number</label>
+                            <input type="number" id="pz-level" class="form-control form-control-lg" style="border-radius: 10px; font-size: 0.95rem; border: 1.5px solid #cbd5e1;" placeholder="1, 2, 3..." min="1">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label font-weight-bold text-dark mb-1">Target Grid</label>
+                            <input type="text" id="pz-grid-hint" class="form-control form-control-lg bg-light text-primary font-weight-bold" style="border-radius: 10px; font-size: 0.9rem;" readonly value="3x3 Grid (Classes 1-6)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm p-3 mb-3" style="border-radius: 14px;">
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold text-dark mb-1">Level Title / Topic <span class="text-muted font-weight-normal">(Optional)</span></label>
+                        <input type="text" id="pz-title" class="form-control" style="border-radius: 10px; border: 1.5px solid #cbd5e1;" placeholder="e.g. Solar System, Wildlife, Science Concept">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label font-weight-bold text-dark mb-1">Upload Level Image</label>
+                        
+                        <div class="pz-dropzone mb-2" onclick="document.getElementById('pz-file-input').click()">
+                            <i data-feather="upload-cloud" style="width: 32px; height: 32px; color: #19a1a1;" class="mb-2"></i>
+                            <div class="font-weight-bold text-dark">Click to browse or drop image file</div>
+                            <small class="text-muted">Auto-saves to <code>/static/games/puzzle/&lt;Difficulty&gt;/</code></small>
+                            <input type="file" id="pz-file-input" class="d-none" accept="image/*" onchange="previewPuzzleImage(this)">
+                        </div>
+
+                        <div id="pz-preview-container" class="mt-3 pz-preview-card p-2 text-center" style="display:none;">
+                            <img id="pz-img-preview" src="" style="max-height: 160px; width: 100%; object-fit: contain; border-radius: 10px;">
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" onclick="clearPuzzleImage()">
+                                    <i data-feather="x" style="width: 14px; height: 14px;"></i> Remove Image
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <label class="form-label text-muted" style="font-size:0.85rem;">Or Image Web URL <span class="font-weight-normal">(Fallback)</span></label>
+                        <input type="text" id="pz-url" class="form-control form-control-sm" style="border-radius: 8px; border: 1px solid #cbd5e1;" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-white d-flex justify-content-between">
+                <button type="button" class="btn btn-light font-weight-bold px-4" style="border-radius: 10px; color: #64748b;" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn text-white font-weight-bold px-4" style="border-radius: 10px; background: linear-gradient(135deg, #19a1a1 0%, #0e7a7a 100%); box-shadow: 0 4px 12px rgba(25, 161, 161, 0.3);" onclick="savePuzzle()">Save Puzzle Level</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="toast-gm" class="toast align-items-center text-white border-0"
     style="display:none; position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
     <div class="d-flex">
@@ -420,9 +549,14 @@
     function switchTab(tab) {
         document.getElementById("panel-wordle").style.display = tab === "wordle" ? "" : "none";
         document.getElementById("panel-squares").style.display = tab === "squares" ? "" : "none";
-        document.getElementById("tab-wordle").className = "btn game-tab-btn" + (tab === "wordle" ? " active" : "");
-        document.getElementById("tab-squares").className = "btn game-tab-btn" + (tab === "squares" ? " active" : "");
+        document.getElementById("panel-puzzle").style.display = tab === "puzzle" ? "" : "none";
+
+        document.getElementById("tab-wordle").className = "btn game-tab-btn" + (tab === "wordle" ? " active" : " btn-outline-secondary");
+        document.getElementById("tab-squares").className = "btn game-tab-btn" + (tab === "squares" ? " active" : " btn-outline-secondary");
+        document.getElementById("tab-puzzle").className = "btn game-tab-btn" + (tab === "puzzle" ? " active" : " btn-outline-secondary");
+
         if (tab === "squares") { loadSquares(); loadSquaresStats(); }
+        else if (tab === "puzzle") { loadPuzzle(); loadPuzzleStats(); }
         else { loadWordle(); loadWordleStats(); }
     }
 
@@ -654,6 +788,203 @@
 
     async function deleteSquares(id, lv) { if (confirm(`Delete level ${lv}?`)) { await fetch(`${API_BASE}/admin-panel/games/squares/levels/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } }); loadSquares(); loadSquaresStats(); } }
 
-    loadWordle(); loadWordleStats();
+    // ══════════════════════════════════════════════
+    // PUZZLE MANAGEMENT JS
+    // ══════════════════════════════════════════════
+
+    function updateGridPreviewHint() {
+        const diff = document.getElementById("pz-difficulty").value;
+        const hintMap = { "Beginner": "3x3 Grid (Classes 1-6)", "Intermediate": "4x4 Grid (Classes 7-10)", "Advanced": "5x5 Grid (Classes 11-12)" };
+        document.getElementById("pz-grid-hint").value = hintMap[diff] || "3x3 Grid";
+    }
+
+    function previewPuzzleImage(input) {
+        const container = document.getElementById("pz-preview-container");
+        const img = document.getElementById("pz-img-preview");
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                img.src = e.target.result;
+                container.style.display = "block";
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function clearPuzzleImage() {
+        document.getElementById("pz-file-input").value = "";
+        document.getElementById("pz-url").value = "";
+        document.getElementById("pz-preview-container").style.display = "none";
+    }
+
+    async function loadPuzzle() {
+        const diff = document.getElementById("puzzle-filter-diff").value;
+        let url = `${API_BASE}/admin-panel/games/puzzle/levels?limit=100`;
+        if (diff) url += `&difficulty=${diff}`;
+
+        try {
+            const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            document.getElementById("puzzle-count").textContent = `${json.total || 0} levels`;
+
+            let html = `<table class="table table-hover table-bordered align-middle"><thead class="table-dark"><tr><th>#</th><th>Preview</th><th>Difficulty</th><th>Level</th><th>Grid Size</th><th>Title / Image Path</th><th>Actions</th></tr></thead><tbody>`;
+            (json.data || []).forEach((lv, i) => {
+                const imgUrl = lv.image_url || '';
+                const titleEsc = (lv.title || '').replace(/'/g, "\\'");
+                const diffBadge = lv.difficulty === 'Beginner' ? 'bg-success' : lv.difficulty === 'Intermediate' ? 'bg-warning' : 'bg-danger';
+
+                html += `<tr>
+                    <td>${i + 1}</td>
+                    <td style="width: 80px;">
+                        ${imgUrl ? `<img src="${imgUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;" onerror="this.src='/assets/images/dashboard/bg.jpg'">` : '<span class="text-muted">No Image</span>'}
+                    </td>
+                    <td><span class="badge ${diffBadge}">${lv.difficulty}</span></td>
+                    <td><strong>Level ${lv.level}</strong></td>
+                    <td><span class="badge bg-secondary">${lv.grid_size}x${lv.grid_size}</span></td>
+                    <td><div style="font-weight: 600;">${lv.title || ('Level ' + lv.level)}</div><small class="text-muted">${imgUrl}</small></td>
+                    <td>
+                        <div class="action-group">
+                            <button class="action-btn btn-edit" onclick='editPuzzle("${lv.id}","${lv.difficulty}",${lv.level},"${titleEsc}","${imgUrl}")' title="Edit">
+                                <i data-feather="edit-2"></i>
+                            </button>
+                            <button class="action-btn btn-delete" onclick='deletePuzzle("${lv.id}", ${lv.level}, "${lv.difficulty}")' title="Delete">
+                                <i data-feather="trash-2"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById("puzzle-table-wrapper").innerHTML = html + `</tbody></table>`;
+            feather.replace();
+        } catch (err) { console.error(err); }
+    }
+
+    async function loadPuzzleStats() {
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/games/puzzle/stats`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            if (!json.data) return;
+            const d = json.data;
+
+            let diffHtml = Object.entries(d.by_difficulty || {}).map(([diff, c]) => `
+                <div class="stat-item">
+                    <span class="badge ${diff === 'Beginner' ? 'bg-success' : diff === 'Intermediate' ? 'bg-warning' : 'bg-danger'}">${diff}</span>
+                    <span class="stat-value ms-1">${c} levels</span>
+                </div>
+            `).join("");
+
+            document.getElementById("puzzle-stats-row").innerHTML = `
+                <div class="col-12">
+                    <div class="stat-mini">
+                        <div class="stat-item">
+                            <i data-feather="image" class="stat-icon" style="color:#f39c12;"></i>
+                            <span class="stat-label">Total Levels:</span>
+                            <span class="stat-value">${d.total_levels}</span>
+                        </div>
+                        <div class="divider"></div>
+                        <div class="stat-item">
+                            <i data-feather="award" class="stat-icon" style="color:#19a1a1;"></i>
+                            <span class="stat-label">Student Records:</span>
+                            <span class="stat-value">${d.total_progress_records}</span>
+                        </div>
+                        <div class="divider"></div>
+                        ${diffHtml}
+                    </div>
+                </div>`;
+            feather.replace();
+        } catch (err) { console.error(err); }
+    }
+
+    function openPuzzleModal(id = "", difficulty = "Beginner", level = "", title = "", imageUrl = "") {
+        document.getElementById("pz-edit-id").value = id;
+        document.getElementById("pz-difficulty").value = difficulty;
+        document.getElementById("pz-level").value = level;
+        document.getElementById("pz-title").value = title;
+        document.getElementById("pz-url").value = imageUrl;
+        document.getElementById("pz-file-input").value = "";
+        
+        const previewContainer = document.getElementById("pz-preview-container");
+        const previewImg = document.getElementById("pz-img-preview");
+        if (imageUrl) {
+            previewImg.src = imageUrl;
+            previewContainer.style.display = "block";
+        } else {
+            previewContainer.style.display = "none";
+        }
+
+        updateGridPreviewHint();
+        document.getElementById("puzzle-modal-title").innerText = id ? "Edit Puzzle Level" : "Add Puzzle Level";
+        new bootstrap.Modal(document.getElementById("puzzleModal")).show();
+    }
+
+    function editPuzzle(id, diff, lv, title, imgUrl) {
+        openPuzzleModal(id, diff, lv, title, imgUrl);
+    }
+
+    async function savePuzzle() {
+        const id = document.getElementById("pz-edit-id").value;
+        const difficulty = document.getElementById("pz-difficulty").value;
+        const level = document.getElementById("pz-level").value;
+        const title = document.getElementById("pz-title").value.trim();
+        const imageUrl = document.getElementById("pz-url").value.trim();
+        const fileInput = document.getElementById("pz-file-input");
+
+        if (!difficulty || !level) {
+            alert("Please select difficulty and enter level number.");
+            return;
+        }
+
+        if (!id && !fileInput.files.length && !imageUrl) {
+            alert("Please upload an image file or provide an image URL.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("difficulty", difficulty);
+        formData.append("level", level);
+        if (title) formData.append("title", title);
+        if (imageUrl) formData.append("image_url", imageUrl);
+        if (fileInput.files[0]) formData.append("image_file", fileInput.files[0]);
+
+        const url = id ? `${API_BASE}/admin-panel/games/puzzle/levels/${id}` : `${API_BASE}/admin-panel/games/puzzle/levels`;
+        const method = id ? "PUT" : "POST";
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { Authorization: "Bearer " + token },
+                body: formData
+            });
+
+            const json = await res.json();
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById("puzzleModal")).hide();
+                loadPuzzle();
+                loadPuzzleStats();
+            } else {
+                alert(json.detail || "Failed to save puzzle level.");
+            }
+        } catch (err) {
+            alert("Error saving puzzle level: " + err);
+        }
+    }
+
+    async function deletePuzzle(id, level, diff) {
+        if (confirm(`Delete ${diff} Level ${level}?`)) {
+            const res = await fetch(`${API_BASE}/admin-panel/games/puzzle/levels/${id}`, {
+                method: "DELETE",
+                headers: { Authorization: "Bearer " + token }
+            });
+            if (res.ok) {
+                loadPuzzle();
+                loadPuzzleStats();
+            }
+        }
+    }
+
+    // Initialize based on URL query param ?tab=puzzle
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get("tab") || "wordle";
+    switchTab(initialTab);
 </script>
 {% endblock %}

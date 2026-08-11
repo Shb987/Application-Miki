@@ -61,3 +61,11 @@ gunicorn_conf.py
 test_voice_assistant.py
 verify_voice_history.py
 seed_admin.py
+
+# Uploaded puzzle game images & static media
+app/static/games/puzzle/*
+!app/static/games/puzzle/**/.gitkeep
+
+# Temporary media & test outputs
+*.wav
+miki_voice_output.wav

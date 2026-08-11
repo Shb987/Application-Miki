@@ -326,3 +326,220 @@ async def get_squares_stats(current_admin: dict = Depends(require_permission("Ga
             "by_class_range": {item["_id"]: item["count"] for item in by_range}
         }
     }
+
+
+# ══════════════════════════════════════════════
+# PUZZLE — Level & Image Management
+# ══════════════════════════════════════════════
+
+import uuid
+import os
+from fastapi import UploadFile, File, Form
+
+PUZZLE_DIFFICULTIES = ["Beginner", "Intermediate", "Advanced"]
+GRID_SIZE_MAP = {
+    "Beginner": 3,
+    "Intermediate": 4,
+    "Advanced": 5
+}
+
+@router.get("/admin-panel/games/puzzle/levels")
+async def list_puzzle_levels(
+    difficulty: Optional[str] = Query(None, description="Filter by difficulty e.g. 'Beginner'"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    current_admin: dict = Depends(require_permission("Games", "read"))
+):
+    """List all Puzzle levels with optional difficulty filter."""
+    query: Dict[str, Any] = {}
+    if difficulty:
+        query["difficulty"] = difficulty.strip().capitalize()
+
+    total = await db.puzzle_levels.count_documents(query)
+    cursor = db.puzzle_levels.find(query).sort([("difficulty", 1), ("level", 1)]).skip(skip).limit(limit)
+    levels = await cursor.to_list(length=limit)
+
+    return {
+        "status": "success",
+        "total": total,
+        "data": [serialize_doc(lv) for lv in levels]
+    }
+
+
+@router.post("/admin-panel/games/puzzle/levels")
+async def add_puzzle_level(
+    difficulty: str = Form(...),
+    level: int = Form(...),
+    title: Optional[str] = Form(None),
+    image_url: Optional[str] = Form(None),
+    image_file: Optional[UploadFile] = File(None),
+    current_admin: dict = Depends(require_permission("Games", "create"))
+):
+    """
+    Add a new Puzzle level with uploaded image file or image URL.
+    Saves image under /static/games/puzzle/<Difficulty>/ (Beginner, Intermediate, Advanced)
+    Assigns grid_size automatically (Beginner: 3x3, Intermediate: 4x4, Advanced: 5x5).
+    """
+    diff = difficulty.strip().capitalize()
+    if diff not in PUZZLE_DIFFICULTIES:
+        raise HTTPException(status_code=400, detail=f"difficulty must be one of {PUZZLE_DIFFICULTIES}")
+
+    # Check duplicate level for same difficulty
+    existing = await db.puzzle_levels.find_one({"difficulty": diff, "level": int(level)})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Level {level} already exists for difficulty '{diff}'")
+
+    final_image_url = (image_url or "").strip()
+
+    if image_file and image_file.filename:
+        ext = os.path.splitext(image_file.filename)[1].lower()
+        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+            ext = ".jpg"
+        
+        folder_dir = os.path.join("app", "static", "games", "puzzle", diff)
+        os.makedirs(folder_dir, exist_ok=True)
+        
+        file_name = f"{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(folder_dir, file_name)
+        
+        content = await image_file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+            
+        final_image_url = f"/static/games/puzzle/{diff}/{file_name}"
+
+    if not final_image_url:
+        raise HTTPException(status_code=400, detail="Either an image file or an image URL is required")
+
+    grid_size = GRID_SIZE_MAP.get(diff, 3)
+
+    doc = {
+        "difficulty": diff,
+        "level": int(level),
+        "title": title.strip() if title else f"{diff} Level {level}",
+        "image_url": final_image_url,
+        "grid_size": grid_size,
+        "created_at": datetime.utcnow(),
+        "created_by": current_admin.get("sub", "admin")
+    }
+    result = await db.puzzle_levels.insert_one(doc)
+
+    return {
+        "status": "success",
+        "message": "Puzzle level added successfully",
+        "id": str(result.inserted_id)
+    }
+
+
+@router.put("/admin-panel/games/puzzle/levels/{level_id}")
+async def update_puzzle_level(
+    level_id: str,
+    difficulty: Optional[str] = Form(None),
+    level: Optional[int] = Form(None),
+    title: Optional[str] = Form(None),
+    image_url: Optional[str] = Form(None),
+    image_file: Optional[UploadFile] = File(None),
+    current_admin: dict = Depends(require_permission("Games", "update"))
+):
+    """Update an existing Puzzle level or replace image."""
+    try:
+        oid = ObjectId(level_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid level_id")
+
+    existing = await db.puzzle_levels.find_one({"_id": oid})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Puzzle level not found")
+
+    update_data: Dict[str, Any] = {}
+
+    target_diff = difficulty.strip().capitalize() if difficulty else existing.get("difficulty", "Beginner")
+    if target_diff not in PUZZLE_DIFFICULTIES:
+        raise HTTPException(status_code=400, detail=f"difficulty must be one of {PUZZLE_DIFFICULTIES}")
+        
+    update_data["difficulty"] = target_diff
+    update_data["grid_size"] = GRID_SIZE_MAP.get(target_diff, 3)
+
+    if level is not None:
+        update_data["level"] = int(level)
+
+    if title is not None:
+        update_data["title"] = title.strip()
+
+    if image_file and image_file.filename:
+        ext = os.path.splitext(image_file.filename)[1].lower()
+        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+            ext = ".jpg"
+            
+        folder_dir = os.path.join("app", "static", "games", "puzzle", target_diff)
+        os.makedirs(folder_dir, exist_ok=True)
+        
+        file_name = f"{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(folder_dir, file_name)
+        
+        content = await image_file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+            
+        update_data["image_url"] = f"/static/games/puzzle/{target_diff}/{file_name}"
+    elif image_url is not None and image_url.strip():
+        update_data["image_url"] = image_url.strip()
+
+    update_data["updated_at"] = datetime.utcnow()
+    await db.puzzle_levels.update_one({"_id": oid}, {"$set": update_data})
+
+    return {"status": "success", "message": "Puzzle level updated successfully"}
+
+
+@router.delete("/admin-panel/games/puzzle/levels/{level_id}")
+async def delete_puzzle_level(
+    level_id: str,
+    current_admin: dict = Depends(require_permission("Games", "delete"))
+):
+    """Delete a Puzzle level and its local image if stored locally."""
+    try:
+        oid = ObjectId(level_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid level_id")
+
+    existing = await db.puzzle_levels.find_one({"_id": oid})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Puzzle level not found")
+
+    # Try removing local image file
+    img_url = existing.get("image_url", "")
+    if img_url.startswith("/static/games/puzzle/") or img_url.startswith("/games/puzzle/"):
+        rel_path = img_url.lstrip("/")
+        if rel_path.startswith("static/"):
+            local_file = os.path.join("app", rel_path)
+        else:
+            local_file = os.path.join("app", "static", rel_path)
+        if os.path.exists(local_file):
+            try:
+                os.remove(local_file)
+            except Exception:
+                pass
+
+    await db.puzzle_levels.delete_one({"_id": oid})
+    return {"status": "success", "message": "Puzzle level deleted successfully"}
+
+
+@router.get("/admin-panel/games/puzzle/stats")
+async def get_puzzle_stats(current_admin: dict = Depends(require_permission("Games", "read"))):
+    """Returns total Puzzle levels per difficulty + total student progress records."""
+    pipeline = [
+        {"$group": {"_id": "$difficulty", "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ]
+    by_diff = await db.puzzle_levels.aggregate(pipeline).to_list(None)
+    total_levels = await db.puzzle_levels.count_documents({})
+    total_progress_records = await db.puzzle_progress.count_documents({})
+
+    return {
+        "status": "success",
+        "data": {
+            "total_levels": total_levels,
+            "total_progress_records": total_progress_records,
+            "by_difficulty": {item["_id"]: item["count"] for item in by_diff}
+        }
+    }

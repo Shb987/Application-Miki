@@ -42,7 +42,7 @@ class PuzzleService:
             for doc in puzzle_levels:
                 i = doc.get("level")
                 image_url_db = doc.get("image_url", "")
-                image_url = f"game/puzzle/{difficulty}/{image_url_db}" if image_url_db else ""
+                image_url = f"static/games/puzzle/{difficulty}/{image_url_db}" if image_url_db else ""
                 
                 if i < highest_level:
                     status, playable = "completed", True
@@ -103,7 +103,7 @@ class PuzzleService:
             return {
                 "level": level,
                 "difficulty": difficulty,
-                "image_url": f"game/puzzle/{difficulty}/{image_url_db}" if image_url_db else "",
+                "image_url": f"static/games/puzzle/{difficulty}/{image_url_db}" if image_url_db else "",
                 "grid_size": puzzle_level.get("grid_size", 3),
                 "mode": "practice" if level < highest_level else "progression"
             }

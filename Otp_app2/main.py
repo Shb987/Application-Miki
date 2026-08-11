@@ -130,7 +130,7 @@ app.include_router(user_analysis_routes.router, prefix="/user", tags=["Analytics
 app.include_router(user_game_wordle.router, prefix="/user", tags=["Game - Wordle"])
 app.include_router(user_game_squares.router, prefix="/user", tags=["Game - Squares"])
 app.include_router(user_game_chess.router, prefix="/user", tags=["Game - Chess"])
-app.include_router(user_game_puzzle.router, prefix="/user", tags=["Game - Puzzle"])
+app.include_router(user_game_puzzle.router, prefix="/user")
 app.include_router(user_sudoku_routes.router, prefix="/user/sudoku", tags=["Game - Sudoku"])
 
 # Special Days

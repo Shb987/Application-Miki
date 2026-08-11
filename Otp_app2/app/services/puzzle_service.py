@@ -42,7 +42,8 @@ class PuzzleService:
             for doc in puzzle_levels:
                 i = doc.get("level")
                 image_url_db = doc.get("image_url", "")
-                image_url = f"static/games/puzzle/{difficulty}/{image_url_db}" if image_url_db else ""
+                filename = image_url_db.split('/')[-1] if image_url_db else ""
+                image_url = f"static/games/puzzle/{difficulty}/{filename}" if filename else ""
                 
                 if i < highest_level:
                     status, playable = "completed", True
@@ -99,11 +100,12 @@ class PuzzleService:
                 return {"error": f"Puzzle configuration not found for difficulty '{difficulty}' and level {level}."}
                 
             image_url_db = puzzle_level.get("image_url", "")
+            filename = image_url_db.split('/')[-1] if image_url_db else ""
             
             return {
                 "level": level,
                 "difficulty": difficulty,
-                "image_url": f"static/games/puzzle/{difficulty}/{image_url_db}" if image_url_db else "",
+                "image_url": f"static/games/puzzle/{difficulty}/{filename}" if filename else "",
                 "grid_size": puzzle_level.get("grid_size", 3),
                 "mode": "practice" if level < highest_level else "progression"
             }

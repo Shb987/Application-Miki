@@ -100,6 +100,7 @@ app.mount("/subject_images", StaticFiles(directory="app/static/subject_images"),
 app.mount("/Domain_pictures", StaticFiles(directory="app/static/Domain_pictures"), name="Domain_pictures")
 app.mount("/generated_papers", StaticFiles(directory="app/static/generated_papers"), name="generated_papers")
 app.mount("/static/games", StaticFiles(directory="app/static/games"), name="games")
+app.mount("/game/puzzle", StaticFiles(directory="app/static/games/puzzle"), name="game_puzzle")
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])
 app.include_router(admin_roles_routes.router, prefix="/admin-panel", tags=["Admin Roles"])

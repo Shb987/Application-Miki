@@ -836,7 +836,7 @@
                 html += `<tr>
                     <td>${i + 1}</td>
                     <td style="width: 80px;">
-                        ${imgUrl ? `<img src="${imgUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;" onerror="this.src='/assets/images/dashboard/bg.jpg'">` : '<span class="text-muted">No Image</span>'}
+                        ${imgUrl ? `<img src="${imgUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;" onerror="this.onerror=null; this.src='/assets/images/other-images/boxbg.jpg';">` : '<span class="text-muted">No Image</span>'}
                     </td>
                     <td><span class="badge ${diffBadge}">${lv.difficulty}</span></td>
                     <td><strong>Level ${lv.level}</strong></td>

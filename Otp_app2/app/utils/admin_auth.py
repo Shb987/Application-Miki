@@ -42,6 +42,20 @@ def get_current_admin(token: str = Depends(oauth2_scheme)):
 
     return {"sub": username, "role": role}
 
+async def log_admin_activity(username: str, role: str, action: str, details: str, status: str = "success"):
+    """Centralized helper to log admin activity into db.admin_activity_logs."""
+    try:
+        await db.admin_activity_logs.insert_one({
+            "username": username,
+            "role": role,
+            "action": action,
+            "status": status,
+            "details": details,
+            "timestamp": datetime.now(timezone.utc),
+        })
+    except Exception:
+        pass
+
 def require_permission(module: str, action: str):
     async def permission_checker(token: str = Depends(oauth2_scheme)):
         payload = decode_access_token(token)
@@ -51,27 +65,40 @@ def require_permission(module: str, action: str):
         if username is None or role_name is None:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        if role_name == "superadmin":
-            return {"sub": username, "role": role_name}
-            
-        role = await db.roles.find_one({"role_name": role_name})
-        if not role:
-            raise HTTPException(status_code=403, detail="Role not found")
-            
-        permissions = role.get("permissions", {})
+        act_normalized = action.strip().lower()
+        mod_normalized = module.strip().lower().replace(" ", "_").replace(",", "")
 
-        # Normalize keys: compare lowercase+stripped to handle typos like
-        # "Questions Base" vs "Question Base" saved in DB
-        module_normalized = module.strip().lower()
-        module_perms = {}
-        for db_key, db_val in permissions.items():
-            if db_key.strip().lower() == module_normalized:
-                module_perms = db_val
-                break
+        if role_name != "superadmin":
+            role = await db.roles.find_one({"role_name": role_name})
+            if not role:
+                raise HTTPException(status_code=403, detail="Role not found")
+                
+            permissions = role.get("permissions", {})
 
-        if not module_perms.get(action, False):
-            raise HTTPException(status_code=403, detail=f"Permission denied for module '{module}' with action '{action}'")
-            
+            # Normalize keys: compare lowercase+stripped to handle typos like
+            # "Questions Base" vs "Question Base" saved in DB
+            module_normalized = module.strip().lower()
+            module_perms = {}
+            for db_key, db_val in permissions.items():
+                if db_key.strip().lower() == module_normalized:
+                    module_perms = db_val
+                    break
+
+            if not module_perms.get(action, False):
+                raise HTTPException(status_code=403, detail=f"Permission denied for module '{module}' with action '{action}'")
+
+        # Automatically log activity for mutating actions (create, update, delete)
+        if act_normalized in ["create", "update", "delete"]:
+            action_key = f"{act_normalized}_{mod_normalized}"
+            details_str = f"Admin performed {action.upper()} on module '{module}'"
+            await log_admin_activity(
+                username=username,
+                role=role_name,
+                action=action_key,
+                details=details_str,
+                status="success"
+            )
+
         return {"sub": username, "role": role_name}
         
     return permission_checker

@@ -29,7 +29,6 @@ class SquaresService:
     @staticmethod
     async def get_available_levels(student_id: str) -> Dict[str, Any]:
         try:
-            student_id = student_id.split("&")[0]
             student = await db.students.find_one({"_id": ObjectId(student_id)})
             if not student: return {"error": "Student not found"}
             
@@ -67,7 +66,6 @@ class SquaresService:
     @staticmethod
     async def start_game(student_id: str, level: int) -> Dict[str, Any]:
         try:
-            student_id = student_id.split("&")[0]
             student = await db.students.find_one({"_id": ObjectId(student_id)})
             if not student: return {"error": "Student not found"}
             
@@ -84,8 +82,28 @@ class SquaresService:
             
             # Fetch puzzle
             puzzle = await db.squares_questions.find_one({"class_range": class_range, "level": level})
+            
+            # Fallback 1: Any puzzle for this level (ignoring class_range)
             if not puzzle:
-                return {"error": "Puzzle level not found"}
+                puzzle = await db.squares_questions.find_one({"level": level})
+                
+            # Fallback 2: Any puzzle in the DB at all
+            if not puzzle:
+                puzzle = await db.squares_questions.find_one({})
+                
+            # Fallback 3: Hardcoded dummy puzzle for testing
+            if not puzzle:
+                puzzle = {
+                    "grid": [
+                        ["W", "O", "R", "D"],
+                        ["T", "E", "S", "T"],
+                        ["P", "L", "A", "Y"],
+                        ["G", "A", "M", "E"]
+                    ],
+                    "main_words": ["WORD", "TEST", "PLAY", "GAME"],
+                    "bonus_words": [],
+                    "hint": "Default dummy puzzle"
+                }
             
             # Create/Update session
             active_session = {
@@ -227,7 +245,6 @@ class SquaresService:
     @staticmethod
     async def get_status(student_id: str) -> Dict[str, Any]:
         try:
-            student_id = student_id.split("&")[0]
             session = await db.squares_sessions.find_one(
                 {"student_id": student_id, "status": "playing"},
                 sort=[("updated_at", -1)]

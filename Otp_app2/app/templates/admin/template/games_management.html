@@ -717,7 +717,22 @@
         }
     }
 
-    async function deleteWord(id, w) { if (confirm(`Delete "${w}"?`)) { await fetch(`${API_BASE}/admin-panel/games/wordle/words/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } }); loadWordle(); loadWordleStats(); } }
+    function deleteWord(id, w) {
+        showCustomConfirm(`Delete "${w}"?`, async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/games/wordle/words/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
+                if (res.ok) {
+                    showToastGm("Word deleted successfully.");
+                    loadWordle(); loadWordleStats();
+                } else {
+                    const json = await res.json();
+                    showToastGm(json.detail || "Failed to delete word.", "danger");
+                }
+            } catch (err) {
+                showToastGm("Error: " + err, "danger");
+            }
+        });
+    }
 
     async function loadSquares() {
         const range = document.getElementById("squares-filter-range").value;
@@ -835,7 +850,22 @@
         }
     }
 
-    async function deleteSquares(id, lv) { if (confirm(`Delete level ${lv}?`)) { await fetch(`${API_BASE}/admin-panel/games/squares/levels/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } }); loadSquares(); loadSquaresStats(); } }
+    function deleteSquares(id, lv) {
+        showCustomConfirm(`Delete Squares level ${lv}?`, async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels/${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
+                if (res.ok) {
+                    showToastGm("Squares level deleted successfully.");
+                    loadSquares(); loadSquaresStats();
+                } else {
+                    const json = await res.json();
+                    showToastGm(json.detail || "Failed to delete Squares level.", "danger");
+                }
+            } catch (err) {
+                showToastGm("Error: " + err, "danger");
+            }
+        });
+    }
 
     // ══════════════════════════════════════════════
     // PUZZLE MANAGEMENT JS

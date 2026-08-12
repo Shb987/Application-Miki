@@ -464,11 +464,31 @@
     window.openEditTextbookModal = function(index) {
         const tb = allTextbooks[index];
         document.getElementById("edit-tb-id").value = tb._id;
-        document.getElementById("edit-tb-board").value = tb.board || "State Board";
-        document.getElementById("edit-tb-standard").value = tb.standard || "1";
-        document.getElementById("edit-tb-state").value = tb.state || "Kerala";
+        
+        function setSelectVal(id, val, defaultVal) {
+            const sel = document.getElementById(id);
+            const targetVal = val || defaultVal;
+            if (targetVal) {
+                let exists = false;
+                for (let i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value === targetVal) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    sel.add(new Option(targetVal, targetVal));
+                }
+            }
+            sel.value = targetVal;
+        }
+
+        setSelectVal("edit-tb-board", tb.board, "State Board");
+        setSelectVal("edit-tb-standard", tb.standard, "1");
+        setSelectVal("edit-tb-state", tb.state, "Kerala");
+        setSelectVal("edit-tb-category", tb.category, "SCERT");
+        
         document.getElementById("edit-tb-subject").value = tb.subject || "";
-        document.getElementById("edit-tb-category").value = tb.category || "SCERT";
         document.getElementById("edit-tb-year").value = tb.publication_year || "2024-25";
         document.getElementById("edit-tb-name").value = tb.textbook_name || "";
         

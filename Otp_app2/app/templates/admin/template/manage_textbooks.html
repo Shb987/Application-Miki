@@ -196,11 +196,135 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Textbook Modal -->
+<div class="modal fade" id="editTextbookModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-light border-bottom-0" style="border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title fw-bold text-dark"><i data-feather="edit-2" class="me-2 text-primary"></i>Edit Textbook</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="edit-textbook-form">
+                    <input type="hidden" id="edit-tb-id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-semibold">Board</label>
+                        <select class="form-select" id="edit-tb-board">
+                            <option value="CBSE">CBSE</option>
+                            <option value="ICSE">ICSE</option>
+                            <option value="State Board">State Board</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-semibold">Standard</label>
+                        <select class="form-select" id="edit-tb-standard">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-semibold">State</label>
+                        <select class="form-select" id="edit-tb-state">
+                            <option value="Kerala">Kerala</option>
+                            <option value="National">National</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-semibold">Subject</label>
+                        <input type="text" class="form-control" id="edit-tb-subject">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-semibold">Category</label>
+                        <select class="form-select" id="edit-tb-category">
+                            <option value="NCERT">NCERT</option>
+                            <option value="SCERT">SCERT</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-semibold">Publication Year</label>
+                        <input type="text" class="form-control" id="edit-tb-year">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted fw-semibold">Textbook Name</label>
+                        <input type="text" class="form-control" id="edit-tb-name" placeholder="Optional">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4" onclick="saveTextbookEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CUSTOM CONFIRM MODAL -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-body p-4 text-center">
+                <i data-feather="alert-circle" style="width: 48px; height: 48px; color: #f39c12; margin-bottom: 16px;"></i>
+                <h5 class="font-weight-bold text-dark mb-2">Are you sure?</h5>
+                <p id="confirm-modal-msg" class="text-muted mb-4" style="font-size: 0.95rem;"></p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light font-weight-bold px-4" style="border-radius: 8px;" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirm-modal-yes" class="btn btn-danger font-weight-bold px-4" style="border-radius: 8px;">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast-tb" class="toast align-items-center text-white border-0 position-fixed" role="alert" style="display:none; bottom: 20px; right: 20px; z-index: 9999;">
+    <div class="d-flex">
+        <div class="toast-body" id="toast-tb-msg">Done!</div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
     let allTextbooks = [];
+
+    function showToast(msg, type = "success") {
+        const el = document.getElementById("toast-tb");
+        el.className = `toast align-items-center text-white border-0 bg-${type} position-fixed`;
+        document.getElementById("toast-tb-msg").textContent = msg;
+        el.style.display = "block";
+        setTimeout(() => { el.style.display = "none"; }, 3000);
+    }
+
+    function showCustomConfirm(htmlMsg, onConfirm) {
+        document.getElementById("confirm-modal-msg").innerHTML = htmlMsg;
+        const modalEl = document.getElementById("customConfirmModal");
+        const modal = new bootstrap.Modal(modalEl);
+        const yesBtn = document.getElementById("confirm-modal-yes");
+        yesBtn.onclick = () => {
+            modal.hide();
+            if(onConfirm) onConfirm();
+        };
+        modal.show();
+    }
 
     async function loadTextbooks() {
         const container = document.getElementById("textbooks-container");
@@ -295,7 +419,7 @@
             const title = `${tb.standard} Std - ${tb.subject}${tb.textbook_name ? ' (' + tb.textbook_name + ')' : ''} (${tb.board} - ${tb.state})${tb.category ? ' [' + tb.category + ']' : ''}${tb.publication_year ? ' [' + tb.publication_year + ']' : ''}`;
             const chapters = tb.chapters || [];
             let statusBadge = tb.status === 'completed' ? '<span class="badge rounded-pill badge-success text-white py-2 px-3"><i class="icofont icofont-check-circled me-1"></i> Completed</span>' : (tb.status === 'extracting' || tb.status === 'embedding' ? `<span class="badge rounded-pill bg-warning text-dark py-2 px-3"><i class="icofont icofont-spinner fa-spin me-1"></i> ${tb.status}</span>` : `<span class="badge rounded-pill bg-info text-white py-2 px-3">${tb.status}</span>`);
-            html += `<div class="accordion-item mb-3 bg-white rounded border shadow-sm overflow-hidden"><h2 class="accordion-header" id="heading${index}"><div class="accordion-button bg-white text-dark fw-bold collapsed" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}" style="cursor: pointer;"><div class="d-flex justify-content-between align-items-center w-100 pe-3"><div class="d-flex align-items-center"><div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book"></i></div><span class="f-16">${title}</span></div><div class="d-flex align-items-center gap-3"><span class="text-muted f-12 fw-normal"><i class="icofont icofont-clock-time"></i> ${new Date(tb.created_at).toLocaleDateString()}</span>${statusBadge}<button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="event.stopPropagation(); deleteTextbook('${tb._id}', '${title.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></div></div></div></h2><div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#textbookAccordion"><div class="accordion-body bg-light border-top p-0"><div class="p-3 bg-white border-bottom custom-info-bar"><div class="row align-items-center"><div class="col-8"><span class="text-muted fw-bold me-2">ID:</span> <span class="badge bg-light text-dark font-monospace">${tb._id}</span>${tb.textbook_name ? `<span class="text-muted fw-bold ms-3 me-2">Textbook:</span> <span class="badge bg-light-primary text-primary">${tb.textbook_name}</span>` : ''}</div><div class="col-4 text-end"><span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span></div></div></div>`;
+            html += `<div class="accordion-item mb-3 bg-white rounded border shadow-sm overflow-hidden"><h2 class="accordion-header" id="heading${index}"><div class="accordion-button bg-white text-dark fw-bold collapsed" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}" style="cursor: pointer;"><div class="d-flex justify-content-between align-items-center w-100 pe-3"><div class="d-flex align-items-center"><div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book"></i></div><span class="f-16">${title}</span></div><div class="d-flex align-items-center gap-3"><span class="text-muted f-12 fw-normal"><i class="icofont icofont-clock-time"></i> ${new Date(tb.created_at).toLocaleDateString()}</span>${statusBadge}<button class="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation(); openEditTextbookModal(${index})"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i> Edit</button><button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="event.stopPropagation(); deleteTextbook('${tb._id}', '${title.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></div></div></div></h2><div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#textbookAccordion"><div class="accordion-body bg-light border-top p-0"><div class="p-3 bg-white border-bottom custom-info-bar"><div class="row align-items-center"><div class="col-8"><span class="text-muted fw-bold me-2">ID:</span> <span class="badge bg-light text-dark font-monospace">${tb._id}</span>${tb.textbook_name ? `<span class="text-muted fw-bold ms-3 me-2">Textbook:</span> <span class="badge bg-light-primary text-primary">${tb.textbook_name}</span>` : ''}</div><div class="col-4 text-end"><span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span></div></div></div>`;
             if (chapters.length === 0) { html += `<div class="text-center p-5"><i data-feather="file-text" class="text-muted mb-3" style="width: 32px; height: 32px;"></i><p class="text-muted mb-0">No chapters found.</p></div>`; }
             else { html += `<ul class="list-group list-group-flush">`; chapters.forEach((chap, cIdx) => { html += `<li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-white hover-light"><div class="d-flex align-items-center"><span class="badge bg-primary rounded-circle text-white me-3" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;">${cIdx + 1}</span><span class="fw-medium text-dark f-14">${chap}</span></div><button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="deleteChapter('${tb._id}', '${chap.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></li>`; }); html += `</ul>`; }
             html += `</div></div></div>`;
@@ -305,26 +429,91 @@
         feather.replace();
     }
 
-    window.deleteChapter = async function (textbookId, chapterName) {
-        if (!confirm(`Delete chapter: "${chapterName}"?`)) return;
-        try {
-            document.body.style.cursor = 'wait';
-            const res = await fetch(`/admin-panel/textbook/${textbookId}/chapter/${encodeURIComponent(chapterName)}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
-            if (!res.ok) throw new Error("Delete failed");
-            document.body.style.cursor = 'default';
-            alert("Chapter deleted"); loadTextbooks();
-        } catch (e) { document.body.style.cursor = 'default'; alert(`Error: ${e.message}`); }
+    window.deleteChapter = function (textbookId, chapterName) {
+        showCustomConfirm(`Delete chapter: "<strong>${chapterName}</strong>"?`, async () => {
+            try {
+                document.body.style.cursor = 'wait';
+                const res = await fetch(`/admin-panel/textbook/${textbookId}/chapter/${encodeURIComponent(chapterName)}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+                if (!res.ok) throw new Error("Delete failed");
+                document.body.style.cursor = 'default';
+                showToast("Chapter deleted", "success"); 
+                loadTextbooks();
+            } catch (e) { 
+                document.body.style.cursor = 'default'; 
+                showToast(`Error: ${e.message}`, "danger"); 
+            }
+        });
     };
 
-    window.deleteTextbook = async function (textbookId, textbookTitle) {
-        if (!confirm(`Are you sure you want to delete the entire textbook: "${textbookTitle}" and all its chapters/passages? This action cannot be undone.`)) return;
+    window.deleteTextbook = function (textbookId, textbookTitle) {
+        showCustomConfirm(`Are you sure you want to delete the entire textbook: "<strong>${textbookTitle}</strong>" and all its chapters/passages?<br><small class='text-danger'>This action cannot be undone.</small>`, async () => {
+            try {
+                document.body.style.cursor = 'wait';
+                const res = await fetch(`/admin-panel/textbook/${textbookId}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+                if (!res.ok) throw new Error("Delete failed");
+                document.body.style.cursor = 'default';
+                showToast("Textbook deleted successfully", "success"); 
+                loadTextbooks();
+            } catch (e) { 
+                document.body.style.cursor = 'default'; 
+                showToast(`Error: ${e.message}`, "danger"); 
+            }
+        });
+    };
+
+    window.openEditTextbookModal = function(index) {
+        const tb = allTextbooks[index];
+        document.getElementById("edit-tb-id").value = tb._id;
+        document.getElementById("edit-tb-board").value = tb.board || "State Board";
+        document.getElementById("edit-tb-standard").value = tb.standard || "1";
+        document.getElementById("edit-tb-state").value = tb.state || "Kerala";
+        document.getElementById("edit-tb-subject").value = tb.subject || "";
+        document.getElementById("edit-tb-category").value = tb.category || "SCERT";
+        document.getElementById("edit-tb-year").value = tb.publication_year || "2024-25";
+        document.getElementById("edit-tb-name").value = tb.textbook_name || "";
+        
+        const modal = new bootstrap.Modal(document.getElementById("editTextbookModal"));
+        modal.show();
+    };
+
+    window.saveTextbookEdit = async function() {
+        const id = document.getElementById("edit-tb-id").value;
+        const payload = {
+            board: document.getElementById("edit-tb-board").value,
+            standard: document.getElementById("edit-tb-standard").value,
+            state: document.getElementById("edit-tb-state").value,
+            subject: document.getElementById("edit-tb-subject").value,
+            category: document.getElementById("edit-tb-category").value,
+            publication_year: document.getElementById("edit-tb-year").value,
+            textbook_name: document.getElementById("edit-tb-name").value
+        };
+        
         try {
             document.body.style.cursor = 'wait';
-            const res = await fetch(`/admin-panel/textbook/${textbookId}`, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
-            if (!res.ok) throw new Error("Delete failed");
+            const res = await fetch(`/admin-panel/textbook/${id}`, { 
+                method: "PUT", 
+                headers: { 
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Update failed");
+            }
             document.body.style.cursor = 'default';
-            alert("Textbook deleted successfully"); loadTextbooks();
-        } catch (e) { document.body.style.cursor = 'default'; alert(`Error: ${e.message}`); }
+            
+            const modalEl = document.getElementById("editTextbookModal");
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            
+            showToast("Textbook updated successfully", "success"); 
+            loadTextbooks();
+        } catch (e) { 
+            document.body.style.cursor = 'default'; 
+            showToast(`Error: ${e.message}`, "danger"); 
+        }
     };
 
     loadTextbooks();

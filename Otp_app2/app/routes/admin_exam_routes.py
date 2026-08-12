@@ -717,6 +717,54 @@ async def get_all_textbooks():
             t["chapters"] = sorted(t["chapters"], key=natural_sort_key)
     return {"textbooks": textbooks}
 
+@router.put("/textbook/{textbook_id}")
+async def update_textbook(textbook_id: str, request: Request, current_admin: dict = Depends(require_permission("Exams, Textbooks & Syllabus", "update"))):
+    """Edit textbook metadata and cascade updates."""
+    data = await request.json()
+    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
+    if not textbook:
+        raise HTTPException(status_code=404, detail="Textbook not found")
+        
+    update_data = {}
+    for key in ["board", "standard", "state", "subject", "category", "publication_year", "textbook_name"]:
+        if key in data:
+            val = data[key].strip() if isinstance(data[key], str) else data[key]
+            if val and str(val).lower() != "null":
+                update_data[key] = val
+            else:
+                update_data[key] = None
+                
+    if update_data:
+        # Update textbook
+        await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": update_data})
+        
+        # Update textbook_chapters
+        await db.textbook_chapters.update_many(
+            {"textbook_id": str(textbook_id)}, 
+            {"$set": update_data}
+        )
+        
+        # Update chapter_status using old metadata signature
+        old_query = {
+            "board": textbook.get("board"),
+            "standard": textbook.get("standard"),
+            "state": textbook.get("state"),
+            "subject": textbook.get("subject"),
+            "publication_year": textbook.get("publication_year"),
+            "textbook_name": textbook.get("textbook_name")
+        }
+        await db.chapter_status.update_many(old_query, {"$set": update_data})
+        
+        await log_admin_activity(
+            current_admin["sub"],
+            current_admin["role"],
+            "edit_textbook",
+            f"Updated textbook {textbook_id} metadata",
+            status="success"
+        )
+        
+    return {"status": "success", "message": "Textbook updated successfully"}
+
 @router.delete("/textbook/{textbook_id}/chapter/{chapter_name}", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "delete"))])
 async def delete_textbook_chapter(textbook_id: str, chapter_name: str):
     """Delete a specific chapter and all its extracted passages and status from a textbook."""

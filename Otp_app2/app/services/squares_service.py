@@ -16,12 +16,23 @@ class SquaresService:
         return "6-8" # Default
 
     @staticmethod
+    def _parse_class(val: Any) -> int:
+        try:
+            if not val: return 8
+            import re
+            m = re.search(r'\d+', str(val))
+            if m: return int(m.group())
+            return 8
+        except Exception:
+            return 8
+
+    @staticmethod
     async def get_available_levels(student_id: str) -> Dict[str, Any]:
         try:
             student = await db.students.find_one({"_id": ObjectId(student_id)})
             if not student: return {"error": "Student not found"}
             
-            std_class = int(student.get("student_class", 8))
+            std_class = SquaresService._parse_class(student.get("student_class"))
             class_range = SquaresService.get_class_range(std_class)
             
             # Find progress
@@ -58,8 +69,8 @@ class SquaresService:
             student = await db.students.find_one({"_id": ObjectId(student_id)})
             if not student: return {"error": "Student not found"}
             
-            std_class = int(student.get("student_class", 8))
-            print(std_class)
+            std_class = SquaresService._parse_class(student.get("student_class"))
+            print("Parsed class for squares:", std_class)
             class_range = SquaresService.get_class_range(std_class)
             
             # Verify if level is unlocked

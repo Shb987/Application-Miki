@@ -5,7 +5,7 @@ from app.models.career_models import CareerAnalyzer
 from app.core.database import db
 from datetime import datetime, timezone
 from bson import ObjectId
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 import re
 import os
 import random
@@ -35,7 +35,7 @@ async def register_student(
     address: str = Form(...),
     guardian_name: str = Form(...),
     parent_mobile: str = Query(...),
-    profile_image: Optional[UploadFile] = File(None),
+    profile_image: Union[UploadFile, str, None] = File(None),
     school_id: Optional[str] = Form(None),
     syllabus: str = Form(...),
     current=Depends(admin_or_user)
@@ -48,7 +48,7 @@ async def register_student(
     is_user = usertype == "student"
 
     image_url = None
-    if profile_image:
+    if profile_image and not isinstance(profile_image, str):
         file_extension = os.path.splitext(profile_image.filename)[1]
         file_name = f"{uuid.uuid4()}{file_extension}"
         file_path = os.path.join(UPLOAD_DIR, file_name)
@@ -143,7 +143,7 @@ async def register_student_public(
     address: str = Form(...),
     guardian_name: str = Form(...),
     parent_mobile: str = Form(...),  # Required for public registration
-    profile_image: Optional[UploadFile] = File(None),
+    profile_image: Union[UploadFile, str, None] = File(None),
     school_id: Optional[str] = Form(None),
     syllabus: str = Form(...)
 ):
@@ -156,7 +156,7 @@ async def register_student_public(
 
     # 1️⃣ Handle Image Upload
     image_url = None
-    if profile_image:
+    if profile_image and not isinstance(profile_image, str):
         file_extension = os.path.splitext(profile_image.filename)[1]
         file_name = f"{uuid.uuid4()}{file_extension}"
         file_path = os.path.join(UPLOAD_DIR, file_name)
@@ -232,7 +232,7 @@ async def update_student(
     guardian_name: Optional[str] = Form(None),
     school_id: Optional[str] = Form(None),
     syllabus: Optional[str] = Form(None),
-    profile_image: Optional[UploadFile] = File(None),
+    profile_image: Union[UploadFile, str, None] = File(None),
     current=Depends(admin_or_user)
 ):
     # 🔐 Validate student_id
@@ -258,7 +258,7 @@ async def update_student(
             raise HTTPException(status_code=400, detail="Syllabus must be either NCERT or SCERT")
         update_data["syllabus"] = syllabus.upper()
 
-    if profile_image:
+    if profile_image and not isinstance(profile_image, str):
         file_extension = os.path.splitext(profile_image.filename)[1]
         file_name = f"{uuid.uuid4()}{file_extension}"
         file_path = os.path.join(UPLOAD_DIR, file_name)

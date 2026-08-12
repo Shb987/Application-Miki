@@ -72,10 +72,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         if 'ctx' in safe_err and 'error' in safe_err['ctx']:
             safe_err['ctx']['error'] = str(safe_err['ctx']['error'])
         safe_errors.append(safe_err)
+    safe_body = exc.body
+    if not isinstance(safe_body, (dict, list, str, int, float, bool, type(None))):
+        safe_body = str(safe_body)
         
     return JSONResponse(
         status_code=422,
-        content={"detail": safe_errors, "body": exc.body},
+        content={"detail": safe_errors, "body": safe_body},
     )
 
 

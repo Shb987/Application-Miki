@@ -14,6 +14,12 @@ class SudokuSubmit(BaseModel):
     time_spent_seconds: int
     is_completed: bool
 
+class SudokuMoveValidate(BaseModel):
+    current_board: List[List[int]]
+    row: int
+    col: int
+    num: int
+
 @router.get("/levels")
 async def get_levels(current_user: dict = Depends(get_current_user)):
     user_id = current_user.get("sub")
@@ -154,3 +160,57 @@ async def submit_sudoku(
         "is_completed": data.is_completed,
         "stars": stars
     }
+
+@router.post("/validate_move/{level}")
+async def validate_sudoku_move(
+    level: int,
+    data: SudokuMoveValidate,
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    config = get_level_config(level)
+    if not config:
+        raise HTTPException(status_code=404, detail="Level not found")
+        
+    grid_size = config["grid_size"]
+    block_rows = config["block_rows"]
+    block_cols = config["block_cols"]
+    
+    # Rule 1: Only numbers 1-grid_size are allowed
+    if data.num < 1 or data.num > grid_size:
+        return {"is_valid": False, "reason": f"Only numbers 1-{grid_size} are allowed."}
+        
+    # Rule 9: Original/pre-filled puzzle numbers cannot be changed
+    progress = await db.sudoku_progress.find_one({"user_id": user_id, "level": level})
+    if progress:
+        original_board = progress["original_board"]
+        if original_board[data.row][data.col] != 0:
+            return {"is_valid": False, "reason": "Original/pre-filled puzzle numbers cannot be changed."}
+
+    # Simulate board without the newly entered number (in case it's already in current_board)
+    board_copy = [r.copy() for r in data.current_board]
+    board_copy[data.row][data.col] = 0
+    
+    # Rule 2 & 3: Check row for duplicates
+    for i in range(grid_size):
+        if board_copy[data.row][i] == data.num:
+            return {"is_valid": False, "reason": "The same number appears twice in the same row."}
+            
+    # Rule 4 & 5: Check column for duplicates
+    for i in range(grid_size):
+        if board_copy[i][data.col] == data.num:
+            return {"is_valid": False, "reason": "The same number appears twice in the same column."}
+            
+    # Rule 6 & 7: Check subgrid for duplicates
+    start_row = data.row - data.row % block_rows
+    start_col = data.col - data.col % block_cols
+    for i in range(block_rows):
+        for j in range(block_cols):
+            if board_copy[i + start_row][j + start_col] == data.num:
+                return {"is_valid": False, "reason": f"The same number appears twice inside the same {block_rows}x{block_cols} subgrid."}
+                
+    # Rule 10: Valid move if no violations
+    return {"is_valid": True, "reason": "Valid move."}

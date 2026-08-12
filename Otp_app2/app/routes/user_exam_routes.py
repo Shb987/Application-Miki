@@ -30,22 +30,23 @@ def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
 @router.get("/standard/{standard}")
-async def get_subjects_and_chapters(standard: str, category: str = "NCERT", student_id: Optional[str] = None):
+async def get_subjects_and_chapters(standard: str, student_id: Optional[str] = None):
+    query = {
+        "standard": standard,
+        "processed": True
+    }
+    
     # If student_id is provided, fetch their syllabus dynamically
     if student_id:
         try:
             student = await db.students.find_one({"_id": ObjectId(student_id)})
             if student and student.get("syllabus"):
-                category = student.get("syllabus")
+                query["category"] = student.get("syllabus")
         except Exception:
             pass
             
-    # Fetch all processed textbooks for this standard and category
-    docs = await db.textbook.find({
-        "standard": standard,
-        "category": category,
-        "processed": True
-    }).to_list(None)
+    # Fetch all processed textbooks for this standard (and category if applicable)
+    docs = await db.textbook.find(query).to_list(None)
 
     # Optimization: List images once from the correct static directory
     IMAGE_DIR = os.path.join("app", "static", "subject_images")

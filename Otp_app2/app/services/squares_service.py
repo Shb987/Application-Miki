@@ -29,6 +29,7 @@ class SquaresService:
     @staticmethod
     async def get_available_levels(student_id: str) -> Dict[str, Any]:
         try:
+            student_id = student_id.split("&")[0]
             student = await db.students.find_one({"_id": ObjectId(student_id)})
             if not student: return {"error": "Student not found"}
             
@@ -66,6 +67,7 @@ class SquaresService:
     @staticmethod
     async def start_game(student_id: str, level: int) -> Dict[str, Any]:
         try:
+            student_id = student_id.split("&")[0]
             student = await db.students.find_one({"_id": ObjectId(student_id)})
             if not student: return {"error": "Student not found"}
             
@@ -225,6 +227,7 @@ class SquaresService:
     @staticmethod
     async def get_status(student_id: str) -> Dict[str, Any]:
         try:
+            student_id = student_id.split("&")[0]
             session = await db.squares_sessions.find_one(
                 {"student_id": student_id, "status": "playing"},
                 sort=[("updated_at", -1)]

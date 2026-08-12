@@ -1,18 +1,44 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+import chess
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from typing import Dict, List
 from app.models.chess_models import ChessBotMoveRequest, ChessMoveCommand
 from app.services.chess_service import ChessService
 
-router = APIRouter()
+router = APIRouter(prefix="/chess")
 
 @router.post("/bot/move")
 async def get_bot_move(request: ChessBotMoveRequest):
     """
-    Given a FEN string, asks the Stockfish backend to calculate the best move.
+    Given a FEN string, asks the bot engine to calculate the best move.
     Used for PvE matches.
     """
+    try:
+        board = chess.Board(request.fen)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid FEN string provided.")
+
+    if board.is_game_over():
+        status = "checkmate" if board.is_checkmate() else ("stalemate" if board.is_stalemate() else "draw")
+        return {
+            "bot_move": None,
+            "new_fen": request.fen,
+            "status": status,
+            "is_check": board.is_check(),
+            "game_over": True
+        }
+
     bot_move = ChessService.get_bot_move(request.fen, request.difficulty_level)
     
+    if not bot_move:
+        status = "checkmate" if board.is_checkmate() else ("stalemate" if board.is_stalemate() else "draw")
+        return {
+            "bot_move": None,
+            "new_fen": request.fen,
+            "status": status,
+            "is_check": board.is_check(),
+            "game_over": True
+        }
+
     # Calculate the resulting FEN after applying the bot's move
     result = ChessService.calculate_new_fen(request.fen, bot_move)
     
@@ -20,7 +46,8 @@ async def get_bot_move(request: ChessBotMoveRequest):
         "bot_move": bot_move,
         "new_fen": result["fen"],
         "status": result["status"],
-        "is_check": result["is_check"]
+        "is_check": result["is_check"],
+        "game_over": result["status"] in ["checkmate", "stalemate", "draw"]
     }
 
 @router.post("/validate_move")

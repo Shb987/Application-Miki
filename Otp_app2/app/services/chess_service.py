@@ -179,7 +179,7 @@ class ChessService:
             raise HTTPException(status_code=400, detail="Invalid FEN string provided.")
 
         if board.is_game_over():
-            raise HTTPException(status_code=400, detail="Game is already over.")
+            return None
 
         depth = difficulty_to_depth(difficulty)
         best_move: Optional[chess.Move] = None
@@ -200,7 +200,7 @@ class ChessService:
                 best_move = move
 
         if best_move is None:
-            raise HTTPException(status_code=500, detail="Engine could not find a move.")
+            return None
 
         return best_move.uci()
 

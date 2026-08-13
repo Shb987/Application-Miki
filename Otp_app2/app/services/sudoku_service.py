@@ -96,26 +96,42 @@ class SudokuGenerator:
                 
         return puzzle, solution
 
+def get_mistake_limit(level: int):
+    if 1 <= level <= 5: return 10
+    elif 6 <= level <= 10: return 9
+    elif 11 <= level <= 15: return 8
+    elif 16 <= level <= 20: return 7
+    elif 21 <= level <= 25: return 6
+    elif 26 <= level <= 30: return 5
+    elif 31 <= level <= 35: return 4
+    elif 36 <= level <= 40: return 3
+    elif 41 <= level <= 45: return 2
+    elif 46 <= level <= 50: return 1
+    return None
+
 def get_level_config(level: int):
     if 1 <= level <= 5:
-        return {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "easy"}
+        config = {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "easy"}
     elif 6 <= level <= 10:
-        return {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "easy+"}
+        config = {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "easy+"}
     elif 11 <= level <= 15:
-        return {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "medium"}
+        config = {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "medium"}
     elif 16 <= level <= 20:
-        return {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "hard"}
+        config = {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "hard"}
     elif 21 <= level <= 25:
-        return {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "expert"}
+        config = {"grid_size": 6, "block_rows": 2, "block_cols": 3, "difficulty": "expert"}
     elif 26 <= level <= 30:
-        return {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "easy"}
+        config = {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "easy"}
     elif 31 <= level <= 35:
-        return {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "easy+"}
+        config = {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "easy+"}
     elif 36 <= level <= 40:
-        return {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "medium"}
+        config = {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "medium"}
     elif 41 <= level <= 45:
-        return {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "hard"}
+        config = {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "hard"}
     elif 46 <= level <= 50:
-        return {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "expert"}
+        config = {"grid_size": 9, "block_rows": 3, "block_cols": 3, "difficulty": "expert"}
     else:
         return None
+        
+    config["mistake_limit"] = get_mistake_limit(level)
+    return config

@@ -485,7 +485,7 @@
         }
 
         let boardVal = tb.board;
-        if (boardVal === "State Board" || boardVal === "State board" || boardVal === "state") {
+        if (boardVal && (boardVal.trim().toLowerCase() === "state board" || boardVal.trim().toLowerCase() === "state")) {
             boardVal = "State";
         }
         setSelectVal("edit-tb-board", boardVal, "State");

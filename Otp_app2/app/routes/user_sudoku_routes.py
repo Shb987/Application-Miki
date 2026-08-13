@@ -161,7 +161,7 @@ async def submit_sudoku(
         "stars": stars
     }
 
-@router.post("/validate_move/")
+@router.post("/validate_move/{level}")
 async def validate_sudoku_move(
     level: int,
     data: SudokuMoveValidate,

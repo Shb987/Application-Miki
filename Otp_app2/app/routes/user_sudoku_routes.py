@@ -161,7 +161,7 @@ async def submit_sudoku(
         "stars": stars
     }
 
-@router.post("/validate_move/{level}")
+@router.post("/validate_move/")
 async def validate_sudoku_move(
     level: int,
     data: SudokuMoveValidate,
@@ -179,8 +179,8 @@ async def validate_sudoku_move(
     block_rows = config["block_rows"]
     block_cols = config["block_cols"]
     
-    # Rule 1: Only numbers 1-grid_size are allowed
-    if data.num < 1 or data.num > grid_size:
+    # Rule 1: Only numbers 1-grid_size are allowed, but 0 is allowed for clearing a cell
+    if data.num != 0 and (data.num < 1 or data.num > grid_size):
         return {"is_valid": False, "reason": f"Only numbers 1-{grid_size} are allowed."}
         
     # Rule 9: Original/pre-filled puzzle numbers cannot be changed
@@ -189,6 +189,10 @@ async def validate_sudoku_move(
         original_board = progress["original_board"]
         if original_board[data.row][data.col] != 0:
             return {"is_valid": False, "reason": "Original/pre-filled puzzle numbers cannot be changed."}
+
+    # If the user is clearing the cell, it's a valid move
+    if data.num == 0:
+        return {"is_valid": True, "reason": "Cell cleared."}
 
     # Simulate board without the newly entered number (in case it's already in current_board)
     board_copy = [r.copy() for r in data.current_board]

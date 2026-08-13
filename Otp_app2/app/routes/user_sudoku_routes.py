@@ -13,6 +13,7 @@ class SudokuSubmit(BaseModel):
     current_board: List[List[int]]
     time_spent_seconds: int
     is_completed: bool
+    mistakes: int = 0
 
 class SudokuMoveValidate(BaseModel):
     current_board: List[List[int]]
@@ -80,9 +81,9 @@ async def play_sudoku(level: int, current_user: dict = Depends(get_current_user)
             "config": config,
             "original_board": progress["original_board"],
             "current_board": progress["current_board"],
-            "solution_board": progress["solution_board"],
             "is_completed": progress["is_completed"],
-            "time_spent_seconds": progress.get("time_spent_seconds", 0)
+            "time_spent_seconds": progress.get("time_spent_seconds", 0),
+            "mistakes": progress.get("mistakes", 0)
         }
         
     generator = SudokuGenerator(config["grid_size"], config["block_rows"], config["block_cols"])
@@ -97,6 +98,7 @@ async def play_sudoku(level: int, current_user: dict = Depends(get_current_user)
         "solution_board": solution,
         "is_completed": False,
         "stars": 0,
+        "mistakes": 0,
         "time_spent_seconds": 0,
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc)
@@ -109,9 +111,9 @@ async def play_sudoku(level: int, current_user: dict = Depends(get_current_user)
         "config": config,
         "original_board": puzzle,
         "current_board": puzzle,
-        "solution_board": solution,
         "is_completed": False,
-        "time_spent_seconds": 0
+        "time_spent_seconds": 0,
+        "mistakes": 0
     }
 
 @router.post("/submit/{level}")
@@ -149,6 +151,7 @@ async def submit_sudoku(
         {"$set": {
             "current_board": data.current_board,
             "time_spent_seconds": data.time_spent_seconds,
+            "mistakes": max(data.mistakes, progress.get("mistakes", 0)),
             "is_completed": data.is_completed or progress.get("is_completed", False),
             "stars": max(stars, progress.get("stars", 0)),
             "updated_at": datetime.now(timezone.utc)
@@ -181,18 +184,18 @@ async def validate_sudoku_move(
     
     # Rule 1: Only numbers 1-grid_size are allowed, but 0 is allowed for clearing a cell
     if data.num != 0 and (data.num < 1 or data.num > grid_size):
-        return {"is_valid": False, "reason": f"Only numbers 1-{grid_size} are allowed."}
+        return {"is_valid": False, "error_type": "invalid_number", "reason": f"Only numbers 1-{grid_size} are allowed."}
         
     # Rule 9: Original/pre-filled puzzle numbers cannot be changed
     progress = await db.sudoku_progress.find_one({"user_id": user_id, "level": level})
     if progress:
         original_board = progress["original_board"]
         if original_board[data.row][data.col] != 0:
-            return {"is_valid": False, "reason": "Original/pre-filled puzzle numbers cannot be changed."}
+            return {"is_valid": False, "error_type": "pre_filled", "reason": "Original/pre-filled puzzle numbers cannot be changed."}
 
     # If the user is clearing the cell, it's a valid move
     if data.num == 0:
-        return {"is_valid": True, "reason": "Cell cleared."}
+        return {"is_valid": True, "error_type": None, "reason": "Cell cleared.", "row": data.row, "col": data.col, "num": data.num}
 
     # Simulate board without the newly entered number (in case it's already in current_board)
     board_copy = [r.copy() for r in data.current_board]
@@ -201,12 +204,12 @@ async def validate_sudoku_move(
     # Rule 2 & 3: Check row for duplicates
     for i in range(grid_size):
         if board_copy[data.row][i] == data.num:
-            return {"is_valid": False, "reason": "The same number appears twice in the same row."}
+            return {"is_valid": False, "error_type": "row_duplicate", "reason": "The same number appears twice in the same row."}
             
     # Rule 4 & 5: Check column for duplicates
     for i in range(grid_size):
         if board_copy[i][data.col] == data.num:
-            return {"is_valid": False, "reason": "The same number appears twice in the same column."}
+            return {"is_valid": False, "error_type": "column_duplicate", "reason": "The same number appears twice in the same column."}
             
     # Rule 6 & 7: Check subgrid for duplicates
     start_row = data.row - data.row % block_rows
@@ -214,7 +217,7 @@ async def validate_sudoku_move(
     for i in range(block_rows):
         for j in range(block_cols):
             if board_copy[i + start_row][j + start_col] == data.num:
-                return {"is_valid": False, "reason": f"The same number appears twice inside the same {block_rows}x{block_cols} subgrid."}
+                return {"is_valid": False, "error_type": "box_duplicate", "reason": "The same number appears twice inside the same box."}
                 
     # Rule 10: Valid move if no violations
-    return {"is_valid": True, "reason": "Valid move."}
+    return {"is_valid": True, "error_type": None, "reason": "Valid move.", "row": data.row, "col": data.col, "num": data.num}

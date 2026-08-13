@@ -365,10 +365,10 @@
         const subject = document.getElementById("filter-subject").value;
         const year = document.getElementById("filter-year").value;
         const filtered = allTextbooks.filter(tb => {
-            return (!board || tb.board === board) && 
-                   (!standard || tb.standard === standard) && 
-                   (!subject || tb.subject === subject) &&
-                   (!year || tb.publication_year === year);
+            return (!board || String(tb.board) === String(board)) && 
+                   (!standard || String(tb.standard) === String(standard)) && 
+                   (!subject || String(tb.subject) === String(subject)) &&
+                   (!year || String(tb.publication_year) === String(year));
         });
         renderTextbooks(filtered);
     }

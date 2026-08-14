@@ -283,3 +283,59 @@ async def validate_sudoku_move(
                 
     # Rule 10: Valid move if no violations
     return {"is_valid": True, "error_type": None, "reason": "Valid move.", "row": data.row, "col": data.col, "num": data.num}
+
+@router.post("/retry/{level}")
+async def retry_sudoku(level: int, current_user: dict = Depends(get_current_user)):
+    user_id = current_user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    config = get_level_config(level)
+    
+    if not config:
+        raise HTTPException(status_code=404, detail="Level not found")
+        
+    progress = await db.sudoku_progress.find_one({"user_id": user_id, "level": level})
+    
+    generator = SudokuGenerator(config["grid_size"], config["block_rows"], config["block_cols"])
+    puzzle, solution = generator.generate(config["difficulty"])
+    
+    if progress:
+        await db.sudoku_progress.update_one(
+            {"_id": progress["_id"]},
+            {"$set": {
+                "original_board": puzzle,
+                "current_board": puzzle,
+                "solution_board": solution,
+                "is_completed": False,
+                "mistakes": 0,
+                "time_spent_seconds": 0,
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+    else:
+        new_progress = {
+            "_id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "level": level,
+            "original_board": puzzle,
+            "current_board": puzzle,
+            "solution_board": solution,
+            "is_completed": False,
+            "stars": 0,
+            "mistakes": 0,
+            "time_spent_seconds": 0,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        await db.sudoku_progress.insert_one(new_progress)
+        
+    return {
+        "level": level,
+        "config": config,
+        "original_board": puzzle,
+        "current_board": puzzle,
+        "is_completed": False,
+        "time_spent_seconds": 0,
+        "mistakes": 0
+    }

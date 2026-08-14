@@ -77,7 +77,7 @@ async def play_sudoku(level: int, current_user: dict = Depends(get_current_user)
     
     if progress:
         mistake_limit = config.get("mistake_limit", 10)
-        if progress.get("mistakes", 0) >= mistake_limit:
+        if progress.get("mistakes", 0) > mistake_limit:
             # Mistake limit reached, generate new puzzle for retry
             generator = SudokuGenerator(config["grid_size"], config["block_rows"], config["block_cols"])
             puzzle, solution = generator.generate(config["difficulty"])
@@ -213,9 +213,24 @@ async def validate_sudoku_move(
     if data.num != 0 and (data.num < 1 or data.num > grid_size):
         return {"is_valid": False, "error_type": "invalid_number", "reason": f"Only numbers 1-{grid_size} are allowed."}
         
+    mistake_limit = config.get("mistake_limit", 10)
+
     # Rule 9: Original/pre-filled puzzle numbers cannot be changed
     progress = await db.sudoku_progress.find_one({"user_id": user_id, "level": level})
     if progress:
+        if progress.get("mistakes", 0) > mistake_limit:
+            return {
+                "is_valid": False,
+                "error_type": "game_over",
+                "reason": "Mistake limit exceeded. Please retry the level.",
+                "row": data.row,
+                "col": data.col,
+                "num": data.num,
+                "mistakes": progress.get("mistakes", 0),
+                "mistake_limit": mistake_limit,
+                "retry_required": True
+            }
+            
         original_board = progress["original_board"]
         if original_board[data.row][data.col] != 0:
             return {"is_valid": False, "error_type": "pre_filled", "reason": "Original/pre-filled puzzle numbers cannot be changed."}
@@ -227,8 +242,6 @@ async def validate_sudoku_move(
     # Simulate board without the newly entered number (in case it's already in current_board)
     board_copy = [r.copy() for r in data.current_board]
     board_copy[data.row][data.col] = 0
-    
-    mistake_limit = config.get("mistake_limit", 10)
     
     async def handle_mistake(error_type, reason):
         mistakes = 0
@@ -247,7 +260,7 @@ async def validate_sudoku_move(
             "num": data.num,
             "mistakes": mistakes,
             "mistake_limit": mistake_limit,
-            "retry_required": mistakes >= mistake_limit
+            "retry_required": mistakes > mistake_limit
         }
     
     # Rule 2 & 3: Check row for duplicates

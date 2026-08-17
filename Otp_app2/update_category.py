@@ -1,8 +1,19 @@
 from pymongo import MongoClient
-import os
 
-client = MongoClient('mongodb://localhost:27017')
-db = client['miki_db']
-res1 = db.students.update_many({'category': {'$exists': False}}, {'$set': {'category': 'NCERT'}})
-res2 = db.students.update_many({'category': None}, {'$set': {'category': 'NCERT'}})
-print('Updated:', res1.modified_count, res2.modified_count)
+client = MongoClient('mongodb+srv://miki_db_user:kOg5NhXrWa7JQLDi@mikicluster.ho39rxy.mongodb.net/?appName=MikiCluster')
+
+db = client['new_app2']
+
+result = db.students.update_many(
+    {},
+    {
+        '$set': {
+            'syllabus': 'NCERT'
+        }
+    }
+)
+
+print('Students matched:', result.matched_count)
+print('Students updated:', result.modified_count)
+
+client.close()

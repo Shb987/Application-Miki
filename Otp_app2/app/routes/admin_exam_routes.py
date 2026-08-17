@@ -397,15 +397,12 @@ async def process_chapter_worker(
         )
         text_content = ""
         
-        # Branching: Use Vision for Standard 1-5 or as fallback
+        # Branching: Use Vision ONLY if explicitly forced by toggle
         standard_val = int(textbook_query.get("standard", 0))
-        use_vision = force_vision or (standard_val > 0 and standard_val <= 5)
+        use_vision = force_vision
         
         if use_vision:
-            if force_vision:
-                print(f"[BG-CHAPTER] Force Vision Extraction toggle enabled. Using VISION-BASED extraction.")
-            else:
-                print(f"[BG-CHAPTER] Standard {standard_val} detected. Using VISION-BASED extraction for better quality.")
+            print(f"[BG-CHAPTER] Force Vision Extraction toggle enabled. Using VISION-BASED extraction.")
             text_content = await extract_text_via_vision(file_path, status_query)
         else:
             print(f"[BG-CHAPTER] Using standard text extraction (pdfplumber)...")
@@ -426,10 +423,6 @@ async def process_chapter_worker(
                     )
             
             text_content = normalize_text(text_content)
-            
-            if not text_content.strip():
-                print(f"[BG-CHAPTER] pdfplumber extracted NO text. Falling back to VISION-BASED extraction...")
-                text_content = await extract_text_via_vision(file_path, status_query)
 
         if not text_content.strip():
             print(f"[BG-CHAPTER] ERROR: Extraction failed completely (No text from pdfplumber or vision).")

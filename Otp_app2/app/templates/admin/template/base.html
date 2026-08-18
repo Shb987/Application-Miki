@@ -95,6 +95,22 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
         }
+        .footer {
+            background-color: #ffffff;
+            border-top: 1px solid #f1f5f9;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        .footer p {
+            color: #666666;
+        }
+        body.dark-only .footer {
+            background-color: #262932 !important;
+            border-top: 1px solid #374151 !important;
+        }
+        body.dark-only .footer p,
+        body.dark-only .footer-copyright p {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
     </style>
 
     {% block head %}{% endblock %}
@@ -203,7 +219,7 @@
                 {% block content %}{% endblock %}
 
                 <!-- footer start-->
-                <footer class="footer" style="margin-left: 0; width: 100%; background: #fff; border-top: 1px solid #f1f5f9; padding: 16px 0;">
+                <footer class="footer" style="margin-left: 0; width: 100%; padding: 16px 0;">
                     <div class="container-fluid">
                         <div class="row">
                             <div class="col-md-12 footer-copyright text-center">

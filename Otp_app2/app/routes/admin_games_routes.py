@@ -28,15 +28,18 @@ def serialize_doc(doc: dict) -> dict:
 @router.get("/admin-panel/games/wordle/words")
 async def list_wordle_words(
     class_range: Optional[str] = Query(None, description="Filter by class range e.g. '6-8'"),
+    difficulty: Optional[str] = Query(None, description="Filter by difficulty e.g. 'Easy', 'Medium', 'Hard'"),
     search: Optional[str] = Query(None, description="Search by word"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(500, ge=1, le=2000),
     current_admin: dict = Depends(require_permission("Games", "read"))
 ):
     """List all Wordle questions with optional filters."""
     query: Dict[str, Any] = {}
     if class_range:
         query["class_range"] = class_range
+    if difficulty:
+        query["difficulty"] = difficulty
     if search:
         query["word"] = {"$regex": search, "$options": "i"}
 
@@ -153,22 +156,43 @@ async def delete_wordle_word(
 
 
 @router.get("/admin-panel/games/wordle/stats")
-async def get_wordle_stats(current_admin: dict = Depends(require_permission("Games", "read"))):
-    """Returns total Wordle words per class range + total sessions."""
+async def get_wordle_stats(
+    class_range: Optional[str] = Query(None, description="Filter stats by class range e.g. '6-8'"),
+    current_admin: dict = Depends(require_permission("Games", "read"))
+):
+    """Returns total Wordle words per class range, difficulty + total sessions."""
+    match_stage = {"$match": {"class_range": class_range}} if class_range else {"$match": {}}
+
     pipeline = [
+        match_stage,
         {"$group": {"_id": "$class_range", "count": {"$sum": 1}}},
         {"$sort": {"_id": 1}}
     ]
     by_range = await db.wordle_questions.aggregate(pipeline).to_list(None)
-    total_words = await db.wordle_questions.count_documents({})
+
+    diff_pipeline = [
+        match_stage,
+        {"$group": {"_id": "$difficulty", "count": {"$sum": 1}}}
+    ]
+    by_diff = await db.wordle_questions.aggregate(diff_pipeline).to_list(None)
+
+    query = {"class_range": class_range} if class_range else {}
+    total_words = await db.wordle_questions.count_documents(query)
     total_sessions = await db.wordle_sessions.count_documents({})
+
+    difficulty_map = {"Easy": 0, "Medium": 0, "Hard": 0}
+    for item in by_diff:
+        diff_name = item.get("_id")
+        if diff_name:
+            difficulty_map[diff_name] = item.get("count", 0)
 
     return {
         "status": "success",
         "data": {
             "total_words": total_words,
             "total_sessions": total_sessions,
-            "by_class_range": {item["_id"]: item["count"] for item in by_range}
+            "by_class_range": {item["_id"]: item["count"] for item in by_range if item.get("_id")},
+            "by_difficulty": difficulty_map
         }
     }
 
@@ -181,7 +205,7 @@ async def get_wordle_stats(current_admin: dict = Depends(require_permission("Gam
 async def list_squares_levels(
     class_range: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(500, ge=1, le=2000),
     current_admin: dict = Depends(require_permission("Games", "read"))
 ):
     """List all Squares levels with optional class_range filter."""
@@ -347,7 +371,7 @@ GRID_SIZE_MAP = {
 async def list_puzzle_levels(
     difficulty: Optional[str] = Query(None, description="Filter by difficulty e.g. 'Beginner'"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(500, ge=1, le=2000),
     current_admin: dict = Depends(require_permission("Games", "read"))
 ):
     """List all Puzzle levels with optional difficulty filter."""

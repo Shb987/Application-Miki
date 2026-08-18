@@ -176,6 +176,73 @@
     .hint-input-wrapper input {
         padding-left: 40px;
     }
+
+    /* Dark Mode Overrides for Games Management */
+    body.dark-only .stat-mini {
+        background: #262932 !important;
+        border-color: #374151 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    body.dark-only .stat-label {
+        color: #94a3b8 !important;
+    }
+    body.dark-only .stat-value {
+        color: #f8fafc !important;
+    }
+    body.dark-only .divider {
+        background: #374151 !important;
+    }
+    body.dark-only .game-tab-btn {
+        background: #262932 !important;
+        border-color: #374151 !important;
+        color: #94a3b8 !important;
+    }
+    body.dark-only .game-tab-btn:hover {
+        background: #334155 !important;
+        color: #fff !important;
+    }
+    body.dark-only .game-tab-btn.active[id="tab-wordle"] {
+        background: rgba(25, 161, 161, 0.2) !important;
+        color: #19a1a1 !important;
+        border-color: #19a1a1 !important;
+    }
+    body.dark-only .game-tab-btn.active[id="tab-squares"] {
+        background: rgba(25, 161, 161, 0.2) !important;
+        color: #19a1a1 !important;
+        border-color: #19a1a1 !important;
+    }
+    body.dark-only .game-tab-btn.active[id="tab-puzzle"] {
+        background: rgba(243, 156, 18, 0.2) !important;
+        color: #f39c12 !important;
+        border-color: #f39c12 !important;
+    }
+    body.dark-only .pz-dropzone {
+        background: #1e293b !important;
+        border-color: #475569 !important;
+        color: #cbd5e1 !important;
+    }
+    body.dark-only .pz-preview-card {
+        background: #262932 !important;
+        border-color: #374151 !important;
+    }
+    body.dark-only .card {
+        background: #262932 !important;
+        border-color: #374151 !important;
+    }
+    body.dark-only .table {
+        color: #e2e8f0 !important;
+    }
+    body.dark-only .table td, 
+    body.dark-only .table th {
+        border-color: #374151 !important;
+        color: #e2e8f0 !important;
+    }
+    body.dark-only .form-select,
+    body.dark-only .form-control {
+        background-color: #1e293b !important;
+        border-color: #475569 !important;
+        color: #f8fafc !important;
+    }
 </style>
 {% endblock %}
 
@@ -215,13 +282,20 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
                     <select id="wordle-filter-range" class="form-select"
-                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="loadWordle()">
+                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="loadWordle(); loadWordleStats();">
                         <option value="">All Ranges</option>
                         <option value="1-3">Class 1-3</option>
                         <option value="3-5">Class 3-5</option>
                         <option value="6-8">Class 6-8</option>
                         <option value="9-10">Class 9-10</option>
                         <option value="11-12">Class 11-12</option>
+                    </select>
+                    <select id="wordle-filter-diff" class="form-select"
+                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="loadWordle()">
+                        <option value="">All Difficulties</option>
+                        <option value="Easy">Easy</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
                     </select>
                     <input type="text" id="wordle-search" class="form-control"
                         style="max-width:180px;border-radius:8px;font-size:.85rem;" placeholder="Search word..."
@@ -610,9 +684,13 @@
     }
 
     async function loadWordle() {
-        const range = document.getElementById("wordle-filter-range").value, search = document.getElementById("wordle-search").value.trim();
-        let url = `${API_BASE}/admin-panel/games/wordle/words?limit=100`;
-        if (range) url += `&class_range=${range}`; if (search) url += `&search=${encodeURIComponent(search)}`;
+        const range = document.getElementById("wordle-filter-range").value;
+        const diff = document.getElementById("wordle-filter-diff").value;
+        const search = document.getElementById("wordle-search").value.trim();
+        let url = `${API_BASE}/admin-panel/games/wordle/words?limit=1000`;
+        if (range) url += `&class_range=${range}`;
+        if (diff) url += `&difficulty=${encodeURIComponent(diff)}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
         const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
         document.getElementById("wordle-count").textContent = `${json.total || 0} words`;
@@ -638,9 +716,19 @@
 
     async function loadWordleStats() {
         try {
-            const res = await fetch(`${API_BASE}/admin-panel/games/wordle/stats`, { headers: { Authorization: "Bearer " + token } });
+            const range = document.getElementById("wordle-filter-range").value;
+            let url = `${API_BASE}/admin-panel/games/wordle/stats`;
+            if (range) url += `?class_range=${encodeURIComponent(range)}`;
+            const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
             const json = await res.json(); if (!json.data) return;
             const d = json.data;
+
+            let diffHtml = Object.entries(d.by_difficulty || {}).map(([diff, c]) => `
+                <div class="stat-item">
+                    <span class="badge ${diff === 'Easy' ? 'bg-success' : diff === 'Medium' ? 'bg-warning text-dark' : 'bg-danger'}">${diff}</span>
+                    <span class="stat-value ms-1">${c}</span>
+                </div>
+            `).join("");
 
             let rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `
                 <div class="stat-item">
@@ -663,6 +751,8 @@
                             <span class="stat-label">Sessions:</span>
                             <span class="stat-value">${d.total_sessions}</span>
                         </div>
+                        <div class="divider"></div>
+                        ${diffHtml}
                         <div class="divider"></div>
                         ${rangeHtml}
                     </div>
@@ -736,7 +826,7 @@
 
     async function loadSquares() {
         const range = document.getElementById("squares-filter-range").value;
-        const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels?limit=100${range ? `&class_range=${range}` : ''}`, { headers: { Authorization: "Bearer " + token } });
+        const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels?limit=1000${range ? `&class_range=${range}` : ''}`, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
         document.getElementById("squares-count").textContent = `${json.total || 0} levels`;
         let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Level</th><th>Range</th><th>Topic</th><th>Words (M/B)</th><th>Actions</th></tr></thead><tbody>`;
@@ -962,7 +1052,7 @@
 
     async function loadPuzzle() {
         const diff = document.getElementById("puzzle-filter-diff").value;
-        let url = `${API_BASE}/admin-panel/games/puzzle/levels?limit=100`;
+        let url = `${API_BASE}/admin-panel/games/puzzle/levels?limit=1000`;
         if (diff) url += `&difficulty=${diff}`;
 
         try {

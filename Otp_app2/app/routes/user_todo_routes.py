@@ -81,14 +81,16 @@ async def create_todo(
     is_important: Optional[bool] = Form(False),
     status: Optional[str] = Form("pending"),
     student_id: Optional[str] = Form(None),
-    images: List[UploadFile] = File(None),
+    images: Optional[List[UploadFile]] = File(None),
     current_user: dict = Depends(admin_or_user)
 ):
     """
     Create a new To-Do task for a student.
+    Image upload (`images`) is fully optional.
     Returns the task wrapped inside its category object.
     """
     content_type = request.headers.get("content-type", "")
+    image_urls = []
 
     if "application/json" in content_type:
         try:
@@ -100,6 +102,11 @@ async def create_todo(
             todo_imp = bool(body_data.get("is_important", False))
             todo_status = body_data.get("status", "pending")
             target_student_id = extract_student_id(current_user, body_data.get("student_id"))
+            
+            json_imgs = body_data.get("images") or body_data.get("image_urls") or []
+            if isinstance(json_imgs, str):
+                json_imgs = [json_imgs]
+            image_urls = [str(img) for img in json_imgs if img]
             uploaded_images = []
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {str(e)}")
@@ -118,11 +125,11 @@ async def create_todo(
 
     is_completed = (str(todo_status).lower() == "completed")
 
-    image_urls = []
     if uploaded_images:
-        valid_files = [f for f in uploaded_images if f.filename]
+        valid_files = [f for f in uploaded_images if f and hasattr(f, "filename") and f.filename]
         if valid_files:
-            image_urls = save_upload_images(valid_files)
+            file_urls = save_upload_images(valid_files)
+            image_urls.extend(file_urls)
 
     now_iso = datetime.now(timezone.utc).isoformat()
     todo_doc = {

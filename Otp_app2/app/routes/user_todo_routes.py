@@ -20,7 +20,7 @@ def extract_student_id(current_user: dict, explicit_student_id: Optional[str] = 
         return str(explicit_student_id).strip()
     sid = current_user.get("student_id") or current_user.get("_id") or current_user.get("sub")
     if not sid:
-        raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token")
+        raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
     return str(sid)
 
 
@@ -158,10 +158,10 @@ async def list_todos(
 ):
     """
     List all To-Do items for a student, grouped into category objects.
-    Pass student_id as query parameter or resolve from auth token.
+    Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
     """
     target_student_id = extract_student_id(current_user, student_id)
-    cursor = db.user_todos.find({"student_id": target_student_id}).sort("created_at", -1)
+    cursor = db.user_todos.find({"student_id": target_student_id}).sort([("is_important", -1), ("created_at", -1)])
     docs = await cursor.to_list(length=500)
 
     categories_map: Dict[str, List[Dict[str, Any]]] = {}
@@ -180,21 +180,22 @@ async def list_todos(
 @router.get("/{category}")
 async def list_todos_by_category_or_id(
     category: str,
+    student_id: Optional[str] = Query(None, description="Optional Student ID to fetch to-dos for"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
     List To-Do items for a specific category OR view single item details if a 24-char ObjectId is passed.
-    Uses student_id automatically from auth token (no query parameter needed).
+    Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
     """
     if ObjectId.is_valid(category):
         doc = await fetch_todo_by_id(category)
         return format_todo_response(doc)
 
-    target_student_id = extract_student_id(current_user)
+    target_student_id = extract_student_id(current_user, student_id)
     cursor = db.user_todos.find({
         "student_id": target_student_id,
         "category": {"$regex": f"^{category}$", "$options": "i"}
-    }).sort("created_at", -1)
+    }).sort([("is_important", -1), ("created_at", -1)])
     docs = await cursor.to_list(length=500)
     cat_key = category.strip().lower()
     return {cat_key: [format_todo_item(d) for d in docs]}

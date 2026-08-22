@@ -26,8 +26,6 @@ def extract_student_id(current_user: dict, explicit_student_id: Optional[str] = 
 
 def format_todo_item(doc: dict) -> dict:
     return {
-        "id": str(doc["_id"]),
-        "student_id": str(doc.get("student_id", "")),
         "title": doc.get("title", ""),
         "description": doc.get("description", ""),
         "status": doc.get("status", "pending"),

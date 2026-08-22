@@ -61,6 +61,18 @@ def save_upload_images(files: List[UploadFile]) -> List[str]:
     return saved_urls
 
 
+async def fetch_todo_by_id(todo_id: str) -> dict:
+    try:
+        oid = ObjectId(todo_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid to-do ID format")
+
+    doc = await db.user_todos.find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="To-do item not found")
+    return doc
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_todo(
     request: Request,
@@ -141,17 +153,6 @@ async def list_todos(
 ):
     """
     List all To-Do items for a student, grouped into category objects.
-    Example response format:
-    {
-      "general": [
-        {
-          "id": "...",
-          "student_id": "...",
-          "title": "...",
-          ...
-        }
-      ]
-    }
     """
     target_student_id = extract_student_id(current_user, student_id)
     cursor = db.user_todos.find({"student_id": target_student_id}).sort("created_at", -1)
@@ -170,33 +171,45 @@ async def list_todos(
     return categories_map
 
 
-@router.get("/{todo_id}")
-async def get_todo(
-    todo_id: str,
+@router.get("/{category}/{todo_id}")
+@router.get("/{category}")
+async def get_todo_by_category_or_id(
+    category: str,
+    todo_id: Optional[str] = None,
+    student_id: Optional[str] = Query(None, description="Optional student ID when listing category"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    View details of a single To-Do item formatted as a category object.
+    View details of a single To-Do item under a category OR list items for a specific category.
+    Supports both `/user/todos/{category}/{todo_id}` and `/user/todos/{category}` (or `/user/todos/{todo_id}`).
     """
-    try:
-        oid = ObjectId(todo_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid to-do ID format")
+    if todo_id:
+        doc = await fetch_todo_by_id(todo_id)
+        return format_todo_response(doc)
 
-    doc = await db.user_todos.find_one({"_id": oid})
-    if not doc:
-        raise HTTPException(status_code=404, detail="To-do item not found")
+    # Check if `category` parameter is actually a 24-char ObjectId
+    if ObjectId.is_valid(category):
+        doc = await fetch_todo_by_id(category)
+        return format_todo_response(doc)
+    else:
+        # Treat as category string
+        target_student_id = extract_student_id(current_user, student_id)
+        cursor = db.user_todos.find({
+            "student_id": target_student_id,
+            "category": {"$regex": f"^{category}$", "$options": "i"}
+        }).sort("created_at", -1)
+        docs = await cursor.to_list(length=500)
+        return {category: [format_todo_item(d) for d in docs]}
 
-    return format_todo_response(doc)
 
-
-@router.put("/{todo_id}")
-async def update_todo(
-    todo_id: str,
+@router.put("/{category}/{todo_id}")
+@router.put("/{category}")
+async def update_todo_by_category_or_id(
+    category: str,
     request: Request,
+    todo_id: Optional[str] = None,
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    category: Optional[str] = Form(None),
     due_date: Optional[str] = Form(None),
     is_important: Optional[bool] = Form(None),
     is_completed: Optional[bool] = Form(None),
@@ -205,16 +218,11 @@ async def update_todo(
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Edit a To-Do item and return the updated task formatted inside its category object.
+    Edit a To-Do item under a category. Supports `/user/todos/{category}/{todo_id}` and `/user/todos/{todo_id}`.
     """
-    try:
-        oid = ObjectId(todo_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid to-do ID format")
-
-    doc = await db.user_todos.find_one({"_id": oid})
-    if not doc:
-        raise HTTPException(status_code=404, detail="To-do item not found")
+    target_todo_id = todo_id if todo_id else category
+    doc = await fetch_todo_by_id(target_todo_id)
+    oid = doc["_id"]
 
     content_type = request.headers.get("content-type", "")
     update_fields = {}
@@ -248,8 +256,6 @@ async def update_todo(
             update_fields["title"] = title
         if description is not None:
             update_fields["description"] = description
-        if category is not None:
-            update_fields["category"] = category
         if due_date is not None:
             update_fields["due_date"] = due_date
         if is_important is not None:
@@ -277,23 +283,21 @@ async def update_todo(
     return format_todo_response(updated_doc)
 
 
-@router.patch("/{todo_id}/status")
-async def update_todo_status(
-    todo_id: str,
+@router.patch("/{category}/{todo_id}/status")
+@router.patch("/{category}/status")
+async def update_todo_status_by_category_or_id(
+    category: str,
     payload: dict,
+    todo_id: Optional[str] = None,
     current_user: dict = Depends(admin_or_user)
 ):
     """
     Quick status update endpoint returning the item inside its category object.
+    Supports both `/user/todos/{category}/{todo_id}/status` and `/user/todos/{todo_id}/status`.
     """
-    try:
-        oid = ObjectId(todo_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid to-do ID format")
-
-    doc = await db.user_todos.find_one({"_id": oid})
-    if not doc:
-        raise HTTPException(status_code=404, detail="To-do item not found")
+    target_todo_id = todo_id if todo_id else category
+    doc = await fetch_todo_by_id(target_todo_id)
+    oid = doc["_id"]
 
     new_status = None
     new_completed = None
@@ -317,23 +321,20 @@ async def update_todo_status(
     return format_todo_response(updated_doc)
 
 
-@router.post("/{todo_id}/images")
-async def upload_todo_images(
-    todo_id: str,
+@router.post("/{category}/{todo_id}/images")
+@router.post("/{category}/images")
+async def upload_todo_images_by_category_or_id(
+    category: str,
+    todo_id: Optional[str] = None,
     images: List[UploadFile] = File(...),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Upload one or more image attachments for a task and return updated category object.
+    Upload one or more image attachments for a task.
     """
-    try:
-        oid = ObjectId(todo_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid to-do ID format")
-
-    doc = await db.user_todos.find_one({"_id": oid})
-    if not doc:
-        raise HTTPException(status_code=404, detail="To-do item not found")
+    target_todo_id = todo_id if todo_id else category
+    doc = await fetch_todo_by_id(target_todo_id)
+    oid = doc["_id"]
 
     valid_files = [f for f in images if f.filename]
     if not valid_files:
@@ -353,23 +354,20 @@ async def upload_todo_images(
     return format_todo_response(updated_doc)
 
 
-@router.delete("/{todo_id}/images")
-async def delete_todo_image(
-    todo_id: str,
+@router.delete("/{category}/{todo_id}/images")
+@router.delete("/{category}/images")
+async def delete_todo_image_by_category_or_id(
+    category: str,
+    todo_id: Optional[str] = None,
     image_url: str = Query(..., description="The relative image URL to remove"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Remove an image attachment from a task and return updated category object.
+    Remove an image attachment from a task.
     """
-    try:
-        oid = ObjectId(todo_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid to-do ID format")
-
-    doc = await db.user_todos.find_one({"_id": oid})
-    if not doc:
-        raise HTTPException(status_code=404, detail="To-do item not found")
+    target_todo_id = todo_id if todo_id else category
+    doc = await fetch_todo_by_id(target_todo_id)
+    oid = doc["_id"]
 
     existing_urls = doc.get("image_urls", [])
     if image_url not in existing_urls:
@@ -394,22 +392,20 @@ async def delete_todo_image(
     return format_todo_response(updated_doc)
 
 
-@router.delete("/{todo_id}")
-async def delete_todo(
-    todo_id: str,
+@router.delete("/{category}/{todo_id}")
+@router.delete("/{category}")
+async def delete_todo_by_category_or_id(
+    category: str,
+    todo_id: Optional[str] = None,
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Delete a To-Do item permanently and return the deleted item wrapped inside its category object.
+    Delete a To-Do item permanently.
+    Supports both `/user/todos/{category}/{todo_id}` and `/user/todos/{todo_id}`.
     """
-    try:
-        oid = ObjectId(todo_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid to-do ID format")
-
-    doc = await db.user_todos.find_one({"_id": oid})
-    if not doc:
-        raise HTTPException(status_code=404, detail="To-do item not found")
+    target_todo_id = todo_id if todo_id else category
+    doc = await fetch_todo_by_id(target_todo_id)
+    oid = doc["_id"]
 
     for img_url in doc.get("image_urls", []):
         local_path = os.path.join("app", "static", img_url.replace("/", os.sep))
@@ -422,6 +418,6 @@ async def delete_todo(
     await db.user_todos.delete_one({"_id": oid})
     return {
         "status": "success",
-        "message": f"To-do item '{todo_id}' deleted successfully",
+        "message": f"To-do item '{target_todo_id}' deleted successfully",
         **format_todo_response(doc)
     }

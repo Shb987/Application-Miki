@@ -71,7 +71,7 @@ async def fetch_todo_by_id(todo_id: str) -> dict:
     return doc
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_200_OK)
 async def create_todo(
     request: Request,
     title: Optional[str] = Form(None),
@@ -146,12 +146,14 @@ async def create_todo(
 
 @router.get("")
 async def list_todos(
+    student_id: Optional[str] = Query(None, description="Student ID to fetch to-dos for"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    List all To-Do items for the authenticated student, grouped into category objects.
+    List all To-Do items for a student, grouped into category objects.
+    Pass student_id as query parameter or resolve from auth token.
     """
-    target_student_id = extract_student_id(current_user)
+    target_student_id = extract_student_id(current_user, student_id)
     cursor = db.user_todos.find({"student_id": target_student_id}).sort("created_at", -1)
     docs = await cursor.to_list(length=500)
 

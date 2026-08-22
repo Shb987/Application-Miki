@@ -32,7 +32,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
 
     # 2. Push to OneSignal (Targeting Parent to avoid duplicates on shared phones)
     if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
-        print("⚠️ OneSignal credentials not found. Skipping push.")
+        print("[WARN] OneSignal credentials not found. Skipping push.")
         return notification
 
     # Find the linked users in usertable to get the correct targeting mobile numbers
@@ -81,15 +81,15 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
     }
     
     try:
-        print(f"📦 [OneSignal] Sending Notification | Priority: {priority} | Type: {notification_type}")
+        print(f"[OneSignal] Sending Notification | Priority: {priority} | Type: {notification_type}")
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
             if response.status_code == 200:
-                print(f"✅ OneSignal Sent to targets {target_ids} for Student {user_id}: {response.json()}")
+                print(f"[OK] OneSignal Sent to targets {target_ids} for Student {user_id}: {response.json()}")
             else:
-                print(f"❌ OneSignal Error {response.status_code}: {response.text}")
+                print(f"[ERROR] OneSignal Error {response.status_code}: {response.text}")
     except Exception as e:
-        print(f"❌ OneSignal Push Failed: {e}")
+        print(f"[ERROR] OneSignal Push Failed: {e}")
 
     return notification
 
@@ -106,7 +106,7 @@ async def broadcast_notification(db, title: str, message: str, notification_type
         student_ids = [str(s["_id"]) for s in students]
 
     if not student_ids:
-        print("⚠️ No students found to notify.")
+        print("[WARN] No students found to notify.")
         return
 
     # 2. Save to MongoDB (Individual History for every student)
@@ -130,11 +130,11 @@ async def broadcast_notification(db, title: str, message: str, notification_type
     
     if notifications_to_insert:
         await db.notifications.insert_many(notifications_to_insert)
-        print(f"✅ Saved notification history for {len(notifications_to_insert)} students.")
+        print(f"[OK] Saved notification history for {len(notifications_to_insert)} students.")
 
     # 3. Push to OneSignal (Deduplicated per Parent/Phone)
     if not ONESIGNAL_APP_ID or not ONESIGNAL_API_KEY:
-        print("⚠️ OneSignal credentials not found. Skipping push.")
+        print("[WARN] OneSignal credentials not found. Skipping push.")
         return
 
     # Get unique Mobile Numbers from usertable to avoid duplicate pushes
@@ -151,7 +151,7 @@ async def broadcast_notification(db, title: str, message: str, notification_type
     target_ids = [str(mn) for mn in unique_mobile_numbers if mn]
 
     if not target_ids:
-        print("⚠️ No mobile numbers found in usertable to receive push notifications.")
+        print("[WARN] No mobile numbers found in usertable to receive push notifications.")
         return
 
     url = "https://onesignal.com/api/v1/notifications"
@@ -180,12 +180,12 @@ async def broadcast_notification(db, title: str, message: str, notification_type
     }
     
     try:
-        print(f"📦 [OneSignal] Sending Broadcast | Priority: {priority} | Type: {notification_type}")
+        print(f"[OneSignal] Sending Broadcast | Priority: {priority} | Type: {notification_type}")
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=payload, headers=headers)
             if response.status_code == 200:
-                print(f"✅ Deduplicated OneSignal Broadcast Sent to {len(target_ids)} unique parents: {response.json()}")
+                print(f"[OK] Deduplicated OneSignal Broadcast Sent to {len(target_ids)} unique parents: {response.json()}")
             else:
-                print(f"❌ OneSignal Broadcast Error {response.status_code}: {response.text}")
+                print(f"[ERROR] OneSignal Broadcast Error {response.status_code}: {response.text}")
     except Exception as e:
-        print(f"❌ OneSignal Broadcast Failed: {e}")
+        print(f"[ERROR] OneSignal Broadcast Failed: {e}")

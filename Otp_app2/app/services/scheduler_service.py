@@ -208,3 +208,85 @@ async def start_tuition_scheduler(db):
             
         # Sleep for 60 seconds before checking again
         await asyncio.sleep(60)
+
+
+async def check_and_notify_todo_reminders(db):
+    """
+    Checks for student To-Do items with due/active reminders and sends OneSignal push notifications.
+    """
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    
+    query = {
+        "status": "pending",
+        "is_reminder_enabled": True,
+        "reminder_sent": {"$ne": True},
+        "reminder_time": {"$exists": True, "$ne": ""}
+    }
+
+    cursor = db.user_todos.find(query)
+    due_todos = await cursor.to_list(length=None)
+
+    for todo in due_todos:
+        rem_str = todo.get("reminder_time", "").strip()
+        if not rem_str:
+            continue
+
+        is_due = False
+        try:
+            rem_dt = datetime.datetime.fromisoformat(rem_str.replace("Z", "+00:00"))
+            if rem_dt.tzinfo is None:
+                rem_dt = rem_dt.replace(tzinfo=datetime.timezone.utc)
+            if rem_dt <= now_utc + datetime.timedelta(seconds=60):
+                is_due = True
+        except Exception:
+            is_due = True
+
+        if is_due:
+            student_id = str(todo.get("student_id", ""))
+            title_text = todo.get("title", "Task Reminder")
+            desc_text = todo.get("description") or f"Reminder for task: {title_text}"
+
+            push_title = f"Reminder: {title_text}"
+            push_msg = f"{desc_text}"
+
+            print(f"[To-Do Scheduler] Sending OneSignal push reminder for task '{title_text}' to student {student_id}...")
+
+            try:
+                if student_id:
+                    await create_notification(
+                        db=db,
+                        user_id=student_id,
+                        title=push_title,
+                        message=push_msg,
+                        notification_type="todo_reminder",
+                        extra_data={
+                            "todo_id": str(todo["_id"]),
+                            "category": todo.get("category", "general")
+                        },
+                        priority=10
+                    )
+            except Exception as e:
+                print(f"[To-Do Scheduler] Push notification error for task {todo['_id']}: {e}")
+
+            try:
+                await db.user_todos.update_one(
+                    {"_id": todo["_id"]},
+                    {"$set": {"reminder_sent": True}}
+                )
+                print(f"[To-Do Scheduler] Marked task {todo['_id']} as reminder_sent=True.")
+            except Exception as e:
+                print(f"[To-Do Scheduler] Error updating status for task {todo['_id']}: {e}")
+
+
+async def start_todo_reminder_scheduler(db):
+    """
+    Starts a background loop that checks for student To-Do reminders every 60 seconds.
+    """
+    print("[To-Do Scheduler] Background OneSignal Reminder Service Started.")
+    while True:
+        try:
+            await check_and_notify_todo_reminders(db)
+        except Exception as e:
+            print(f"[To-Do Scheduler] Error in background loop: {e}")
+        await asyncio.sleep(60)
+

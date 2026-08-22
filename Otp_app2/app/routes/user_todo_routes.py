@@ -32,6 +32,9 @@ def format_todo_item(doc: dict) -> dict:
         "is_completed": doc.get("is_completed", False),
         "is_important": doc.get("is_important", False),
         "due_date": doc.get("due_date", ""),
+        "reminder_time": doc.get("reminder_time", ""),
+        "is_reminder_enabled": doc.get("is_reminder_enabled", False),
+        "reminder_sent": doc.get("reminder_sent", False),
         "image_urls": doc.get("image_urls", []),
         "created_at": doc.get("created_at", datetime.now(timezone.utc).isoformat()),
         "updated_at": doc.get("updated_at", datetime.now(timezone.utc).isoformat()),
@@ -80,12 +83,15 @@ async def create_todo(
     due_date: Optional[str] = Form(None),
     is_important: Optional[bool] = Form(False),
     status: Optional[str] = Form("pending"),
+    reminder_time: Optional[str] = Form(None),
+    is_reminder_enabled: Optional[bool] = Form(None),
     student_id: Optional[str] = Form(None),
     images: Optional[List[UploadFile]] = File(None),
     current_user: dict = Depends(admin_or_user)
 ):
     """
     Create a new To-Do task for a student.
+    Supports optional `reminder_time` and `is_reminder_enabled` for OneSignal push notifications.
     Image upload (`images`) is fully optional.
     Returns the task wrapped inside its category object.
     """
@@ -101,6 +107,12 @@ async def create_todo(
             todo_due = body_data.get("due_date", "")
             todo_imp = bool(body_data.get("is_important", False))
             todo_status = body_data.get("status", "pending")
+            todo_rem_time = body_data.get("reminder_time", "")
+            if "is_reminder_enabled" in body_data:
+                todo_rem_enabled = bool(body_data["is_reminder_enabled"])
+            else:
+                todo_rem_enabled = bool(todo_rem_time)
+
             target_student_id = extract_student_id(current_user, body_data.get("student_id"))
             
             json_imgs = body_data.get("images") or body_data.get("image_urls") or []
@@ -117,6 +129,12 @@ async def create_todo(
         todo_due = due_date or ""
         todo_imp = bool(is_important) if is_important is not None else False
         todo_status = status or "pending"
+        todo_rem_time = reminder_time or ""
+        if is_reminder_enabled is not None:
+            todo_rem_enabled = bool(is_reminder_enabled)
+        else:
+            todo_rem_enabled = bool(todo_rem_time)
+
         target_student_id = extract_student_id(current_user, student_id)
         uploaded_images = images or []
 
@@ -141,6 +159,9 @@ async def create_todo(
         "is_important": todo_imp,
         "category": todo_cat,
         "due_date": todo_due,
+        "reminder_time": todo_rem_time,
+        "is_reminder_enabled": todo_rem_enabled,
+        "reminder_sent": False,
         "image_urls": image_urls,
         "created_at": now_iso,
         "updated_at": now_iso,
@@ -212,6 +233,8 @@ async def update_todo(
     is_important: Optional[bool] = Form(None),
     is_completed: Optional[bool] = Form(None),
     status: Optional[str] = Form(None),
+    reminder_time: Optional[str] = Form(None),
+    is_reminder_enabled: Optional[bool] = Form(None),
     images: List[UploadFile] = File(None),
     current_user: dict = Depends(admin_or_user)
 ):
@@ -245,6 +268,16 @@ async def update_todo(
                 st = str(body_data["status"]).lower()
                 update_fields["status"] = st
                 update_fields["is_completed"] = (st == "completed")
+
+            if "reminder_time" in body_data:
+                update_fields["reminder_time"] = body_data["reminder_time"]
+                update_fields["reminder_sent"] = False
+                if "is_reminder_enabled" not in body_data:
+                    update_fields["is_reminder_enabled"] = bool(body_data["reminder_time"])
+
+            if "is_reminder_enabled" in body_data:
+                update_fields["is_reminder_enabled"] = bool(body_data["is_reminder_enabled"])
+
             uploaded_images = []
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {str(e)}")
@@ -266,6 +299,16 @@ async def update_todo(
             st = status.lower()
             update_fields["status"] = st
             update_fields["is_completed"] = (st == "completed")
+
+        if reminder_time is not None:
+            update_fields["reminder_time"] = reminder_time
+            update_fields["reminder_sent"] = False
+            if is_reminder_enabled is None:
+                update_fields["is_reminder_enabled"] = bool(reminder_time)
+
+        if is_reminder_enabled is not None:
+            update_fields["is_reminder_enabled"] = bool(is_reminder_enabled)
+
         uploaded_images = images or []
 
     if uploaded_images:

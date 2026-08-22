@@ -27,7 +27,7 @@ from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
 from app.core.database import db
-from app.services.scheduler_service import start_special_day_scheduler, start_tuition_scheduler
+from app.services.scheduler_service import start_special_day_scheduler, start_tuition_scheduler, start_todo_reminder_scheduler
 import asyncio
 
 
@@ -45,6 +45,8 @@ async def startup_event():
     asyncio.create_task(start_special_day_scheduler(db))
     # Start the background scheduler for Digital Tuition
     asyncio.create_task(start_tuition_scheduler(db))
+    # Start the background scheduler for Student To-Do Reminders
+    asyncio.create_task(start_todo_reminder_scheduler(db))
 
 # ----------------------------------------
 # 🔥 FIREBASE INITIALIZATION

@@ -2,13 +2,12 @@ import os
 import uuid
 import shutil
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from bson import ObjectId
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Form, File, UploadFile, Request, status
 from app.core.database import db
 from app.utils.user_auth import get_current_user, admin_or_user
-from app.models.todo_models import TodoCreate, TodoUpdate, TodoStatusUpdate, TodoResponse
 
 router = APIRouter(prefix="/todos", tags=["User To-Do Module"])
 
@@ -25,20 +24,26 @@ def extract_student_id(current_user: dict, explicit_student_id: Optional[str] = 
     return str(sid)
 
 
-def format_todo_doc(doc: dict) -> dict:
+def format_todo_item(doc: dict) -> dict:
     return {
         "id": str(doc["_id"]),
         "student_id": str(doc.get("student_id", "")),
         "title": doc.get("title", ""),
-        "description": doc.get("description"),
+        "description": doc.get("description", ""),
         "status": doc.get("status", "pending"),
         "is_completed": doc.get("is_completed", False),
         "is_important": doc.get("is_important", False),
-        "category": doc.get("category", "General"),
-        "due_date": doc.get("due_date"),
+        "due_date": doc.get("due_date", ""),
         "image_urls": doc.get("image_urls", []),
         "created_at": doc.get("created_at", datetime.now(timezone.utc).isoformat()),
         "updated_at": doc.get("updated_at", datetime.now(timezone.utc).isoformat()),
+    }
+
+
+def format_todo_response(doc: dict) -> dict:
+    category_name = (doc.get("category") or "general").strip()
+    return {
+        category_name: format_todo_item(doc)
     }
 
 
@@ -56,12 +61,12 @@ def save_upload_images(files: List[UploadFile]) -> List[str]:
     return saved_urls
 
 
-@router.post("", response_model=TodoResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_todo(
     request: Request,
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    category: Optional[str] = Form("General"),
+    category: Optional[str] = Form("general"),
     due_date: Optional[str] = Form(None),
     is_important: Optional[bool] = Form(False),
     status: Optional[str] = Form("pending"),
@@ -70,8 +75,8 @@ async def create_todo(
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Create a new To-Do task for a user (student).
-    Supports both JSON body and Form-data (with file image uploads).
+    Create a new To-Do task for a student.
+    Returns the task wrapped inside its category object.
     """
     content_type = request.headers.get("content-type", "")
 
@@ -79,9 +84,9 @@ async def create_todo(
         try:
             body_data = await request.json()
             todo_title = body_data.get("title")
-            todo_desc = body_data.get("description")
-            todo_cat = body_data.get("category", "General")
-            todo_due = body_data.get("due_date")
+            todo_desc = body_data.get("description", "")
+            todo_cat = body_data.get("category", "general")
+            todo_due = body_data.get("due_date", "")
             todo_imp = bool(body_data.get("is_important", False))
             todo_status = body_data.get("status", "pending")
             target_student_id = extract_student_id(current_user, body_data.get("student_id"))
@@ -90,9 +95,9 @@ async def create_todo(
             raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {str(e)}")
     else:
         todo_title = title
-        todo_desc = description
-        todo_cat = category or "General"
-        todo_due = due_date
+        todo_desc = description or ""
+        todo_cat = category or "general"
+        todo_due = due_date or ""
         todo_imp = bool(is_important) if is_important is not None else False
         todo_status = status or "pending"
         target_student_id = extract_student_id(current_user, student_id)
@@ -103,7 +108,6 @@ async def create_todo(
 
     is_completed = (str(todo_status).lower() == "completed")
 
-    # Process uploaded images if provided
     image_urls = []
     if uploaded_images:
         valid_files = [f for f in uploaded_images if f.filename]
@@ -127,52 +131,52 @@ async def create_todo(
 
     res = await db.user_todos.insert_one(todo_doc)
     todo_doc["_id"] = res.inserted_id
-    return format_todo_doc(todo_doc)
+    return format_todo_response(todo_doc)
 
 
-@router.get("", response_model=List[TodoResponse])
+@router.get("")
 async def list_todos(
-    student_id: Optional[str] = Query(None, description="Optional target student ID"),
-    status: Optional[str] = Query(None, description="Filter by status: 'pending', 'completed', or 'all'"),
-    category: Optional[str] = Query(None, description="Filter by category"),
-    is_important: Optional[bool] = Query(None, description="Filter by importance flag"),
-    search: Optional[str] = Query(None, description="Search term in title or description"),
+    student_id: Optional[str] = Query(None, description="Student ID to fetch to-dos for"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    List all To-Do items for the authenticated student.
-    Supports filtering by status ('pending', 'completed', 'all'), category, importance, and text search.
+    List all To-Do items for a student, grouped into category objects.
+    Example response format:
+    {
+      "general": [
+        {
+          "id": "...",
+          "student_id": "...",
+          "title": "...",
+          ...
+        }
+      ]
+    }
     """
     target_student_id = extract_student_id(current_user, student_id)
-    query = {"student_id": target_student_id}
-
-    if status and status.lower() != "all":
-        query["status"] = status.lower()
-
-    if category:
-        query["category"] = category
-
-    if is_important is not None:
-        query["is_important"] = is_important
-
-    if search:
-        query["$or"] = [
-            {"title": {"$regex": search, "$options": "i"}},
-            {"description": {"$regex": search, "$options": "i"}}
-        ]
-
-    cursor = db.user_todos.find(query).sort("created_at", -1)
+    cursor = db.user_todos.find({"student_id": target_student_id}).sort("created_at", -1)
     docs = await cursor.to_list(length=500)
-    return [format_todo_doc(d) for d in docs]
+
+    categories_map: Dict[str, List[Dict[str, Any]]] = {}
+    for doc in docs:
+        cat_name = (doc.get("category") or "general").strip()
+        if cat_name not in categories_map:
+            categories_map[cat_name] = []
+        categories_map[cat_name].append(format_todo_item(doc))
+
+    if not categories_map:
+        categories_map["general"] = []
+
+    return categories_map
 
 
-@router.get("/{todo_id}", response_model=TodoResponse)
+@router.get("/{todo_id}")
 async def get_todo(
     todo_id: str,
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Fetch details of a single To-Do item by ID.
+    View details of a single To-Do item formatted as a category object.
     """
     try:
         oid = ObjectId(todo_id)
@@ -183,10 +187,10 @@ async def get_todo(
     if not doc:
         raise HTTPException(status_code=404, detail="To-do item not found")
 
-    return format_todo_doc(doc)
+    return format_todo_response(doc)
 
 
-@router.put("/{todo_id}", response_model=TodoResponse)
+@router.put("/{todo_id}")
 async def update_todo(
     todo_id: str,
     request: Request,
@@ -201,7 +205,7 @@ async def update_todo(
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Update a To-Do item. Supports updating fields and appending new image attachments.
+    Edit a To-Do item and return the updated task formatted inside its category object.
     """
     try:
         oid = ObjectId(todo_id)
@@ -270,17 +274,17 @@ async def update_todo(
 
     await db.user_todos.update_one({"_id": oid}, {"$set": update_fields})
     updated_doc = await db.user_todos.find_one({"_id": oid})
-    return format_todo_doc(updated_doc)
+    return format_todo_response(updated_doc)
 
 
-@router.patch("/{todo_id}/status", response_model=TodoResponse)
+@router.patch("/{todo_id}/status")
 async def update_todo_status(
     todo_id: str,
-    payload: TodoStatusUpdate,
+    payload: dict,
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Quick status update endpoint to switch task status between 'pending' and 'completed'.
+    Quick status update endpoint returning the item inside its category object.
     """
     try:
         oid = ObjectId(todo_id)
@@ -294,11 +298,11 @@ async def update_todo_status(
     new_status = None
     new_completed = None
 
-    if payload.is_completed is not None:
-        new_completed = payload.is_completed
-        new_status = "completed" if payload.is_completed else "pending"
-    elif payload.status is not None:
-        new_status = payload.status.lower()
+    if "is_completed" in payload and payload["is_completed"] is not None:
+        new_completed = bool(payload["is_completed"])
+        new_status = "completed" if new_completed else "pending"
+    elif "status" in payload and payload["status"] is not None:
+        new_status = str(payload["status"]).lower()
         new_completed = (new_status == "completed")
 
     if new_status is None:
@@ -310,17 +314,17 @@ async def update_todo_status(
         {"$set": {"status": new_status, "is_completed": new_completed, "updated_at": now_iso}}
     )
     updated_doc = await db.user_todos.find_one({"_id": oid})
-    return format_todo_doc(updated_doc)
+    return format_todo_response(updated_doc)
 
 
-@router.post("/{todo_id}/images", response_model=TodoResponse)
+@router.post("/{todo_id}/images")
 async def upload_todo_images(
     todo_id: str,
     images: List[UploadFile] = File(...),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Upload one or more image attachments for an existing To-Do task.
+    Upload one or more image attachments for a task and return updated category object.
     """
     try:
         oid = ObjectId(todo_id)
@@ -346,17 +350,17 @@ async def upload_todo_images(
     )
 
     updated_doc = await db.user_todos.find_one({"_id": oid})
-    return format_todo_doc(updated_doc)
+    return format_todo_response(updated_doc)
 
 
-@router.delete("/{todo_id}/images", response_model=TodoResponse)
+@router.delete("/{todo_id}/images")
 async def delete_todo_image(
     todo_id: str,
     image_url: str = Query(..., description="The relative image URL to remove"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Remove an image attachment from a To-Do task.
+    Remove an image attachment from a task and return updated category object.
     """
     try:
         oid = ObjectId(todo_id)
@@ -373,7 +377,6 @@ async def delete_todo_image(
 
     existing_urls.remove(image_url)
 
-    # Attempt to delete file from disk if local
     local_path = os.path.join("app", "static", image_url.replace("/", os.sep))
     if os.path.exists(local_path):
         try:
@@ -388,7 +391,7 @@ async def delete_todo_image(
     )
 
     updated_doc = await db.user_todos.find_one({"_id": oid})
-    return format_todo_doc(updated_doc)
+    return format_todo_response(updated_doc)
 
 
 @router.delete("/{todo_id}")
@@ -397,7 +400,7 @@ async def delete_todo(
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    Delete a To-Do item permanently along with any associated local upload images.
+    Delete a To-Do item permanently and return the deleted item wrapped inside its category object.
     """
     try:
         oid = ObjectId(todo_id)
@@ -408,7 +411,6 @@ async def delete_todo(
     if not doc:
         raise HTTPException(status_code=404, detail="To-do item not found")
 
-    # Clean up associated uploaded images
     for img_url in doc.get("image_urls", []):
         local_path = os.path.join("app", "static", img_url.replace("/", os.sep))
         if os.path.exists(local_path):
@@ -418,4 +420,8 @@ async def delete_todo(
                 pass
 
     await db.user_todos.delete_one({"_id": oid})
-    return {"status": "success", "message": f"To-do item '{todo_id}' deleted successfully"}
+    return {
+        "status": "success",
+        "message": f"To-do item '{todo_id}' deleted successfully",
+        **format_todo_response(doc)
+    }

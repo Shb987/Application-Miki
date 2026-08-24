@@ -40,6 +40,21 @@
   <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
   <!-- Responsive css-->
   <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
+  <script>
+    (function() {
+      var savedMode = localStorage.getItem("mode") || localStorage.getItem("dark");
+      if (savedMode === "dark-only") {
+        document.documentElement.classList.add("dark-only");
+        if (document.body) {
+          document.body.classList.add("dark-only");
+        } else {
+          document.addEventListener("DOMContentLoaded", function() {
+            if (document.body) document.body.classList.add("dark-only");
+          });
+        }
+      }
+    })();
+  </script>
   <style>
     :root {
       --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -137,6 +152,79 @@
     .premium-input:focus {
       border-color: #667eea;
       box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Dark Mode Overrides for Questions Page */
+    body.dark-only {
+      background-color: #16171d !important;
+      color: #e2e8f0 !important;
+    }
+    body.dark-only .analytics-card {
+      background: #20232e !important;
+      border: 1px solid #2e3243 !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    }
+    body.dark-only .card-header-premium {
+      border-bottom: 1px solid #2e3243 !important;
+    }
+    body.dark-only .card-title-premium {
+      color: #f8fafc !important;
+    }
+    body.dark-only .question-card {
+      background: #20232e !important;
+      border-color: #2e3243 !important;
+      color: #e2e8f0 !important;
+    }
+    body.dark-only .question-card:hover {
+      border-color: #667eea !important;
+      background: #282c3a !important;
+    }
+    body.dark-only .question-meta {
+      color: #94a3b8 !important;
+    }
+    body.dark-only .form-label-premium {
+      color: #cbd5e1 !important;
+    }
+    body.dark-only .premium-input,
+    body.dark-only .form-control,
+    body.dark-only .form-select,
+    body.dark-only select {
+      background-color: #16181f !important;
+      border-color: #2e3243 !important;
+      color: #f1f5f9 !important;
+    }
+    body.dark-only input[type="file"] {
+      background-color: #16181f !important;
+      border: 1px solid #2e3243 !important;
+      color: #e2e8f0 !important;
+    }
+    body.dark-only input[type="file"]::file-selector-button,
+    body.dark-only input[type="file"]::-webkit-file-upload-button {
+      background-color: #2e3243 !important;
+      color: #e2e8f0 !important;
+      border: 1px solid #3b3f54 !important;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    body.dark-only input[type="file"]::file-selector-button:hover,
+    body.dark-only input[type="file"]::-webkit-file-upload-button:hover {
+      background-color: #3b3f54 !important;
+      color: #ffffff !important;
+    }
+    body.dark-only .btn-outline-secondary,
+    body.dark-only .btn-light {
+      background-color: #20232e !important;
+      color: #e2e8f0 !important;
+      border-color: #2e3243 !important;
+    }
+    body.dark-only .customizer-links {
+      background-color: #20232e !important;
+      border: 1px solid #2e3243 !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+    }
+    body.dark-only .customizer-links .nav-link {
+      color: #e2e8f0 !important;
     }
 
     /* Page-specific fix for logo container */

@@ -146,24 +146,28 @@
     if (!bodyModeDark) {
       $(".mode").addClass("active");
       localStorage.setItem("mode", "dark-only");
-      $("body").addClass("dark-only");
-      $("body").removeClass("light");
-    }
-    if (bodyModeDark) {
+      localStorage.setItem("dark", "dark-only");
+      $("body").addClass("dark-only").removeClass("light");
+      $("html").addClass("dark-only");
+    } else {
       $(".mode").removeClass("active");
       localStorage.setItem("mode", "light");
-      $("body").removeClass("dark-only");
-      $("body").addClass("light");
+      localStorage.setItem("dark", "light");
+      $("body").removeClass("dark-only").addClass("light");
+      $("html").removeClass("dark-only");
     }
   }); 
-  // $("body").addClass(
-  //   localStorage.getItem("mode")
-  //     ? localStorage.getItem("mode")
-  //     : "light"
-  // ); 
-  $(".mode").addClass(
-    localStorage.getItem("mode") === "dark-only" ? "active" : " "
-  );
+
+  const savedMode = localStorage.getItem("mode") || localStorage.getItem("dark");
+  if (savedMode === "dark-only") {
+    $("body").addClass("dark-only").removeClass("light");
+    $("html").addClass("dark-only");
+    $(".mode").addClass("active");
+  } else if (savedMode === "light") {
+    $("body").removeClass("dark-only").addClass("light");
+    $("html").removeClass("dark-only");
+    $(".mode").removeClass("active");
+  }
 
   // sidebar filter
   $(".md-sidebar .md-sidebar-toggle ").on("click", function (e) {

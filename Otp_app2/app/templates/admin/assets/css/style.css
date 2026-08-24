@@ -49692,3 +49692,153 @@ html[dir=rtl] body.dark-only .page-wrapper .page-body-wrapper .page-body .card:n
   5.9 Box-layout CSS Ends
 ==========================**/
 /*# sourceMappingURL=style.css.map */
+
+/* ==========================================================================
+   MIKI GLOBAL DARK MODE OVERRIDES & DESIGN IMPROVEMENTS
+   ========================================================================== */
+body.dark-only,
+html.dark-only {
+  background-color: #16171d !important;
+  color: #e2e8f0;
+}
+
+body.dark-only .page-wrapper,
+body.dark-only .page-body {
+  background-color: #16171d !important;
+}
+
+body.dark-only .card,
+body.dark-only .analytics-card,
+body.dark-only .question-card {
+  background-color: #20232e !important;
+  border: 1px solid #2e3243 !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+body.dark-only .question-card:hover {
+  background-color: #282c3a !important;
+  border-color: #667eea !important;
+}
+
+body.dark-only .card-header,
+body.dark-only .card-header-premium {
+  background-color: transparent !important;
+  border-bottom: 1px solid #2e3243 !important;
+  color: #f8fafc !important;
+}
+
+body.dark-only .card-title,
+body.dark-only .card-title-premium,
+body.dark-only h1,
+body.dark-only h2,
+body.dark-only h3,
+body.dark-only h4,
+body.dark-only h5,
+body.dark-only h6 {
+  color: #f8fafc !important;
+}
+
+body.dark-only label,
+body.dark-only .form-label,
+body.dark-only .form-label-premium,
+body.dark-only .question-meta {
+  color: #cbd5e1 !important;
+}
+
+body.dark-only .form-control,
+body.dark-only .form-select,
+body.dark-only .premium-input,
+body.dark-only select,
+body.dark-only input:not([type="submit"]):not([type="button"]):not([type="reset"]),
+body.dark-only textarea {
+  background-color: #16181f !important;
+  border: 1px solid #2e3243 !important;
+  color: #f1f5f9 !important;
+}
+
+body.dark-only .form-control:focus,
+body.dark-only .form-select:focus,
+body.dark-only .premium-input:focus,
+body.dark-only select:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.25) !important;
+  background-color: #1a1c25 !important;
+}
+
+body.dark-only input::placeholder,
+body.dark-only textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* File Input Styling in Dark Mode */
+body.dark-only input[type="file"] {
+  background-color: #16181f !important;
+  border: 1px solid #2e3243 !important;
+  color: #e2e8f0 !important;
+}
+
+body.dark-only input[type="file"]::file-selector-button,
+body.dark-only input[type="file"]::-webkit-file-upload-button {
+  background-color: #2e3243 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #3b3f54 !important;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+body.dark-only input[type="file"]::file-selector-button:hover,
+body.dark-only input[type="file"]::-webkit-file-upload-button:hover {
+  background-color: #3b3f54 !important;
+  color: #ffffff !important;
+}
+
+/* Secondary & Light Buttons in Dark Mode */
+body.dark-only .btn-outline-secondary,
+body.dark-only .btn-light,
+body.dark-only .btn-outline-light {
+  background-color: #20232e !important;
+  color: #e2e8f0 !important;
+  border-color: #2e3243 !important;
+}
+
+body.dark-only .btn-outline-secondary:hover,
+body.dark-only .btn-light:hover {
+  background-color: #2e3243 !important;
+  color: #ffffff !important;
+}
+
+/* Customizer & Floating Toolbar in Dark Mode */
+body.dark-only .customizer-links {
+  background-color: #20232e !important;
+  border: 1px solid #2e3243 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-only .customizer-links .nav-link {
+  color: #e2e8f0 !important;
+}
+
+body.dark-only .customizer-contain {
+  background-color: #16171d !important;
+  color: #e2e8f0 !important;
+  border-left: 1px solid #2e3243 !important;
+}
+
+body.dark-only .customizer-header {
+  background-color: #20232e !important;
+  border-bottom: 1px solid #2e3243 !important;
+  color: #f8fafc !important;
+}
+
+/* Header Navbar in Dark Mode */
+body.dark-only .page-header {
+  background-color: #16171d !important;
+  border-bottom: 1px solid #2e3243 !important;
+}
+
+body.dark-only .page-header .header-wrapper {
+  background-color: #16171d !important;
+}

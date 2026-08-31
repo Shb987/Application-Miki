@@ -263,6 +263,7 @@ async def list_todos(
         "total_count": total_count,
         "total_pages": total_pages,
         "has_next": page < total_pages,
+        "todo": items[0] if items else {},
         "todos": items,
         "items": items,
         "categories": categories_map,

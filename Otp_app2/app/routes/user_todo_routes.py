@@ -173,8 +173,10 @@ async def create_todo(
     }
 
     res = await db.user_todos.insert_one(todo_doc)
-    todo_doc["_id"] = res.inserted_id
-    return format_todo_response(todo_doc)
+    return {
+        "status": "success",
+        "message": "To-do item created successfully"
+    }
 
 
 @router.get("")

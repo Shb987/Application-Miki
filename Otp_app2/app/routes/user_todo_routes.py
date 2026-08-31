@@ -26,8 +26,10 @@ def extract_student_id(current_user: dict, explicit_student_id: Optional[str] = 
 
 def format_todo_item(doc: dict) -> dict:
     return {
+        "id": str(doc["_id"]) if doc.get("_id") else "",
         "title": doc.get("title", ""),
         "description": doc.get("description", ""),
+        "category": doc.get("category", "general"),
         "status": doc.get("status", "pending"),
         "is_completed": doc.get("is_completed", False),
         "is_important": doc.get("is_important", False),
@@ -42,9 +44,12 @@ def format_todo_item(doc: dict) -> dict:
 
 
 def format_todo_response(doc: dict) -> dict:
+    item = format_todo_item(doc)
     category_name = (doc.get("category") or "general").strip()
     return {
-        category_name: format_todo_item(doc)
+        "todo": item,
+        "item": item,
+        category_name: item
     }
 
 
@@ -175,17 +180,23 @@ async def create_todo(
 @router.get("")
 async def list_todos(
     student_id: Optional[str] = Query(None, description="Student ID to fetch to-dos for"),
+    category: Optional[str] = Query(None, description="Optional category to filter to-dos"),
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     limit: int = Query(20, ge=1, le=100, description="Items per page"),
     skip: Optional[int] = Query(None, ge=0, description="Optional offset skip count"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    List all To-Do items for a student, grouped into category objects, with pagination.
+    List all To-Do items for a student ID with pagination.
+    Supports optional `category` query parameter filter (`?category=homework`).
     Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
     """
     target_student_id = extract_student_id(current_user, student_id)
-    query_filter = {"student_id": target_student_id}
+    query_filter: Dict[str, Any] = {"student_id": target_student_id}
+
+    if category and category.strip():
+        cat_regex = {"$regex": f"^{category.strip()}$", "$options": "i"}
+        query_filter["category"] = cat_regex
 
     offset = skip if skip is not None else (page - 1) * limit
     total_count = await db.user_todos.count_documents(query_filter)
@@ -198,12 +209,14 @@ async def list_todos(
     )
     docs = await cursor.to_list(length=limit)
 
+    items = [format_todo_item(doc) for doc in docs]
+
     categories_map: Dict[str, List[Dict[str, Any]]] = {}
-    for doc in docs:
-        cat_name = (doc.get("category") or "general").strip()
+    for item in items:
+        cat_name = (item.get("category") or "general").strip()
         if cat_name not in categories_map:
             categories_map[cat_name] = []
-        categories_map[cat_name].append(format_todo_item(doc))
+        categories_map[cat_name].append(item)
 
     if not categories_map and total_count == 0:
         categories_map["general"] = []
@@ -216,58 +229,10 @@ async def list_todos(
         "total_count": total_count,
         "total_pages": total_pages,
         "has_next": page < total_pages,
+        "todos": items,
+        "items": items,
         "categories": categories_map,
         **categories_map
-    }
-
-
-@router.get("/{category}")
-async def list_todos_by_category_or_id(
-    category: str,
-    student_id: Optional[str] = Query(None, description="Optional Student ID to fetch to-dos for"),
-    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-    limit: int = Query(20, ge=1, le=100, description="Items per page"),
-    skip: Optional[int] = Query(None, ge=0, description="Optional offset skip count"),
-    current_user: dict = Depends(admin_or_user)
-):
-    """
-    List To-Do items for a specific category OR view single item details if a 24-char ObjectId is passed.
-    Supports pagination with page, limit, and skip parameters.
-    Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
-    """
-    if ObjectId.is_valid(category):
-        doc = await fetch_todo_by_id(category)
-        return format_todo_response(doc)
-
-    target_student_id = extract_student_id(current_user, student_id)
-    cat_regex = {"$regex": f"^{category}$", "$options": "i"}
-    query_filter = {
-        "student_id": target_student_id,
-        "category": cat_regex
-    }
-
-    offset = skip if skip is not None else (page - 1) * limit
-    total_count = await db.user_todos.count_documents(query_filter)
-
-    cursor = (
-        db.user_todos.find(query_filter)
-        .sort([("is_important", -1), ("created_at", -1)])
-        .skip(offset)
-        .limit(limit)
-    )
-    docs = await cursor.to_list(length=limit)
-    cat_key = category.strip().lower()
-    items = [format_todo_item(d) for d in docs]
-    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
-
-    return {
-        "page": page,
-        "limit": limit,
-        "total_count": total_count,
-        "total_pages": total_pages,
-        "has_next": page < total_pages,
-        cat_key: items,
-        "items": items
     }
 
 

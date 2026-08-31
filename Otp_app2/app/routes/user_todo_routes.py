@@ -254,6 +254,17 @@ async def list_todos(
     docs = await cursor.to_list(length=limit)
 
     items = [format_todo_item(doc) for doc in docs]
+
+    categories_map: Dict[str, List[Dict[str, Any]]] = {}
+    for item in items:
+        cat_name = (item.get("category") or "general").strip()
+        if cat_name not in categories_map:
+            categories_map[cat_name] = []
+        categories_map[cat_name].append(item)
+
+    if not categories_map and total_count == 0:
+        categories_map["general"] = []
+
     total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
 
     return {
@@ -262,7 +273,8 @@ async def list_todos(
         "total_count": total_count,
         "total_pages": total_pages,
         "has_next": page < total_pages,
-        "todos": items
+        "todos": items,
+        "categories": categories_map
     }
 
 

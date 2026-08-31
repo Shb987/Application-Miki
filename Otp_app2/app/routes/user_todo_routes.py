@@ -24,6 +24,39 @@ def extract_student_id(current_user: dict, explicit_student_id: Optional[str] = 
     return str(sid)
 
 
+def build_student_id_filter(current_user: dict, explicit_student_id: Optional[str] = None) -> dict:
+    if explicit_student_id and str(explicit_student_id).strip():
+        sid_str = str(explicit_student_id).strip()
+        candidates: List[Any] = [sid_str]
+        if ObjectId.is_valid(sid_str):
+            candidates.append(ObjectId(sid_str))
+        return {"student_id": {"$in": candidates}}
+
+    if current_user.get("role") == "admin":
+        return {}
+
+    raw_candidates = [
+        current_user.get("student_id"),
+        current_user.get("_id"),
+        current_user.get("sub")
+    ]
+    candidates: List[Any] = []
+    for val in raw_candidates:
+        if val and str(val).strip():
+            s = str(val).strip()
+            if s not in candidates:
+                candidates.append(s)
+            if ObjectId.is_valid(s):
+                oid = ObjectId(s)
+                if oid not in candidates:
+                    candidates.append(oid)
+
+    if not candidates:
+        raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
+
+    return {"student_id": {"$in": candidates}}
+
+
 def format_todo_item(doc: dict) -> dict:
     return {
         "id": str(doc["_id"]) if doc.get("_id") else "",
@@ -193,8 +226,7 @@ async def list_todos(
     Supports optional `category` query parameter filter (`?category=homework`).
     Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
     """
-    target_student_id = extract_student_id(current_user, student_id)
-    query_filter: Dict[str, Any] = {"student_id": target_student_id}
+    query_filter: Dict[str, Any] = build_student_id_filter(current_user, student_id)
 
     if category and category.strip():
         cat_regex = {"$regex": f"^{category.strip()}$", "$options": "i"}

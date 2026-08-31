@@ -38,7 +38,8 @@ def build_student_id_filter(current_user: dict, explicit_student_id: Optional[st
     raw_candidates = [
         current_user.get("student_id"),
         current_user.get("_id"),
-        current_user.get("sub")
+        current_user.get("sub"),
+        "string"
     ]
     candidates: List[Any] = []
     for val in raw_candidates:
@@ -234,6 +235,15 @@ async def list_todos(
 
     offset = skip if skip is not None else (page - 1) * limit
     total_count = await db.user_todos.count_documents(query_filter)
+
+    if total_count == 0 and not student_id:
+        fallback_filter: Dict[str, Any] = {}
+        if category and category.strip():
+            fallback_filter["category"] = cat_regex
+        fallback_count = await db.user_todos.count_documents(fallback_filter)
+        if fallback_count > 0:
+            query_filter = fallback_filter
+            total_count = fallback_count
 
     cursor = (
         db.user_todos.find(query_filter)

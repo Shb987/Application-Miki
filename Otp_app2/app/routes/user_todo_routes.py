@@ -175,15 +175,28 @@ async def create_todo(
 @router.get("")
 async def list_todos(
     student_id: Optional[str] = Query(None, description="Student ID to fetch to-dos for"),
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    skip: Optional[int] = Query(None, ge=0, description="Optional offset skip count"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
-    List all To-Do items for a student, grouped into category objects.
+    List all To-Do items for a student, grouped into category objects, with pagination.
     Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
     """
     target_student_id = extract_student_id(current_user, student_id)
-    cursor = db.user_todos.find({"student_id": target_student_id}).sort([("is_important", -1), ("created_at", -1)])
-    docs = await cursor.to_list(length=500)
+    query_filter = {"student_id": target_student_id}
+
+    offset = skip if skip is not None else (page - 1) * limit
+    total_count = await db.user_todos.count_documents(query_filter)
+
+    cursor = (
+        db.user_todos.find(query_filter)
+        .sort([("is_important", -1), ("created_at", -1)])
+        .skip(offset)
+        .limit(limit)
+    )
+    docs = await cursor.to_list(length=limit)
 
     categories_map: Dict[str, List[Dict[str, Any]]] = {}
     for doc in docs:
@@ -192,20 +205,34 @@ async def list_todos(
             categories_map[cat_name] = []
         categories_map[cat_name].append(format_todo_item(doc))
 
-    if not categories_map:
+    if not categories_map and total_count == 0:
         categories_map["general"] = []
 
-    return categories_map
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
+
+    return {
+        "page": page,
+        "limit": limit,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "has_next": page < total_pages,
+        "categories": categories_map,
+        **categories_map
+    }
 
 
 @router.get("/{category}")
 async def list_todos_by_category_or_id(
     category: str,
     student_id: Optional[str] = Query(None, description="Optional Student ID to fetch to-dos for"),
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
+    skip: Optional[int] = Query(None, ge=0, description="Optional offset skip count"),
     current_user: dict = Depends(admin_or_user)
 ):
     """
     List To-Do items for a specific category OR view single item details if a 24-char ObjectId is passed.
+    Supports pagination with page, limit, and skip parameters.
     Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
     """
     if ObjectId.is_valid(category):
@@ -213,13 +240,35 @@ async def list_todos_by_category_or_id(
         return format_todo_response(doc)
 
     target_student_id = extract_student_id(current_user, student_id)
-    cursor = db.user_todos.find({
+    cat_regex = {"$regex": f"^{category}$", "$options": "i"}
+    query_filter = {
         "student_id": target_student_id,
-        "category": {"$regex": f"^{category}$", "$options": "i"}
-    }).sort([("is_important", -1), ("created_at", -1)])
-    docs = await cursor.to_list(length=500)
+        "category": cat_regex
+    }
+
+    offset = skip if skip is not None else (page - 1) * limit
+    total_count = await db.user_todos.count_documents(query_filter)
+
+    cursor = (
+        db.user_todos.find(query_filter)
+        .sort([("is_important", -1), ("created_at", -1)])
+        .skip(offset)
+        .limit(limit)
+    )
+    docs = await cursor.to_list(length=limit)
     cat_key = category.strip().lower()
-    return {cat_key: [format_todo_item(d) for d in docs]}
+    items = [format_todo_item(d) for d in docs]
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
+
+    return {
+        "page": page,
+        "limit": limit,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "has_next": page < total_pages,
+        cat_key: items,
+        "items": items
+    }
 
 
 @router.put("/{todo_id}")
@@ -235,17 +284,21 @@ async def update_todo(
     status: Optional[str] = Form(None),
     reminder_time: Optional[str] = Form(None),
     is_reminder_enabled: Optional[bool] = Form(None),
-    images: List[UploadFile] = File(None),
+    delete_image_urls: Optional[List[str]] = Form(None),
+    images: Optional[List[UploadFile]] = File(None),
     current_user: dict = Depends(admin_or_user)
 ):
     """
     Edit a To-Do item by todo_id and return the updated task formatted inside its category object.
+    Consolidates status updates, uploading new image attachments, and deleting specified images.
     """
     doc = await fetch_todo_by_id(todo_id)
     oid = doc["_id"]
 
     content_type = request.headers.get("content-type", "")
     update_fields = {}
+    existing_urls = list(doc.get("image_urls", []))
+    urls_to_delete = []
 
     if "application/json" in content_type:
         try:
@@ -278,6 +331,14 @@ async def update_todo(
             if "is_reminder_enabled" in body_data:
                 update_fields["is_reminder_enabled"] = bool(body_data["is_reminder_enabled"])
 
+            del_imgs = body_data.get("delete_image_urls") or body_data.get("delete_images") or []
+            if isinstance(del_imgs, str):
+                del_imgs = [del_imgs]
+            urls_to_delete.extend([str(u) for u in del_imgs if u])
+
+            if "image_urls" in body_data and isinstance(body_data["image_urls"], list):
+                existing_urls = [str(u) for u in body_data["image_urls"] if u]
+
             uploaded_images = []
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {str(e)}")
@@ -309,117 +370,32 @@ async def update_todo(
         if is_reminder_enabled is not None:
             update_fields["is_reminder_enabled"] = bool(is_reminder_enabled)
 
+        if delete_image_urls:
+            urls_to_delete.extend(delete_image_urls)
+
         uploaded_images = images or []
 
+    if urls_to_delete:
+        for img_url in urls_to_delete:
+            if img_url in existing_urls:
+                existing_urls.remove(img_url)
+                local_path = os.path.join("app", "static", img_url.replace("/", os.sep))
+                if os.path.exists(local_path):
+                    try:
+                        os.remove(local_path)
+                    except Exception:
+                        pass
+
     if uploaded_images:
-        valid_files = [f for f in uploaded_images if f.filename]
+        valid_files = [f for f in uploaded_images if hasattr(f, "filename") and f.filename]
         if valid_files:
             new_urls = save_upload_images(valid_files)
-            existing_urls = doc.get("image_urls", [])
-            update_fields["image_urls"] = existing_urls + new_urls
+            existing_urls.extend(new_urls)
 
+    update_fields["image_urls"] = existing_urls
     update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     await db.user_todos.update_one({"_id": oid}, {"$set": update_fields})
-    updated_doc = await db.user_todos.find_one({"_id": oid})
-    return format_todo_response(updated_doc)
-
-
-@router.patch("/{todo_id}/status")
-async def update_todo_status(
-    todo_id: str,
-    payload: dict,
-    current_user: dict = Depends(admin_or_user)
-):
-    """
-    Quick status update endpoint returning the item inside its category object.
-    """
-    doc = await fetch_todo_by_id(todo_id)
-    oid = doc["_id"]
-
-    new_status = None
-    new_completed = None
-
-    if "is_completed" in payload and payload["is_completed"] is not None:
-        new_completed = bool(payload["is_completed"])
-        new_status = "completed" if new_completed else "pending"
-    elif "status" in payload and payload["status"] is not None:
-        new_status = str(payload["status"]).lower()
-        new_completed = (new_status == "completed")
-
-    if new_status is None:
-        raise HTTPException(status_code=400, detail="Must provide either status or is_completed")
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-    await db.user_todos.update_one(
-        {"_id": oid},
-        {"$set": {"status": new_status, "is_completed": new_completed, "updated_at": now_iso}}
-    )
-    updated_doc = await db.user_todos.find_one({"_id": oid})
-    return format_todo_response(updated_doc)
-
-
-@router.post("/{todo_id}/images")
-async def upload_todo_images(
-    todo_id: str,
-    images: List[UploadFile] = File(...),
-    current_user: dict = Depends(admin_or_user)
-):
-    """
-    Upload one or more image attachments for a task by todo_id.
-    """
-    doc = await fetch_todo_by_id(todo_id)
-    oid = doc["_id"]
-
-    valid_files = [f for f in images if f.filename]
-    if not valid_files:
-        raise HTTPException(status_code=400, detail="No valid image files provided")
-
-    new_urls = save_upload_images(valid_files)
-    existing_urls = doc.get("image_urls", [])
-    updated_urls = existing_urls + new_urls
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-    await db.user_todos.update_one(
-        {"_id": oid},
-        {"$set": {"image_urls": updated_urls, "updated_at": now_iso}}
-    )
-
-    updated_doc = await db.user_todos.find_one({"_id": oid})
-    return format_todo_response(updated_doc)
-
-
-@router.delete("/{todo_id}/images")
-async def delete_todo_image(
-    todo_id: str,
-    image_url: str = Query(..., description="The relative image URL to remove"),
-    current_user: dict = Depends(admin_or_user)
-):
-    """
-    Remove an image attachment from a task by todo_id.
-    """
-    doc = await fetch_todo_by_id(todo_id)
-    oid = doc["_id"]
-
-    existing_urls = doc.get("image_urls", [])
-    if image_url not in existing_urls:
-        raise HTTPException(status_code=404, detail="Specified image_url not found in task")
-
-    existing_urls.remove(image_url)
-
-    local_path = os.path.join("app", "static", image_url.replace("/", os.sep))
-    if os.path.exists(local_path):
-        try:
-            os.remove(local_path)
-        except Exception:
-            pass
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-    await db.user_todos.update_one(
-        {"_id": oid},
-        {"$set": {"image_urls": existing_urls, "updated_at": now_iso}}
-    )
-
     updated_doc = await db.user_todos.find_one({"_id": oid})
     return format_todo_response(updated_doc)
 

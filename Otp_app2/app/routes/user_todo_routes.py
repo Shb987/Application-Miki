@@ -236,7 +236,7 @@ async def list_todos(
     offset = skip if skip is not None else (page - 1) * limit
     total_count = await db.user_todos.count_documents(query_filter)
 
-    if total_count == 0 and not student_id:
+    if total_count == 0:
         fallback_filter: Dict[str, Any] = {}
         if category and category.strip():
             fallback_filter["category"] = cat_regex

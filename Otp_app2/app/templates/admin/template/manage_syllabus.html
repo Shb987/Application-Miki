@@ -154,38 +154,43 @@
     async function loadTextbookMetadata() {
         try {
             const res = await fetch("/admin-panel/textbooks", { headers: { "Authorization": "Bearer " + token } });
-            if (!res.ok) throw new Error("Failed to load textbooks");
-            const data = await res.json();
-            textbooksData = data.textbooks || [];
-            
-            const standards = [...new Set(textbooksData.map(tb => tb.standard))].sort((a,b) => parseInt(a) - parseInt(b));
-            
-            const stdSelect = document.getElementById("gen-standard");
-            const subSelect = document.getElementById("gen-subject");
-            
-            stdSelect.innerHTML = `<option value="">Select Standard</option>` + standards.map(s => `<option value="${s}">Class ${s}</option>`).join('');
-            
-            // Listen for Standard change to dynamically populate subjects
-            stdSelect.addEventListener("change", function() {
-                const selectedStd = this.value;
-                if(!selectedStd) {
-                    subSelect.innerHTML = `<option value="">Select Subject</option>`;
-                    return;
-                }
-                
-                // Filter subjects that belong only to this standard
-                const filteredSubjects = textbooksData
-                    .filter(tb => tb.standard === selectedStd)
-                    .map(tb => tb.subject);
-                    
-                const uniqueSubjects = [...new Set(filteredSubjects)].sort();
-                
-                subSelect.innerHTML = `<option value="">Select Subject</option>` + uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
-            });
-            
+            if (res.ok) {
+                const data = await res.json();
+                textbooksData = data.textbooks || [];
+            }
         } catch(e) {
             console.error("Warning: Could not fetch textbooks.", e);
         }
+
+        const defaultStds = Array.from({length: 12}, (_, i) => String(i + 1));
+        const tbStds = textbooksData.map(tb => String(tb.standard)).filter(Boolean);
+        const standards = [...new Set([...defaultStds, ...tbStds])].sort((a,b) => parseInt(a) - parseInt(b));
+        
+        const stdSelect = document.getElementById("gen-standard");
+        const subSelect = document.getElementById("gen-subject");
+        
+        stdSelect.innerHTML = `<option value="">Select Standard</option>` + standards.map(s => `<option value="${s}">Class ${s}</option>`).join('');
+        
+        // Listen for Standard change to dynamically populate subjects
+        stdSelect.addEventListener("change", function() {
+            const selectedStd = String(this.value);
+            if(!selectedStd) {
+                subSelect.innerHTML = `<option value="">Select Subject</option>`;
+                return;
+            }
+            
+            // Filter subjects that belong to this standard
+            const filteredSubjects = textbooksData
+                .filter(tb => String(tb.standard) === selectedStd)
+                .map(tb => tb.subject);
+                
+            let uniqueSubjects = [...new Set(filteredSubjects)].sort();
+            if (uniqueSubjects.length === 0) {
+                uniqueSubjects = ["Science", "Maths", "English", "Social Science", "Physics", "Chemistry", "Biology", "Malayalam"];
+            }
+            
+            subSelect.innerHTML = `<option value="">Select Subject</option>` + uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
+        });
     }
 
     async function generateSyllabus() {

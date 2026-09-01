@@ -459,7 +459,9 @@
 
     function populateFilterOptions() {
         const boards = [...new Set(allTextbooks.map(tb => tb.board))].sort();
-        const standards = [...new Set(allTextbooks.map(tb => tb.standard))].sort((a, b) => parseInt(a) - parseInt(b));
+        const defaultStds = Array.from({length: 12}, (_, i) => String(i + 1));
+        const tbStds = allTextbooks.map(tb => String(tb.standard)).filter(Boolean);
+        const standards = [...new Set([...defaultStds, ...tbStds])].sort((a, b) => parseInt(a) - parseInt(b));
         const subjects = [...new Set(allTextbooks.map(tb => tb.subject))].sort();
         const years = [...new Set(allTextbooks.map(tb => tb.publication_year).filter(y => y))].sort((a, b) => parseInt(b) - parseInt(a));
         updateSelect("filter-board", boards, "All Boards");

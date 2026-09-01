@@ -402,10 +402,10 @@
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3" id="student-pager">
-                    <button class="btn btn-sm btn-outline-secondary" style="border-radius:8px;"
+                    <button id="student-prev-btn" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;"
                         onclick="studentPage(-1)">← Prev</button>
                     <span id="student-page-info" class="text-muted" style="font-size:0.82rem;"></span>
-                    <button class="btn btn-sm btn-outline-secondary" style="border-radius:8px;"
+                    <button id="student-next-btn" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;"
                         onclick="studentPage(1)">Next →</button>
                 </div>
             </div>
@@ -553,13 +553,39 @@
     }
 
     async function loadClasses() {
-        const res = await fetch(`${API_BASE}/admin-panel/users/classes`, { headers: { Authorization: "Bearer " + token } });
-        const json = await res.json();
+        let classes = [];
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/users/classes`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            classes = json.classes || [];
+        } catch(e) {}
+        
         const sel = document.getElementById("filter-class");
-        (json.classes || []).forEach(c => {
+        const defaultClasses = Array.from({length: 12}, (_, i) => String(i + 1));
+        const allStds = [...new Set([...defaultClasses, ...classes.map(String)])].sort((a, b) => parseInt(a) - parseInt(b));
+        
+        sel.innerHTML = `<option value="">All Classes</option>`;
+        allStds.forEach(c => {
             const opt = document.createElement("option"); opt.value = c; opt.textContent = "Class " + c;
             sel.appendChild(opt);
         });
+    }
+
+    async function updateStudentPagerControls() {
+        const prevBtn = document.getElementById("student-prev-btn");
+        const nextBtn = document.getElementById("student-next-btn");
+
+        const isFirstPage = (studentSkip === 0);
+        const isLastPage = (studentSkip + studentLimit >= studentTotal);
+
+        if (prevBtn) {
+            prevBtn.style.visibility = isFirstPage ? "hidden" : "visible";
+            prevBtn.disabled = isFirstPage;
+        }
+        if (nextBtn) {
+            nextBtn.style.visibility = isLastPage ? "hidden" : "visible";
+            nextBtn.disabled = isLastPage;
+        }
     }
 
     async function loadStudents(reset = false) {
@@ -576,7 +602,13 @@
         const json = await res.json();
         studentTotal = json.total || 0;
         document.getElementById("student-count").textContent = `${studentTotal} students found`;
-        document.getElementById("student-page-info").textContent = `Showing ${studentSkip + 1}–${Math.min(studentSkip + studentLimit, studentTotal)} of ${studentTotal}`;
+        
+        const pageStart = studentTotal > 0 ? studentSkip + 1 : 0;
+        const pageEnd = Math.min(studentSkip + studentLimit, studentTotal);
+        document.getElementById("student-page-info").textContent = `Showing ${pageStart}–${pageEnd} of ${studentTotal}`;
+        
+        updateStudentPagerControls();
+
         if (!json.data || json.data.length === 0) {
             document.getElementById("students-table-wrapper").innerHTML = `<div class="text-center text-muted py-4">No students found</div>`;
             return;

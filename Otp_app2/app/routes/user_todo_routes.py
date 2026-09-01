@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Form, File, Upload
 from app.core.database import db
 from app.utils.user_auth import get_current_user, admin_or_user
 
-router = APIRouter(prefix="/todos", tags=["User To-Do Module"])
+router = APIRouter(tags=["User To-Do Module"])
 
 UPLOAD_DIR = os.path.join("app", "static", "uploads", "todos")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -113,7 +113,8 @@ async def fetch_todo_by_id(todo_id: str) -> dict:
     return doc
 
 
-@router.post("", summary="Add To-Do", status_code=status.HTTP_200_OK)
+@router.post("/add-todos", summary="Add To-Do", status_code=status.HTTP_200_OK)
+@router.post("/todos", summary="Add To-Do", status_code=status.HTTP_200_OK, include_in_schema=False)
 async def create_todo(
     request: Request,
     title: Optional[str] = Form(None),
@@ -219,7 +220,8 @@ async def create_todo(
     }
 
 
-@router.get("", summary="View To-Do List")
+@router.get("/view-todos", summary="View To-Do List")
+@router.get("/todos", summary="View To-Do List", include_in_schema=False)
 async def list_todos(
     student_id: Optional[str] = Query(None, description="Student ID to fetch to-dos for"),
     category: Optional[str] = Query(None, description="Optional category to filter to-dos"),
@@ -283,7 +285,8 @@ async def list_todos(
     }
 
 
-@router.put("/{todo_id}", summary="Update To-Do")
+@router.put("/update-todos/{todo_id}", summary="Update To-Do")
+@router.put("/todos/{todo_id}", summary="Update To-Do", include_in_schema=False)
 async def update_todo(
     todo_id: str,
     request: Request,
@@ -422,7 +425,8 @@ async def update_todo(
     return format_todo_response(updated_doc)
 
 
-@router.delete("/{todo_id}", summary="Delete To-Do")
+@router.delete("/delete-todos/{todo_id}", summary="Delete To-Do")
+@router.delete("/todos/{todo_id}", summary="Delete To-Do", include_in_schema=False)
 async def delete_todo(
     todo_id: str,
     current_user: dict = Depends(admin_or_user)
@@ -449,7 +453,8 @@ async def delete_todo(
     }
 
 
-@router.post("/{todo_id}/complete", summary="Complete To-Do", status_code=status.HTTP_200_OK)
+@router.post("/complete-todos/{todo_id}", summary="Complete To-Do", status_code=status.HTTP_200_OK)
+@router.post("/todos/{todo_id}/complete", summary="Complete To-Do", status_code=status.HTTP_200_OK, include_in_schema=False)
 async def mark_todo_completed(
     todo_id: str,
     current_user: dict = Depends(admin_or_user)

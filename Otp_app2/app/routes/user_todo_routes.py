@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Form, File, Upload
 from app.core.database import db
 from app.utils.user_auth import get_current_user, admin_or_user
 
-router = APIRouter(tags=["User To-Do Module"])
+router = APIRouter(prefix="/todos", tags=["User To-Do Module"])
 
 UPLOAD_DIR = os.path.join("app", "static", "uploads", "todos")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -113,9 +113,7 @@ async def fetch_todo_by_id(todo_id: str) -> dict:
     return doc
 
 
-@router.post("/add_todos", summary="Add To-Do", status_code=status.HTTP_200_OK)
-@router.post("/todos", summary="Add To-Do", status_code=status.HTTP_200_OK)
-@router.post("/todos/add", summary="Add To-Do", status_code=status.HTTP_200_OK)
+@router.post("", summary="Add To-Do", status_code=status.HTTP_200_OK)
 async def create_todo(
     request: Request,
     title: Optional[str] = Form(None),
@@ -221,7 +219,7 @@ async def create_todo(
     }
 
 
-@router.get("/todos", summary="View To-Do List")
+@router.get("", summary="View To-Do List")
 async def list_todos(
     student_id: Optional[str] = Query(None, description="Student ID to fetch to-dos for"),
     category: Optional[str] = Query(None, description="Optional category to filter to-dos"),
@@ -451,7 +449,7 @@ async def delete_todo(
     }
 
 
-@router.post("/todos/{todo_id}/complete", summary="Complete To-Do", status_code=status.HTTP_200_OK)
+@router.post("/{todo_id}/complete", summary="Complete To-Do", status_code=status.HTTP_200_OK)
 async def mark_todo_completed(
     todo_id: str,
     current_user: dict = Depends(admin_or_user)

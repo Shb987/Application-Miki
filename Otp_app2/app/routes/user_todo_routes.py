@@ -450,7 +450,6 @@ async def delete_todo(
 
 
 @router.post("/{todo_id}/status", summary="Update To-Do Status", status_code=status.HTTP_200_OK)
-@router.post("/{todo_id}/complete", summary="Mark To-Do Completed", status_code=status.HTTP_200_OK)
 async def update_todo_status(
     todo_id: str,
     request: Request,
@@ -491,6 +490,29 @@ async def update_todo_status(
     update_fields = {
         "status": st,
         "is_completed": comp,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    await db.user_todos.update_one({"_id": oid}, {"$set": update_fields})
+    updated_doc = await db.user_todos.find_one({"_id": oid})
+    return format_todo_response(updated_doc)
+
+
+@router.post("/{todo_id}/complete", summary="Complete To-Do", status_code=status.HTTP_200_OK)
+async def mark_todo_completed(
+    todo_id: str,
+    current_user: dict = Depends(admin_or_user)
+):
+    """
+    Mark a To-Do item as completed.
+    Changes status from 'pending' to 'completed' and sets is_completed to True.
+    """
+    doc = await fetch_todo_by_id(todo_id)
+    oid = doc["_id"]
+
+    update_fields = {
+        "status": "completed",
+        "is_completed": True,
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
 

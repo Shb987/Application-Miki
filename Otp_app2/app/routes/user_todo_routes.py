@@ -113,7 +113,7 @@ async def fetch_todo_by_id(todo_id: str) -> dict:
     return doc
 
 
-@router.post("", status_code=status.HTTP_200_OK)
+@router.post("", summary="Add To-Do", status_code=status.HTTP_200_OK)
 async def create_todo(
     request: Request,
     title: Optional[str] = Form(None),
@@ -219,7 +219,7 @@ async def create_todo(
     }
 
 
-@router.get("")
+@router.get("", summary="View To-Do List")
 async def list_todos(
     student_id: Optional[str] = Query(None, description="Student ID to fetch to-dos for"),
     category: Optional[str] = Query(None, description="Optional category to filter to-dos"),
@@ -283,7 +283,7 @@ async def list_todos(
     }
 
 
-@router.put("/{todo_id}")
+@router.put("/{todo_id}", summary="Update To-Do")
 async def update_todo(
     todo_id: str,
     request: Request,
@@ -422,7 +422,7 @@ async def update_todo(
     return format_todo_response(updated_doc)
 
 
-@router.delete("/{todo_id}")
+@router.delete("/{todo_id}", summary="Delete To-Do")
 async def delete_todo(
     todo_id: str,
     current_user: dict = Depends(admin_or_user)
@@ -447,3 +447,53 @@ async def delete_todo(
         "message": f"To-do item '{todo_id}' deleted successfully",
         **format_todo_response(doc)
     }
+
+
+@router.post("/{todo_id}/status", summary="Update To-Do Status", status_code=status.HTTP_200_OK)
+@router.post("/{todo_id}/complete", summary="Mark To-Do Completed", status_code=status.HTTP_200_OK)
+async def update_todo_status(
+    todo_id: str,
+    request: Request,
+    is_completed: Optional[bool] = Form(None),
+    status: Optional[str] = Form(None),
+    current_user: dict = Depends(admin_or_user)
+):
+    """
+    Update or mark a To-Do item's completion status.
+    Calling this API changes status from 'pending' to 'completed' (or sets specified completion status).
+    """
+    doc = await fetch_todo_by_id(todo_id)
+    oid = doc["_id"]
+
+    comp = True
+    st = "completed"
+
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        try:
+            body_data = await request.json()
+            if "is_completed" in body_data:
+                comp = bool(body_data["is_completed"])
+                st = "completed" if comp else "pending"
+            elif "status" in body_data:
+                st = str(body_data["status"]).lower()
+                comp = (st == "completed")
+        except Exception:
+            pass
+    else:
+        if is_completed is not None:
+            comp = bool(is_completed)
+            st = "completed" if comp else "pending"
+        elif status is not None:
+            st = status.lower()
+            comp = (st == "completed")
+
+    update_fields = {
+        "status": st,
+        "is_completed": comp,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    await db.user_todos.update_one({"_id": oid}, {"$set": update_fields})
+    updated_doc = await db.user_todos.find_one({"_id": oid})
+    return format_todo_response(updated_doc)

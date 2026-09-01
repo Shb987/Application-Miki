@@ -131,11 +131,14 @@
             const data = await res.json();
             const tbody = document.getElementById("tutorialBody");
             if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">No tutorials found</td></tr>'; return; }
-            tbody.innerHTML = data.map(t => `
-                <tr><td><span class="badge badge-info">${t.student_class}</span></td><td>${t.subject}</td><td>${t.topic || '-'}</td><td><span class="badge badge-secondary">${t.video_links.length} Videos</span></td>
+            tbody.innerHTML = data.map(t => {
+                let rawCls = String(t.student_class || "").replace(/\$\{c\}/gi, "").replace(/\{c\}/gi, "").trim();
+                let clsLabel = !rawCls ? "Class" : (rawCls.toLowerCase().startsWith("class") ? rawCls : "Class " + rawCls);
+                return `
+                <tr><td><span class="badge badge-info">${clsLabel}</span></td><td>${t.subject}</td><td>${t.topic || '-'}</td><td><span class="badge badge-secondary">${t.video_links.length} Videos</span></td>
                 <td><button class="btn btn-sm btn-primary" onclick="viewTutorial('${t._id}')"><i class="fa fa-eye"></i></button>
                 <button class="btn btn-sm btn-danger" onclick="deleteTutorial('${t._id}')"><i class="fa fa-trash"></i></button></td></tr>
-            `).join('');
+            `}).join('');
         } catch (err) { console.error(err); }
     }
 

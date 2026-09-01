@@ -295,11 +295,9 @@ async def update_todo(
     category: Optional[str] = Form(None),
     due_date: Optional[str] = Form(None),
     is_important: Optional[bool] = Form(None),
-    is_completed: Optional[bool] = Form(None),
     status: Optional[str] = Form(None),
     reminder_time: Optional[str] = Form(None),
     is_reminder_enabled: Optional[bool] = Form(None),
-    delete_image_urls: Optional[List[str]] = Form(None),
     images: Union[List[UploadFile], List[str], UploadFile, str, None] = File(None),
     current_user: dict = Depends(admin_or_user)
 ):

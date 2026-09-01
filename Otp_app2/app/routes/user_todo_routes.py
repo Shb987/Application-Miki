@@ -2,7 +2,7 @@ import os
 import uuid
 import shutil
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from bson import ObjectId
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Form, File, UploadFile, Request, status
@@ -124,7 +124,7 @@ async def create_todo(
     status: Optional[str] = Form("pending"),
     reminder_time: Optional[str] = Form(None),
     is_reminder_enabled: Optional[bool] = Form(None),
-    images: Optional[List[UploadFile]] = File(None),
+    images: Union[List[UploadFile], List[str], UploadFile, str, None] = File(None),
     current_user: dict = Depends(admin_or_user)
 ):
     """
@@ -175,7 +175,7 @@ async def create_todo(
 
         target_student_id = extract_student_id(current_user)
         uploaded_images = images or []
-        if isinstance(uploaded_images, UploadFile):
+        if isinstance(uploaded_images, (UploadFile, str)):
             uploaded_images = [uploaded_images]
         elif not isinstance(uploaded_images, (list, tuple)):
             uploaded_images = []
@@ -186,10 +186,13 @@ async def create_todo(
     is_completed = (str(todo_status).lower() == "completed")
 
     if uploaded_images:
-        valid_files = [f for f in uploaded_images if f and hasattr(f, "filename") and f.filename]
+        valid_files = [f for f in uploaded_images if hasattr(f, "filename") and f.filename]
+        string_urls = [str(f) for f in uploaded_images if isinstance(f, str) and f.strip() and f.strip().lower() != "string"]
         if valid_files:
             file_urls = save_upload_images(valid_files)
             image_urls.extend(file_urls)
+        if string_urls:
+            image_urls.extend(string_urls)
 
     now_iso = datetime.now(timezone.utc).isoformat()
     todo_doc = {
@@ -294,7 +297,7 @@ async def update_todo(
     reminder_time: Optional[str] = Form(None),
     is_reminder_enabled: Optional[bool] = Form(None),
     delete_image_urls: Optional[List[str]] = Form(None),
-    images: Optional[List[UploadFile]] = File(None),
+    images: Union[List[UploadFile], List[str], UploadFile, str, None] = File(None),
     current_user: dict = Depends(admin_or_user)
 ):
     """
@@ -386,7 +389,7 @@ async def update_todo(
                 urls_to_delete.extend([str(u) for u in delete_image_urls if u])
 
         uploaded_images = images or []
-        if isinstance(uploaded_images, UploadFile):
+        if isinstance(uploaded_images, (UploadFile, str)):
             uploaded_images = [uploaded_images]
         elif not isinstance(uploaded_images, (list, tuple)):
             uploaded_images = []
@@ -404,9 +407,12 @@ async def update_todo(
 
     if uploaded_images:
         valid_files = [f for f in uploaded_images if hasattr(f, "filename") and f.filename]
+        string_urls = [str(f) for f in uploaded_images if isinstance(f, str) and f.strip() and f.strip().lower() != "string"]
         if valid_files:
             new_urls = save_upload_images(valid_files)
             existing_urls.extend(new_urls)
+        if string_urls:
+            existing_urls.extend(string_urls)
 
     update_fields["image_urls"] = existing_urls
     update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()

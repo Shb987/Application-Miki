@@ -124,7 +124,6 @@ async def create_todo(
     status: Optional[str] = Form("pending"),
     reminder_time: Optional[str] = Form(None),
     is_reminder_enabled: Optional[bool] = Form(None),
-    student_id: Optional[str] = Form(None),
     images: Optional[List[UploadFile]] = File(None),
     current_user: dict = Depends(admin_or_user)
 ):
@@ -174,8 +173,12 @@ async def create_todo(
         else:
             todo_rem_enabled = bool(todo_rem_time)
 
-        target_student_id = extract_student_id(current_user, student_id)
+        target_student_id = extract_student_id(current_user)
         uploaded_images = images or []
+        if isinstance(uploaded_images, UploadFile):
+            uploaded_images = [uploaded_images]
+        elif not isinstance(uploaded_images, (list, tuple)):
+            uploaded_images = []
 
     if not todo_title:
         raise HTTPException(status_code=400, detail="Field 'title' is required")
@@ -377,9 +380,16 @@ async def update_todo(
             update_fields["is_reminder_enabled"] = bool(is_reminder_enabled)
 
         if delete_image_urls:
-            urls_to_delete.extend(delete_image_urls)
+            if isinstance(delete_image_urls, str):
+                urls_to_delete.append(delete_image_urls)
+            elif isinstance(delete_image_urls, (list, tuple)):
+                urls_to_delete.extend([str(u) for u in delete_image_urls if u])
 
         uploaded_images = images or []
+        if isinstance(uploaded_images, UploadFile):
+            uploaded_images = [uploaded_images]
+        elif not isinstance(uploaded_images, (list, tuple)):
+            uploaded_images = []
 
     if urls_to_delete:
         for img_url in urls_to_delete:

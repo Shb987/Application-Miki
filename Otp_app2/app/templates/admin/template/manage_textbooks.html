@@ -8,17 +8,31 @@
         background-color: #f8f9fa !important;
     }
 
+    body.dark-only .hover-light:hover {
+        background-color: #282d3c !important;
+    }
+
     .hover-danger-filled:hover {
         background-color: #dc3545;
-        color: white;
+        color: white !important;
     }
 
     .bg-light-primary {
         background-color: rgba(69, 43, 144, 0.1);
     }
 
+    body.dark-only .bg-light-primary {
+        background-color: rgba(115, 102, 255, 0.2) !important;
+        color: #a594ff !important;
+    }
+
     .custom-info-bar {
         background: #fafbfc;
+    }
+
+    body.dark-only .custom-info-bar {
+        background: #1a1d26 !important;
+        border-color: #2d3243 !important;
     }
 
     .accordion-button:focus {
@@ -32,11 +46,39 @@
         box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .125);
     }
 
+    body.dark-only .accordion-button {
+        background-color: #1e222d !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .accordion-button:not(.collapsed) {
+        background-color: #242937 !important;
+        color: #a594ff !important;
+    }
+
+    body.dark-only .accordion-item {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+    }
+
+    body.dark-only .accordion-body {
+        background-color: #161925 !important;
+    }
+
     .filter-container-glass {
         background: rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(10px);
         border: 1px solid #452b9011;
         border-radius: 12px;
+    }
+
+    body.dark-only .filter-container-glass {
+        background: rgba(30, 34, 45, 0.95) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    body.dark-only .filter-container-glass h6 {
+        color: #f8fafc !important;
     }
 
     .input-group-text {
@@ -47,6 +89,80 @@
     .form-select {
         border-radius: 0 8px 8px 0 !important;
         border-color: #dee2e6;
+    }
+
+    body.dark-only .input-group-text,
+    body.dark-only .form-select,
+    body.dark-only .form-control {
+        background-color: #252936 !important;
+        color: #f8fafc !important;
+        border-color: #373d52 !important;
+    }
+
+    body.dark-only .form-select option {
+        background-color: #252936 !important;
+        color: #f8fafc !important;
+    }
+
+    .badge-id-box {
+        background-color: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    body.dark-only .badge-id-box {
+        background-color: #2a2e3d !important;
+        color: #cbd5e1 !important;
+        border-color: #3b4256 !important;
+    }
+
+    .chapter-title-text {
+        color: #1e293b;
+    }
+
+    body.dark-only .chapter-title-text {
+        color: #f8fafc !important;
+    }
+
+    .chapter-row-item {
+        background-color: #ffffff;
+        border-color: #e2e8f0;
+    }
+
+    body.dark-only .chapter-row-item {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .card {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+    }
+
+    body.dark-only .card-header,
+    body.dark-only .card-body {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .modal-content {
+        background-color: #1e222d !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .modal-header,
+    body.dark-only .modal-footer {
+        background-color: #252936 !important;
+        border-color: #2d3243 !important;
+    }
+
+    body.dark-only .modal-title,
+    body.dark-only .form-label {
+        color: #f8fafc !important;
     }
 
     .btn-primary.btn-sm {
@@ -419,9 +535,9 @@
             const title = `${tb.standard} Std - ${tb.subject}${tb.textbook_name ? ' (' + tb.textbook_name + ')' : ''} (${tb.board} - ${tb.state})${tb.category ? ' [' + tb.category + ']' : ''}${tb.publication_year ? ' [' + tb.publication_year + ']' : ''}`;
             const chapters = tb.chapters || [];
             let statusBadge = tb.status === 'completed' ? '<span class="badge rounded-pill badge-success text-white py-2 px-3"><i class="icofont icofont-check-circled me-1"></i> Completed</span>' : (tb.status === 'extracting' || tb.status === 'embedding' ? `<span class="badge rounded-pill bg-warning text-dark py-2 px-3"><i class="icofont icofont-spinner fa-spin me-1"></i> ${tb.status}</span>` : `<span class="badge rounded-pill bg-info text-white py-2 px-3">${tb.status}</span>`);
-            html += `<div class="accordion-item mb-3 bg-white rounded border shadow-sm overflow-hidden"><h2 class="accordion-header" id="heading${index}"><div class="accordion-button bg-white text-dark fw-bold collapsed" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}" style="cursor: pointer;"><div class="d-flex justify-content-between align-items-center w-100 pe-3"><div class="d-flex align-items-center"><div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book"></i></div><span class="f-16">${title}</span></div><div class="d-flex align-items-center gap-3"><span class="text-muted f-12 fw-normal"><i class="icofont icofont-clock-time"></i> ${new Date(tb.created_at).toLocaleDateString()}</span>${statusBadge}<button class="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation(); openEditTextbookModal('${tb._id}')"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i> Edit</button><button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="event.stopPropagation(); deleteTextbook('${tb._id}', '${title.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></div></div></div></h2><div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#textbookAccordion"><div class="accordion-body bg-light border-top p-0"><div class="p-3 bg-white border-bottom custom-info-bar"><div class="row align-items-center"><div class="col-8"><span class="text-muted fw-bold me-2">ID:</span> <span class="badge bg-light text-dark font-monospace">${tb._id}</span>${tb.textbook_name ? `<span class="text-muted fw-bold ms-3 me-2">Textbook:</span> <span class="badge bg-light-primary text-primary">${tb.textbook_name}</span>` : ''}</div><div class="col-4 text-end"><span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span></div></div></div>`;
+            html += `<div class="accordion-item mb-3 rounded border shadow-sm overflow-hidden"><h2 class="accordion-header" id="heading${index}"><div class="accordion-button fw-bold collapsed" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}" style="cursor: pointer;"><div class="d-flex justify-content-between align-items-center w-100 pe-3"><div class="d-flex align-items-center"><div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book"></i></div><span class="f-16">${title}</span></div><div class="d-flex align-items-center gap-3"><span class="text-muted f-12 fw-normal"><i class="icofont icofont-clock-time"></i> ${new Date(tb.created_at).toLocaleDateString()}</span>${statusBadge}<button class="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation(); openEditTextbookModal('${tb._id}')"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i> Edit</button><button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="event.stopPropagation(); deleteTextbook('${tb._id}', '${title.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></div></div></div></h2><div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#textbookAccordion"><div class="accordion-body border-top p-0"><div class="p-3 border-bottom custom-info-bar"><div class="row align-items-center"><div class="col-8"><span class="text-muted fw-bold me-2">ID:</span> <span class="badge badge-id-box font-monospace">${tb._id}</span>${tb.textbook_name ? `<span class="text-muted fw-bold ms-3 me-2">Textbook:</span> <span class="badge bg-light-primary text-primary">${tb.textbook_name}</span>` : ''}</div><div class="col-4 text-end"><span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span></div></div></div>`;
             if (chapters.length === 0) { html += `<div class="text-center p-5"><i data-feather="file-text" class="text-muted mb-3" style="width: 32px; height: 32px;"></i><p class="text-muted mb-0">No chapters found.</p></div>`; }
-            else { html += `<ul class="list-group list-group-flush">`; chapters.forEach((chap, cIdx) => { html += `<li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-white hover-light"><div class="d-flex align-items-center"><span class="badge bg-primary rounded-circle text-white me-3" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;">${cIdx + 1}</span><span class="fw-medium text-dark f-14">${chap}</span></div><button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="deleteChapter('${tb._id}', '${chap.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></li>`; }); html += `</ul>`; }
+            else { html += `<ul class="list-group list-group-flush">`; chapters.forEach((chap, cIdx) => { html += `<li class="list-group-item chapter-row-item d-flex justify-content-between align-items-center py-3 hover-light"><div class="d-flex align-items-center"><span class="badge bg-primary rounded-circle text-white me-3" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;">${cIdx + 1}</span><span class="fw-medium chapter-title-text f-14">${chap}</span></div><button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="deleteChapter('${tb._id}', '${chap.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></li>`; }); html += `</ul>`; }
             html += `</div></div></div>`;
         });
         html += '</div>';

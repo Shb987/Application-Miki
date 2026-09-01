@@ -11,6 +11,8 @@ class TodoCreate(BaseModel):
     status: Optional[str] = Field("pending", description="Status of task: 'pending' or 'completed'")
     reminder_time: Optional[str] = Field(None, description="Reminder ISO datetime string e.g. 2026-08-22T18:00:00+05:30")
     is_reminder_enabled: Optional[bool] = Field(None, description="Boolean flag enabling OneSignal push reminder")
+    images: Optional[List[str]] = Field(default=[], description="Optional array of images/image URLs")
+    image_urls: Optional[List[str]] = Field(default=[], description="Optional array of image URLs")
 
 class TodoUpdate(BaseModel):
     title: Optional[str] = Field(None, description="Updated title")
@@ -22,6 +24,9 @@ class TodoUpdate(BaseModel):
     status: Optional[str] = Field(None, description="Updated status: 'pending' or 'completed'")
     reminder_time: Optional[str] = Field(None, description="Updated reminder datetime string")
     is_reminder_enabled: Optional[bool] = Field(None, description="Updated reminder enabled flag")
+    images: Optional[List[str]] = Field(None, description="Optional updated images list")
+    image_urls: Optional[List[str]] = Field(None, description="Optional updated image URLs list")
+    delete_image_urls: Optional[List[str]] = Field(None, description="Optional image URLs to delete")
 
 class TodoStatusUpdate(BaseModel):
     status: Optional[str] = Field(None, description="Status update: 'pending' or 'completed'")
@@ -37,6 +42,7 @@ class TodoResponse(BaseModel):
     reminder_time: Optional[str] = None
     is_reminder_enabled: bool = False
     reminder_sent: bool = False
-    image_urls: List[str] = []
+    image_urls: Optional[List[str]] = Field(default=[], description="List of image URLs attached to the to-do")
     created_at: str
     updated_at: str
+

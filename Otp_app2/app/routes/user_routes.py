@@ -487,12 +487,29 @@ async def get_questions_by_age(age: int = Query(...)):
 
     final_grouped: Dict[str, List[dict]] = {}
 
+    # Rating question limit per category:
+    # Minimum / Junior class (age <= 11): Max 1 rating question
+    # Higher class (age > 11): Max 3 rating questions
+    max_rating_allowed = 1 if age <= 11 else 3
+
     for cat, cat_questions in category_map.items():
-        # 1. Randomize questions in this category
-        random.shuffle(cat_questions)
-        
-        # 2. Slice to limit
-        selected_questions = cat_questions[:max_questions]
+        rating_qs = [q for q in cat_questions if q.get("type") == "rating"]
+        non_rating_qs = [q for q in cat_questions if q.get("type") != "rating"]
+
+        random.shuffle(rating_qs)
+        random.shuffle(non_rating_qs)
+
+        selected_rating = rating_qs[:max_rating_allowed]
+        needed_non_rating = max_questions - len(selected_rating)
+        selected_non_rating = non_rating_qs[:needed_non_rating]
+
+        selected_questions = selected_rating + selected_non_rating
+
+        if len(selected_questions) < max_questions and len(rating_qs) > len(selected_rating):
+            extra_needed = max_questions - len(selected_questions)
+            selected_questions.extend(rating_qs[len(selected_rating):len(selected_rating) + extra_needed])
+
+        random.shuffle(selected_questions)
         
         for q in selected_questions:
             # Build question payload (as per original logic)
@@ -725,14 +742,75 @@ async def get_logins(admin=Depends(require_permission("User Management", "read")
 
 career_map = {
     "musical": "Musician, Composer, Singer, Sound Engineer",
+    
     "logical-mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
+    "logical_mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
+    "logical mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
+    "logical": "Scientist, Engineer, Mathematician, Data Analyst",
+    "logical-math": "Scientist, Engineer, Mathematician, Data Analyst",
+    
     "verbal-linguistic": "Writer, Journalist, Teacher, Lawyer",
+    "verbal_linguistic": "Writer, Journalist, Teacher, Lawyer",
+    "verbal linguistic": "Writer, Journalist, Teacher, Lawyer",
+    "verbal": "Writer, Journalist, Teacher, Lawyer",
+    
     "bodily-kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
+    "bodily_kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
+    "bodily kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
+    "bodily": "Athlete, Dancer, Physical Therapist, Surgeon",
+    "kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
+    
     "visual-spatial": "Architect, Designer, Artist, Pilot",
+    "visual_spatial": "Architect, Designer, Artist, Pilot",
+    "visual spatial": "Architect, Designer, Artist, Pilot",
+    "visual": "Architect, Designer, Artist, Pilot",
+    
     "interpersonal": "Teacher, Counselor, Manager, Salesperson",
+    "inter-personal": "Teacher, Counselor, Manager, Salesperson",
+    "inter_personal": "Teacher, Counselor, Manager, Salesperson",
+    
     "intrapersonal": "Psychologist, Philosopher, Writer",
+    "intra-personal": "Psychologist, Philosopher, Writer",
+    "intra_personal": "Psychologist, Philosopher, Writer",
+    
     "naturalist": "Biologist, Environmentalist, Farmer, Veterinarian"
 }
+
+def get_recommended_career(category_name: str) -> str:
+    if not category_name:
+        return "Scientist, Engineer, Mathematician, Data Analyst"
+    
+    cat_clean = str(category_name).strip().lower()
+    
+    if cat_clean in career_map:
+        return career_map[cat_clean]
+        
+    norm_hyphen = cat_clean.replace("_", "-").replace(" ", "-")
+    if norm_hyphen in career_map:
+        return career_map[norm_hyphen]
+        
+    norm_underscore = cat_clean.replace("-", "_").replace(" ", "_")
+    if norm_underscore in career_map:
+        return career_map[norm_underscore]
+
+    if "logical" in cat_clean or "math" in cat_clean:
+        return career_map["logical-mathematical"]
+    if "verbal" in cat_clean or "linguistic" in cat_clean:
+        return career_map["verbal-linguistic"]
+    if "bodily" in cat_clean or "kinesthetic" in cat_clean:
+        return career_map["bodily-kinesthetic"]
+    if "visual" in cat_clean or "spatial" in cat_clean:
+        return career_map["visual-spatial"]
+    if "interpersonal" in cat_clean or "inter-personal" in cat_clean:
+        return career_map["interpersonal"]
+    if "intrapersonal" in cat_clean or "intra-personal" in cat_clean:
+        return career_map["intrapersonal"]
+    if "musical" in cat_clean or "music" in cat_clean:
+        return career_map["musical"]
+    if "naturalist" in cat_clean or "nature" in cat_clean:
+        return career_map["naturalist"]
+
+    return "Scientist, Engineer, Mathematician, Data Analyst"
 
 
 import base64
@@ -796,26 +874,40 @@ async def analyze_career(
     latest_attempt = max(completed_attempts, key=lambda a: a["attempt"])
     attempt_num = latest_attempt["attempt"]
 
-    # 2️⃣ Scores
+    # 2️⃣ Scores & Tie Handling
     categories = latest_attempt.get("categories", [])
     scores = {c["category"]: c.get("total_marks", 0) for c in categories}
     percentages = normalize_percentages(scores)
 
-    top_3 = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
-    top_cat = top_3[0][0]
+    sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    if sorted_cats:
+        max_score = sorted_cats[0][1]
+        tied_top_cats = [cat for cat, val in sorted_cats if val == max_score and max_score > 0]
+        if not tied_top_cats:
+            tied_top_cats = [sorted_cats[0][0]]
+    else:
+        tied_top_cats = ["logical-mathematical"]
 
-    recommended_career = career_map.get(
-        top_cat.lower(),
-        "No career mapped"
-    )
+    top_cat = " & ".join(cat.title() for cat in tied_top_cats)
 
+    combined_careers = []
+    for cat in tied_top_cats:
+        c_str = get_recommended_career(cat)
+        for c in c_str.split(","):
+            c_clean = c.strip()
+            if c_clean and c_clean not in combined_careers:
+                combined_careers.append(c_clean)
+
+    recommended_career = ", ".join(combined_careers) if combined_careers else get_recommended_career(tied_top_cats[0])
+
+    top_3 = sorted_cats[:3]
     insights = [
         f"{cat}: Strong inclination towards {cat.lower()} intelligence."
         for cat, _ in top_3
     ]
 
     career_suggestions = [
-        f"{cat} ➔ {career_map.get(cat.lower(), 'Unknown Career')}"
+        f"{cat} ➔ {get_recommended_career(cat)}"
         for cat, _ in top_3
     ]
 

@@ -39,11 +39,10 @@ def build_student_id_filter(current_user: dict, explicit_student_id: Optional[st
         current_user.get("student_id"),
         current_user.get("_id"),
         current_user.get("sub"),
-        "string"
     ]
     candidates: List[Any] = []
     for val in raw_candidates:
-        if val and str(val).strip():
+        if val and str(val).strip() and str(val).strip().lower() != "string":
             s = str(val).strip()
             if s not in candidates:
                 candidates.append(s)
@@ -56,6 +55,19 @@ def build_student_id_filter(current_user: dict, explicit_student_id: Optional[st
         raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
 
     return {"student_id": {"$in": candidates}}
+
+
+def verify_todo_ownership(doc: dict, current_user: dict, explicit_student_id: Optional[str] = None):
+    if current_user.get("role") == "admin":
+        return
+
+    filter_dict = build_student_id_filter(current_user, explicit_student_id)
+    allowed_ids = filter_dict.get("student_id", {}).get("$in", [])
+    allowed_strs = [str(x) for x in allowed_ids if x is not None]
+
+    doc_sid = doc.get("student_id")
+    if doc_sid is not None and str(doc_sid) not in allowed_strs:
+        raise HTTPException(status_code=403, detail="You do not have permission to access or modify this to-do task")
 
 
 def format_todo_item(doc: dict) -> dict:
@@ -244,15 +256,6 @@ async def list_todos(
     offset = skip if skip is not None else (page - 1) * limit
     total_count = await db.user_todos.count_documents(query_filter)
 
-    if total_count == 0:
-        fallback_filter: Dict[str, Any] = {}
-        if category and category.strip():
-            fallback_filter["category"] = cat_regex
-        fallback_count = await db.user_todos.count_documents(fallback_filter)
-        if fallback_count > 0:
-            query_filter = fallback_filter
-            total_count = fallback_count
-
     cursor = (
         db.user_todos.find(query_filter)
         .sort([("is_important", -1), ("created_at", -1)])
@@ -306,6 +309,7 @@ async def update_todo(
     Consolidates status updates, uploading new image attachments, and deleting specified images.
     """
     doc = await fetch_todo_by_id(todo_id)
+    verify_todo_ownership(doc, current_user)
     oid = doc["_id"]
 
     content_type = request.headers.get("content-type", "")
@@ -383,11 +387,9 @@ async def update_todo(
         if is_reminder_enabled is not None:
             update_fields["is_reminder_enabled"] = bool(is_reminder_enabled)
 
-        if delete_image_urls:
-            if isinstance(delete_image_urls, str):
-                urls_to_delete.append(delete_image_urls)
-            elif isinstance(delete_image_urls, (list, tuple)):
-                urls_to_delete.extend([str(u) for u in delete_image_urls if u])
+        delete_imgs = request.query_params.get("delete_image_urls")
+        if delete_imgs:
+            urls_to_delete.append(delete_imgs)
 
         uploaded_images = images or []
         if isinstance(uploaded_images, (UploadFile, str)):
@@ -433,6 +435,7 @@ async def delete_todo(
     Delete a To-Do item permanently by todo_id.
     """
     doc = await fetch_todo_by_id(todo_id)
+    verify_todo_ownership(doc, current_user)
     oid = doc["_id"]
 
     for img_url in doc.get("image_urls", []):
@@ -462,6 +465,7 @@ async def mark_todo_completed(
     Changes status from 'pending' to 'completed' and sets is_completed to True.
     """
     doc = await fetch_todo_by_id(todo_id)
+    verify_todo_ownership(doc, current_user)
     oid = doc["_id"]
 
     update_fields = {

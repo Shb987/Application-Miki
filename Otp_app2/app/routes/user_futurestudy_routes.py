@@ -62,8 +62,12 @@ async def generate_future_study_guidance(student_id: str, current_user: dict = D
     if not record:
         raise HTTPException(status_code=404, detail="Career analysis not found")
 
-    recommended_career = record.get("recommended_career")
     top_category = record.get("top_category")
+    recommended_career = record.get("recommended_career")
+    if not recommended_career or recommended_career == "No career mapped":
+        from app.routes.user_routes import get_recommended_career
+        recommended_career = get_recommended_career(top_category)
+
     if not recommended_career or not top_category:
         raise HTTPException(status_code=400, detail="Career data incomplete")
 

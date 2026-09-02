@@ -89,12 +89,16 @@ async def questions_category_page(request: Request, category: str):
 
     for q in questions:
         q["_id"] = str(q["_id"])
-        q_type = str(q.get("type", "text")).lower()
-        if q_type == "image":
+        q_type = str(q.get("type", "text")).lower().strip()
+        has_image_opts = bool(q.get("image_options") and any(q.get("image_options")))
+        if q_type == "image" or has_image_opts:
+            q["type"] = "image"
             image_count += 1
         elif q_type == "rating":
+            q["type"] = "rating"
             rating_count += 1
         else:
+            q["type"] = "text"
             text_count += 1
 
     return templates.TemplateResponse(

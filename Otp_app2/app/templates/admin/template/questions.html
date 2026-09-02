@@ -1793,7 +1793,10 @@
       const questions = document.querySelectorAll(".question-item");
 
       questions.forEach(item => {
-        const itemType = (item.dataset.type || "text").toLowerCase();
+        let itemType = (item.dataset.type || "text").toLowerCase().trim();
+        if (item.querySelector(".option-image-card") !== null) {
+          itemType = "image";
+        }
         const itemMin = parseInt(item.dataset.ageMin, 10);
         const itemMax = parseInt(item.dataset.ageMax, 10);
 
@@ -1828,11 +1831,12 @@
       let ratingCount = 0;
 
       items.forEach(item => {
-        const badge = item.querySelector(".badge");
-        const typeText = badge ? badge.innerText.trim().toLowerCase() : "text";
-        if (typeText === "image") {
+        const itemType = (item.dataset.type || "text").toLowerCase().trim();
+        const hasImageCard = item.querySelector(".option-image-card") !== null;
+        
+        if (itemType === "image" || hasImageCard) {
           imageCount++;
-        } else if (typeText === "rating") {
+        } else if (itemType === "rating") {
           ratingCount++;
         } else {
           textCount++;

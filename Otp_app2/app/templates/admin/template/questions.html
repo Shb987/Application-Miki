@@ -98,10 +98,10 @@
     .question-card {
       border-radius: 12px;
       border: 1px solid #e2e8f0;
-      padding: 15px;
+      padding: 18px;
       margin-bottom: 15px;
       transition: all 0.3s ease;
-      background: #fff;
+      background: #ffffff;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -109,7 +109,89 @@
 
     .question-card:hover {
       border-color: #667eea;
-      background: #f8faff;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .question-text-display {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #1e293b;
+      line-height: 1.4;
+    }
+
+    .question-prompt-img {
+      max-height: 120px;
+      border-radius: 8px;
+      object-fit: contain;
+      background: #ffffff;
+      padding: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .option-image-card {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .option-image-card.is-correct {
+      border-color: #10b981 !important;
+      background: #f0fdf4 !important;
+    }
+
+    .option-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    .option-img-container {
+      background: #ffffff;
+      border-radius: 6px;
+      padding: 6px;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      max-height: 110px;
+      overflow: hidden;
+    }
+
+    .option-img {
+      max-height: 90px;
+      max-width: 100%;
+      object-fit: contain;
+    }
+
+    .option-text-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: #334155;
+    }
+
+    .option-text-card.is-correct {
+      border-color: #10b981 !important;
+      background: #f0fdf4 !important;
+      color: #065f46 !important;
+    }
+
+    .badge-type-tag {
+      background-color: #e0e7ff !important;
+      color: #3730a3 !important;
+      border: 1px solid #c7d2fe;
+      padding: 5px 12px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      border-radius: 6px;
     }
 
     .question-meta {
@@ -155,36 +237,94 @@
     }
 
     /* Dark Mode Overrides for Questions Page */
+    .dark-only,
     body.dark-only {
       background-color: #16171d !important;
       color: #e2e8f0 !important;
     }
+    .dark-only .analytics-card,
     body.dark-only .analytics-card {
       background: #20232e !important;
       border: 1px solid #2e3243 !important;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
     }
+    .dark-only .card-header-premium,
     body.dark-only .card-header-premium {
       border-bottom: 1px solid #2e3243 !important;
     }
+    .dark-only .card-title-premium,
     body.dark-only .card-title-premium {
       color: #f8fafc !important;
     }
+    .dark-only .question-card,
     body.dark-only .question-card {
       background: #20232e !important;
       border-color: #2e3243 !important;
       color: #e2e8f0 !important;
     }
+    .dark-only .question-card:hover,
     body.dark-only .question-card:hover {
       border-color: #667eea !important;
-      background: #282c3a !important;
+      background: #252836 !important;
     }
+    .dark-only .question-text-display,
+    body.dark-only .question-text-display {
+      color: #f8fafc !important;
+    }
+    .dark-only .question-meta,
     body.dark-only .question-meta {
       color: #94a3b8 !important;
     }
+    .dark-only .question-prompt-img,
+    body.dark-only .question-prompt-img {
+      background: #ffffff !important;
+      border-color: #3b3f54 !important;
+    }
+    .dark-only .option-image-card,
+    body.dark-only .option-image-card {
+      background: #181b24 !important;
+      border-color: #2e3243 !important;
+    }
+    .dark-only .option-image-card.is-correct,
+    body.dark-only .option-image-card.is-correct {
+      border-color: #10b981 !important;
+      background: #064e3b33 !important;
+    }
+    .dark-only .option-badge,
+    body.dark-only .option-badge {
+      color: #cbd5e1 !important;
+    }
+    .dark-only .option-img-container,
+    body.dark-only .option-img-container {
+      background: #ffffff !important;
+      border-color: #475569 !important;
+    }
+    .dark-only .option-text-card,
+    body.dark-only .option-text-card {
+      background: #181b24 !important;
+      border-color: #2e3243 !important;
+      color: #e2e8f0 !important;
+    }
+    .dark-only .option-text-card.is-correct,
+    body.dark-only .option-text-card.is-correct {
+      border-color: #10b981 !important;
+      background: #064e3b44 !important;
+      color: #6ee7b7 !important;
+    }
+    .dark-only .badge-type-tag,
+    body.dark-only .badge-type-tag {
+      background-color: #1e293b !important;
+      color: #38bdf8 !important;
+      border-color: #0284c7 !important;
+    }
+    .dark-only .form-label-premium,
     body.dark-only .form-label-premium {
       color: #cbd5e1 !important;
     }
+    .dark-only .premium-input,
+    .dark-only .form-control,
+    .dark-only .form-select,
+    .dark-only select,
     body.dark-only .premium-input,
     body.dark-only .form-control,
     body.dark-only .form-select,
@@ -193,11 +333,14 @@
       border-color: #2e3243 !important;
       color: #f1f5f9 !important;
     }
+    .dark-only input[type="file"],
     body.dark-only input[type="file"] {
       background-color: #16181f !important;
       border: 1px solid #2e3243 !important;
       color: #e2e8f0 !important;
     }
+    .dark-only input[type="file"]::file-selector-button,
+    .dark-only input[type="file"]::-webkit-file-upload-button,
     body.dark-only input[type="file"]::file-selector-button,
     body.dark-only input[type="file"]::-webkit-file-upload-button {
       background-color: #2e3243 !important;
@@ -207,22 +350,40 @@
       padding: 6px 12px;
       cursor: pointer;
     }
+    .dark-only input[type="file"]::file-selector-button:hover,
+    .dark-only input[type="file"]::-webkit-file-upload-button:hover,
     body.dark-only input[type="file"]::file-selector-button:hover,
     body.dark-only input[type="file"]::-webkit-file-upload-button:hover {
       background-color: #3b3f54 !important;
       color: #ffffff !important;
     }
+    .dark-only .btn-outline-secondary,
+    .dark-only .btn-light,
     body.dark-only .btn-outline-secondary,
     body.dark-only .btn-light {
       background-color: #20232e !important;
       color: #e2e8f0 !important;
       border-color: #2e3243 !important;
     }
+    .dark-only .modal-content,
+    body.dark-only .modal-content {
+      background-color: #20232e !important;
+      color: #f1f5f9 !important;
+      border: 1px solid #2e3243 !important;
+    }
+    .dark-only .alert-light,
+    body.dark-only .alert-light {
+      background-color: #181b24 !important;
+      border-color: #2e3243 !important;
+      color: #cbd5e1 !important;
+    }
+    .dark-only .customizer-links,
     body.dark-only .customizer-links {
       background-color: #20232e !important;
       border: 1px solid #2e3243 !important;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
     }
+    .dark-only .customizer-links .nav-link,
     body.dark-only .customizer-links .nav-link {
       color: #e2e8f0 !important;
     }
@@ -779,16 +940,68 @@
               <div class="row g-3">
                 {% for q in questions %}
                 <div class="col-12 question-item" data-id="{{ q._id }}" data-type="{{ q.type|default('text')|lower }}" data-age-min="{{ q.age_min }}" data-age-max="{{ q.age_max }}">
-                  <div class="question-card">
-                    <div class="d-flex justify-content-between align-items-start">
+                  <div class="question-card p-3">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                       <div class="flex-grow-1">
                         <h6 class="mb-2 question-text-display">{{ q.text }}</h6>
+                        
                         {% if q.question_image %}
-                        <img src="{{ q.question_image }}" alt="Question Image" style="max-height: 80px; border-radius: 5px; margin-bottom: 10px;">
+                        <div class="question-prompt-image-wrapper mb-3">
+                          <span class="d-block small text-muted mb-1 font-weight-bold">Question Prompt Image:</span>
+                          <img src="{{ q.question_image }}" alt="Question Image" class="question-prompt-img">
+                        </div>
                         {% endif %}
-                        <div class="question-meta">
+
+                        {% set q_type = q.type|default('text')|lower %}
+                        {% set img_opts = q.image_options if q.image_options else (q.options if q_type == 'image' else []) %}
+                        {% if q_type == 'image' and img_opts %}
+                        <div class="question-options-section mb-3">
+                          <div class="small fw-bold text-muted mb-2"><i class="fa fa-image me-1"></i> Image Options:</div>
+                          <div class="row g-2">
+                            {% for img_url in img_opts %}
+                              {% if img_url %}
+                              {% set opt_idx = loop.index0 %}
+                              {% set is_correct = (q.correct_index is defined and q.correct_index == opt_idx) or (q.correct_answer is defined and (q.correct_answer|string == (opt_idx+1)|string or q.correct_answer == img_url)) %}
+                              <div class="col-6 col-sm-3">
+                                <div class="option-image-card {% if is_correct %}is-correct{% endif %}">
+                                  <div class="option-badge">
+                                    Option {{ opt_idx + 1 }} {% if is_correct %}<span class="badge bg-success ms-1"><i class="fa fa-check"></i> Correct</span>{% endif %}
+                                  </div>
+                                  <div class="option-img-container">
+                                    <img src="{{ img_url }}" alt="Option {{ opt_idx + 1 }}" class="img-fluid option-img">
+                                  </div>
+                                </div>
+                              </div>
+                              {% endif %}
+                            {% endfor %}
+                          </div>
+                        </div>
+                        {% elif q_type == 'text' and q.options %}
+                        <div class="question-options-section mb-3">
+                          <div class="small fw-bold text-muted mb-2"><i class="fa fa-list me-1"></i> Options:</div>
+                          <div class="row g-2">
+                            {% for opt in q.options %}
+                            {% set opt_idx = loop.index0 %}
+                            {% set is_correct = (q.correct_index is defined and q.correct_index == opt_idx) or (q.correct_answer is defined and (q.correct_answer == opt or q.correct_answer|string == (opt_idx+1)|string)) %}
+                            <div class="col-6 col-sm-3">
+                              <div class="option-text-card {% if is_correct %}is-correct{% endif %}">
+                                <span class="opt-num">{{ opt_idx + 1 }}.</span> {{ opt }}
+                                {% if is_correct %}<span class="badge bg-success ms-1"><i class="fa fa-check"></i> Correct</span>{% endif %}
+                              </div>
+                            </div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="question-meta d-flex align-items-center gap-3 flex-wrap mt-2">
                           <span><i class="fa fa-user-circle me-1"></i> Age: {{ q.age_min }}-{{ q.age_max }}</span>
-                          <span class="badge bg-light text-dark">{{ q.type|default('text')|upper }}</span>
+                          <span class="badge badge-type-tag">{{ q_type|upper }}</span>
+                          {% if q.correct_index is defined and q.correct_index is not none %}
+                          <span class="badge bg-success-subtle text-success border border-success"><i class="fa fa-check-circle me-1"></i> Answer: Option {{ q.correct_index + 1 }}</span>
+                          {% elif q.correct_answer %}
+                          <span class="badge bg-success-subtle text-success border border-success"><i class="fa fa-check-circle me-1"></i> Answer: {{ q.correct_answer }}</span>
+                          {% endif %}
                         </div>
                       </div>
                       <div class="question-actions">
@@ -1149,21 +1362,96 @@
           HELPER: CREATE QUESTION HTML
     ------------------------------------------- */
     function createQuestionCardHtml(q) {
+      const qType = (q.type || 'text').toLowerCase();
+      const ageMin = q.age_min !== undefined ? q.age_min : '';
+      const ageMax = q.age_max !== undefined ? q.age_max : '';
+      
+      let promptImgHtml = '';
+      if (q.question_image) {
+        promptImgHtml = `
+          <div class="question-prompt-image-wrapper mb-3">
+            <span class="d-block small text-muted mb-1 font-weight-bold">Question Prompt Image:</span>
+            <img src="${q.question_image}" alt="Question Image" class="question-prompt-img">
+          </div>
+        `;
+      }
+
+      let optionsHtml = '';
+      const imgOpts = q.image_options || (qType === 'image' && Array.isArray(q.options) ? q.options : []);
+      
+      if (qType === 'image' && imgOpts.length > 0) {
+        const cards = imgOpts.map((imgUrl, idx) => {
+          if (!imgUrl) return '';
+          const isCorrect = (q.correct_index !== undefined && parseInt(q.correct_index) === idx) ||
+                            (q.correct_answer !== undefined && (String(q.correct_answer) === String(idx + 1) || q.correct_answer === imgUrl));
+          return `
+            <div class="col-6 col-sm-3">
+              <div class="option-image-card ${isCorrect ? 'is-correct' : ''}">
+                <div class="option-badge">
+                  Option ${idx + 1} ${isCorrect ? '<span class="badge bg-success ms-1"><i class="fa fa-check"></i> Correct</span>' : ''}
+                </div>
+                <div class="option-img-container">
+                  <img src="${imgUrl}" alt="Option ${idx + 1}" class="img-fluid option-img">
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        optionsHtml = `
+          <div class="question-options-section mb-3">
+            <div class="small fw-bold text-muted mb-2"><i class="fa fa-image me-1"></i> Image Options:</div>
+            <div class="row g-2">${cards}</div>
+          </div>
+        `;
+      } else if (qType === 'text' && Array.isArray(q.options) && q.options.length > 0) {
+        const cards = q.options.map((opt, idx) => {
+          const isCorrect = (q.correct_index !== undefined && parseInt(q.correct_index) === idx) ||
+                            (q.correct_answer !== undefined && (q.correct_answer === opt || String(q.correct_answer) === String(idx + 1)));
+          return `
+            <div class="col-6 col-sm-3">
+              <div class="option-text-card ${isCorrect ? 'is-correct' : ''}">
+                <span class="opt-num">${idx + 1}.</span> ${opt}
+                ${isCorrect ? '<span class="badge bg-success ms-1"><i class="fa fa-check"></i> Correct</span>' : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        optionsHtml = `
+          <div class="question-options-section mb-3">
+            <div class="small fw-bold text-muted mb-2"><i class="fa fa-list me-1"></i> Options:</div>
+            <div class="row g-2">${cards}</div>
+          </div>
+        `;
+      }
+
+      let answerBadge = '';
+      if (q.correct_index !== undefined && q.correct_index !== null) {
+        answerBadge = `<span class="badge bg-success-subtle text-success border border-success"><i class="fa fa-check-circle me-1"></i> Answer: Option ${parseInt(q.correct_index) + 1}</span>`;
+      } else if (q.correct_answer) {
+        answerBadge = `<span class="badge bg-success-subtle text-success border border-success"><i class="fa fa-check-circle me-1"></i> Answer: ${q.correct_answer}</span>`;
+      }
+
+      const qDataJson = JSON.stringify(q).replace(/'/g, "&#39;");
+
       return `
-        <div class="col-12 question-item" data-id="${q._id}" data-type="${(q.type || 'text').toLowerCase()}" data-age-min="${q.age_min}" data-age-max="${q.age_max}">
-          <div class="question-card">
-            <div class="d-flex justify-content-between align-items-start">
+        <div class="col-12 question-item" data-id="${q._id}" data-type="${qType}" data-age-min="${ageMin}" data-age-max="${ageMax}">
+          <div class="question-card p-3">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
               <div class="flex-grow-1">
                 <h6 class="mb-2 question-text-display">${q.text}</h6>
-                ${q.question_image ? `<img src="${q.question_image}" alt="Question Image" style="max-height: 80px; border-radius: 5px; margin-bottom: 10px;">` : ''}
-                <div class="question-meta">
-                  <span><i class="fa fa-user-circle me-1"></i> Age: ${q.age_min}-${q.age_max}</span>
-                  <span class="badge bg-light text-dark">${(q.type || 'text').toUpperCase()}</span>
+                ${promptImgHtml}
+                ${optionsHtml}
+                <div class="question-meta d-flex align-items-center gap-3 flex-wrap mt-2">
+                  <span><i class="fa fa-user-circle me-1"></i> Age: ${ageMin}-${ageMax}</span>
+                  <span class="badge badge-type-tag">${qType.toUpperCase()}</span>
+                  ${answerBadge}
                 </div>
               </div>
               <div class="question-actions">
                 <button class="btn btn-warning btn-action text-white" 
-                  data-question='${JSON.stringify(q).replace(/'/g, "&#39;")}'
+                  data-question='${qDataJson}'
                   onclick='openEditModalFromButton(this)'>
                   <i class="fa fa-pencil"></i>
                 </button>

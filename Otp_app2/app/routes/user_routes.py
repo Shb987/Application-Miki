@@ -573,18 +573,34 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
         q_type = question.get("type")
         correct_index = question.get("correct_index")
+        options = question.get("options") or question.get("image_options") or []
+
+        correct_ans_val = question.get("correct_answer")
+        if not correct_ans_val and correct_index is not None and options:
+            try:
+                c_idx = int(correct_index)
+                if 0 <= c_idx < len(options):
+                    correct_ans_val = options[c_idx]
+                elif 1 <= c_idx <= len(options):
+                    correct_ans_val = options[c_idx - 1]
+            except (ValueError, TypeError):
+                pass
 
         if q_type == "rating":
             rating_values.append(ans)
             mark = 0
         else:
-            mark = 1 if ans == correct_index else 0
+            ans_s = str(ans).strip() if ans is not None else None
+            ci_s = str(correct_index).strip() if correct_index is not None else None
+            is_correct = (ans_s == ci_s) or (ans_s is not None and ans_s == str(correct_ans_val))
+            mark = 1 if is_correct else 0
             total_marks += mark
 
         answers_list.append({
             "question_id": qid,
             "answer_value": ans,
             "correct_index": correct_index,
+            "correct_answer": correct_ans_val,
             "type": q_type,
             "mark": mark
         })

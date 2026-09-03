@@ -24,14 +24,26 @@ async def extract_student_id(current_user: dict, explicit_student_id: Optional[s
         return str(sid).strip()
 
     sub = current_user.get("sub")
-    if sub:
-        user_rec = await db.usertable.find_one({"mobile_number": sub})
-        if user_rec and user_rec.get("student_id"):
-            return str(user_rec["student_id"])
-        st_rec = await db.students.find_one({"mobile_number": sub})
-        if st_rec:
-            return str(st_rec["_id"])
-        return str(sub)
+    if sub and str(sub).strip():
+        sub_str = str(sub).strip()
+        digits = "".join([c for c in sub_str if c.isdigit()])
+        if len(digits) >= 10:
+            last_10 = digits[-10:]
+            regex_pattern = {"$regex": f"{last_10}$"}
+            
+            user_rec = await db.usertable.find_one({"mobile_number": regex_pattern})
+            if user_rec:
+                if user_rec.get("student_id"):
+                    return str(user_rec["student_id"])
+                st_ids = user_rec.get("student_ids", [])
+                if st_ids:
+                    return str(st_ids[0])
+
+            st_rec = await db.students.find_one({"mobile_number": regex_pattern})
+            if st_rec:
+                return str(st_rec["_id"])
+
+        return sub_str
 
     raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
 
@@ -39,63 +51,63 @@ async def extract_student_id(current_user: dict, explicit_student_id: Optional[s
 async def build_student_id_filter(current_user: dict, explicit_student_id: Optional[str] = None) -> dict:
     candidates: List[Any] = []
 
-    if explicit_student_id and str(explicit_student_id).strip() and str(explicit_student_id).strip().lower() != "string":
-        s = str(explicit_student_id).strip()
-        candidates.append(s)
+    def add_candidate(val):
+        if val is None:
+            return
+        s = str(val).strip()
+        if not s or s.lower() == "string":
+            return
+        if s not in candidates:
+            candidates.append(s)
         if ObjectId.is_valid(s):
-            candidates.append(ObjectId(s))
+            oid = ObjectId(s)
+            if oid not in candidates:
+                candidates.append(oid)
 
-    raw_candidates = [
-        current_user.get("student_id"),
-        current_user.get("_id"),
-        current_user.get("sub"),
-    ]
-    for val in raw_candidates:
-        if val and str(val).strip() and str(val).strip().lower() != "string":
-            s = str(val).strip()
-            if s not in candidates:
-                candidates.append(s)
-            if ObjectId.is_valid(s):
-                oid = ObjectId(s)
-                if oid not in candidates:
-                    candidates.append(oid)
+    if explicit_student_id:
+        add_candidate(explicit_student_id)
 
-    mobile = current_user.get("sub")
-    if mobile:
-        mob_clean = str(mobile).strip()
-        mob_variants = [mob_clean]
-        if mob_clean.startswith("+91"):
-            mob_variants.append(mob_clean[3:])
-        elif len(mob_clean) == 10 and mob_clean.isdigit():
-            mob_variants.append(f"+91{mob_clean}")
+    add_candidate(current_user.get("student_id"))
+    add_candidate(current_user.get("_id"))
+    add_candidate(current_user.get("sub"))
 
-        for m in mob_variants:
-            if m not in candidates:
-                candidates.append(m)
+    sub = current_user.get("sub")
+    if sub and str(sub).strip():
+        sub_str = str(sub).strip()
+        add_candidate(sub_str)
+        
+        digits = "".join([c for c in sub_str if c.isdigit()])
+        if len(digits) >= 10:
+            last_10 = digits[-10:]
+            add_candidate(last_10)
+            add_candidate(f"+91{last_10}")
+            
+            regex_pattern = {"$regex": f"{last_10}$"}
 
-        for m in mob_variants:
-            user_rec = await db.usertable.find_one({"mobile_number": m})
-            if user_rec:
-                if user_rec.get("student_id"):
-                    sid_s = str(user_rec["student_id"])
-                    if sid_s not in candidates:
-                        candidates.append(sid_s)
-                    if ObjectId.is_valid(sid_s) and ObjectId(sid_s) not in candidates:
-                        candidates.append(ObjectId(sid_s))
-                for sid in user_rec.get("student_ids", []):
-                    sid_s = str(sid)
-                    if sid_s not in candidates:
-                        candidates.append(sid_s)
-                    if ObjectId.is_valid(sid_s) and ObjectId(sid_s) not in candidates:
-                        candidates.append(ObjectId(sid_s))
+            user_cursor = db.usertable.find({"mobile_number": regex_pattern})
+            user_recs = await user_cursor.to_list(length=10)
+            for urec in user_recs:
+                add_candidate(urec.get("student_id"))
+                for sid in urec.get("student_ids", []):
+                    add_candidate(sid)
 
-            st_docs = await db.students.find({"mobile_number": m}).to_list(length=10)
-            for doc in st_docs:
-                doc_id_str = str(doc["_id"])
-                if doc_id_str not in candidates:
-                    candidates.append(doc_id_str)
-                if doc["_id"] not in candidates:
-                    candidates.append(doc["_id"])
+            st_cursor = db.students.find({"mobile_number": regex_pattern})
+            st_recs = await st_cursor.to_list(length=10)
+            for srec in st_recs:
+                add_candidate(srec.get("_id"))
+
+    if explicit_student_id and ObjectId.is_valid(str(explicit_student_id).strip()):
+        try:
+            st_doc = await db.students.find_one({"_id": ObjectId(str(explicit_student_id).strip())})
+            if st_doc and st_doc.get("mobile_number"):
+                st_mob = str(st_doc["mobile_number"]).strip()
+                add_candidate(st_mob)
+                st_digits = "".join([c for c in st_mob if c.isdigit()])
+                if len(st_digits) >= 10:
+                    add_candidate(st_digits[-10:])
+                    add_candidate(f"+91{st_digits[-10:]}")
+        except Exception:
+            pass
 
     if current_user.get("role") == "admin" and not explicit_student_id:
         return {}
@@ -120,8 +132,12 @@ async def verify_todo_ownership(doc: dict, current_user: dict, explicit_student_
 
 
 def format_todo_item(doc: dict) -> dict:
+    todo_id = str(doc["_id"]) if doc.get("_id") else ""
     return {
-        "id": str(doc["_id"]) if doc.get("_id") else "",
+        "id": todo_id,
+        "_id": todo_id,
+        "todo_id": todo_id,
+        "student_id": str(doc.get("student_id", "")),
         "title": doc.get("title", ""),
         "description": doc.get("description", ""),
         "category": doc.get("category", "general"),

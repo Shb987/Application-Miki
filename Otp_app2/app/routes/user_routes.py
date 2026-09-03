@@ -567,7 +567,11 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
     # Process each question + answer
     for qid, ans in zip(payload.question_ids, payload.answers):
-        question = await db.questions.find_one({"_id": ObjectId(qid)})
+        q_candidates = [qid, str(qid)]
+        if ObjectId.is_valid(str(qid)):
+            q_candidates.append(ObjectId(str(qid)))
+
+        question = await db.questions.find_one({"_id": {"$in": q_candidates}})
         if not question:
             continue
 
@@ -575,10 +579,10 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
         correct_index = question.get("correct_index")
         options = question.get("options") or question.get("image_options") or []
         image_options = question.get("image_options") or (options if q_type == "image" else [])
+        target_opts = image_options if (q_type == "image" or image_options) else options
 
         raw_correct_ans = question.get("correct_answer")
         correct_ans_val = raw_correct_ans
-        target_opts = image_options if q_type == "image" else options
 
         if q_type == "image" or not correct_ans_val or (isinstance(correct_ans_val, (int, str)) and str(correct_ans_val).strip().isdigit()):
             idx_to_check = None
@@ -589,7 +593,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
                     pass
             elif raw_correct_ans is not None:
                 try:
-                    idx_to_check = int(raw_correct_ans)
+                    idx_to_check = int(str(raw_correct_ans).strip())
                 except (ValueError, TypeError):
                     pass
 
@@ -1059,138 +1063,66 @@ async def get_future_study(
 
 
 @router.get("/career-analysis/{student_id}/{attempt}")
-@router.get("/career-analysis/{student_id}")
-async def get_career_analysis(
-    student_id: str,
-    attempt: Optional[int] = None,
+async def get_career_analysis(student_id: str, attempt: int,
     current=Depends(admin_or_user)
 ):
     """
-    Fetch career analysis for a specific student and optional attempt number (defaults to latest completed attempt).
+    Fetch career analysis for a specific student and attempt number.
     """
+
     try:
         s_oid = ObjectId(student_id)
-    except Exception:
+    except:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
-
-    s_candidates = [student_id, str(s_oid)]
-    if ObjectId.is_valid(student_id):
-        s_candidates.append(ObjectId(student_id))
-
-    query = {"student_id": {"$in": s_candidates}}
-    if attempt is not None:
-        query["attempt"] = attempt
-
     record = await db.career_analyzer.find_one(
-        query,
-        {"_id": 0},
-        sort=[("attempt", -1)]
+        {"student_id": str(s_oid), "attempt": attempt},
+        {"_id": 0}   # hide MongoDB ObjectId
     )
-
+    record = serialize_mongo_doc(record)  
     if not record:
-        answers_doc = await db.answers.find_one({"student_id": {"$in": s_candidates}})
-        if answers_doc and answers_doc.get("attempts"):
-            completed = [a for a in answers_doc["attempts"] if a.get("status") == "completed"]
-            target_attempt = max(completed, key=lambda x: x["attempt"]) if completed else max(answers_doc["attempts"], key=lambda x: x.get("attempt", 1))
-            att_no = target_attempt["attempt"]
-            categories = target_attempt.get("categories", [])
-            scores = {c["category"]: c.get("total_marks", 0) for c in categories}
-            percentages = normalize_percentages(scores)
-            sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-            top_cat = sorted_cats[0][0].title() if sorted_cats else "Logical-Mathematical"
-            rec_career = get_recommended_career(top_cat)
-            insights, suggestions = generate_insights_and_suggestions(scores)
-
-            record = {
-                "student_id": student_id,
-                "attempt": att_no,
-                "scores": scores,
-                "overall_score": sum(scores.values()),
-                "percentages": percentages,
-                "top_category": top_cat,
-                "recommended_career": rec_career,
-                "personality_insights": insights,
-                "career_suggestions": suggestions,
-                "timestamp": target_attempt.get("timestamp_utc") or datetime.now(timezone.utc)
-            }
-        else:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No career analysis found for student {student_id}" + (f" in attempt {attempt}" if attempt else "")
-            )
-
+        raise HTTPException(
+            status_code=404,
+            detail=f"No career analysis found for student {student_id} in attempt {attempt}"
+        )
     record = serialize_mongo_doc(record)
-    scores = record.get("scores", {})
-    insights = record.get("personality_insights")
-    suggestions = record.get("career_suggestions")
-    if not insights or not suggestions:
-        gen_insights, gen_suggestions = generate_insights_and_suggestions(scores)
-        insights = insights or gen_insights
-        suggestions = suggestions or gen_suggestions
-        record["personality_insights"] = insights
-        record["career_suggestions"] = suggestions
 
-    att_num = record.get("attempt", attempt or 1)
-    top_cat = record.get("top_category", "")
-    rec_career = record.get("recommended_career", "")
-    overall_score = record.get("overall_score", sum(scores.values()))
-    percentages = record.get("percentages", normalize_percentages(scores))
+    if not record.get("personality_insights") or not record.get("career_suggestions"):
+        gen_insights, gen_suggestions = generate_insights_and_suggestions(record.get("scores", {}))
+        record["personality_insights"] = record.get("personality_insights") or gen_insights
+        record["career_suggestions"] = record.get("career_suggestions") or gen_suggestions
 
     return {
         "status_code": 200,
         "student_id": student_id,
-        "attempt": att_num,
-        "analyzed_attempt": att_num,
-        "top_category": top_cat,
-        "recommended_career": rec_career,
-        "overall_score": overall_score,
-        "percentages": percentages,
-        "scores": scores,
-        "personality_insights": insights,
-        "career_suggestions": suggestions,
-        "career_analysis": record,
-        "data": record
+        "attempt": attempt,
+        "career_analysis": record
     }
 
 
 @router.get("/career-history/{student_id}")
-@router.get("/onboarding-history/{student_id}")
-async def get_career_history(
-    student_id: str,
-    include_answers: bool = Query(True, description="Include detailed question-by-question answers"),
+async def get_career_history(student_id: str,
     current=Depends(admin_or_user)
 ):
-    """
-    Fetch historical career analysis attempts for a student.
-    Returns full career analysis statistics, scores, personality insights, suggestions, and question answer details.
-    """
+
     try:
         s_oid = ObjectId(student_id)
-    except Exception:
+    except:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
 
-    s_candidates = [student_id, str(s_oid)]
-    if ObjectId.is_valid(student_id):
-        s_candidates.append(ObjectId(student_id))
+    # Get all career analysis attempts
+    career_records = await db.career_analyzer.find({"student_id": str(s_oid)}).sort("timestamp", -1).to_list(None)
+    if not career_records:
+        raise HTTPException(status_code=200, detail="No career analysis found for this student")
 
-    career_records = await db.career_analyzer.find({"student_id": {"$in": s_candidates}}).sort("attempt", -1).to_list(None)
-    career_map_by_attempt = {c.get("attempt"): c for c in career_records if c.get("attempt") is not None}
+    # Get student's answer document
+    answers_doc = await db.answers.find_one({"student_id": s_oid})
 
-    answers_doc = await db.answers.find_one({"student_id": {"$in": s_candidates}})
-    attempts = answers_doc.get("attempts", []) if answers_doc else []
+    if not answers_doc:
+        raise HTTPException(status_code=200, detail="No answers found for this student")
 
-    if not attempts and not career_records:
-        return {
-            "status_code": 200,
-            "student_id": student_id,
-            "total_attempts": 0,
-            "career_history": [],
-            "history": [],
-            "data": []
-        }
-
+    # Build detailed data per attempt
     full_attempts = []
-    for attempt in attempts:
+    for attempt in answers_doc.get("attempts", []):
         categories_detailed = []
 
         for cat in attempt.get("categories", []):
@@ -1221,8 +1153,8 @@ async def get_career_history(
                 options = (question.get("options") if question else None) or (question.get("image_options") if question else None) or ans.get("options") or ans.get("image_options") or []
                 image_options = (question.get("image_options") if question else None) or ans.get("image_options") or (options if qtype == "image" else [])
 
+                target_opts = image_options if (qtype == "image" or image_options) else options
                 correct_ans_val = raw_correct_ans
-                target_opts = image_options if qtype == "image" else options
 
                 if qtype == "image" or not correct_ans_val or (isinstance(correct_ans_val, (int, str)) and str(correct_ans_val).strip().isdigit()):
                     idx_to_check = None
@@ -1233,7 +1165,7 @@ async def get_career_history(
                             pass
                     elif raw_correct_ans is not None:
                         try:
-                            idx_to_check = int(raw_correct_ans)
+                            idx_to_check = int(str(raw_correct_ans).strip())
                         except (ValueError, TypeError):
                             pass
 
@@ -1244,27 +1176,29 @@ async def get_career_history(
                             correct_ans_val = target_opts[idx_to_check - 1]
 
                 student_answer_url = None
-                if qtype == "image":
+                if qtype == "image" or image_options:
                     if isinstance(student_answer, str) and (student_answer.startswith("/") or student_answer.startswith("http")):
                         student_answer_url = student_answer
-                    elif student_answer is not None and image_options:
+                    elif student_answer is not None and target_opts:
                         try:
                             s_idx = int(student_answer)
-                            if 0 <= s_idx < len(image_options):
-                                student_answer_url = image_options[s_idx]
-                            elif 1 <= s_idx <= len(image_options):
-                                student_answer_url = image_options[s_idx - 1]
+                            if 0 <= s_idx < len(target_opts):
+                                student_answer_url = target_opts[s_idx]
+                            elif 1 <= s_idx <= len(target_opts):
+                                student_answer_url = target_opts[s_idx - 1]
                         except (ValueError, TypeError):
                             pass
                     if not student_answer_url and isinstance(student_answer, str):
                         student_answer_url = student_answer
 
+                # Convert both to string for robust matching ("2" vs 2)
+                student_answer_s = str(student_answer).strip() if student_answer is not None else None
+                correct_index_s = str(correct_index).strip() if correct_index is not None else None
+
                 # Determine correctness
                 if qtype == "rating":
                     is_correct = True
                 else:
-                    student_answer_s = str(student_answer).strip() if student_answer is not None else None
-                    correct_index_s = str(correct_index).strip() if correct_index is not None else None
                     is_correct = (student_answer_s == correct_index_s) or (student_answer_s is not None and student_answer_s == str(correct_ans_val))
 
                 # Append detailed answer with all key aliases for image & text
@@ -1284,78 +1218,56 @@ async def get_career_history(
                     "correct_index": correct_index,
                     "correct_answer_index": correct_index,
                     "correct_answer": correct_ans_val or "N/A",
-                    "correct_answer_url": correct_ans_val if qtype == "image" else None,
+                    "correct_answer_url": correct_ans_val if (qtype == "image" or image_options) else None,
                     "correct_option": correct_ans_val or "N/A",
+                    "correct_image": correct_ans_val if (qtype == "image" or image_options) else None,
                     "is_correct": is_correct
                 })
 
+            # Append category-level details
             categories_detailed.append({
                 "category": cat["category"],
                 "total_marks": cat["total_marks"],
                 "answers": answers_detailed
             })
 
+        # Append attempt-level details
         full_attempts.append({
             "attempt": attempt["attempt"],
-            "timestamp_utc": attempt.get("timestamp_utc") or datetime.now(timezone.utc),
+            "timestamp_utc": attempt["timestamp_utc"],
             "status": attempt.get("status", "in-progress"),
             "categories": categories_detailed
         })
 
-    # Combine all attempts into career history
-    attempt_numbers = set([a["attempt"] for a in attempts] + list(career_map_by_attempt.keys()))
+    # Merge attempts with career analysis results
     combined_history = []
+    for record in career_records:
+        attempt_no = record.get("attempt", 0)
 
-    for att_num in sorted(attempt_numbers, reverse=True):
-        matching_attempt = next((a for a in full_attempts if a["attempt"] == att_num), None)
-        c_record = career_map_by_attempt.get(att_num, {})
-
-        scores = c_record.get("scores")
-        if not scores and matching_attempt:
-            scores = {cat["category"]: cat.get("total_marks", 0) for cat in matching_attempt.get("categories", [])}
-
-        insights = c_record.get("personality_insights")
-        suggestions = c_record.get("career_suggestions")
+        matching_attempt = next((a for a in full_attempts if a["attempt"] == attempt_no), None)
+        scores = record.get("scores", {})
+        insights = record.get("personality_insights")
+        suggestions = record.get("career_suggestions")
         if not insights or not suggestions:
-            gen_insights, gen_suggestions = generate_insights_and_suggestions(scores or {})
+            gen_insights, gen_suggestions = generate_insights_and_suggestions(scores)
             insights = insights or gen_insights
             suggestions = suggestions or gen_suggestions
 
-        top_cat = c_record.get("top_category")
-        rec_career = c_record.get("recommended_career")
-        if not top_cat and scores:
-            sorted_s = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-            top_cat = sorted_s[0][0].title() if sorted_s else "Logical-Mathematical"
-            rec_career = get_recommended_career(top_cat)
-
-        flat_answers = [a for cat in (matching_attempt.get("categories", []) if matching_attempt else []) for a in cat.get("answers", [])]
-
-        item = {
-            "attempt": att_num,
-            "timestamp": c_record.get("timestamp") or (matching_attempt.get("timestamp_utc") if matching_attempt else None),
-            "top_category": top_cat,
-            "recommended_career": rec_career,
-            "overall_score": c_record.get("overall_score", sum((scores or {}).values())),
-            "percentages": c_record.get("percentages") or normalize_percentages(scores or {}),
+        combined_history.append({
+            "attempt": attempt_no,
+            "timestamp": record.get("timestamp"),
+            "top_category": record.get("top_category"),
+            "recommended_career": record.get("recommended_career"),
             "personality_insights": insights,
             "career_suggestions": suggestions,
-            "scores": scores or {},
-            "answers_detail": matching_attempt,
-            "categories": matching_attempt.get("categories", []) if matching_attempt else [],
-            "answers": flat_answers,
-            "questions": flat_answers,
-            "your_answers": flat_answers
-        }
-
-        combined_history.append(item)
+            "scores": scores,
+            "answers_detail": matching_attempt
+        })
 
     return {
-        "status_code": 200,
         "student_id": student_id,
         "total_attempts": len(combined_history),
-        "career_history": combined_history,
-        "history": combined_history,
-        "data": combined_history
+        "career_history": combined_history
     }
 
 

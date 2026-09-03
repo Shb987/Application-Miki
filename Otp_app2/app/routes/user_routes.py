@@ -1293,10 +1293,16 @@ async def get_career_history(
                 answers_detailed.append({
                     "question_id": str(qid),
                     "question_text": question.get("text") or ans.get("question_text") or "Question",
+                    "question": question.get("text") or ans.get("question_text") or "Question",
+                    "text": question.get("text") or ans.get("question_text") or "Question",
                     "options": options,
                     "image_options": image_options,
                     "student_answer": student_answer_url or student_answer,
                     "user_answer": student_answer_url or student_answer,
+                    "your_answer": student_answer_url or student_answer,
+                    "your_answers": student_answer_url or student_answer,
+                    "answer": student_answer_url or student_answer,
+                    "answer_value": student_answer_url or student_answer,
                     "student_answer_url": student_answer_url or student_answer,
                     "user_answer_url": student_answer_url or student_answer,
                     "type": qtype,
@@ -1346,6 +1352,8 @@ async def get_career_history(
             top_cat = sorted_s[0][0].title() if sorted_s else "Logical-Mathematical"
             rec_career = get_recommended_career(top_cat)
 
+        flat_answers = [a for cat in (matching_attempt.get("categories", []) if matching_attempt else []) for a in cat.get("answers", [])]
+
         item = {
             "attempt": att_num,
             "timestamp": c_record.get("timestamp") or (matching_attempt.get("timestamp_utc") if matching_attempt else None),
@@ -1357,7 +1365,10 @@ async def get_career_history(
             "career_suggestions": suggestions,
             "scores": scores or {},
             "answers_detail": matching_attempt,
-            "categories": matching_attempt.get("categories", []) if matching_attempt else []
+            "categories": matching_attempt.get("categories", []) if matching_attempt else [],
+            "answers": flat_answers,
+            "questions": flat_answers,
+            "your_answers": flat_answers
         }
 
         combined_history.append(item)

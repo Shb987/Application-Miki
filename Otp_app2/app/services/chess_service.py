@@ -1,11 +1,7 @@
+import time
 import chess
 from fastapi import HTTPException
-from typing import Dict, Any, Optional
-
-# ---------------------------------------------------------------
-# Pure Python Chess Engine using Minimax + Alpha-Beta Pruning
-# No external executable required.
-# ---------------------------------------------------------------
+from typing import Dict, Any, Optional, List, Union
 
 # Piece values for the evaluation function
 PIECE_VALUES = {
@@ -123,15 +119,39 @@ def evaluate_board(board: chess.Board) -> int:
     return score
 
 
-def alpha_beta(board: chess.Board, depth: int, alpha: int, beta: int, maximizing: bool) -> int:
-    if depth == 0 or board.is_game_over():
+def order_moves(board: chess.Board) -> List[chess.Move]:
+    """
+    Orders legal moves to maximize alpha-beta pruning efficiency.
+    Evaluates Captures (MVV-LVA), Promotions, and Checks first.
+    """
+    def move_score(move: chess.Move) -> int:
+        score = 0
+        if board.is_capture(move):
+            attacker = board.piece_at(move.from_square)
+            victim = board.piece_at(move.to_square)
+            att_val = PIECE_VALUES.get(attacker.piece_type, 100) if attacker else 100
+            vic_val = PIECE_VALUES.get(victim.piece_type, 100) if victim else 100
+            score += 10000 + (vic_val * 10 - att_val)
+        if move.promotion:
+            score += 9000
+        if board.gives_check(move):
+            score += 5000
+        return score
+
+    return sorted(board.legal_moves, key=move_score, reverse=True)
+
+
+def alpha_beta(board: chess.Board, depth: int, alpha: float, beta: float, maximizing: bool, start_time: float, max_seconds: float) -> float:
+    if depth == 0 or board.is_game_over() or (time.time() - start_time) > max_seconds:
         return evaluate_board(board)
+
+    ordered_moves = order_moves(board)
 
     if maximizing:
         max_eval = -float('inf')
-        for move in board.legal_moves:
+        for move in ordered_moves:
             board.push(move)
-            eval_ = alpha_beta(board, depth - 1, alpha, beta, False)
+            eval_ = alpha_beta(board, depth - 1, alpha, beta, False, start_time, max_seconds)
             board.pop()
             max_eval = max(max_eval, eval_)
             alpha = max(alpha, eval_)
@@ -140,9 +160,9 @@ def alpha_beta(board: chess.Board, depth: int, alpha: int, beta: int, maximizing
         return max_eval
     else:
         min_eval = float('inf')
-        for move in board.legal_moves:
+        for move in ordered_moves:
             board.push(move)
-            eval_ = alpha_beta(board, depth - 1, alpha, beta, True)
+            eval_ = alpha_beta(board, depth - 1, alpha, beta, True, start_time, max_seconds)
             board.pop()
             min_eval = min(min_eval, eval_)
             beta = min(beta, eval_)
@@ -151,28 +171,40 @@ def alpha_beta(board: chess.Board, depth: int, alpha: int, beta: int, maximizing
         return min_eval
 
 
-def difficulty_to_depth(difficulty: int) -> int:
-    """
-    Maps a 0-20 difficulty level to a minimax search depth (1-5).
-    Depth 4-5 is strong enough to challenge most casual players.
-    """
-    if difficulty <= 3:
-        return 1
-    elif difficulty <= 7:
-        return 2
-    elif difficulty <= 12:
-        return 3
-    elif difficulty <= 17:
-        return 4
-    else:
+def parse_difficulty(difficulty: Any) -> int:
+    if isinstance(difficulty, str):
+        diff_str = difficulty.strip().lower()
+        if "easy" in diff_str:
+            return 3
+        elif "medium" in diff_str:
+            return 8
+        elif "hard" in diff_str or "expert" in diff_str:
+            return 15
+    try:
+        return int(difficulty)
+    except (ValueError, TypeError):
         return 5
+
+
+def difficulty_to_depth_and_time(difficulty_val: Any) -> tuple:
+    """
+    Returns (search_depth, max_seconds_timeout) for the given difficulty level.
+    With move ordering (MVV-LVA), depth 3 takes ~0.05s and depth 4 takes ~0.25s.
+    """
+    d = parse_difficulty(difficulty_val)
+    if d <= 4:
+        return 2, 0.2  # Easy: Depth 2, 200ms max
+    elif d <= 12:
+        return 3, 0.5  # Medium: Depth 3, 500ms max
+    else:
+        return 4, 0.8  # Hard: Depth 4, 800ms max
 
 
 class ChessService:
 
     @staticmethod
-    def get_bot_move(fen: str, difficulty: int = 5) -> str:
-        """Returns the best move as a UCI string (e.g., 'e2e4') using minimax engine."""
+    def get_bot_move(fen: str, difficulty: Union[int, str] = 5) -> Optional[str]:
+        """Returns the best move as a UCI string (e.g., 'e2e4') using optimized minimax engine."""
         try:
             board = chess.Board(fen)
         except ValueError:
@@ -181,28 +213,39 @@ class ChessService:
         if board.is_game_over():
             return None
 
-        depth = difficulty_to_depth(difficulty)
-        best_move: Optional[chess.Move] = None
-        is_maximizing = board.turn == chess.WHITE
+        legal_moves = list(board.legal_moves)
+        if not legal_moves:
+            return None
+        if len(legal_moves) == 1:
+            return legal_moves[0].uci()
 
+        depth, max_seconds = difficulty_to_depth_and_time(difficulty)
+        start_time = time.time()
+
+        best_move: Optional[chess.Move] = legal_moves[0]
+        is_maximizing = (board.turn == chess.WHITE)
         best_eval = -float('inf') if is_maximizing else float('inf')
 
-        for move in board.legal_moves:
+        ordered_moves = order_moves(board)
+
+        for move in ordered_moves:
             board.push(move)
-            eval_ = alpha_beta(board, depth - 1, -float('inf'), float('inf'), not is_maximizing)
+            eval_ = alpha_beta(board, depth - 1, -float('inf'), float('inf'), not is_maximizing, start_time, max_seconds)
             board.pop()
 
-            if is_maximizing and eval_ > best_eval:
-                best_eval = eval_
-                best_move = move
-            elif not is_maximizing and eval_ < best_eval:
-                best_eval = eval_
-                best_move = move
+            if is_maximizing:
+                if eval_ > best_eval:
+                    best_eval = eval_
+                    best_move = move
+            else:
+                if eval_ < best_eval:
+                    best_eval = eval_
+                    best_move = move
 
-        if best_move is None:
-            return None
+            if (time.time() - start_time) > max_seconds:
+                break
 
-        return best_move.uci()
+        return best_move.uci() if best_move else legal_moves[0].uci()
 
     @staticmethod
     def calculate_new_fen(fen: str, move_uci: str) -> Dict[str, Any]:

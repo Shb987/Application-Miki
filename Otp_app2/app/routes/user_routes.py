@@ -1232,7 +1232,7 @@ async def get_career_history(student_id: str,
                     st_ans = ans.get("answer_value")
                     c_ans = ans.get("correct_answer")
                     answers_detailed.append({
-                        "question_id": qid,
+                        "question_id": str(qid),
                         "question_text": ans.get("question_text") or "Question",
                         "options": [],
                         "image_options": [],
@@ -1301,10 +1301,12 @@ async def get_career_history(student_id: str,
                 if qtype == "rating":
                     is_correct = True
                 else:
-                    is_correct = (student_answer_s == correct_index_s) or (student_answer_s is not None and student_answer_s == str(correct_ans_val))
+                    is_correct = (student_answer_s == correct_index_s) or \
+                                 (student_answer_url is not None and student_answer_url == correct_ans_val) or \
+                                 (student_answer_s is not None and student_answer_s == str(correct_ans_val))
 
                 answers_detailed.append({
-                    "question_id": qid,
+                    "question_id": str(qid),
                     "question_text": question.get("text"),
                     "options": options,
                     "image_options": image_options,
@@ -1334,7 +1336,6 @@ async def get_career_history(student_id: str,
             "categories": categories_detailed
         })
 
-    # Combine all attempts into career history
     attempt_numbers = set([a["attempt"] for a in full_attempts] + list(career_map_by_attempt.keys()))
     combined_history = []
 

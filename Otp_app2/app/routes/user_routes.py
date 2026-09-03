@@ -1042,39 +1042,58 @@ async def get_future_study(
 
 
 
+@router.get("/career-analysis/{student_id}")
 @router.get("/career-analysis/{student_id}/{attempt}")
-async def get_career_analysis(student_id: str, attempt: int,
+async def get_career_analysis(student_id: str, attempt: Optional[int] = None,
     current=Depends(admin_or_user)
 ):
     """
-    Fetch career analysis for a specific student and attempt number.
+    Fetch career analysis for a specific student and attempt number (or latest attempt if attempt is omitted).
     """
 
     try:
         s_oid = ObjectId(student_id)
     except:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
+    
+    query = {"student_id": str(s_oid)}
+    if attempt is not None:
+        query["attempt"] = attempt
+
     record = await db.career_analyzer.find_one(
-        {"student_id": str(s_oid), "attempt": attempt},
-        {"_id": 0}   # hide MongoDB ObjectId
+        query,
+        {"_id": 0},
+        sort=[("attempt", -1)]
     )
-    record = serialize_mongo_doc(record)  
     if not record:
         raise HTTPException(
             status_code=404,
-            detail=f"No career analysis found for student {student_id} in attempt {attempt}"
+            detail=f"No career analysis found for student {student_id}" + (f" in attempt {attempt}" if attempt else "")
         )
     record = serialize_mongo_doc(record)
 
-    if not record.get("personality_insights") or not record.get("career_suggestions"):
-        gen_insights, gen_suggestions = generate_insights_and_suggestions(record.get("scores", {}))
-        record["personality_insights"] = record.get("personality_insights") or gen_insights
-        record["career_suggestions"] = record.get("career_suggestions") or gen_suggestions
+    scores = record.get("scores", {})
+    insights = record.get("personality_insights")
+    suggestions = record.get("career_suggestions")
+    if not insights or not suggestions:
+        gen_insights, gen_suggestions = generate_insights_and_suggestions(scores)
+        insights = insights or gen_insights
+        suggestions = suggestions or gen_suggestions
+        record["personality_insights"] = insights
+        record["career_suggestions"] = suggestions
 
     return {
         "status_code": 200,
         "student_id": student_id,
-        "attempt": attempt,
+        "attempt": record.get("attempt", attempt or 1),
+        "analyzed_attempt": record.get("attempt", attempt or 1),
+        "scores": scores,
+        "overall_score": record.get("overall_score", sum(scores.values())),
+        "percentages": record.get("percentages", {}),
+        "top_category": record.get("top_category", ""),
+        "recommended_career": record.get("recommended_career", ""),
+        "personality_insights": insights,
+        "career_suggestions": suggestions,
         "career_analysis": record
     }
 
@@ -1137,6 +1156,7 @@ async def get_career_history(student_id: str,
                 student_answer = ans.get("answer_value")
                 correct_index = question.get("correct_index")
                 options = question.get("options") or question.get("image_options") or []
+                image_options = question.get("image_options") or (options if qtype == "image" else [])
 
                 # Convert both to string for robust matching ("2" vs 2)
                 student_answer_s = str(student_answer).strip() if student_answer is not None else None
@@ -1154,6 +1174,21 @@ async def get_career_history(student_id: str,
                     except (ValueError, TypeError):
                         pass
 
+                # Resolve student_answer_url if student_answer is an index for image question
+                student_answer_url = None
+                if qtype == "image":
+                    if isinstance(student_answer, str) and (student_answer.startswith("/") or student_answer.startswith("http")):
+                        student_answer_url = student_answer
+                    elif student_answer is not None and image_options:
+                        try:
+                            s_idx = int(student_answer)
+                            if 0 <= s_idx < len(image_options):
+                                student_answer_url = image_options[s_idx]
+                            elif 1 <= s_idx <= len(image_options):
+                                student_answer_url = image_options[s_idx - 1]
+                        except (ValueError, TypeError):
+                            pass
+
                 # Determine correctness
                 if qtype == "rating":
                     is_correct = True
@@ -1165,10 +1200,17 @@ async def get_career_history(student_id: str,
                     "question_id": qid,
                     "question_text": question.get("text"),
                     "options": options,
+                    "image_options": image_options,
                     "student_answer": student_answer,
+                    "user_answer": student_answer,
+                    "student_answer_url": student_answer_url or student_answer,
+                    "user_answer_url": student_answer_url or student_answer,
                     "type": qtype,
                     "correct_index": correct_index,
+                    "correct_answer_index": correct_index,
                     "correct_answer": correct_ans_val,
+                    "correct_answer_url": correct_ans_val if qtype == "image" else None,
+                    "correct_option": correct_ans_val,
                     "is_correct": is_correct
                 })
 

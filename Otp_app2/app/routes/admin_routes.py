@@ -374,6 +374,7 @@ async def update_question(
     question_id: str,
     category: Optional[str] = Form(None),
     text: Optional[str] = Form(None),
+    type: Optional[str] = Form(None),
     options: Optional[str] = Form(None),
     correct_answer: Optional[str] = Form(None),
     correct_index: Optional[int] = Form(None),
@@ -398,44 +399,63 @@ async def update_question(
             update_data["text"] = text
         if category:
             update_data["category"] = category
+        if type:
+            update_data["type"] = type
         if age_min is not None:
             update_data["age_min"] = age_min
         if age_max is not None:
             update_data["age_max"] = age_max
 
-        # 🧠 If new image files are uploaded, replace old image options
+        # Always update correct_index if provided
+        if correct_index is not None:
+            update_data["correct_index"] = correct_index
+
+        # Always update correct_answer if provided
+        if correct_answer is not None and str(correct_answer).strip():
+            ca_str = str(correct_answer).strip()
+            update_data["correct_answer"] = ca_str
+            if update_data.get("correct_index") is None and ca_str.isdigit():
+                try:
+                    c_idx = int(ca_str) - 1
+                    if 0 <= c_idx <= 10:
+                        update_data["correct_index"] = c_idx
+                except (ValueError, TypeError):
+                    pass
+
+        # Handle text options
+        if options:
+            try:
+                options_list = json.loads(options)
+                update_data["options"] = options_list
+                c_idx = update_data.get("correct_index")
+                if c_idx is not None and 0 <= c_idx < len(options_list):
+                    update_data["correct_answer"] = options_list[c_idx]
+            except Exception:
+                pass
+
+        # Handle image option uploads
         image_files = [option1, option2, option3, option4]
         if any(image_files):
-            image_options = []
-            for file in image_files:
-                if file:
+            existing_imgs = existing.get("image_options") or [None, None, None, None]
+            while len(existing_imgs) < 4:
+                existing_imgs.append(None)
+
+            new_image_options = list(existing_imgs)
+            for idx, file in enumerate(image_files):
+                if file and file.filename:
                     filename = f"{ObjectId()}_{file.filename}"
                     file_path = os.path.join(UPLOAD_DIR, filename)
                     with open(file_path, "wb") as buffer:
                         buffer.write(await file.read())
-                    image_options.append(f"/uploads/{filename}")
-                else:
-                    image_options.append(None)
-            update_data["image_options"] = image_options
-            if correct_index is not None:
-                update_data["correct_index"] = correct_index
+                    new_image_options[idx] = f"/uploads/{filename}"
+            update_data["image_options"] = new_image_options
 
-        if question_image:
+        if question_image and question_image.filename:
             filename = f"{ObjectId()}_{question_image.filename}"
             file_path = os.path.join(UPLOAD_DIR, filename)
             with open(file_path, "wb") as buffer:
                 buffer.write(await question_image.read())
             update_data["question_image"] = f"/uploads/{filename}"
-
-        # 📝 Otherwise, allow text updates
-        elif options:
-            try:
-                options_list = json.loads(options)
-                update_data["options"] = options_list
-            except:
-                pass
-            if correct_answer:
-                update_data["correct_answer"] = correct_answer
 
         if not update_data:
             raise HTTPException(status_code=400, detail="No update data provided")

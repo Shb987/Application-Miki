@@ -1597,11 +1597,21 @@
             if (el) el.value = opt;
           });
         }
-        document.getElementById("edit-correct-answer").value = 
-          (q.correct_index !== undefined) ? (q.correct_index + 1) : "";
+        let corrVal = "";
+        if (q.correct_index !== undefined && q.correct_index !== null) {
+          corrVal = q.correct_index + 1;
+        } else if (q.correct_answer) {
+          corrVal = q.correct_answer;
+        }
+        document.getElementById("edit-correct-answer").value = corrVal;
       } else if (type === "image") {
-        document.getElementById("edit-correct-index").value = 
-          (q.correct_index !== undefined) ? (q.correct_index + 1) : "";
+        let corrVal = "";
+        if (q.correct_index !== undefined && q.correct_index !== null) {
+          corrVal = q.correct_index + 1;
+        } else if (q.correct_answer) {
+          corrVal = q.correct_answer;
+        }
+        document.getElementById("edit-correct-index").value = corrVal;
         
         const qImagePreview = document.getElementById("edit-question-image-preview");
         const qImageContainer = document.getElementById("edit-question-image-preview-container");
@@ -1656,11 +1666,18 @@
           if (val) opts.push(val);
         }
         formData.append("options", JSON.stringify(opts));
-        formData.append("correct_answer", document.getElementById("edit-correct-answer").value.trim());
+        const corrAns = document.getElementById("edit-correct-answer").value.trim();
+        if (corrAns) {
+          formData.append("correct_answer", corrAns);
+          if (!isNaN(parseInt(corrAns))) {
+            formData.append("correct_index", parseInt(corrAns) - 1);
+          }
+        }
       } else if (type === "image") {
         const correct_index = parseInt(document.getElementById("edit-correct-index").value);
         if (!isNaN(correct_index)) {
           formData.append("correct_index", correct_index - 1);
+          formData.append("correct_answer", String(correct_index));
         }
         for (let i = 1; i <= 4; i++) {
           const file = document.getElementById(`edit-img${i}`).files[0];

@@ -927,16 +927,21 @@ async def analyze_career(
         raise HTTPException(status_code=404, detail="No answers found")
 
     attempts = student_doc.get("attempts", [])
-    completed_attempts = [a for a in attempts if a.get("status") == "completed"]
-
-    if not completed_attempts:
+    if not attempts:
         raise HTTPException(
             status_code=400,
-            detail="No completed attempt found"
+            detail="No test attempts found"
         )
 
-    latest_attempt = max(completed_attempts, key=lambda a: a["attempt"])
+    # Pick latest attempt
+    latest_attempt = attempts[-1]
     attempt_num = latest_attempt["attempt"]
+
+    # Mark attempt as completed
+    await db.answers.update_one(
+        {"student_id": s_oid, "attempts.attempt": attempt_num},
+        {"$set": {"attempts.$.status": "completed"}}
+    )
 
     # 2️⃣ Scores & Tie Handling
     categories = latest_attempt.get("categories", [])
@@ -1083,6 +1088,34 @@ async def get_career_analysis(student_id: str, attempt: Optional[int] = None,
         {"_id": 0},
         sort=[("attempt", -1)]
     )
+
+    if not record:
+        # Fallback: compute career analysis on the fly directly from db.answers document
+        answers_doc = await db.answers.find_one({"student_id": s_oid})
+        if answers_doc and answers_doc.get("attempts"):
+            target_attempt_num = attempt if attempt is not None else answers_doc["attempts"][-1]["attempt"]
+            match_att = next((a for a in answers_doc["attempts"] if a["attempt"] == target_attempt_num), None)
+            if match_att:
+                categories = match_att.get("categories", [])
+                scores = {c["category"]: c.get("total_marks", 0) for c in categories}
+                percentages = normalize_percentages(scores)
+                sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+                top_cat = " & ".join([c.title() for c, _ in sorted_cats[:1]]) if sorted_cats else "Logical-Mathematical"
+                recommended_career = get_recommended_career(top_cat)
+                insights, suggestions = generate_insights_and_suggestions(scores)
+                record = {
+                    "student_id": str(s_oid),
+                    "attempt": target_attempt_num,
+                    "scores": scores,
+                    "overall_score": sum(scores.values()),
+                    "percentages": percentages,
+                    "top_category": top_cat,
+                    "recommended_career": recommended_career,
+                    "personality_insights": insights,
+                    "career_suggestions": suggestions,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+
     if not record:
         raise HTTPException(
             status_code=404,
@@ -1273,25 +1306,42 @@ async def get_career_history(student_id: str,
             "categories": categories_detailed
         })
 
-    # Merge attempts with career analysis results
+    # Merge all attempts with career analysis results
+    all_attempts_list = answers_doc.get("attempts", [])
     combined_history = []
-    for record in career_records:
-        attempt_no = record.get("attempt", 0)
 
-        matching_attempt = next((a for a in full_attempts if a["attempt"] == attempt_no), None)
-        scores = record.get("scores", {})
-        insights = record.get("personality_insights")
-        suggestions = record.get("career_suggestions")
+    for att in all_attempts_list:
+        att_no = att.get("attempt", 1)
+        record = next((r for r in career_records if r.get("attempt") == att_no), None)
+        matching_attempt = next((a for a in full_attempts if a["attempt"] == att_no), None)
+
+        if record:
+            scores = record.get("scores", {})
+            top_cat = record.get("top_category", "Logical-Mathematical")
+            rec_career = record.get("recommended_career", "Scientist, Engineer")
+            insights = record.get("personality_insights")
+            suggestions = record.get("career_suggestions")
+            timestamp = record.get("timestamp")
+        else:
+            categories = att.get("categories", [])
+            scores = {c["category"]: c.get("total_marks", 0) for c in categories}
+            sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            top_cat = " & ".join([c.title() for c, _ in sorted_cats[:1]]) if sorted_cats else "Logical-Mathematical"
+            rec_career = get_recommended_career(top_cat)
+            insights = None
+            suggestions = None
+            timestamp = att.get("timestamp_utc")
+
         if not insights or not suggestions:
             gen_insights, gen_suggestions = generate_insights_and_suggestions(scores)
             insights = insights or gen_insights
             suggestions = suggestions or gen_suggestions
 
         combined_history.append({
-            "attempt": attempt_no,
-            "timestamp": record.get("timestamp"),
-            "top_category": record.get("top_category"),
-            "recommended_career": record.get("recommended_career"),
+            "attempt": att_no,
+            "timestamp": timestamp,
+            "top_category": top_cat,
+            "recommended_career": rec_career,
             "personality_insights": insights,
             "career_suggestions": suggestions,
             "scores": scores,

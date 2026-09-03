@@ -62,28 +62,40 @@ async def build_student_id_filter(current_user: dict, explicit_student_id: Optio
 
     mobile = current_user.get("sub")
     if mobile:
-        user_rec = await db.usertable.find_one({"mobile_number": mobile})
-        if user_rec:
-            if user_rec.get("student_id"):
-                sid_s = str(user_rec["student_id"])
-                if sid_s not in candidates:
-                    candidates.append(sid_s)
-                if ObjectId.is_valid(sid_s) and ObjectId(sid_s) not in candidates:
-                    candidates.append(ObjectId(sid_s))
-            for sid in user_rec.get("student_ids", []):
-                sid_s = str(sid)
-                if sid_s not in candidates:
-                    candidates.append(sid_s)
-                if ObjectId.is_valid(sid_s) and ObjectId(sid_s) not in candidates:
-                    candidates.append(ObjectId(sid_s))
-        
-        st_docs = await db.students.find({"mobile_number": mobile}).to_list(length=10)
-        for doc in st_docs:
-            doc_id_str = str(doc["_id"])
-            if doc_id_str not in candidates:
-                candidates.append(doc_id_str)
-            if doc["_id"] not in candidates:
-                candidates.append(doc["_id"])
+        mob_clean = str(mobile).strip()
+        mob_variants = [mob_clean]
+        if mob_clean.startswith("+91"):
+            mob_variants.append(mob_clean[3:])
+        elif len(mob_clean) == 10 and mob_clean.isdigit():
+            mob_variants.append(f"+91{mob_clean}")
+
+        for m in mob_variants:
+            if m not in candidates:
+                candidates.append(m)
+
+        for m in mob_variants:
+            user_rec = await db.usertable.find_one({"mobile_number": m})
+            if user_rec:
+                if user_rec.get("student_id"):
+                    sid_s = str(user_rec["student_id"])
+                    if sid_s not in candidates:
+                        candidates.append(sid_s)
+                    if ObjectId.is_valid(sid_s) and ObjectId(sid_s) not in candidates:
+                        candidates.append(ObjectId(sid_s))
+                for sid in user_rec.get("student_ids", []):
+                    sid_s = str(sid)
+                    if sid_s not in candidates:
+                        candidates.append(sid_s)
+                    if ObjectId.is_valid(sid_s) and ObjectId(sid_s) not in candidates:
+                        candidates.append(ObjectId(sid_s))
+
+            st_docs = await db.students.find({"mobile_number": m}).to_list(length=10)
+            for doc in st_docs:
+                doc_id_str = str(doc["_id"])
+                if doc_id_str not in candidates:
+                    candidates.append(doc_id_str)
+                if doc["_id"] not in candidates:
+                    candidates.append(doc["_id"])
 
     if current_user.get("role") == "admin" and not explicit_student_id:
         return {}
@@ -272,7 +284,12 @@ async def create_todo(
 
 @router.get("/view-todos", summary="View To-Do List")
 @router.get("/todos", summary="View To-Do List", include_in_schema=False)
+@router.get("/get-todos", summary="View To-Do List", include_in_schema=False)
+@router.get("/list-todos", summary="View To-Do List", include_in_schema=False)
+@router.post("/view-todos", summary="View To-Do List (POST)", include_in_schema=False)
+@router.post("/get-todos", summary="View To-Do List (POST)", include_in_schema=False)
 async def list_todos(
+    request: Request,
     student_id: Optional[str] = Query(None, description="Student ID to fetch to-dos for"),
     category: Optional[str] = Query(None, description="Optional category to filter to-dos"),
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
@@ -285,10 +302,23 @@ async def list_todos(
     Supports optional `category` query parameter filter (`?category=homework`).
     Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
     """
-    query_filter: Dict[str, Any] = await build_student_id_filter(current_user, student_id)
+    target_student_id = student_id
+    target_category = category
 
-    if category and category.strip():
-        cat_regex = {"$regex": f"^{category.strip()}$", "$options": "i"}
+    if request.method == "POST":
+        try:
+            body_data = await request.json()
+            if not target_student_id and body_data.get("student_id"):
+                target_student_id = str(body_data.get("student_id"))
+            if not target_category and body_data.get("category"):
+                target_category = str(body_data.get("category"))
+        except Exception:
+            pass
+
+    query_filter: Dict[str, Any] = await build_student_id_filter(current_user, target_student_id)
+
+    if target_category and target_category.strip():
+        cat_regex = {"$regex": f"^{target_category.strip()}$", "$options": "i"}
         query_filter["category"] = cat_regex
 
     offset = skip if skip is not None else (page - 1) * limit
@@ -317,12 +347,17 @@ async def list_todos(
     total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
 
     return {
+        "status_code": 200,
+        "status": "success",
+        "todos": items,
+        "items": items,
+        "data": items,
+        "categories": categories_map,
         "page": page,
         "limit": limit,
         "total_count": total_count,
         "total_pages": total_pages,
         "has_next": page < total_pages,
-        "categories": categories_map
     }
 
 

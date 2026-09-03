@@ -567,41 +567,24 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
     # Process each question + answer
     for qid, ans in zip(payload.question_ids, payload.answers):
-        q_candidates = [qid, str(qid)]
-        if ObjectId.is_valid(str(qid)):
-            q_candidates.append(ObjectId(str(qid)))
-
-        question = await db.questions.find_one({"_id": {"$in": q_candidates}})
+        question = await db.questions.find_one({"_id": ObjectId(qid)})
         if not question:
             continue
 
         q_type = question.get("type")
         correct_index = question.get("correct_index")
         options = question.get("options") or question.get("image_options") or []
-        image_options = question.get("image_options") or (options if q_type == "image" else [])
 
-        raw_correct_ans = question.get("correct_answer")
-        correct_ans_val = raw_correct_ans
-        target_opts = image_options if q_type == "image" else options
-
-        if q_type == "image" or not correct_ans_val or (isinstance(correct_ans_val, (int, str)) and str(correct_ans_val).strip().isdigit()):
-            idx_to_check = None
-            if correct_index is not None:
-                try:
-                    idx_to_check = int(correct_index)
-                except (ValueError, TypeError):
-                    pass
-            elif raw_correct_ans is not None:
-                try:
-                    idx_to_check = int(raw_correct_ans)
-                except (ValueError, TypeError):
-                    pass
-
-            if idx_to_check is not None and target_opts:
-                if 0 <= idx_to_check < len(target_opts):
-                    correct_ans_val = target_opts[idx_to_check]
-                elif 1 <= idx_to_check <= len(target_opts):
-                    correct_ans_val = target_opts[idx_to_check - 1]
+        correct_ans_val = question.get("correct_answer")
+        if not correct_ans_val and correct_index is not None and options:
+            try:
+                c_idx = int(correct_index)
+                if 0 <= c_idx < len(options):
+                    correct_ans_val = options[c_idx]
+                elif 1 <= c_idx <= len(options):
+                    correct_ans_val = options[c_idx - 1]
+            except (ValueError, TypeError):
+                pass
 
         if q_type == "rating":
             rating_values.append(ans)
@@ -614,10 +597,7 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
             total_marks += mark
 
         answers_list.append({
-            "question_id": str(qid),
-            "question_text": question.get("text"),
-            "options": options,
-            "image_options": image_options,
+            "question_id": qid,
             "answer_value": ans,
             "correct_index": correct_index,
             "correct_answer": correct_ans_val,
@@ -1129,94 +1109,66 @@ async def get_career_history(student_id: str,
             answers_detailed = []
 
             for ans in cat.get("answers", []):
-                qid = ans.get("question_id")
-                if not qid:
-                    continue
+                qid = ans["question_id"]
 
-                q_candidates = [qid, str(qid)]
-                if ObjectId.is_valid(str(qid)):
-                    q_candidates.append(ObjectId(str(qid)))
-
-                # Fetch question details from DB
+                # Fetch question details
                 question = await db.questions.find_one(
-                    {"_id": {"$in": q_candidates}},
+                    {"_id": ObjectId(qid)},
                     {"text": 1, "type": 1, "options": 1, "image_options": 1,
                      "correct_index": 1, "correct_answer": 1}
                 )
 
-                qtype = (question.get("type") if question else None) or ans.get("type", "text")
+                if not question:
+                    # Provide fallback if question was deleted
+                    answers_detailed.append({
+                        "question_id": qid,
+                        "question_text": "[Deleted Question]",
+                        "options": [],
+                        "student_answer": ans.get("answer_value"),
+                        "type": "deleted",
+                        "correct_index": None,
+                        "correct_answer": None,
+                        "is_correct": False
+                    })
+                    continue
+
+                # Extract data
+                qtype = question.get("type")
                 student_answer = ans.get("answer_value")
-                correct_index = (question.get("correct_index") if question else None) if (question and question.get("correct_index") is not None) else ans.get("correct_index")
-                raw_correct_ans = (question.get("correct_answer") if question else None) or ans.get("correct_answer")
-                
-                question_text = (question.get("text") if question else None) or ans.get("question_text") or ans.get("text") or "Question"
-                options = (question.get("options") if question else None) or (question.get("image_options") if question else None) or ans.get("options") or ans.get("image_options") or []
-                image_options = (question.get("image_options") if question else None) or ans.get("image_options") or (options if qtype == "image" else [])
+                correct_index = question.get("correct_index")
+                options = question.get("options") or question.get("image_options") or []
 
-                correct_ans_val = raw_correct_ans
-                target_opts = image_options if qtype == "image" else options
+                # Convert both to string for robust matching ("2" vs 2)
+                student_answer_s = str(student_answer).strip() if student_answer is not None else None
+                correct_index_s = str(correct_index).strip() if correct_index is not None else None
 
-                if qtype == "image" or not correct_ans_val or (isinstance(correct_ans_val, (int, str)) and str(correct_ans_val).strip().isdigit()):
-                    idx_to_check = None
-                    if correct_index is not None:
-                        try:
-                            idx_to_check = int(correct_index)
-                        except (ValueError, TypeError):
-                            pass
-                    elif raw_correct_ans is not None:
-                        try:
-                            idx_to_check = int(raw_correct_ans)
-                        except (ValueError, TypeError):
-                            pass
-
-                    if idx_to_check is not None and target_opts:
-                        if 0 <= idx_to_check < len(target_opts):
-                            correct_ans_val = target_opts[idx_to_check]
-                        elif 1 <= idx_to_check <= len(target_opts):
-                            correct_ans_val = target_opts[idx_to_check - 1]
-
-                student_answer_url = None
-                if qtype == "image":
-                    if isinstance(student_answer, str) and (student_answer.startswith("/") or student_answer.startswith("http")):
-                        student_answer_url = student_answer
-                    elif student_answer is not None and image_options:
-                        try:
-                            s_idx = int(student_answer)
-                            if 0 <= s_idx < len(image_options):
-                                student_answer_url = image_options[s_idx]
-                            elif 1 <= s_idx <= len(image_options):
-                                student_answer_url = image_options[s_idx - 1]
-                        except (ValueError, TypeError):
-                            pass
-                    if not student_answer_url and isinstance(student_answer, str):
-                        student_answer_url = student_answer
+                # Compute correct answer text/url if missing
+                correct_ans_val = question.get("correct_answer")
+                if not correct_ans_val and correct_index is not None and options:
+                    try:
+                        c_idx = int(correct_index)
+                        if 0 <= c_idx < len(options):
+                            correct_ans_val = options[c_idx]
+                        elif 1 <= c_idx <= len(options):
+                            correct_ans_val = options[c_idx - 1]
+                    except (ValueError, TypeError):
+                        pass
 
                 # Determine correctness
                 if qtype == "rating":
                     is_correct = True
                 else:
-                    student_answer_s = str(student_answer).strip() if student_answer is not None else None
-                    correct_index_s = str(correct_index).strip() if correct_index is not None else None
                     is_correct = (student_answer_s == correct_index_s) or (student_answer_s is not None and student_answer_s == str(correct_ans_val))
 
                 # Append detailed answer
                 answers_detailed.append({
-                    "question_id": str(qid),
-                    "question_text": question_text,
-                    "question": question_text,
-                    "text": question_text,
+                    "question_id": qid,
+                    "question_text": question.get("text"),
                     "options": options,
-                    "image_options": image_options,
-                    "student_answer": student_answer_url or student_answer,
-                    "user_answer": student_answer_url or student_answer,
-                    "your_answer": student_answer_url or student_answer,
-                    "student_answer_url": student_answer_url or student_answer,
+                    "student_answer": student_answer,
                     "type": qtype,
                     "correct_index": correct_index,
-                    "correct_answer_index": correct_index,
-                    "correct_answer": correct_ans_val or "N/A",
-                    "correct_answer_url": correct_ans_val if qtype == "image" else None,
-                    "correct_option": correct_ans_val or "N/A",
+                    "correct_answer": correct_ans_val,
                     "is_correct": is_correct
                 })
 

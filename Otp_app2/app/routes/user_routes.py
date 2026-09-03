@@ -567,24 +567,41 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
     # Process each question + answer
     for qid, ans in zip(payload.question_ids, payload.answers):
-        question = await db.questions.find_one({"_id": ObjectId(qid)})
+        q_candidates = [qid]
+        if ObjectId.is_valid(str(qid)):
+            q_candidates.append(ObjectId(str(qid)))
+
+        question = await db.questions.find_one({"_id": {"$in": q_candidates}})
         if not question:
             continue
 
         q_type = question.get("type")
         correct_index = question.get("correct_index")
         options = question.get("options") or question.get("image_options") or []
+        image_options = question.get("image_options") or (options if q_type == "image" else [])
 
-        correct_ans_val = question.get("correct_answer")
-        if not correct_ans_val and correct_index is not None and options:
-            try:
-                c_idx = int(correct_index)
-                if 0 <= c_idx < len(options):
-                    correct_ans_val = options[c_idx]
-                elif 1 <= c_idx <= len(options):
-                    correct_ans_val = options[c_idx - 1]
-            except (ValueError, TypeError):
-                pass
+        raw_correct_ans = question.get("correct_answer")
+        correct_ans_val = raw_correct_ans
+        target_opts = image_options if q_type == "image" else options
+
+        if q_type == "image" or not correct_ans_val or (isinstance(correct_ans_val, (int, str)) and str(correct_ans_val).strip().isdigit()):
+            idx_to_check = None
+            if correct_index is not None:
+                try:
+                    idx_to_check = int(correct_index)
+                except (ValueError, TypeError):
+                    pass
+            elif raw_correct_ans is not None:
+                try:
+                    idx_to_check = int(raw_correct_ans)
+                except (ValueError, TypeError):
+                    pass
+
+            if idx_to_check is not None and target_opts:
+                if 0 <= idx_to_check < len(target_opts):
+                    correct_ans_val = target_opts[idx_to_check]
+                elif 1 <= idx_to_check <= len(target_opts):
+                    correct_ans_val = target_opts[idx_to_check - 1]
 
         if q_type == "rating":
             rating_values.append(ans)
@@ -597,7 +614,8 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
             total_marks += mark
 
         answers_list.append({
-            "question_id": qid,
+            "question_id": str(qid),
+            "question_text": question.get("text"),
             "answer_value": ans,
             "correct_index": correct_index,
             "correct_answer": correct_ans_val,
@@ -1130,24 +1148,37 @@ async def get_career_history(student_id: str,
             for ans in cat.get("answers", []):
                 qid = ans["question_id"]
 
-                # Fetch question details
+                # Fetch question details with both string and ObjectId lookup
+                q_candidates = [qid]
+                if ObjectId.is_valid(str(qid)):
+                    q_candidates.append(ObjectId(str(qid)))
+
                 question = await db.questions.find_one(
-                    {"_id": ObjectId(qid)},
+                    {"_id": {"$in": q_candidates}},
                     {"text": 1, "type": 1, "options": 1, "image_options": 1,
                      "correct_index": 1, "correct_answer": 1}
                 )
 
                 if not question:
-                    # Provide fallback if question was deleted
+                    # Provide fallback if question document not found
+                    st_ans = ans.get("answer_value")
+                    c_ans = ans.get("correct_answer")
                     answers_detailed.append({
                         "question_id": qid,
-                        "question_text": "[Deleted Question]",
+                        "question_text": ans.get("question_text") or "Question",
                         "options": [],
-                        "student_answer": ans.get("answer_value"),
-                        "type": "deleted",
-                        "correct_index": None,
-                        "correct_answer": None,
-                        "is_correct": False
+                        "image_options": [],
+                        "student_answer": st_ans,
+                        "user_answer": st_ans,
+                        "student_answer_url": st_ans,
+                        "user_answer_url": st_ans,
+                        "type": ans.get("type", "unknown"),
+                        "correct_index": ans.get("correct_index"),
+                        "correct_answer_index": ans.get("correct_index"),
+                        "correct_answer": c_ans or "N/A",
+                        "correct_answer_url": c_ans,
+                        "correct_option": c_ans or "N/A",
+                        "is_correct": bool(ans.get("mark", 0) > 0)
                     })
                     continue
 
@@ -1155,24 +1186,32 @@ async def get_career_history(student_id: str,
                 qtype = question.get("type")
                 student_answer = ans.get("answer_value")
                 correct_index = question.get("correct_index")
+                raw_correct_ans = question.get("correct_answer")
                 options = question.get("options") or question.get("image_options") or []
                 image_options = question.get("image_options") or (options if qtype == "image" else [])
 
-                # Convert both to string for robust matching ("2" vs 2)
-                student_answer_s = str(student_answer).strip() if student_answer is not None else None
-                correct_index_s = str(correct_index).strip() if correct_index is not None else None
+                # Resolve correct answer text or image URL
+                correct_ans_val = raw_correct_ans
+                target_opts = image_options if qtype == "image" else options
 
-                # Compute correct answer text/url if missing
-                correct_ans_val = question.get("correct_answer")
-                if not correct_ans_val and correct_index is not None and options:
-                    try:
-                        c_idx = int(correct_index)
-                        if 0 <= c_idx < len(options):
-                            correct_ans_val = options[c_idx]
-                        elif 1 <= c_idx <= len(options):
-                            correct_ans_val = options[c_idx - 1]
-                    except (ValueError, TypeError):
-                        pass
+                if qtype == "image" or not correct_ans_val or (isinstance(correct_ans_val, (int, str)) and str(correct_ans_val).strip().isdigit()):
+                    idx_to_check = None
+                    if correct_index is not None:
+                        try:
+                            idx_to_check = int(correct_index)
+                        except (ValueError, TypeError):
+                            pass
+                    elif raw_correct_ans is not None:
+                        try:
+                            idx_to_check = int(raw_correct_ans)
+                        except (ValueError, TypeError):
+                            pass
+
+                    if idx_to_check is not None and target_opts:
+                        if 0 <= idx_to_check < len(target_opts):
+                            correct_ans_val = target_opts[idx_to_check]
+                        elif 1 <= idx_to_check <= len(target_opts):
+                            correct_ans_val = target_opts[idx_to_check - 1]
 
                 # Resolve student_answer_url if student_answer is an index for image question
                 student_answer_url = None
@@ -1188,8 +1227,13 @@ async def get_career_history(student_id: str,
                                 student_answer_url = image_options[s_idx - 1]
                         except (ValueError, TypeError):
                             pass
+                    if not student_answer_url and isinstance(student_answer, str):
+                        student_answer_url = student_answer
 
                 # Determine correctness
+                student_answer_s = str(student_answer).strip() if student_answer is not None else None
+                correct_index_s = str(correct_index).strip() if correct_index is not None else None
+
                 if qtype == "rating":
                     is_correct = True
                 else:
@@ -1201,8 +1245,8 @@ async def get_career_history(student_id: str,
                     "question_text": question.get("text"),
                     "options": options,
                     "image_options": image_options,
-                    "student_answer": student_answer,
-                    "user_answer": student_answer,
+                    "student_answer": student_answer_url or student_answer,
+                    "user_answer": student_answer_url or student_answer,
                     "student_answer_url": student_answer_url or student_answer,
                     "user_answer_url": student_answer_url or student_answer,
                     "type": qtype,

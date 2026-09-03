@@ -15,32 +15,41 @@ UPLOAD_DIR = os.path.join("app", "static", "uploads", "todos")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-def extract_student_id(current_user: dict, explicit_student_id: Optional[str] = None) -> str:
-    if explicit_student_id and str(explicit_student_id).strip():
+async def extract_student_id(current_user: dict, explicit_student_id: Optional[str] = None) -> str:
+    if explicit_student_id and str(explicit_student_id).strip() and str(explicit_student_id).strip().lower() != "string":
         return str(explicit_student_id).strip()
-    sid = current_user.get("student_id") or current_user.get("_id") or current_user.get("sub")
-    if not sid:
-        raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
-    return str(sid)
+
+    sid = current_user.get("student_id") or current_user.get("_id")
+    if sid and str(sid).strip() and str(sid).strip().lower() != "string":
+        return str(sid).strip()
+
+    sub = current_user.get("sub")
+    if sub:
+        user_rec = await db.usertable.find_one({"mobile_number": sub})
+        if user_rec and user_rec.get("student_id"):
+            return str(user_rec["student_id"])
+        st_rec = await db.students.find_one({"mobile_number": sub})
+        if st_rec:
+            return str(st_rec["_id"])
+        return str(sub)
+
+    raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
 
 
-def build_student_id_filter(current_user: dict, explicit_student_id: Optional[str] = None) -> dict:
-    if explicit_student_id and str(explicit_student_id).strip():
-        sid_str = str(explicit_student_id).strip()
-        candidates: List[Any] = [sid_str]
-        if ObjectId.is_valid(sid_str):
-            candidates.append(ObjectId(sid_str))
-        return {"student_id": {"$in": candidates}}
+async def build_student_id_filter(current_user: dict, explicit_student_id: Optional[str] = None) -> dict:
+    candidates: List[Any] = []
 
-    if current_user.get("role") == "admin":
-        return {}
+    if explicit_student_id and str(explicit_student_id).strip() and str(explicit_student_id).strip().lower() != "string":
+        s = str(explicit_student_id).strip()
+        candidates.append(s)
+        if ObjectId.is_valid(s):
+            candidates.append(ObjectId(s))
 
     raw_candidates = [
         current_user.get("student_id"),
         current_user.get("_id"),
         current_user.get("sub"),
     ]
-    candidates: List[Any] = []
     for val in raw_candidates:
         if val and str(val).strip() and str(val).strip().lower() != "string":
             s = str(val).strip()
@@ -51,17 +60,45 @@ def build_student_id_filter(current_user: dict, explicit_student_id: Optional[st
                 if oid not in candidates:
                     candidates.append(oid)
 
+    mobile = current_user.get("sub")
+    if mobile:
+        user_rec = await db.usertable.find_one({"mobile_number": mobile})
+        if user_rec:
+            if user_rec.get("student_id"):
+                sid_s = str(user_rec["student_id"])
+                if sid_s not in candidates:
+                    candidates.append(sid_s)
+                if ObjectId.is_valid(sid_s) and ObjectId(sid_s) not in candidates:
+                    candidates.append(ObjectId(sid_s))
+            for sid in user_rec.get("student_ids", []):
+                sid_s = str(sid)
+                if sid_s not in candidates:
+                    candidates.append(sid_s)
+                if ObjectId.is_valid(sid_s) and ObjectId(sid_s) not in candidates:
+                    candidates.append(ObjectId(sid_s))
+        
+        st_docs = await db.students.find({"mobile_number": mobile}).to_list(length=10)
+        for doc in st_docs:
+            doc_id_str = str(doc["_id"])
+            if doc_id_str not in candidates:
+                candidates.append(doc_id_str)
+            if doc["_id"] not in candidates:
+                candidates.append(doc["_id"])
+
+    if current_user.get("role") == "admin" and not explicit_student_id:
+        return {}
+
     if not candidates:
         raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
 
     return {"student_id": {"$in": candidates}}
 
 
-def verify_todo_ownership(doc: dict, current_user: dict, explicit_student_id: Optional[str] = None):
+async def verify_todo_ownership(doc: dict, current_user: dict, explicit_student_id: Optional[str] = None):
     if current_user.get("role") == "admin":
         return
 
-    filter_dict = build_student_id_filter(current_user, explicit_student_id)
+    filter_dict = await build_student_id_filter(current_user, explicit_student_id)
     allowed_ids = filter_dict.get("student_id", {}).get("$in", [])
     allowed_strs = [str(x) for x in allowed_ids if x is not None]
 
@@ -129,6 +166,7 @@ async def fetch_todo_by_id(todo_id: str) -> dict:
 @router.post("/todos", summary="Add To-Do", status_code=status.HTTP_200_OK, include_in_schema=False)
 async def create_todo(
     request: Request,
+    student_id: Optional[str] = Form(None),
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     category: Optional[str] = Form("general"),
@@ -164,7 +202,7 @@ async def create_todo(
             else:
                 todo_rem_enabled = bool(todo_rem_time)
 
-            target_student_id = extract_student_id(current_user, body_data.get("student_id"))
+            target_student_id = await extract_student_id(current_user, body_data.get("student_id"))
             
             json_imgs = body_data.get("images") or body_data.get("image_urls") or []
             if isinstance(json_imgs, str):
@@ -186,7 +224,7 @@ async def create_todo(
         else:
             todo_rem_enabled = bool(todo_rem_time)
 
-        target_student_id = extract_student_id(current_user)
+        target_student_id = await extract_student_id(current_user, student_id)
         uploaded_images = images or []
         if isinstance(uploaded_images, (UploadFile, str)):
             uploaded_images = [uploaded_images]
@@ -247,7 +285,7 @@ async def list_todos(
     Supports optional `category` query parameter filter (`?category=homework`).
     Sorted by is_important descending (True comes first) and created_at descending (latest comes top).
     """
-    query_filter: Dict[str, Any] = build_student_id_filter(current_user, student_id)
+    query_filter: Dict[str, Any] = await build_student_id_filter(current_user, student_id)
 
     if category and category.strip():
         cat_regex = {"$regex": f"^{category.strip()}$", "$options": "i"}
@@ -309,7 +347,7 @@ async def update_todo(
     Consolidates status updates, uploading new image attachments, and deleting specified images.
     """
     doc = await fetch_todo_by_id(todo_id)
-    verify_todo_ownership(doc, current_user)
+    await verify_todo_ownership(doc, current_user)
     oid = doc["_id"]
 
     content_type = request.headers.get("content-type", "")
@@ -435,7 +473,7 @@ async def delete_todo(
     Delete a To-Do item permanently by todo_id.
     """
     doc = await fetch_todo_by_id(todo_id)
-    verify_todo_ownership(doc, current_user)
+    await verify_todo_ownership(doc, current_user)
     oid = doc["_id"]
 
     for img_url in doc.get("image_urls", []):
@@ -465,7 +503,7 @@ async def mark_todo_completed(
     Changes status from 'pending' to 'completed' and sets is_completed to True.
     """
     doc = await fetch_todo_by_id(todo_id)
-    verify_todo_ownership(doc, current_user)
+    await verify_todo_ownership(doc, current_user)
     oid = doc["_id"]
 
     update_fields = {

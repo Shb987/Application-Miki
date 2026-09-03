@@ -117,7 +117,11 @@ async def verify_otp(data: OTPVerify):
                     student_subscription = student.get("subscription")
                     student_usage_buckets = student.get("usage_buckets")
 
-    access_token = create_user_token(data.mobile_number, usertype)
+    access_token = create_user_token(
+        data.mobile_number,
+        usertype,
+        student_id=str(student_id) if student_id else None
+    )
 
     response_payload = {
         "status_code": 200,

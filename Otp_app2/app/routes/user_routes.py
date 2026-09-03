@@ -520,8 +520,22 @@ async def get_questions_by_age(age: int = Query(...)):
 
             if q.get("type") == "image":
                 question_data["type"] = "image"
-                question_data["options"] = q.get("image_options", [])
-                question_data["correct_index"] = q.get("correct_index")
+                img_opts = q.get("image_options", [])
+                c_idx = q.get("correct_index")
+                question_data["options"] = img_opts
+                question_data["correct_index"] = c_idx
+                
+                correct_ans = q.get("correct_answer")
+                if not correct_ans and c_idx is not None and img_opts:
+                    try:
+                        c_i = int(c_idx)
+                        if 0 <= c_i < len(img_opts):
+                            correct_ans = img_opts[c_i]
+                        elif 1 <= c_i <= len(img_opts):
+                            correct_ans = img_opts[c_i - 1]
+                    except (ValueError, TypeError):
+                        pass
+                question_data["correct_answer"] = correct_ans
             elif q.get("type") == "rating":
                 question_data["type"] = "rating"
                 question_data["age_min"] = q.get("age_min")
@@ -813,6 +827,22 @@ def get_recommended_career(category_name: str) -> str:
     return "Scientist, Engineer, Mathematician, Data Analyst"
 
 
+def generate_insights_and_suggestions(scores: dict):
+    if not scores:
+        return [], []
+    sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    top_3 = sorted_cats[:3]
+    insights = [
+        f"{cat}: Strong inclination towards {cat.lower()} intelligence."
+        for cat, _ in top_3
+    ]
+    career_suggestions = [
+        f"{cat} ➔ {get_recommended_career(cat)}"
+        for cat, _ in top_3
+    ]
+    return insights, career_suggestions
+
+
 import base64
 from io import BytesIO
 from datetime import datetime, timezone
@@ -921,6 +951,8 @@ async def analyze_career(
                 "percentages": percentages,
                 "top_category": top_cat,
                 "recommended_career": recommended_career,
+                "personality_insights": insights,
+                "career_suggestions": career_suggestions,
                 "timestamp": datetime.now(timezone.utc)
             }
         },
@@ -1016,7 +1048,12 @@ async def get_career_analysis(student_id: str, attempt: int,
             status_code=404,
             detail=f"No career analysis found for student {student_id} in attempt {attempt}"
         )
+    record = serialize_mongo_doc(record)
 
+    if not record.get("personality_insights") or not record.get("career_suggestions"):
+        gen_insights, gen_suggestions = generate_insights_and_suggestions(record.get("scores", {}))
+        record["personality_insights"] = record.get("personality_insights") or gen_insights
+        record["career_suggestions"] = record.get("career_suggestions") or gen_suggestions
 
     return {
         "status_code": 200,
@@ -1083,26 +1120,39 @@ async def get_career_history(student_id: str,
                 qtype = question.get("type")
                 student_answer = ans.get("answer_value")
                 correct_index = question.get("correct_index")
+                options = question.get("options") or question.get("image_options") or []
 
                 # Convert both to string for robust matching ("2" vs 2)
                 student_answer_s = str(student_answer).strip() if student_answer is not None else None
                 correct_index_s = str(correct_index).strip() if correct_index is not None else None
 
+                # Compute correct answer text/url if missing
+                correct_ans_val = question.get("correct_answer")
+                if not correct_ans_val and correct_index is not None and options:
+                    try:
+                        c_idx = int(correct_index)
+                        if 0 <= c_idx < len(options):
+                            correct_ans_val = options[c_idx]
+                        elif 1 <= c_idx <= len(options):
+                            correct_ans_val = options[c_idx - 1]
+                    except (ValueError, TypeError):
+                        pass
+
                 # Determine correctness
                 if qtype == "rating":
                     is_correct = True
                 else:
-                    is_correct = (student_answer_s == correct_index_s)
+                    is_correct = (student_answer_s == correct_index_s) or (student_answer_s is not None and student_answer_s == str(correct_ans_val))
 
                 # Append detailed answer
                 answers_detailed.append({
                     "question_id": qid,
                     "question_text": question.get("text"),
-                    "options": question.get("options") or question.get("image_options"),
+                    "options": options,
                     "student_answer": student_answer,
                     "type": qtype,
                     "correct_index": correct_index,
-                    "correct_answer": question.get("correct_answer"),
+                    "correct_answer": correct_ans_val,
                     "is_correct": is_correct
                 })
 
@@ -1127,13 +1177,22 @@ async def get_career_history(student_id: str,
         attempt_no = record.get("attempt", 0)
 
         matching_attempt = next((a for a in full_attempts if a["attempt"] == attempt_no), None)
+        scores = record.get("scores", {})
+        insights = record.get("personality_insights")
+        suggestions = record.get("career_suggestions")
+        if not insights or not suggestions:
+            gen_insights, gen_suggestions = generate_insights_and_suggestions(scores)
+            insights = insights or gen_insights
+            suggestions = suggestions or gen_suggestions
 
         combined_history.append({
             "attempt": attempt_no,
             "timestamp": record.get("timestamp"),
             "top_category": record.get("top_category"),
             "recommended_career": record.get("recommended_career"),
-            "scores": record.get("scores"),
+            "personality_insights": insights,
+            "career_suggestions": suggestions,
+            "scores": scores,
             "answers_detail": matching_attempt
         })
 

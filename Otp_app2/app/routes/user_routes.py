@@ -1120,24 +1120,38 @@ async def get_career_analysis(
         record["personality_insights"] = insights
         record["career_suggestions"] = suggestions
 
+    att_num = record.get("attempt", attempt or 1)
+    top_cat = record.get("top_category", "")
+    rec_career = record.get("recommended_career", "")
+    overall_score = record.get("overall_score", sum(scores.values()))
+    percentages = record.get("percentages", normalize_percentages(scores))
+
     return {
         "status_code": 200,
         "student_id": student_id,
-        "attempt": record.get("attempt", attempt or 1),
-        "career_analysis": record
+        "attempt": att_num,
+        "analyzed_attempt": att_num,
+        "top_category": top_cat,
+        "recommended_career": rec_career,
+        "overall_score": overall_score,
+        "percentages": percentages,
+        "scores": scores,
+        "personality_insights": insights,
+        "career_suggestions": suggestions,
+        "career_analysis": record,
+        "data": record
     }
 
 
 @router.get("/career-history/{student_id}")
 async def get_career_history(
     student_id: str,
-    include_answers: bool = Query(False, description="Include detailed question-by-question answers"),
+    include_answers: bool = Query(True, description="Include detailed question-by-question answers"),
     current=Depends(admin_or_user)
 ):
     """
     Fetch historical career analysis attempts for a student.
-    Returns clean career analysis statistics (Top Category, Recommended Career, Personality Insights, Suggestions, Scores).
-    Pass ?include_answers=true to include full onboarding question details.
+    Returns full career analysis statistics, scores, personality insights, suggestions, and question answer details.
     """
     try:
         s_oid = ObjectId(student_id)
@@ -1159,152 +1173,153 @@ async def get_career_history(
             "status_code": 200,
             "student_id": student_id,
             "total_attempts": 0,
-            "career_history": []
+            "career_history": [],
+            "history": [],
+            "data": []
         }
 
     full_attempts = []
-    if include_answers:
-        for attempt in attempts:
-            categories_detailed = []
+    for attempt in attempts:
+        categories_detailed = []
 
-            for cat in attempt.get("categories", []):
-                answers_detailed = []
+        for cat in attempt.get("categories", []):
+            answers_detailed = []
 
-                for ans in cat.get("answers", []):
-                    qid = ans.get("question_id")
-                    if not qid:
-                        continue
+            for ans in cat.get("answers", []):
+                qid = ans.get("question_id")
+                if not qid:
+                    continue
 
-                    q_candidates = [qid, str(qid)]
-                    if ObjectId.is_valid(str(qid)):
-                        q_candidates.append(ObjectId(str(qid)))
+                q_candidates = [qid, str(qid)]
+                if ObjectId.is_valid(str(qid)):
+                    q_candidates.append(ObjectId(str(qid)))
 
-                    question = await db.questions.find_one(
-                        {"_id": {"$in": q_candidates}},
-                        {"text": 1, "type": 1, "options": 1, "image_options": 1,
-                         "correct_index": 1, "correct_answer": 1}
-                    )
+                question = await db.questions.find_one(
+                    {"_id": {"$in": q_candidates}},
+                    {"text": 1, "type": 1, "options": 1, "image_options": 1,
+                     "correct_index": 1, "correct_answer": 1}
+                )
 
-                    if not question:
-                        st_ans = ans.get("answer_value")
-                        c_ans = ans.get("correct_answer")
-                        c_idx = ans.get("correct_index")
-                        q_txt = ans.get("question_text") or ans.get("text") or "Question"
-                        qtype = ans.get("type", "text")
-                        opts = ans.get("options") or []
-                        
-                        if not c_ans and c_idx is not None and opts:
-                            try:
-                                ci = int(c_idx)
-                                if 0 <= ci < len(opts):
-                                    c_ans = opts[ci]
-                                elif 1 <= ci <= len(opts):
-                                    c_ans = opts[ci - 1]
-                            except (ValueError, TypeError):
-                                pass
-
-                        answers_detailed.append({
-                            "question_id": str(qid),
-                            "question_text": q_txt,
-                            "options": opts,
-                            "image_options": opts if qtype == "image" else [],
-                            "student_answer": st_ans,
-                            "user_answer": st_ans,
-                            "student_answer_url": st_ans,
-                            "user_answer_url": st_ans,
-                            "type": qtype,
-                            "correct_index": c_idx,
-                            "correct_answer_index": c_idx,
-                            "correct_answer": c_ans or "N/A",
-                            "correct_answer_url": c_ans,
-                            "correct_option": c_ans or "N/A",
-                            "is_correct": bool(ans.get("mark", 0) > 0)
-                        })
-                        continue
-
-                    qtype = question.get("type")
-                    student_answer = ans.get("answer_value")
-                    correct_index = question.get("correct_index")
-                    raw_correct_ans = question.get("correct_answer")
-                    options = question.get("options") or question.get("image_options") or []
-                    image_options = question.get("image_options") or (options if qtype == "image" else [])
-
-                    student_answer_s = str(student_answer).strip() if student_answer is not None else None
-                    correct_index_s = str(correct_index).strip() if correct_index is not None else None
-
-                    correct_ans_val = raw_correct_ans
-                    target_opts = image_options if qtype == "image" else options
+                if not question:
+                    st_ans = ans.get("answer_value")
+                    c_ans = ans.get("correct_answer")
+                    c_idx = ans.get("correct_index")
+                    q_txt = ans.get("question_text") or ans.get("text") or "Question"
+                    qtype = ans.get("type", "text")
+                    opts = ans.get("options") or []
                     
-                    if qtype == "image" or not correct_ans_val or (isinstance(correct_ans_val, (int, str)) and str(correct_ans_val).strip().isdigit()):
-                        idx_to_check = None
-                        if correct_index is not None:
-                            try:
-                                idx_to_check = int(correct_index)
-                            except (ValueError, TypeError):
-                                pass
-                        elif raw_correct_ans is not None:
-                            try:
-                                idx_to_check = int(raw_correct_ans)
-                            except (ValueError, TypeError):
-                                pass
-                        
-                        if idx_to_check is not None and target_opts:
-                            if 0 <= idx_to_check < len(target_opts):
-                                correct_ans_val = target_opts[idx_to_check]
-                            elif 1 <= idx_to_check <= len(target_opts):
-                                correct_ans_val = target_opts[idx_to_check - 1]
-
-                    student_answer_url = None
-                    if qtype == "image":
-                        if isinstance(student_answer, str) and (student_answer.startswith("/") or student_answer.startswith("http")):
-                            student_answer_url = student_answer
-                        elif student_answer is not None and image_options:
-                            try:
-                                s_idx = int(student_answer)
-                                if 0 <= s_idx < len(image_options):
-                                    student_answer_url = image_options[s_idx]
-                                elif 1 <= s_idx <= len(image_options):
-                                    student_answer_url = image_options[s_idx - 1]
-                            except (ValueError, TypeError):
-                                pass
-                        if not student_answer_url and isinstance(student_answer, str):
-                            student_answer_url = student_answer
-
-                    if qtype == "rating":
-                        is_correct = True
-                    else:
-                        is_correct = (student_answer_s == correct_index_s) or (student_answer_s is not None and student_answer_s == str(correct_ans_val))
+                    if not c_ans and c_idx is not None and opts:
+                        try:
+                            ci = int(c_idx)
+                            if 0 <= ci < len(opts):
+                                c_ans = opts[ci]
+                            elif 1 <= ci <= len(opts):
+                                c_ans = opts[ci - 1]
+                        except (ValueError, TypeError):
+                            pass
 
                     answers_detailed.append({
                         "question_id": str(qid),
-                        "question_text": question.get("text") or ans.get("question_text") or "Question",
-                        "options": options,
-                        "image_options": image_options,
-                        "student_answer": student_answer_url or student_answer,
-                        "user_answer": student_answer_url or student_answer,
-                        "student_answer_url": student_answer_url or student_answer,
-                        "user_answer_url": student_answer_url or student_answer,
+                        "question_text": q_txt,
+                        "options": opts,
+                        "image_options": opts if qtype == "image" else [],
+                        "student_answer": st_ans,
+                        "user_answer": st_ans,
+                        "student_answer_url": st_ans,
+                        "user_answer_url": st_ans,
                         "type": qtype,
-                        "correct_index": correct_index,
-                        "correct_answer_index": correct_index,
-                        "correct_answer": correct_ans_val or "N/A",
-                        "correct_answer_url": correct_ans_val if qtype == "image" else None,
-                        "correct_option": correct_ans_val or "N/A",
-                        "is_correct": is_correct
+                        "correct_index": c_idx,
+                        "correct_answer_index": c_idx,
+                        "correct_answer": c_ans or "N/A",
+                        "correct_answer_url": c_ans,
+                        "correct_option": c_ans or "N/A",
+                        "is_correct": bool(ans.get("mark", 0) > 0)
                     })
+                    continue
 
-                categories_detailed.append({
-                    "category": cat["category"],
-                    "total_marks": cat["total_marks"],
-                    "answers": answers_detailed
+                qtype = question.get("type")
+                student_answer = ans.get("answer_value")
+                correct_index = question.get("correct_index")
+                raw_correct_ans = question.get("correct_answer")
+                options = question.get("options") or question.get("image_options") or []
+                image_options = question.get("image_options") or (options if qtype == "image" else [])
+
+                student_answer_s = str(student_answer).strip() if student_answer is not None else None
+                correct_index_s = str(correct_index).strip() if correct_index is not None else None
+
+                correct_ans_val = raw_correct_ans
+                target_opts = image_options if qtype == "image" else options
+                
+                if qtype == "image" or not correct_ans_val or (isinstance(correct_ans_val, (int, str)) and str(correct_ans_val).strip().isdigit()):
+                    idx_to_check = None
+                    if correct_index is not None:
+                        try:
+                            idx_to_check = int(correct_index)
+                        except (ValueError, TypeError):
+                            pass
+                    elif raw_correct_ans is not None:
+                        try:
+                            idx_to_check = int(raw_correct_ans)
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    if idx_to_check is not None and target_opts:
+                        if 0 <= idx_to_check < len(target_opts):
+                            correct_ans_val = target_opts[idx_to_check]
+                        elif 1 <= idx_to_check <= len(target_opts):
+                            correct_ans_val = target_opts[idx_to_check - 1]
+
+                student_answer_url = None
+                if qtype == "image":
+                    if isinstance(student_answer, str) and (student_answer.startswith("/") or student_answer.startswith("http")):
+                        student_answer_url = student_answer
+                    elif student_answer is not None and image_options:
+                        try:
+                            s_idx = int(student_answer)
+                            if 0 <= s_idx < len(image_options):
+                                student_answer_url = image_options[s_idx]
+                            elif 1 <= s_idx <= len(image_options):
+                                student_answer_url = image_options[s_idx - 1]
+                        except (ValueError, TypeError):
+                            pass
+                    if not student_answer_url and isinstance(student_answer, str):
+                        student_answer_url = student_answer
+
+                if qtype == "rating":
+                    is_correct = True
+                else:
+                    is_correct = (student_answer_s == correct_index_s) or (student_answer_s is not None and student_answer_s == str(correct_ans_val))
+
+                answers_detailed.append({
+                    "question_id": str(qid),
+                    "question_text": question.get("text") or ans.get("question_text") or "Question",
+                    "options": options,
+                    "image_options": image_options,
+                    "student_answer": student_answer_url or student_answer,
+                    "user_answer": student_answer_url or student_answer,
+                    "student_answer_url": student_answer_url or student_answer,
+                    "user_answer_url": student_answer_url or student_answer,
+                    "type": qtype,
+                    "correct_index": correct_index,
+                    "correct_answer_index": correct_index,
+                    "correct_answer": correct_ans_val or "N/A",
+                    "correct_answer_url": correct_ans_val if qtype == "image" else None,
+                    "correct_option": correct_ans_val or "N/A",
+                    "is_correct": is_correct
                 })
 
-            full_attempts.append({
-                "attempt": attempt["attempt"],
-                "timestamp_utc": attempt.get("timestamp_utc") or datetime.now(timezone.utc),
-                "status": attempt.get("status", "in-progress"),
-                "categories": categories_detailed
+            categories_detailed.append({
+                "category": cat["category"],
+                "total_marks": cat["total_marks"],
+                "answers": answers_detailed
             })
+
+        full_attempts.append({
+            "attempt": attempt["attempt"],
+            "timestamp_utc": attempt.get("timestamp_utc") or datetime.now(timezone.utc),
+            "status": attempt.get("status", "in-progress"),
+            "categories": categories_detailed
+        })
 
     attempt_numbers = set([a["attempt"] for a in attempts] + list(career_map_by_attempt.keys()))
     combined_history = []
@@ -1340,10 +1355,10 @@ async def get_career_history(
             "percentages": c_record.get("percentages") or normalize_percentages(scores or {}),
             "personality_insights": insights,
             "career_suggestions": suggestions,
-            "scores": scores or {}
+            "scores": scores or {},
+            "answers_detail": matching_attempt,
+            "categories": matching_attempt.get("categories", []) if matching_attempt else []
         }
-        if include_answers and matching_attempt:
-            item["answers_detail"] = matching_attempt
 
         combined_history.append(item)
 
@@ -1351,7 +1366,9 @@ async def get_career_history(
         "status_code": 200,
         "student_id": student_id,
         "total_attempts": len(combined_history),
-        "career_history": combined_history
+        "career_history": combined_history,
+        "history": combined_history,
+        "data": combined_history
     }
 
 

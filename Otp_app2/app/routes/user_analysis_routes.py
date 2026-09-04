@@ -10,15 +10,11 @@ from app.models.analysis_models import (
     VisualExamAnalytics, VisualQuizAnalytics
 )
 from app.core.database import db
-from app.utils.usage_guard import has_premium_access
-
-async def check_premium(student_id: str):
-    if not await has_premium_access(student_id):
-        raise HTTPException(status_code=403, detail="Visual Analytics is a Premium feature. Please upgrade to Plus or Pro.")
 
 router = APIRouter(prefix="/analytics")
 
 @router.get("/visual/dashboard", response_model=VisualCoreDashboard)
+@router.get("/visual/dashboard/", response_model=VisualCoreDashboard, include_in_schema=False)
 async def get_visual_core_dashboard(
     student_id: Optional[str] = Query(None, description="Optional target Student ID"),
     current_user: dict = Depends(get_current_user)
@@ -29,8 +25,6 @@ async def get_visual_core_dashboard(
     """
     try:
         target_id = student_id if student_id else str(current_user["_id"])
-        
-        await check_premium(target_id)
         
         # Get student details safely
         student = None
@@ -48,13 +42,13 @@ async def get_visual_core_dashboard(
         raise HTTPException(status_code=500, detail=f"Visual Dashboard Error: {str(e)}")
 
 @router.get("/visual/career", response_model=Optional[VisualCareerAnalytics])
+@router.get("/visual/career/", response_model=Optional[VisualCareerAnalytics], include_in_schema=False)
 async def get_visual_career_analysis(
     student_id: str = Query(..., description="Target Student ID"),
     current_user: dict = Depends(get_current_user)
 ):
     """Intelligence score breakdown for Radar/Bar charts"""
     try:
-        await check_premium(student_id)
         if not ObjectId.is_valid(student_id):
             raise HTTPException(status_code=400, detail="Invalid student_id format")
         return await AnalysisService.get_visual_career_stats(ObjectId(student_id))
@@ -64,13 +58,13 @@ async def get_visual_career_analysis(
         raise HTTPException(status_code=500, detail=f"Visual Career Error: {str(e)}")
 
 @router.get("/visual/exam", response_model=Optional[VisualExamAnalytics])
+@router.get("/visual/exam/", response_model=Optional[VisualExamAnalytics], include_in_schema=False)
 async def get_visual_exam_analysis(
     student_id: str = Query(..., description="Target Student ID"),
     current_user: dict = Depends(get_current_user)
 ):
     """Historical progression trend for Line charts"""
     try:
-        await check_premium(student_id)
         if not ObjectId.is_valid(student_id):
             raise HTTPException(status_code=400, detail="Invalid student_id format")
         return await AnalysisService.get_visual_exam_stats(ObjectId(student_id))
@@ -80,13 +74,13 @@ async def get_visual_exam_analysis(
         raise HTTPException(status_code=500, detail=f"Visual Exam Error: {str(e)}")
 
 @router.get("/visual/quiz", response_model=Optional[VisualQuizAnalytics])
+@router.get("/visual/quiz/", response_model=Optional[VisualQuizAnalytics], include_in_schema=False)
 async def get_visual_quiz_analysis(
     student_id: str = Query(..., description="Target Student ID"),
     current_user: dict = Depends(get_current_user)
 ):
     """Difficulty breakdown and trend for 'Mixed' quizzes"""
     try:
-        await check_premium(student_id)
         if not ObjectId.is_valid(student_id):
             raise HTTPException(status_code=400, detail="Invalid student_id format")
         return await AnalysisService.get_visual_quiz_stats(ObjectId(student_id))
@@ -94,3 +88,4 @@ async def get_visual_quiz_analysis(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Visual Quiz Error: {str(e)}")
+

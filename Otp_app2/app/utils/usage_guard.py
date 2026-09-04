@@ -96,29 +96,32 @@ async def has_premium_access(student_id: str):
     This is true if they have any paid balance > 0 and are on the right tier.
     """
     try:
-        s_oid = ObjectId(student_id)
-    except:
-        return False
-        
-    student = await db.students.find_one({"_id": s_oid})
-    if not student:
-        return False
-        
-    tier = student.get("subscription", {}).get("current_tier", "basic")
-    if tier in ["plus", "pro"]:
-        buckets = student.get("usage_buckets", {})
-        # Check if they have ANY balance
-        if (buckets.get("exam_balance", 0) > 0 or 
-            buckets.get("voice_balance_mins", 0) > 0 or 
-            buckets.get("tutor_balance_qs", 0) > 0 or
-            buckets.get("class_balance", 0) > 0):
-            return True
+        student = None
+        if ObjectId.is_valid(student_id):
+            student = await db.students.find_one({"_id": ObjectId(student_id)})
+        if not student:
+            student = await db.students.find_one({"student_id": student_id})
+        if not student:
+            return False
             
-        # If all balances are 0, they revert to basic
-        await db.students.update_one(
-            {"_id": s_oid},
-            {"$set": {"subscription.current_tier": "basic"}}
-        )
+        tier = student.get("subscription", {}).get("current_tier", "basic")
+        if tier in ["plus", "pro"]:
+            buckets = student.get("usage_buckets", {})
+            # Check if they have ANY balance
+            if (buckets.get("exam_balance", 0) > 0 or 
+                buckets.get("voice_balance_mins", 0) > 0 or 
+                buckets.get("tutor_balance_qs", 0) > 0 or
+                buckets.get("class_balance", 0) > 0):
+                return True
+                
+            # If all balances are 0, they revert to basic
+            await db.students.update_one(
+                {"_id": student["_id"]},
+                {"$set": {"subscription.current_tier": "basic"}}
+            )
+            return False
+            
         return False
-        
-    return False
+    except Exception as e:
+        print(f"Error in has_premium_access: {e}")
+        return False

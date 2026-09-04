@@ -17,7 +17,7 @@ class AnalysisService:
         """Formatting latest career scores for UI charts"""
         try:
             career_doc = await db.career_analyzer.find_one(
-                {"student_id": str(s_oid)},
+                {"student_id": {"$in": [str(s_oid), s_oid]}},
                 sort=[("timestamp", -1)]
             )
             if not career_doc:
@@ -71,7 +71,7 @@ class AnalysisService:
         try:
             # 1. Fetch completed evaluations from 'evaluations' collection
             cursor = db.evaluations.find({
-                "student_id": s_oid,
+                "student_id": {"$in": [s_oid, str(s_oid)]},
                 "status": "COMPLETED"
             }).sort("created_at", 1)
             
@@ -93,12 +93,17 @@ class AnalysisService:
                 total_pct += pct
                 
                 # completed_at is usually more accurate for "when it was graded"
-                date_val = e.get("completed_at") or e.get("created_at") or datetime.now()
+                date_val = e.get("completed_at") or e.get("created_at") or datetime.now(timezone.utc)
+                if isinstance(date_val, str):
+                    try:
+                        date_val = datetime.fromisoformat(date_val.replace("Z", "+00:00"))
+                    except Exception:
+                        date_val = datetime.now(timezone.utc)
                 
                 history.append(ExamHistoryItem(
                     date=date_val,
                     score_percentage=round(pct, 1),
-                    paper_id=e.get("paper_id", "Unknown")
+                    paper_id=str(e.get("paper_id", "Unknown"))
                 ))
 
             # Trend calculation
@@ -127,22 +132,16 @@ class AnalysisService:
         except Exception as e:
             print(f"Error in get_visual_exam_stats: {e}")
             return None
-        except Exception as e:
-            print(f"Error in get_visual_exam_stats: {e}")
-            return None
 
     @staticmethod
     async def get_visual_quiz_stats(s_oid: ObjectId) -> Optional[VisualQuizAnalytics]:
         """Difficulty breakdown and 10-session trend for 'Mixed' quizzes"""
         try:
-
             # 1. Fetch all Mixed quizzes
             cursor = db.quiz_submissions.find({
-                "student_id": ObjectId(s_oid),
+                "student_id": {"$in": [s_oid, str(s_oid)]},
             }).sort("submitted_at", 1)
-            print(cursor)
             quizzes = await cursor.to_list(length=200)
-            print(quizzes)
             if not quizzes:
                 return None
 
@@ -172,12 +171,19 @@ class AnalysisService:
 
             # 3. Last 10 trend
             recent_10 = quizzes[-10:]
-            history = [
-                QuizHistoryItem(
-                    date=q.get("submitted_at"),
-                    percentage=q.get("percentage", 0)
-                ) for q in recent_10 if q.get("submitted_at")
-            ]
+            history = []
+            for q in recent_10:
+                dt = q.get("submitted_at")
+                if dt:
+                    if isinstance(dt, str):
+                        try:
+                            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+                        except Exception:
+                            dt = datetime.now(timezone.utc)
+                    history.append(QuizHistoryItem(
+                        date=dt,
+                        percentage=float(q.get("percentage", 0))
+                    ))
 
             return VisualQuizAnalytics(
                 difficulty_breakdown=breakdown,
@@ -191,10 +197,8 @@ class AnalysisService:
     @staticmethod
     async def get_visual_dashboard(student_id: str, student_name: str) -> VisualCoreDashboard:
         """Final Aggregator for the Core 3 Experience"""
-        try:
-            s_oid = ObjectId(student_id)
-        except:
-            # Fallback if student_id is a custom string
+        s_oid = ObjectId(student_id) if ObjectId.is_valid(student_id) else None
+        if not s_oid:
             return VisualCoreDashboard(
                 student_id=student_id, student_name=student_name, generated_at=datetime.now(timezone.utc)
             )

@@ -32,14 +32,18 @@ async def get_visual_core_dashboard(
         
         await check_premium(target_id)
         
-        # Get student details
-        student = await db.students.find_one({"_id": ObjectId(target_id)})
+        # Get student details safely
+        student = None
+        if ObjectId.is_valid(target_id):
+            student = await db.students.find_one({"_id": ObjectId(target_id)})
         if not student:
             student = await db.students.find_one({"student_id": target_id})
             
         student_name = student.get("student_name", "Learner") if student else "Learner"
 
         return await AnalysisService.get_visual_dashboard(target_id, student_name)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Visual Dashboard Error: {str(e)}")
 
@@ -51,11 +55,13 @@ async def get_visual_career_analysis(
     """Intelligence score breakdown for Radar/Bar charts"""
     try:
         await check_premium(student_id)
+        if not ObjectId.is_valid(student_id):
+            raise HTTPException(status_code=400, detail="Invalid student_id format")
         return await AnalysisService.get_visual_career_stats(ObjectId(student_id))
     except HTTPException:
         raise
-    except Exception:
-         raise HTTPException(status_code=400, detail="Invalid student_id")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Visual Career Error: {str(e)}")
 
 @router.get("/visual/exam", response_model=Optional[VisualExamAnalytics])
 async def get_visual_exam_analysis(
@@ -65,11 +71,13 @@ async def get_visual_exam_analysis(
     """Historical progression trend for Line charts"""
     try:
         await check_premium(student_id)
+        if not ObjectId.is_valid(student_id):
+            raise HTTPException(status_code=400, detail="Invalid student_id format")
         return await AnalysisService.get_visual_exam_stats(ObjectId(student_id))
     except HTTPException:
         raise
-    except Exception:
-         raise HTTPException(status_code=400, detail="Invalid student_id")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Visual Exam Error: {str(e)}")
 
 @router.get("/visual/quiz", response_model=Optional[VisualQuizAnalytics])
 async def get_visual_quiz_analysis(
@@ -79,8 +87,10 @@ async def get_visual_quiz_analysis(
     """Difficulty breakdown and trend for 'Mixed' quizzes"""
     try:
         await check_premium(student_id)
+        if not ObjectId.is_valid(student_id):
+            raise HTTPException(status_code=400, detail="Invalid student_id format")
         return await AnalysisService.get_visual_quiz_stats(ObjectId(student_id))
     except HTTPException:
         raise
-    except Exception:
-         raise HTTPException(status_code=400, detail="Invalid student_id")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Visual Quiz Error: {str(e)}")

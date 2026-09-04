@@ -122,16 +122,30 @@ async def get_student_profile(
             for cat in latest_attempt.get("categories", []):
                 cat.pop("answers", None)
 
+    career_data = None
+    if career:
+        scores = career.get("scores", {})
+        percentages = career.get("percentages", {})
+        top_5_items = career.get("top_5_careers")
+        top_5_str = career.get("recommended_career")
+        if not top_5_items or not top_5_str:
+            from app.routes.user_routes import get_top_5_careers_with_scores
+            top_5_items, top_5_str, _ = get_top_5_careers_with_scores(scores, percentages)
+
+        career_data = {
+            "top_category": career.get("top_category"),
+            "recommended_career": top_5_str,
+            "top_5_careers": top_5_items,
+            "percentages": percentages,
+            "scores": scores,
+            "attempt": career.get("attempt"),
+        }
+
     return {
         "status": "success",
         "data": {
             "student": serialize(student),
-            "career": {
-                "top_category": career.get("top_category") if career else None,
-                "recommended_career": career.get("recommended_career") if career else None,
-                "percentages": career.get("percentages") if career else {},
-                "attempt": career.get("attempt") if career else None,
-            },
+            "career": career_data or {},
             "quiz_attempts": quiz_count,
             "intelligence_test": latest_attempt
         }

@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from bson import ObjectId
 from app.core.database import db
 from app.models.analysis_models import (
-    VisualCareerAnalytics, CareerScoreItem,
+    VisualCareerAnalytics, CareerScoreItem, CareerConfidenceItem,
     VisualExamAnalytics, ExamHistoryItem,
     VisualQuizAnalytics, DifficultyStats, QuizHistoryItem,
     VisualCoreDashboard
@@ -37,29 +37,27 @@ class AnalysisService:
                 if len(tied_cats) > 1:
                     top_cat = " & ".join(k.title() for k in tied_cats)
 
-            raw_careers = career_doc.get("recommended_career", [])
-            if isinstance(raw_careers, str):
-                recommended_careers = [c.strip() for c in raw_careers.split(",") if c.strip() and c.strip() != "No career mapped"]
-            else:
-                recommended_careers = [c for c in raw_careers if c != "No career mapped"]
+            percentages_dict = career_doc.get("percentages", {})
+            from app.routes.user_routes import get_top_5_careers_with_scores
+            top_5_raw, top_5_str, _ = get_top_5_careers_with_scores(scores_dict, percentages_dict)
 
-            if not recommended_careers:
-                from app.routes.user_routes import get_recommended_career
-                cats_to_check = [c.strip() for c in top_cat.split("&")] if "&" in top_cat else [top_cat]
-                combined = []
-                for cat in cats_to_check:
-                    c_str = get_recommended_career(cat)
-                    for c in c_str.split(","):
-                        c_clean = c.strip()
-                        if c_clean and c_clean not in combined:
-                            combined.append(c_clean)
-                recommended_careers = combined if combined else [get_recommended_career(top_cat)]
+            top_5_careers = [
+                CareerConfidenceItem(
+                    career=item["career"],
+                    category=item["category"],
+                    confidence_score=float(item["confidence_score"]),
+                    confidence_percentage=item["confidence_percentage"]
+                )
+                for item in top_5_raw
+            ]
+            recommended_careers = [item.career for item in top_5_careers]
 
             return VisualCareerAnalytics(
                 current_top_category=top_cat or "N/A",
                 recommended_careers=recommended_careers,
                 score_details=score_details,
-                message=f"Your top intelligence is {top_cat}. You are a natural fit for {', '.join(recommended_careers)}."
+                top_5_careers=top_5_careers,
+                message=f"Your top intelligence is {top_cat}. Your top 5 recommended careers are: {top_5_str}."
             )
         except Exception as e:
             print(f"Error in get_visual_career_stats: {e}")

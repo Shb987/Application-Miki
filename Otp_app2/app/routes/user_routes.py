@@ -843,20 +843,80 @@ def get_recommended_career(category_name: str) -> str:
     return "Scientist, Engineer, Mathematician, Data Analyst"
 
 
-def generate_insights_and_suggestions(scores: dict):
+def get_top_5_careers_with_scores(scores: dict, percentages: dict = None):
     if not scores:
-        return [], []
+        scores = {"logical-mathematical": 100}
+    if not percentages:
+        percentages = normalize_percentages(scores) if scores else {"logical-mathematical": 100}
+
+    # Sort categories by percentage descending, then by raw score descending
+    sorted_cats = sorted(
+        scores.keys(),
+        key=lambda k: (percentages.get(k, 0), scores.get(k, 0)),
+        reverse=True
+    )
+
+    top_5_items = []
+    seen_careers = set()
+
+    for cat in sorted_cats:
+        pct_val = percentages.get(cat, scores.get(cat, 0))
+        if isinstance(pct_val, float) and pct_val.is_integer():
+            pct_val = int(pct_val)
+        else:
+            pct_val = round(pct_val, 1)
+
+        cat_careers = get_recommended_career(cat)
+        for c in cat_careers.split(","):
+            c_clean = c.strip()
+            if c_clean and c_clean not in seen_careers:
+                seen_careers.add(c_clean)
+                top_5_items.append({
+                    "career": c_clean,
+                    "category": cat.replace("-", " ").replace("_", " ").title(),
+                    "confidence_score": pct_val,
+                    "confidence_percentage": f"{pct_val}%"
+                })
+                if len(top_5_items) == 5:
+                    break
+        if len(top_5_items) == 5:
+            break
+
+    default_careers = ["Scientist", "Engineer", "Mathematician", "Data Analyst", "Writer"]
+    idx = 0
+    while len(top_5_items) < 5 and idx < len(default_careers):
+        d_car = default_careers[idx]
+        idx += 1
+        if d_car not in seen_careers:
+            seen_careers.add(d_car)
+            top_5_items.append({
+                "career": d_car,
+                "category": "Logical-Mathematical",
+                "confidence_score": 50,
+                "confidence_percentage": "50%"
+            })
+
+    top_5_str = ", ".join([f"{item['career']} ({item['confidence_percentage']})" for item in top_5_items])
+    career_suggestions = [
+        f"{item['career']} ({item['category']}) ➔ {item['confidence_percentage']} Confidence"
+        for item in top_5_items
+    ]
+
+    return top_5_items, top_5_str, career_suggestions
+
+
+def generate_insights_and_suggestions(scores: dict, percentages: dict = None):
+    if not scores:
+        return [], [], [], ""
+    top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages)
+
     sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     top_3 = sorted_cats[:3]
     insights = [
         f"{cat}: Strong inclination towards {cat.lower()} intelligence."
         for cat, _ in top_3
     ]
-    career_suggestions = [
-        f"{cat} ➔ {get_recommended_career(cat)}"
-        for cat, _ in top_3
-    ]
-    return insights, career_suggestions
+    return insights, career_suggestions, top_5_items, top_5_str
 
 
 import base64
@@ -925,6 +985,8 @@ async def analyze_career(
     scores = {c["category"]: c.get("total_marks", 0) for c in categories}
     percentages = normalize_percentages(scores)
 
+    top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages)
+
     sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     if sorted_cats:
         max_score = sorted_cats[0][1]
@@ -935,25 +997,11 @@ async def analyze_career(
         tied_top_cats = ["logical-mathematical"]
 
     top_cat = " & ".join(cat.title() for cat in tied_top_cats)
-
-    combined_careers = []
-    for cat in tied_top_cats:
-        c_str = get_recommended_career(cat)
-        for c in c_str.split(","):
-            c_clean = c.strip()
-            if c_clean and c_clean not in combined_careers:
-                combined_careers.append(c_clean)
-
-    recommended_career = ", ".join(combined_careers) if combined_careers else get_recommended_career(tied_top_cats[0])
+    recommended_career = top_5_str
 
     top_3 = sorted_cats[:3]
     insights = [
         f"{cat}: Strong inclination towards {cat.lower()} intelligence."
-        for cat, _ in top_3
-    ]
-
-    career_suggestions = [
-        f"{cat} ➔ {get_recommended_career(cat)}"
         for cat, _ in top_3
     ]
 
@@ -967,6 +1015,7 @@ async def analyze_career(
                 "percentages": percentages,
                 "top_category": top_cat,
                 "recommended_career": recommended_career,
+                "top_5_careers": top_5_items,
                 "personality_insights": insights,
                 "career_suggestions": career_suggestions,
                 "timestamp": datetime.now(timezone.utc)
@@ -1066,10 +1115,12 @@ async def get_career_analysis(student_id: str, attempt: int,
         )
     record = serialize_mongo_doc(record)
 
-    if not record.get("personality_insights") or not record.get("career_suggestions"):
-        gen_insights, gen_suggestions = generate_insights_and_suggestions(record.get("scores", {}))
+    if not record.get("personality_insights") or not record.get("career_suggestions") or not record.get("top_5_careers"):
+        gen_insights, gen_suggestions, top_5_items, top_5_str = generate_insights_and_suggestions(record.get("scores", {}), record.get("percentages", {}))
         record["personality_insights"] = record.get("personality_insights") or gen_insights
-        record["career_suggestions"] = record.get("career_suggestions") or gen_suggestions
+        record["career_suggestions"] = gen_suggestions
+        record["top_5_careers"] = record.get("top_5_careers") or top_5_items
+        record["recommended_career"] = top_5_str
 
     return {
         "status_code": 200,
@@ -1194,21 +1245,22 @@ async def get_career_history(student_id: str,
 
         matching_attempt = next((a for a in full_attempts if a["attempt"] == attempt_no), None)
         scores = record.get("scores", {})
+        percentages = record.get("percentages", {})
+        top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages)
         insights = record.get("personality_insights")
-        suggestions = record.get("career_suggestions")
-        if not insights or not suggestions:
-            gen_insights, gen_suggestions = generate_insights_and_suggestions(scores)
-            insights = insights or gen_insights
-            suggestions = suggestions or gen_suggestions
+        if not insights:
+            insights, _, _, _ = generate_insights_and_suggestions(scores, percentages)
 
         combined_history.append({
             "attempt": attempt_no,
             "timestamp": record.get("timestamp"),
             "top_category": record.get("top_category"),
-            "recommended_career": record.get("recommended_career"),
+            "recommended_career": top_5_str,
+            "top_5_careers": record.get("top_5_careers") or top_5_items,
             "personality_insights": insights,
-            "career_suggestions": suggestions,
+            "career_suggestions": career_suggestions,
             "scores": scores,
+            "percentages": percentages,
             "answers_detail": matching_attempt
         })
 

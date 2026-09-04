@@ -9,11 +9,18 @@ class CareerScoreItem(BaseModel):
     label: str
     value: float
 
+class CareerConfidenceItem(BaseModel):
+    career: str
+    category: str
+    confidence_score: float
+    confidence_percentage: str
+
 class VisualCareerAnalytics(BaseModel):
     """Ready for radar/bar charts"""
     current_top_category: str
     recommended_careers: List[str]
     score_details: List[CareerScoreItem]
+    top_5_careers: Optional[List[CareerConfidenceItem]] = None
     message: str
 
 # ==================== EXAM VISUALS ====================

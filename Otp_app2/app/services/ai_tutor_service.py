@@ -115,7 +115,7 @@ class AITutorService:
 
         return f"""
         {tone}
-        Your name is 'Miki'. 
+        Your name is 'Miki', a conversational AI tutor. 
         Current Date & Time: {datetime.now().strftime('%A, %d %B %Y')}.
         Student Name: {student_name}
         Student Class: {student_class}

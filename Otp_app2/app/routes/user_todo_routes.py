@@ -135,7 +135,6 @@ def format_todo_item(doc: dict) -> dict:
     todo_id = str(doc["_id"]) if doc.get("_id") else ""
     return {
         "id": todo_id,
-        "_id": todo_id,
         "todo_id": todo_id,
         "student_id": str(doc.get("student_id", "")),
         "title": doc.get("title", ""),
@@ -156,11 +155,9 @@ def format_todo_item(doc: dict) -> dict:
 
 def format_todo_response(doc: dict) -> dict:
     item = format_todo_item(doc)
-    category_name = (doc.get("category") or "general").strip()
     return {
-        "todo": item,
-        "item": item,
-        category_name: item
+        "status": "success",
+        "todo": item
     }
 
 
@@ -366,9 +363,6 @@ async def list_todos(
         "status_code": 200,
         "status": "success",
         "todos": items,
-        "items": items,
-        "data": items,
-        "categories": categories_map,
         "page": page,
         "limit": limit,
         "total_count": total_count,

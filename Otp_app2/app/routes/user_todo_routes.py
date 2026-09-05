@@ -363,6 +363,7 @@ async def list_todos(
         "status_code": 200,
         "status": "success",
         "todos": items,
+        "categories": categories_map,
         "page": page,
         "limit": limit,
         "total_count": total_count,

@@ -1,51 +1,15 @@
-from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from fastapi import APIRouter
 import re
-from bson import ObjectId
 from app.core.database import db
 
 router = APIRouter(prefix="/user/tutorials")
 
 @router.get("/")
-async def get_user_tutorials(
-    student_class: str,
-    student_id: Optional[str] = Query(None, description="Student ID to auto-resolve board/syllabus")
-):
+async def get_user_tutorials(student_class: str):
     """
-    Get tutorials for a specific class and student ID.
-    Automatically resolves the student's syllabus/board (SCERT vs NCERT) from their profile.
+    Get tutorials for a specific class.
+    Matches student_class flexibly (e.g. "4", "Class 4", or 4).
     """
-    def sanitize(val: Optional[str]) -> Optional[str]:
-        if not val or not isinstance(val, str):
-            return None
-        v = val.strip()
-        if v.lower() in ["", "null", "none", "undefined", "string", "syllabus"]:
-            return None
-        return v
-
-    clean_student_id = sanitize(student_id)
-    target_board = None
-
-    # Auto-resolve student's syllabus/board from db.students if student_id is provided
-    if clean_student_id:
-        student = None
-        try:
-            if len(clean_student_id) == 24:
-                student = await db.students.find_one({"_id": ObjectId(clean_student_id)})
-        except Exception:
-            pass
-
-        if not student:
-            student = await db.students.find_one({"student_id": clean_student_id})
-        if not student:
-            digits = "".join([ch for ch in clean_student_id if ch.isdigit()])
-            if len(digits) >= 10:
-                regex_pat = re.compile(rf"{digits[-10:]}$")
-                student = await db.students.find_one({"mobile_number": regex_pat})
-
-        if student:
-            target_board = sanitize(student.get("syllabus")) or sanitize(student.get("board"))
-
     c_str = str(student_class).strip()
     c_digits = "".join([ch for ch in c_str if ch.isdigit()]) or c_str
 
@@ -60,27 +24,6 @@ async def get_user_tutorials(
         class_match_patterns.append({"student_class": int(c_digits)})
 
     query = {"$or": class_match_patterns}
-
-    if target_board:
-        b_clean = target_board.strip()
-        if b_clean.upper() == "NCERT":
-            board_condition = {
-                "$or": [
-                    {"board": {"$regex": "^NCERT$", "$options": "i"}},
-                    {"board": {"$exists": False}},
-                    {"board": None},
-                    {"board": ""}
-                ]
-            }
-        else:
-            board_condition = {"board": {"$regex": f"^{re.escape(b_clean)}$", "$options": "i"}}
-
-        query = {
-            "$and": [
-                {"$or": class_match_patterns},
-                board_condition
-            ]
-        }
 
     cursor = db.tutorials.find(query)
     tutorials = await cursor.to_list(length=100)

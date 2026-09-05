@@ -9,6 +9,7 @@ class VideoLink(BaseModel):
 
 class TutorialModule(BaseModel):
     student_class: str
+    board: Optional[str] = "NCERT"
     subject: str
     topic: Optional[str] = None
     youtube_url: str
@@ -19,5 +20,6 @@ class TutorialModule(BaseModel):
 class YouTubeFetchRequest(BaseModel):
     youtube_url: str
     student_class: str
+    board: Optional[str] = "NCERT"
     subject: str
     topic: Optional[str] = None

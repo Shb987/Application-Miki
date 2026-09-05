@@ -42,26 +42,23 @@ async def fetch_and_save_youtube_links(
         # Prepare tutorial module
         tutorial_data = TutorialModule(
             student_class=request.student_class,
+            board=request.board or "NCERT",
             subject=request.subject,
             topic=request.topic,
             youtube_url=request.youtube_url,
             video_links=video_links
         )
 
-        # Save to MongoDB
-        # We can either append to existing or create new.
-        # User said "store the links in db ... save on our mongo db".
-        # I'll update if the same class, subject, topic and URL exists, or insert new.
-        
         query = {
             "student_class": request.student_class,
+            "board": request.board or "NCERT",
             "subject": request.subject,
             "topic": request.topic,
             "youtube_url": request.youtube_url
         }
-        
+
         existing = await db.tutorials.find_one(query)
-        
+
         if existing:
             await db.tutorials.update_one(
                 {"_id": existing["_id"]},
@@ -89,6 +86,7 @@ async def fetch_and_save_youtube_links(
 @router.get("/")
 async def get_tutorials(
     student_class: Optional[str] = None,
+    board: Optional[str] = None,
     subject: Optional[str] = None,
     current_admin: dict = Depends(require_permission("Tutorials", "read"))
 ):
@@ -98,6 +96,8 @@ async def get_tutorials(
     query = {}
     if student_class:
         query["student_class"] = student_class
+    if board:
+        query["board"] = board
     if subject:
         query["subject"] = subject
         

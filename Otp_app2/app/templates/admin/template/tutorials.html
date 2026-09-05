@@ -56,6 +56,12 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="mb-3"><label class="form-label">Board / Syllabus</label>
+                            <select class="form-select" id="board" required>
+                                <option value="NCERT" selected>NCERT</option>
+                                <option value="SCERT">SCERT</option>
+                            </select>
+                        </div>
                         <div class="mb-3"><label class="form-label">Subject</label><input class="form-control"
                                 type="text" id="subject" placeholder="e.g. Mathematics" required></div>
                         <div class="mb-3"><label class="form-label">Topic (Optional)</label><input class="form-control"
@@ -87,6 +93,7 @@
                             <thead>
                                 <tr>
                                     <th>Class</th>
+                                    <th>Board</th>
                                     <th>Subject</th>
                                     <th>Topic</th>
                                     <th>Videos</th>
@@ -95,7 +102,7 @@
                             </thead>
                             <tbody id="tutorialBody">
                                 <tr>
-                                    <td colspan="5" class="text-center">Loading tutorials...</td>
+                                    <td colspan="6" class="text-center">Loading tutorials...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -130,14 +137,24 @@
             const res = await fetch(`${API_BASE}/admin/tutorials/`, { headers: { "Authorization": "Bearer " + token } });
             const data = await res.json();
             const tbody = document.getElementById("tutorialBody");
-            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">No tutorials found</td></tr>'; return; }
+            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">No tutorials found</td></tr>'; return; }
             tbody.innerHTML = data.map(t => {
                 let rawCls = String(t.student_class || "").replace(/\$\{c\}/gi, "").replace(/\{c\}/gi, "").trim();
                 let clsLabel = !rawCls ? "Class" : (rawCls.toLowerCase().startsWith("class") ? rawCls : "Class " + rawCls);
+                let boardLabel = (t.board || "NCERT").toUpperCase();
+                let boardBadgeClass = boardLabel === "SCERT" ? "badge-warning" : "badge-primary";
                 return `
-                <tr><td><span class="badge badge-info">${clsLabel}</span></td><td>${t.subject}</td><td>${t.topic || '-'}</td><td><span class="badge badge-secondary">${t.video_links.length} Videos</span></td>
-                <td><button class="btn btn-sm btn-primary" onclick="viewTutorial('${t._id}')"><i class="fa fa-eye"></i></button>
-                <button class="btn btn-sm btn-danger" onclick="deleteTutorial('${t._id}')"><i class="fa fa-trash"></i></button></td></tr>
+                <tr>
+                    <td><span class="badge badge-info">${clsLabel}</span></td>
+                    <td><span class="badge ${boardBadgeClass}">${boardLabel}</span></td>
+                    <td>${t.subject}</td>
+                    <td>${t.topic || '-'}</td>
+                    <td><span class="badge badge-secondary">${t.video_links.length} Videos</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="viewTutorial('${t._id}')"><i class="fa fa-eye"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTutorial('${t._id}')"><i class="fa fa-trash"></i></button>
+                    </td>
+                </tr>
             `}).join('');
         } catch (err) { console.error(err); }
     }
@@ -146,7 +163,8 @@
         const res = await fetch(`${API_BASE}/admin/tutorials/`, { headers: { "Authorization": "Bearer " + token } });
         const data = await res.json(); const t = data.find(x => x._id === id);
         if (t) {
-            document.getElementById("modalTitle").innerText = `${t.subject} - ${t.topic || 'Videos'}`;
+            let bLabel = (t.board || "NCERT").toUpperCase();
+            document.getElementById("modalTitle").innerText = `[${bLabel}] ${t.subject} - ${t.topic || 'Videos'}`;
             document.getElementById("videoContainer").innerHTML = t.video_links.map(v => `
                 <div class="col-md-4"><div class="card video-card h-100" onclick="window.open('${v.link}', '_blank')"><div class="card-body p-3"><h6 class="text-truncate" title="${v.title}">${v.title}</h6>
                 <p class="small text-muted mb-0">Published: ${new Date(v.published_at).toLocaleDateString()}</p><div class="mt-2 text-primary small"><i class="fa fa-youtube-play me-1"></i> Watch</div></div></div></div>
@@ -157,7 +175,13 @@
 
     document.getElementById("fetchForm").addEventListener("submit", async e => {
         e.preventDefault(); const btn = document.getElementById("fetchBtn"); const status = document.getElementById("fetchStatus");
-        const payload = { youtube_url: document.getElementById("youtubeUrl").value, student_class: document.getElementById("studentClass").value, subject: document.getElementById("subject").value, topic: document.getElementById("topic").value };
+        const payload = {
+            youtube_url: document.getElementById("youtubeUrl").value,
+            student_class: document.getElementById("studentClass").value,
+            board: document.getElementById("board").value,
+            subject: document.getElementById("subject").value,
+            topic: document.getElementById("topic").value
+        };
         btn.disabled = true; status.style.display = "block";
         const res = await fetch(`${API_BASE}/admin/tutorials/fetch-and-save`, { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         if (res.ok) { document.getElementById("fetchForm").reset(); loadTutorials(); }

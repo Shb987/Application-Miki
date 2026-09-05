@@ -7,13 +7,15 @@ router = APIRouter(prefix="/user/tutorials")
 
 @router.get("/")
 async def get_user_tutorials(
-    student_class: str
-
+    student_class: str,
+    board: Optional[str] = None
 ):
     """
-    Get tutorials for a specific class
+    Get tutorials for a specific class and optional board (NCERT/SCERT)
     """
     query = {"student_class": student_class}
+    if board:
+        query["board"] = board
 
         
     cursor = db.tutorials.find(query)

@@ -770,55 +770,164 @@ async def get_logins(admin=Depends(require_permission("User Management", "read")
 # --------------------- Career Analyzer Logic -------------------------
 
 
+# --------------------- Career Analyzer Logic -------------------------
+
+CAREER_PROFILES = [
+    {
+        "career": "Scientist",
+        "primary_category": "Logical-Mathematical",
+        "weights": {"logical-mathematical": 0.50, "naturalist": 0.30, "intrapersonal": 0.20}
+    },
+    {
+        "career": "Engineer",
+        "primary_category": "Logical-Mathematical",
+        "weights": {"logical-mathematical": 0.50, "visual-spatial": 0.30, "bodily-kinesthetic": 0.20}
+    },
+    {
+        "career": "Mathematician",
+        "primary_category": "Logical-Mathematical",
+        "weights": {"logical-mathematical": 0.65, "verbal-linguistic": 0.20, "intrapersonal": 0.15}
+    },
+    {
+        "career": "Data Analyst",
+        "primary_category": "Logical-Mathematical",
+        "weights": {"logical-mathematical": 0.50, "verbal-linguistic": 0.30, "visual-spatial": 0.20}
+    },
+    {
+        "career": "Architect",
+        "primary_category": "Visual-Spatial",
+        "weights": {"visual-spatial": 0.55, "logical-mathematical": 0.30, "bodily-kinesthetic": 0.15}
+    },
+    {
+        "career": "Designer",
+        "primary_category": "Visual-Spatial",
+        "weights": {"visual-spatial": 0.60, "interpersonal": 0.25, "verbal-linguistic": 0.15}
+    },
+    {
+        "career": "Artist",
+        "primary_category": "Visual-Spatial",
+        "weights": {"visual-spatial": 0.60, "intrapersonal": 0.25, "bodily-kinesthetic": 0.15}
+    },
+    {
+        "career": "Pilot",
+        "primary_category": "Visual-Spatial",
+        "weights": {"visual-spatial": 0.50, "bodily-kinesthetic": 0.35, "logical-mathematical": 0.15}
+    },
+    {
+        "career": "Surgeon",
+        "primary_category": "Bodily-Kinesthetic",
+        "weights": {"bodily-kinesthetic": 0.50, "logical-mathematical": 0.30, "visual-spatial": 0.20}
+    },
+    {
+        "career": "Athlete",
+        "primary_category": "Bodily-Kinesthetic",
+        "weights": {"bodily-kinesthetic": 0.70, "visual-spatial": 0.15, "interpersonal": 0.15}
+    },
+    {
+        "career": "Physical Therapist",
+        "primary_category": "Bodily-Kinesthetic",
+        "weights": {"bodily-kinesthetic": 0.45, "interpersonal": 0.35, "logical-mathematical": 0.20}
+    },
+    {
+        "career": "Writer",
+        "primary_category": "Verbal-Linguistic",
+        "weights": {"verbal-linguistic": 0.60, "intrapersonal": 0.25, "interpersonal": 0.15}
+    },
+    {
+        "career": "Journalist",
+        "primary_category": "Verbal-Linguistic",
+        "weights": {"verbal-linguistic": 0.55, "interpersonal": 0.30, "logical-mathematical": 0.15}
+    },
+    {
+        "career": "Lawyer",
+        "primary_category": "Verbal-Linguistic",
+        "weights": {"verbal-linguistic": 0.55, "logical-mathematical": 0.25, "interpersonal": 0.20}
+    },
+    {
+        "career": "Teacher",
+        "primary_category": "Interpersonal",
+        "weights": {"interpersonal": 0.50, "verbal-linguistic": 0.30, "intrapersonal": 0.20}
+    },
+    {
+        "career": "Counselor",
+        "primary_category": "Interpersonal",
+        "weights": {"interpersonal": 0.55, "intrapersonal": 0.30, "verbal-linguistic": 0.15}
+    },
+    {
+        "career": "Manager",
+        "primary_category": "Interpersonal",
+        "weights": {"interpersonal": 0.50, "logical-mathematical": 0.30, "verbal-linguistic": 0.20}
+    },
+    {
+        "career": "Psychologist",
+        "primary_category": "Intrapersonal",
+        "weights": {"intrapersonal": 0.45, "interpersonal": 0.35, "verbal-linguistic": 0.20}
+    },
+    {
+        "career": "Philosopher",
+        "primary_category": "Intrapersonal",
+        "weights": {"intrapersonal": 0.60, "verbal-linguistic": 0.25, "logical-mathematical": 0.15}
+    },
+    {
+        "career": "Biologist",
+        "primary_category": "Naturalist",
+        "weights": {"naturalist": 0.55, "logical-mathematical": 0.30, "visual-spatial": 0.15}
+    },
+    {
+        "career": "Environmentalist",
+        "primary_category": "Naturalist",
+        "weights": {"naturalist": 0.55, "interpersonal": 0.25, "logical-mathematical": 0.20}
+    },
+    {
+        "career": "Musician",
+        "primary_category": "Musical",
+        "weights": {"musical": 0.65, "intrapersonal": 0.20, "bodily-kinesthetic": 0.15}
+    },
+    {
+        "career": "Sound Engineer",
+        "primary_category": "Musical",
+        "weights": {"musical": 0.45, "logical-mathematical": 0.40, "visual-spatial": 0.15}
+    }
+]
+
 career_map = {
     "musical": "Musician, Composer, Singer, Sound Engineer",
-    
     "logical-mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
     "logical_mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
     "logical mathematical": "Scientist, Engineer, Mathematician, Data Analyst",
     "logical": "Scientist, Engineer, Mathematician, Data Analyst",
     "logical-math": "Scientist, Engineer, Mathematician, Data Analyst",
-    
     "verbal-linguistic": "Writer, Journalist, Teacher, Lawyer",
     "verbal_linguistic": "Writer, Journalist, Teacher, Lawyer",
     "verbal linguistic": "Writer, Journalist, Teacher, Lawyer",
     "verbal": "Writer, Journalist, Teacher, Lawyer",
-    
     "bodily-kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
     "bodily_kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
     "bodily kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
     "bodily": "Athlete, Dancer, Physical Therapist, Surgeon",
     "kinesthetic": "Athlete, Dancer, Physical Therapist, Surgeon",
-    
     "visual-spatial": "Architect, Designer, Artist, Pilot",
     "visual_spatial": "Architect, Designer, Artist, Pilot",
     "visual spatial": "Architect, Designer, Artist, Pilot",
     "visual": "Architect, Designer, Artist, Pilot",
-    
     "interpersonal": "Teacher, Counselor, Manager, Salesperson",
     "inter-personal": "Teacher, Counselor, Manager, Salesperson",
     "inter_personal": "Teacher, Counselor, Manager, Salesperson",
-    
     "intrapersonal": "Psychologist, Philosopher, Writer",
     "intra-personal": "Psychologist, Philosopher, Writer",
     "intra_personal": "Psychologist, Philosopher, Writer",
-    
     "naturalist": "Biologist, Environmentalist, Farmer, Veterinarian"
 }
 
 def get_recommended_career(category_name: str) -> str:
     if not category_name:
         return "Scientist, Engineer, Mathematician, Data Analyst"
-    
     cat_clean = str(category_name).strip().lower()
-    
     if cat_clean in career_map:
         return career_map[cat_clean]
-        
     norm_hyphen = cat_clean.replace("_", "-").replace(" ", "-")
     if norm_hyphen in career_map:
         return career_map[norm_hyphen]
-        
     norm_underscore = cat_clean.replace("-", "_").replace(" ", "_")
     if norm_underscore in career_map:
         return career_map[norm_underscore]
@@ -843,58 +952,77 @@ def get_recommended_career(category_name: str) -> str:
     return "Scientist, Engineer, Mathematician, Data Analyst"
 
 
+def norm_cat_key(k: str) -> str:
+    ck = str(k).strip().lower().replace("_", "-").replace(" ", "-")
+    if "logical" in ck or "math" in ck:
+        return "logical-mathematical"
+    if "verbal" in ck or "linguistic" in ck:
+        return "verbal-linguistic"
+    if "bodily" in ck or "kinesthetic" in ck:
+        return "bodily-kinesthetic"
+    if "visual" in ck or "spatial" in ck:
+        return "visual-spatial"
+    if "interpersonal" in ck or "inter-personal" in ck:
+        return "interpersonal"
+    if "intrapersonal" in ck or "intra-personal" in ck:
+        return "intrapersonal"
+    if "musical" in ck or "music" in ck:
+        return "musical"
+    if "naturalist" in ck or "nature" in ck:
+        return "naturalist"
+    return ck
+
+
 def get_top_5_careers_with_scores(scores: dict, percentages: dict = None):
     if not scores:
         scores = {"logical-mathematical": 100}
     if not percentages:
         percentages = normalize_percentages(scores) if scores else {"logical-mathematical": 100}
 
-    # Sort categories by percentage descending, then by raw score descending
-    sorted_cats = sorted(
-        scores.keys(),
-        key=lambda k: (percentages.get(k, 0), scores.get(k, 0)),
-        reverse=True
-    )
+    norm_pcts = {}
+    for k, v in percentages.items():
+        norm_key = norm_cat_key(k)
+        norm_pcts[norm_key] = max(norm_pcts.get(norm_key, 0.0), float(v))
+
+    top_cat_val = max(norm_pcts.values()) if norm_pcts else 100.0
+    if top_cat_val <= 0:
+        top_cat_val = 100.0
+
+    career_scores = []
+    for profile in CAREER_PROFILES:
+        raw_weighted_score = 0.0
+        for domain, weight in profile["weights"].items():
+            domain_pct = norm_pcts.get(domain, 0.0)
+            raw_weighted_score += domain_pct * weight
+
+        fit_ratio = raw_weighted_score / top_cat_val
+        fit_pct = round(min(98.0, max(15.0, fit_ratio * 82.0 + (raw_weighted_score * 0.15))), 1)
+        if isinstance(fit_pct, float) and fit_pct.is_integer():
+            fit_pct = int(fit_pct)
+
+        career_scores.append({
+            "career": profile["career"],
+            "category": profile["primary_category"],
+            "confidence_score": fit_pct,
+            "confidence_percentage": f"{fit_pct}%",
+            "raw_weighted_score": raw_weighted_score
+        })
+
+    career_scores.sort(key=lambda x: (x["confidence_score"], x["raw_weighted_score"]), reverse=True)
 
     top_5_items = []
-    seen_careers = set()
-
-    for cat in sorted_cats:
-        pct_val = percentages.get(cat, scores.get(cat, 0))
-        if isinstance(pct_val, float) and pct_val.is_integer():
-            pct_val = int(pct_val)
-        else:
-            pct_val = round(pct_val, 1)
-
-        cat_careers = get_recommended_career(cat)
-        for c in cat_careers.split(","):
-            c_clean = c.strip()
-            if c_clean and c_clean not in seen_careers:
-                seen_careers.add(c_clean)
-                top_5_items.append({
-                    "career": c_clean,
-                    "category": cat.replace("-", " ").replace("_", " ").title(),
-                    "confidence_score": pct_val,
-                    "confidence_percentage": f"{pct_val}%"
-                })
-                if len(top_5_items) == 5:
-                    break
-        if len(top_5_items) == 5:
-            break
-
-    default_careers = ["Scientist", "Engineer", "Mathematician", "Data Analyst", "Writer"]
-    idx = 0
-    while len(top_5_items) < 5 and idx < len(default_careers):
-        d_car = default_careers[idx]
-        idx += 1
-        if d_car not in seen_careers:
-            seen_careers.add(d_car)
+    seen = set()
+    for item in career_scores:
+        if item["career"] not in seen:
+            seen.add(item["career"])
             top_5_items.append({
-                "career": d_car,
-                "category": "Logical-Mathematical",
-                "confidence_score": 50,
-                "confidence_percentage": "50%"
+                "career": item["career"],
+                "category": item["category"],
+                "confidence_score": item["confidence_score"],
+                "confidence_percentage": item["confidence_percentage"]
             })
+            if len(top_5_items) == 5:
+                break
 
     top_5_str = ", ".join([f"{item['career']} ({item['confidence_percentage']})" for item in top_5_items])
     career_suggestions = [

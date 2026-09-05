@@ -9,13 +9,11 @@ router = APIRouter(prefix="/user/tutorials")
 @router.get("/")
 async def get_user_tutorials(
     student_class: str,
-    board: Optional[str] = Query(None, description="Board / Syllabus filter (e.g. NCERT or SCERT)"),
-    syllabus: Optional[str] = Query(None, description="Alias for board filter"),
     student_id: Optional[str] = Query(None, description="Student ID to auto-resolve board/syllabus")
 ):
     """
-    Get tutorials for a specific class and board (NCERT/SCERT).
-    Shows SCERT tutorials for SCERT users and NCERT tutorials for NCERT users.
+    Get tutorials for a specific class and student ID.
+    Automatically resolves the student's syllabus/board (SCERT vs NCERT) from their profile.
     """
     def sanitize(val: Optional[str]) -> Optional[str]:
         if not val or not isinstance(val, str):
@@ -25,13 +23,10 @@ async def get_user_tutorials(
             return None
         return v
 
-    clean_board = sanitize(board)
-    clean_syllabus = sanitize(syllabus)
     clean_student_id = sanitize(student_id)
+    target_board = None
 
-    target_board = clean_board or clean_syllabus
-
-    # Auto-resolve student's syllabus/board if student_id is provided
+    # Auto-resolve student's syllabus/board from db.students if student_id is provided
     if clean_student_id:
         student = None
         try:
@@ -49,9 +44,7 @@ async def get_user_tutorials(
                 student = await db.students.find_one({"mobile_number": regex_pat})
 
         if student:
-            st_board = sanitize(student.get("syllabus")) or sanitize(student.get("board"))
-            if st_board:
-                target_board = st_board
+            target_board = sanitize(student.get("syllabus")) or sanitize(student.get("board"))
 
     c_str = str(student_class).strip()
     c_digits = "".join([ch for ch in c_str if ch.isdigit()]) or c_str

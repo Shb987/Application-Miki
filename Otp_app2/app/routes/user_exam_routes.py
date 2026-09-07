@@ -190,63 +190,131 @@ async def get_generated_question_paper(
     standard: str, 
     subject: str, 
     marks: int,
-    chapters: str,   # <-- coming as comma separated string
+    chapters: str,   # comma separated string
     current_user: dict = Depends(get_current_user)
 ):
+    import re
+    from app.routes.admin_exam_routes import _ensure_pdf_exists
 
     # Convert comma-separated string to list
-    chapter_list = [c.strip() for c in chapters.split(",")]
+    chapter_list = [c.strip() for c in (chapters or "").split(",") if c.strip()]
 
-    # Step 1: Find all tasks from question_tasks collection based on filters
-    tasks = await db.question_tasks.find({
-        "standard": standard,
-        "subject": subject,
-        "chapters": {"$in": chapter_list},
-        "marks": marks
-    }).to_list(None)
+    # Convert standard to both int and str for flexible MongoDB matching
+    std_str = str(standard).strip()
+    try:
+        std_int = int(std_str)
+    except (ValueError, TypeError):
+        std_int = None
 
-    if not tasks:
-        return {
-            "status": False,
-            "message": "No question task found for the given standard, subject, chapters and marks.",
-            "data": None
+    std_query = [std_str]
+    if std_int is not None:
+        std_query.append(std_int)
+
+    # Step 1: Find tasks from question_tasks collection based on filters
+    task_query = {
+        "standard": {"$in": std_query},
+        "subject": {"$regex": f"^{re.escape(subject.strip())}$", "$options": "i"}
+    }
+    if chapter_list:
+        task_query["chapters"] = {"$in": chapter_list}
+    if marks and marks > 0:
+        task_query["marks"] = int(marks)
+
+    tasks = await db.question_tasks.find(task_query).to_list(None)
+
+    paper_doc = None
+    if tasks:
+        task_ids = [str(t["_id"]) for t in tasks]
+        pipeline = [
+            {"$match": {"task_id": {"$in": task_ids}}},
+            {"$sample": {"size": 1}}
+        ]
+        papers = await db.generated_papers.aggregate(pipeline).to_list(1)
+        if papers:
+            paper_doc = papers[0]
+
+    # Step 2: Direct Fallback Search in generated_papers collection
+    if not paper_doc:
+        direct_match = {
+            "$or": [
+                {"paper.standard": {"$in": std_query}},
+                {"standard": {"$in": std_query}}
+            ],
+            "$or": [
+                {"paper.subject": {"$regex": f"^{re.escape(subject.strip())}$", "$options": "i"}},
+                {"subject": {"$regex": f"^{re.escape(subject.strip())}$", "$options": "i"}}
+            ]
         }
+        pipeline_direct = [
+            {"$match": direct_match},
+            {"$sample": {"size": 1}}
+        ]
+        papers = await db.generated_papers.aggregate(pipeline_direct).to_list(1)
+        if papers:
+            paper_doc = papers[0]
 
-    # Extract all matching task IDs
-    task_ids = [str(t["_id"]) for t in tasks]
+    # Step 3: Broad Search Fallback if no exact match
+    if not paper_doc:
+        pipeline_broad = [
+            {
+                "$match": {
+                    "$or": [
+                        {"paper.standard": {"$in": std_query}},
+                        {"standard": {"$in": std_query}},
+                        {"paper.subject": {"$regex": f"^{re.escape(subject.strip())}$", "$options": "i"}},
+                        {"subject": {"$regex": f"^{re.escape(subject.strip())}$", "$options": "i"}}
+                    ]
+                }
+            },
+            {"$sample": {"size": 1}}
+        ]
+        papers = await db.generated_papers.aggregate(pipeline_broad).to_list(1)
+        if papers:
+            paper_doc = papers[0]
 
-    # Step 2: Find a random paper from any of these tasks
-    pipeline = [
-        {"$match": {"task_id": {"$in": task_ids}}},
-        {"$sample": {"size": 1}}
-    ]
-
-    papers = await db.generated_papers.aggregate(pipeline).to_list(1)
-    paper_doc = papers[0] if papers else None
     if not paper_doc:
         return {
             "status": False,
-            "message": "Generated question paper not found for the given task IDs.",
+            "message": f"No question paper found for Class {standard} {subject}.",
             "data": None
         }
 
-    # Extract the nested paper object
+    # Extract paper details
     paper = paper_doc.get("paper", {})
-    actual_task_id = paper_doc.get("task_id", task_ids[0])
+    actual_task_id = paper_doc.get("task_id", str(paper_doc.get("_id")))
+    
+    # Auto-heal / generate PDF on the fly and get cache-busted URL
+    pdf_url = _ensure_pdf_exists(paper_doc, force_rerender=True)
 
-    # Step 3: Return combined response
+    sections = paper.get("sections") or []
+
+    paper_payload = {
+        "paper_id": paper.get("paper_id") or str(paper_doc.get("_id")),
+        "standard": paper.get("standard") or std_str,
+        "subject": paper.get("subject") or subject,
+        "title": paper.get("title") or f"QUESTION PAPER - CLASS {standard} {subject.upper()}",
+        "time": paper.get("time") or "90 MINUTES",
+        "marks": paper.get("marks") or marks,
+        "chapters_used": paper.get("chapters_used") or chapter_list,
+        "sections": sections
+    }
+
     return {
         "status": True,
         "message": "Question paper retrieved successfully.",
         "data": {
             "task_id": actual_task_id,
             "paper_oid": str(paper_doc["_id"]),
-            "paper_id": paper.get("paper_id"),
-            "standard": paper.get("standard"),
-            "subject": paper.get("subject"),
-            "chapters_used": paper.get("chapters_used"),
-            "sections": paper.get("sections"),
-            "marks": marks,
+            "paper_id": paper_payload["paper_id"],
+            "standard": paper_payload["standard"],
+            "subject": paper_payload["subject"],
+            "chapters_used": paper_payload["chapters_used"],
+            "sections": sections,
+            "questions": sections,
+            "paper": paper_payload,
+            "marks": paper_payload["marks"],
+            "pdf_url": pdf_url,
+            "download_url": pdf_url,
             "pdf_path": paper_doc.get("pdf_path"),
             "created_at": paper_doc.get("created_at")
         }

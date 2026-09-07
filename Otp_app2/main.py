@@ -22,7 +22,7 @@ from app.routes import (
     edusoft_routes, user_sudoku_routes, user_todo_routes, user_maths_game_routes
 ) 
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -33,6 +33,10 @@ import asyncio
 
 
 app = FastAPI(title="Miki Application")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
 
 @app.on_event("startup")
 async def startup_event():

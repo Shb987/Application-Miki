@@ -67,27 +67,6 @@ def determine_language_from_subject(subject: str, text_sample: str = None) -> st
 # EXAM BLUEPRINTS
 # --------------------------
 
-EXAM_STRUCTURES = {
-    1: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased"],  {"A": (1, 25)}),
-    2: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
-    3: (["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], {"A": (1, 15), "B": (2, 5)}),
-    4: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (3, 2)}),
-    5: (["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "PictureBased"], {"A": (1, 15), "B": (2, 5), "C": (4, 2)}),
-    6: (["MCQ", "VeryShort", "Short"], {"A": (1, 10), "B": (2, 5), "C": (4, 2)}),
-    7: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 9), "C": (3, 4), "D": (5, 2)}),
-    8: (["MCQ", "VeryShort", "Short", "ShortEssay"], {"A": (1, 10), "B": (2, 9), "C": (3, 4), "D": (5, 2)}),
-}
-
-HIGH_SCHOOL = {
-    50:  (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"], {"A": (1, 5), "B": (2, 5), "C": (3, 3), "D": (8, 2), "E": (10, 1)}),
-    80: (["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"], {"A": (1, 10), "B": (2, 10), "C": (4, 4), "D": (5, 4), "E": (7, 2)}),
-}
-
-PLUS_TWO = {
-    50:  (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {"A": (1, 5), "B": (3, 5), "C": (8, 3), "D": (10, 1)}),
-    80: (["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"], {"A": (1, 10), "B": (2, 10), "C": (3, 4), "D": (5, 4), "E": (9, 2)}),
-}
-
 PRIMARY_PEDAGOGY_PROMPT = """
 You are a friendly Primary School Teacher (Standard 1-5). Your task is to generate a fun and engaging question paper.
 
@@ -112,44 +91,55 @@ def _safe(obj, key, default=""):
     return obj.get(key, default) if isinstance(obj, dict) else default
 
 def get_exam_structure(standard: int, total: int):
-    # Primary Standards (1-5) - Dynamic scaling
+    """
+    Blueprint mapping according to official grade standards and total marks:
+    - Primary (1-5): 30 Marks & 50 Marks
+    - Middle (6-8): 50 Marks & 80 Marks
+    - High School (9-10): 40 Marks & 80 Marks
+    - Plus Two (11-12): 60 Marks & 80 Marks
+    """
+    # Primary Standards (1-5)
     if standard <= 5:
-        types = ["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "PictureBased"]
-        if standard >= 4: types.append("Short")
-        
-        # Proportional mapping: ~70% of marks to 1-mark questions, ~30% to 2-mark questions
-        # Example for 25 marks: 15 questions (1 mark) + 5 questions (2 marks)
-        # Example for 50 marks: 30 questions (1 mark) + 10 questions (2 marks)
-        count_1 = int(total * 0.6)
-        count_2 = int((total - count_1) / 2)
-        # Add a section C for 3 marks if it's a big paper
-        count_3 = 0
-        if total >= 50:
-            count_2 = 10
-            count_1 = total - (count_2 * 2 + 5 * 3)
-            count_3 = 5
-            return (types, {"A": (1, count_1), "B": (2, count_2), "C": (3, count_3)})
-            
-        return (types, {"A": (1, count_1), "B": (2, count_2)})
+        if total == 30:
+            allowed_types = ["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"]
+            sections = {"A": (1, 10), "B": (2, 5), "C": (5, 2)}
+            return (allowed_types, sections)
+        else:  # Default 50 marks
+            allowed_types = ["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort", "Short"]
+            sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 3)}
+            return (allowed_types, sections)
 
-    # Standards 6-8
+    # Middle Standards (6-8)
     if standard <= 8:
-        # For 6-8, we use a slightly more complex structure
-        base_struct = EXAM_STRUCTURES.get(standard, EXAM_STRUCTURES[8])
-        types, sec_map = base_struct
-        # Scale A, B, C proportional to total marks (assuming base is for 50)
-        scale = total / 50.0
-        new_sec_map = {}
-        for k, (v_mark, v_count) in sec_map.items():
-            new_sec_map[k] = (v_mark, int(v_count * scale) if int(v_count * scale) > 0 else 1)
-        return (types, new_sec_map)
+        if total == 80:
+            allowed_types = ["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "ShortEssay", "Reasoning"]
+            sections = {"A": (1, 6), "B": (2, 6), "C": (3, 10), "D": (4, 8)}
+            return (allowed_types, sections)
+        else:  # Default 50 marks
+            allowed_types = ["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "Reasoning"]
+            sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 3)}
+            return (allowed_types, sections)
 
-    # High School (9-10)
+    # High School Standards (9-10)
     if standard in [9, 10]:
-        return HIGH_SCHOOL.get(total, HIGH_SCHOOL[50])
-        
-    # Plus Two (11-12)
-    return PLUS_TWO.get(total, PLUS_TWO[50])
+        if total == 40:
+            allowed_types = ["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"]
+            sections = {"A": (1, 8), "B": (2, 6), "C": (3, 4), "D": (4, 2)}
+            return (allowed_types, sections)
+        else:  # Default 80 marks
+            allowed_types = ["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy"]
+            sections = {"A": (1, 8), "B": (2, 6), "C": (3, 10), "D": (5, 6)}
+            return (allowed_types, sections)
+
+    # Plus Two Standards (11-12)
+    if total == 60:
+        allowed_types = ["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
+        sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 5)}
+        return (allowed_types, sections)
+    else:  # Default 80 marks
+        allowed_types = ["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
+        sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (4, 5), "E": (5, 5)}
+        return (allowed_types, sections)
 
 def normalize_text(text: str) -> str:
     """Collapses characters separated by spaces and artifacts like 'WWeeaatthheerr'."""
@@ -1030,6 +1020,9 @@ async def generate_questions_worker(task_id: str, activity_log_id: str | None = 
                 chapter_text = "\n".join(selected_passages_texts)
                 context_text += f"\n=== CHAPTER: {title} ===\n{chapter_text}\n"
 
+            # Extract board (SCERT/NCERT) if available, defaulting to SCERT
+            board = task.get("board") or (chapter_docs[0].get("board") if chapter_docs else None) or "SCERT"
+
             # Prepare dynamic sections JSON block for the prompt
             sections_list = []
             for name, val in sections.items():
@@ -1037,70 +1030,180 @@ async def generate_questions_worker(task_id: str, activity_log_id: str | None = 
             sections_json_block = ",\n    ".join(sections_list)
 
             # Determine Peer/Pedagogy Prompt based on Standard
-            print(f"[BG-GEN] Step 2: Generating Paper {p+1} via OpenAI ({'Vision/Primary' if std <= 5 else 'Standard'} mode, Language: {majority_lang})...")
+            print(f"[BG-GEN] Step 2: Generating Paper {p+1} via OpenAI ({'Vision/Primary' if std <= 5 else 'Standard'} mode, Language: {majority_lang}, Board: {board})...")
             
             lang_instruction = ""
             if majority_lang == "ml":
-                lang_instruction = """ നിങ്ങൾ കേരള SCERT പരീക്ഷാ ചോദ്യപേപ്പർ തയ്യാറാക്കുന്നതിൽ വലിയ പരിചയമുള്ള ഒരു മലയാളം അധ്യാപകനാണ്.
-
-വളരെ പ്രധാനപ്പെട്ട നിയമങ്ങൾ:
-1. ചോദ്യങ്ങളും ഓപ്ഷനുകളും ഉത്തരങ്ങളും പൂർണ്ണമായും മലയാളത്തിൽ തന്നെ എഴുതുക.
-2. നൽകിയിരിക്കുന്ന പാഠഭാഗത്തെ അടിസ്ഥാനമാക്കി മാത്രമേ ചോദ്യങ്ങൾ നിർമ്മിക്കാവൂ.
-3. എല്ലാ വാക്യങ്ങളും പൂർണ്ണവും വ്യാകരണപരമായി തികച്ചും ശരിയുമായിരിക്കണം. വാക്യങ്ങൾ അപൂർണ്ണമായി (ഉദാഹരണത്തിന് 'സാംസ്കാരിക' എന്ന് മാത്രം പറഞ്ഞ്) അവസാനിപ്പിക്കരുത്.
-4. വിവർത്തനം ചെയ്തതുപോലെയുള്ള കൃത്രിമമായ മലയാളം ഒഴിവാക്കുക. സ്വാഭാവികവും ലളിതവുമായ ശൈലി ഉപയോഗിക്കുക.
-5. അക്ഷരത്തെറ്റുകളോ തെറ്റായ പദപ്രയോഗങ്ങളോ ഉണ്ടാകരുത്.
-6. കേരള SCERT പരീക്ഷകളിൽ ചോദിക്കാറുള്ള നിലവാരമുള്ള ചോദ്യങ്ങൾ തയ്യാറാക്കുക.
-7. ചോദ്യങ്ങളിൽ അനാവശ്യമായ ഇംഗ്ലീഷ് വാക്കുകളോ ഇംഗ്ലീഷ് വാക്യഘടനയോ ഉപയോഗിക്കരുത്. """
-
+                lang_instruction = """പരീക്ഷാ ചോദ്യപേപ്പർ തയ്യാറാക്കുന്നതിൽ ഉയർന്ന പരിചയമുള്ള ഒരു മലയാളം അധ്യാപകനായി പ്രവർത്തിക്കുക:
+- ചോദ്യങ്ങളും ഓപ്ഷനുകളും ഉത്തരങ്ങളും പൂർണ്ണമായും സ്വാഭാവികവും വ്യാകരണപരമായി ശരിയുമായ മലയാളത്തിൽ എഴുതുക.
+- നൽകിയിരിക്കുന്ന പാഠഭാഗത്തെ (Textbook Content) അടിസ്ഥാനമാക്കി മാത്രമേ ചോദ്യങ്ങൾ നിർമ്മിക്കാവൂ.
+- അനാവശ്യമായ ഇംഗ്ലീഷ് വാക്കുകളോ അപൂർണ്ണമായ വാക്യങ്ങളോ ഒഴിവാക്കുക."""
             elif majority_lang == "hi":
-                lang_instruction = """ आप परीक्षा के लिए एक पेशेवर प्रश्नपत्र निर्माता हैं। कृपया सभी प्रश्नों, विकल्पों और उत्तरों को विशुद्ध हिन्दी में लिखें। 
-
-नियम:
-1. केवल प्रदान किए गए पाठ से ही प्रश्न बनाएँ।
-2. व्याकरणिक रूप से सही और स्वाभाविक हिन्दी का प्रयोग करें।
-3. केरल बोर्ड पैटर्न का पालन करें।
-4. अंग्रेजी शब्दों का प्रयोग न करें।
-5. सभी प्रश्न स्पष्ट और सटीक हों।
-6. उत्तरों को भी हिन्दी में दें।
-7. सुनिश्चित करें कि विकल्प प्रश्न का भाग न हों। """
-
+                lang_instruction = """परीक्षा के लिए एक पेशेवर प्रश्नपत्र निर्माता के रूप में कार्य करें:
+- सभी प्रश्नों, विकल्पों और उत्तरों को विशुद्ध एवं व्याकरणिक रूप से सही हिन्दी में लिखें।
+- केवल प्रदान किए गए पाठ से ही प्रश्न बनाएँ।
+- अंग्रेजी शब्दों का प्रयोग न करें।"""
             else:
-                lang_instruction = """ You are an experienced SCERT question paper setter.
+                lang_instruction = """Follow English language rules:
+- All questions, options, and answers must be in clean, grammatically accurate English based strictly on the textbook content."""
 
-Generate a high-quality SCERT question paper.
+            prompt = f"""You are an experienced school teacher and professional question-paper setter.
 
-Rules:
-- Use only English.
-- Questions must be grammatically correct.
-- Use textbook terminology.
-- Do not invent facts.
-- Do not translate from another language. """
-                
-            system_role_content = f"You are a professional SCERT Exam Paper Generator. Output valid JSON only.\n\n{lang_instruction}"
-            if std <= 5:
-                system_role_content = f"{PRIMARY_PEDAGOGY_PROMPT}\n\n{lang_instruction}"
+Your task is to generate a high-quality question paper for the specified BOARD/CURRICULUM, CLASS, SUBJECT, CHAPTERS, and TOTAL MARKS.
 
-            prompt = f"""
-{system_role_content}
+### EXAM DETAILS
 
-Kerala SCERT Board Exam Question Paper Generator — Paper {p + 1} of {papers}
-
-Standard: {std}
+Board/Curriculum: {board}
+Class/Standard: {std}
 Subject: {subject}
-Chapters: {', '.join(chapters)}
+Selected Chapters: {', '.join(chapters)}
+Total Marks: {total_marks}
+Paper Number: {p + 1} of {papers}
 
-Allowed Question Types: {allowed_types}
+### LANGUAGE REQUIREMENT
+{lang_instruction}
 
-### TEXTBOOK CONTENT (SOURCE MATERIAL) ###
-Use the following content to generate relevant questions. Do NOT ask questions outside this scope if possible.
-{context_text}
-### END CONTENT ###
+### IMPORTANT CURRICULUM RULE
+
+The student follows the specified curriculum: {board}.
+
+- If Board/Curriculum is NCERT, generate questions strictly from the supplied NCERT textbook content.
+- If Board/Curriculum is SCERT, generate questions strictly from the supplied SCERT textbook content.
+- NEVER mix NCERT and SCERT content.
+- Do not use content from another board, curriculum, class, or textbook.
+- The supplied textbook content is the PRIMARY and AUTHORITATIVE source for question generation.
+- Do not invent facts, definitions, formulas, examples, characters, events, terminology, diagrams, or concepts that are not supported by the supplied textbook content.
+- Use the terminology and concepts appropriate to the supplied textbook.
+- Questions must be appropriate for the specified class.
+
+### CLASS-BASED LEVEL
+
+Classes 1–5:
+Generate age-appropriate questions focusing on recognition, recall, basic understanding, simple application, activities, pictures, and simple reasoning.
+
+Classes 6–8:
+Generate questions focusing on knowledge, understanding, application, reasoning, problem solving, interpretation, and age-appropriate higher-order thinking.
+
+Classes 9–10:
+Generate questions focusing on conceptual understanding, application, analysis, problem solving, interpretation, reasoning, and examination-level thinking.
+
+Classes 11–12:
+Generate questions focusing on advanced conceptual understanding, application, analysis, evaluation, problem solving, derivation/calculation where applicable, interpretation, and subject-specific higher-order thinking.
+
+### QUESTION PAPER STRUCTURE
+
+Follow the exact section structure supplied by the system.
+
+For every section:
+- Use exactly the specified number of questions.
+- Use exactly the specified marks per question.
+- Do not add extra questions.
+- Do not remove questions.
+- Do not change the marks.
+- Do not merge sections.
+- Do not create additional sections.
+
+The total marks of the generated paper MUST exactly equal {total_marks}.
+
+### DIFFICULTY PROGRESSION
+
+Section A:
+- Basic knowledge
+- Recall
+- Recognition
+- Direct understanding
+- Simple calculation where appropriate
+
+Section B:
+- Understanding
+- Short explanation
+- Simple application
+- One or two logical steps
+
+Section C:
+- Application
+- Reasoning
+- Problem solving
+- Interpretation
+- Multiple logical steps
+
+Section D/E:
+- Higher-order thinking
+- Analysis
+- Complex application
+- Interpretation
+- Multi-step reasoning
+- Problem solving
+- Evaluation where appropriate
+
+IMPORTANT:
+Higher-mark questions must be more intellectually demanding, not simply longer.
+Do not make a question difficult merely by adding unnecessary words.
+
+### SUBJECT-SPECIFIC RULES
+
+MATHEMATICS:
+Use appropriate questions involving calculations, mathematical concepts, algebra, geometry, mensuration, graphs, tables, construction, verification/proof where applicable, real-life applications, reasoning, multi-step problem solving.
+
+SCIENCE:
+Use appropriate questions involving definitions, concepts, explanations, reasons, comparisons, classification, experiments, observations, diagrams when supported by textbook, applications, case/context-based questions, scientific reasoning.
+
+SOCIAL SCIENCE:
+Use appropriate questions involving facts/concepts, events, processes, causes/effects, comparisons, maps when supported by textbook, source/context-based questions, interpretation, analytical reasoning, application.
+
+ENGLISH:
+Use appropriate questions involving reading comprehension, grammar, vocabulary, literature, text-based questions, short answers, explanation, writing, application, interpretation, higher-order comprehension.
+
+MALAYALAM:
+Use prescribed textbook content involving ആശയഗ്രഹണം, പദപ്രയോഗം, വ്യാകരണം, കവിത/ഗദ്യ comprehension, Context-based questions, Explanation, Literary analysis, Application.
+
+HINDI:
+Use prescribed textbook content involving पाठ comprehension, व्याकरण, शब्दावली, गद्य/पद्य comprehension, संदर्भ आधारित प्रश्न, Explanation, Application.
+
+For any other subject:
+Use question types and cognitive levels appropriate to the subject, class, and supplied textbook content.
+
+### QUESTION TYPE
+
+Do NOT force every question to be an MCQ. Choose the most appropriate question type based on Subject, Class, Section, Marks, Learning objective, and Textbook content.
+Allowed Question Types for this paper: {allowed_types}
+
+### QUESTION QUALITY
+
+Every question MUST:
+1. Be grammatically correct, clear, and unambiguous.
+2. Be complete and self-contained with a clear expected answer.
+3. Match the allocated marks and student's class level.
+4. Test a meaningful concept using correct textbook terminology.
+5. Avoid unnecessary complexity, repeated questions, or reworded versions of another question.
+6. Avoid invented facts, concepts, or unrelated information.
+
+### CHAPTER COVERAGE
+
+Distribute questions appropriately across ALL selected chapters: {', '.join(chapters)}. Do not generate most questions from only one chapter.
+
+### VISUAL QUESTIONS
+
+Use pictures, diagrams, graphs, tables, maps, or other visual questions ONLY when the required visual information is actually available in the supplied textbook content.
+NEVER write "Look at the picture below" or "Observe the graph below" unless that visual is provided. If unavailable, convert into a clear text-based equivalent.
+
+### MARKING DEPTH
+
+1 mark: Direct answer, recall, identification, simple calculation, one-step response.
+2 marks: Short explanation, simple application, approximately two logical steps.
+3 marks: Application, reasoning, calculation, multiple logical steps, supporting reasoning.
+4–5 marks: Detailed application, multi-step problem solving, analysis, interpretation, higher-order reasoning.
+
+### MULTIPLE PAPERS
+
+This is Paper {p + 1} of {papers}. Every paper must contain fresh, non-duplicate questions.
 {exclusion_block}
-### QUESTION STRUCTURE REQUIREMENTS ###
-1. Generate questions STRICTLY grouped by sections.
-2. Follow EXACT question counts specified below.
-3. **CRITICAL**: Ensure questions are distributed EVENLY across all provided chapters/topics. Do not focus only on the first few pages. Cover the entire provided content.
-4. **UNIQUENESS**: Since this is paper {p + 1} of {papers}, generate FRESH questions that approach different concepts, facts, and angles from the chapter content. Avoid redundant or trivially rephrased questions.
+
+### TEXTBOOK SOURCE MATERIAL
+
+Use ONLY the following supplied textbook/RAG content:
+
+{context_text}
 
 ### QUESTION TYPE JSON STRUCTURES ###
 - MCQ: {{ "question": "...", "type": "MCQ", "options": ["A", "B", "C", "D"], "answer": "..." }}
@@ -1110,7 +1213,22 @@ Use the following content to generate relevant questions. Do NOT ask questions o
 - PICTUREBASED: {{ "question": "What is in the picture?", "type": "PICTUREBASED", "answer": "..." }}
 - VERYSHORT/SHORT/ESSAY: {{ "question": "...", "type": "SHORT", "answer": "..." }}
 
+### REQUIRED SECTIONS & QUESTION COUNTS ###
 {section_text}
+
+### FINAL VALIDATION BEFORE OUTPUT
+
+Before returning the paper, internally verify:
+1. Correct board/curriculum: {board}
+2. Correct class: {std}
+3. Correct subject: {subject}
+4. Only selected chapters are used.
+5. No NCERT/SCERT content is mixed.
+6. Every question is supported by the supplied textbook content.
+7. Correct section count and marks per question matching the section blueprint exactly.
+8. Correct total marks equal to {total_marks}.
+9. Correct difficulty progression and no duplicate/rephrased questions.
+10. JSON format is valid.
 
 ### OUTPUT FORMAT ###
 Respond with valid JSON only. No text outside JSON.
@@ -1123,8 +1241,7 @@ Respond with valid JSON only. No text outside JSON.
   "sections": [
     {sections_json_block}
   ]
-}}
-"""
+}}"""
 
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -1145,6 +1262,13 @@ Respond with valid JSON only. No text outside JSON.
             except Exception:
                 paper_json = {"paper_id": f"{task_id}-{p+1}", "sections": []}
 
+            if not isinstance(paper_json, dict):
+                paper_json = {"paper_id": f"{task_id}-{p+1}", "sections": []}
+
+            # Guarantee paper_id exists in paper_json
+            paper_id_val = paper_json.get("paper_id") or f"{task_id}-{p+1}"
+            paper_json["paper_id"] = paper_id_val
+
             # Collect all question texts from this paper to exclude from next papers
             for section in paper_json.get("sections", []):
                 for q in section.get("questions", []):
@@ -1157,44 +1281,35 @@ Respond with valid JSON only. No text outside JSON.
                     if q_text:
                         used_questions.append(q_text.strip())
 
-            # Insert JSON into DB
-            # We store 'task_id' (which is the task's ObjectId string) for linking
-            result = await db.generated_papers.insert_one({
-                "task_id": task_id,
-                "paper_index": p + 1,
-                "paper": paper_json,
-                "created_at": datetime.utcnow(),
-            })
-            generated_ids.append(str(result.inserted_id))
-
             # --- PDF Generation ---
             print(f"[BG-GEN] Step 3: Rendering PDF for Paper {p+1}...")
-            try:
-                # Inject metadata for PDF header
-                paper_json["marks"] = total_marks
-                paper_json["standard"] = str(std)
-                paper_json["subject"] = subject
-                # Use provided time_limit if exists, else fallback to calculation
-                user_time = task.get("time_limit")
-                if user_time:
-                    paper_json["time"] = f"TIME - {user_time} MINUTES" if str(user_time).isdigit() else str(user_time)
-                else:
-                    paper_json["time"] = "TIME - 90 MINUTES" if total_marks >= 50 else "TIME - 45 MINUTES"
+            paper_json["marks"] = total_marks
+            paper_json["standard"] = str(std)
+            paper_json["subject"] = subject
+            user_time = task.get("time_limit")
+            if user_time:
+                paper_json["time"] = f"TIME - {user_time} MINUTES" if str(user_time).isdigit() else str(user_time)
+            else:
+                paper_json["time"] = "TIME - 90 MINUTES" if total_marks >= 50 else "TIME - 45 MINUTES"
 
-                paper_filename = f"{GENERATED_PDF_DIR}/{paper_json['paper_id']}.pdf"
-                
-                # Use specialized layout for Standards 1-5
+            paper_filename = f"{GENERATED_PDF_DIR}/{paper_id_val}.pdf"
+            try:
                 if std <= 5:
                     save_primary_question_paper(paper_json, paper_filename)
                 else:
                     save_scert_question_paper(paper_json, paper_filename)
-                # Update DB with PDF path
-                await db.generated_papers.update_one(
-                    {"_id": result.inserted_id},
-                    {"$set": {"pdf_path": paper_filename}}
-                )
             except Exception as e:
-                print(f"Failed to generate PDF for paper {paper_json.get('paper_id')}: {e}")
+                print(f"Failed to generate PDF for paper {paper_id_val}: {e}")
+
+            # Insert JSON into DB with pdf_path included
+            result = await db.generated_papers.insert_one({
+                "task_id": task_id,
+                "paper_index": p + 1,
+                "paper": paper_json,
+                "pdf_path": paper_filename,
+                "created_at": datetime.utcnow(),
+            })
+            generated_ids.append(str(result.inserted_id))
 
             # Update progress
             await db.question_tasks.update_one(
@@ -1272,32 +1387,82 @@ async def question_task_status(task_id: str):
     }
     
 
+def _ensure_pdf_exists(paper_doc: dict, force_rerender: bool = False) -> Optional[str]:
+    """
+    Checks if PDF file exists on disk in app/static/generated_papers for a paper record;
+    if missing, mislocated, or force_rerender is True, re-renders PDF on the fly from stored JSON.
+    Returns static PDF URL (e.g. /generated_papers/xxx.pdf) or None.
+    """
+    paper_info = paper_doc.get("paper") or {}
+    if not isinstance(paper_info, dict):
+        return None
+
+    paper_id_code = paper_info.get("paper_id") or str(paper_doc.get("_id", "paper"))
+    paper_info["paper_id"] = paper_id_code
+
+    filename = f"{paper_id_code}.pdf"
+    canonical_pdf_path = os.path.join(GENERATED_PDF_DIR, filename)
+
+    # 1. Check if canonical PDF exists; if missing check legacy/alternate path and copy
+    if not force_rerender and not os.path.exists(canonical_pdf_path):
+        old_pdf_path = paper_doc.get("pdf_path")
+        if old_pdf_path and os.path.exists(old_pdf_path) and os.path.abspath(old_pdf_path) != os.path.abspath(canonical_pdf_path):
+            try:
+                import shutil
+                shutil.copy2(old_pdf_path, canonical_pdf_path)
+            except Exception as e:
+                print(f"[AUTO-HEAL-PDF] Could not copy from {old_pdf_path}: {e}")
+
+    # 2. If missing or force_rerender is True, re-render PDF on the fly from paper_info JSON
+    if (force_rerender or not os.path.exists(canonical_pdf_path)) and paper_info:
+        try:
+            raw_std = paper_info.get("standard") or paper_doc.get("standard") or 1
+            try:
+                std = int(raw_std)
+            except (ValueError, TypeError):
+                std = 1
+
+            paper_info["standard"] = str(std)
+            if "subject" not in paper_info or not paper_info["subject"]:
+                paper_info["subject"] = paper_doc.get("subject") or "General"
+            if "marks" not in paper_info or not paper_info["marks"]:
+                paper_info["marks"] = paper_doc.get("marks") or 50
+
+            if std <= 5:
+                save_primary_question_paper(paper_info, canonical_pdf_path)
+            else:
+                save_scert_question_paper(paper_info, canonical_pdf_path)
+        except Exception as e:
+            print(f"[AUTO-HEAL-PDF] Failed to re-render PDF on the fly for {paper_id_code}: {e}")
+
+    if os.path.exists(canonical_pdf_path):
+        mtime = int(os.path.getmtime(canonical_pdf_path))
+        return f"/generated_papers/{filename}?v={mtime}"
+    return None
+
+
 @router.get("/generated-papers")
 async def get_generated_papers(task_id: Optional[str] = None):
     q = {}
-    if task_id:
+    if task_id and task_id != "undefined":
         q["task_id"] = task_id
     docs = await db.generated_papers.find(q).sort([("created_at", -1), ("_id", -1)]).to_list(None)
     for d in docs:
         d["_id"] = str(d["_id"])
-        # Add pdf_url if pdf_path exists
-        if "pdf_path" in d:
-            # Match the mount point in main.py: app.mount("/generated_papers", ...)
-            pdf_filename = os.path.basename(d["pdf_path"])
-            d["pdf_url"] = f"/generated_papers/{pdf_filename}"
-            # Match frontend expectations in question_generation.html
-            d["download_url"] = d["pdf_url"]
-            
-            # Create a user-friendly filename/title from the paper data
-            paper_info = d.get("paper", {})
-            std = paper_info.get("standard", "N/A")
-            sub = paper_info.get("subject", "N/A")
-            chaps = paper_info.get("chapters_used", [])
-            chap_str = chaps[0] if chaps else "N/A"
-            if len(chaps) > 1:
-                chap_str += f" +{len(chaps)-1} more"
-            
-            d["filename"] = f"Class {std} {sub} - {chap_str}"
+        paper_info = d.get("paper", {})
+        pdf_url = _ensure_pdf_exists(d, force_rerender=True)
+
+        d["pdf_url"] = pdf_url
+        d["download_url"] = pdf_url
+
+        std = paper_info.get("standard") or d.get("standard", "N/A")
+        sub = paper_info.get("subject") or d.get("subject", "N/A")
+        chaps = paper_info.get("chapters_used", []) or d.get("chapters", [])
+        chap_str = chaps[0] if chaps else "N/A"
+        if len(chaps) > 1:
+            chap_str += f" +{len(chaps)-1} more"
+
+        d["filename"] = f"Class {std} {sub} - {chap_str}"
     return docs
 
 
@@ -1320,15 +1485,25 @@ async def delete_generated_paper(paper_id: str):
 @router.get("/generated-papers/filter", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "read"))])
 async def get_generated_papers_filter(standard: str, subject: str):
     docs = await db.generated_papers.find(
-        {"paper.standard": str(standard), "paper.subject": subject}
+        {"$or": [{"paper.standard": str(standard), "paper.subject": subject}, {"standard": str(standard), "subject": str(subject)}]}
     ).sort([("created_at", -1), ("_id", -1)]).to_list(None)
 
     for d in docs:
         d["_id"] = str(d["_id"])
-        if "pdf_path" in d:
-            # Match the mount point in main.py: app.mount("/generated_papers", ...)
-            filename = os.path.basename(d["pdf_path"])
-            d["pdf_url"] = f"/generated_papers/{filename}"
+        paper_info = d.get("paper", {})
+        pdf_url = _ensure_pdf_exists(d, force_rerender=True)
+
+        d["pdf_url"] = pdf_url
+        d["download_url"] = pdf_url
+
+        std = paper_info.get("standard") or d.get("standard", standard)
+        sub = paper_info.get("subject") or d.get("subject", subject)
+        chaps = paper_info.get("chapters_used", []) or d.get("chapters", [])
+        chap_str = chaps[0] if chaps else "N/A"
+        if len(chaps) > 1:
+            chap_str += f" +{len(chaps)-1} more"
+
+        d["filename"] = f"Class {std} {sub} - {chap_str}"
 
     return docs
 

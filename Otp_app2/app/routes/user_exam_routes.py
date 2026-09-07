@@ -274,25 +274,45 @@ async def download_paper(paper_id: str, current_user: dict = Depends(get_current
             "data": None
         }
 
-    # PDF path stored in DB (e.g. "Exams/generated_papers/xxx.pdf")
-    pdf_path = paper_doc.get("pdf_path")
+    # Check canonical location in app/static/generated_papers
+    paper_info = paper_doc.get("paper") or {}
+    paper_id_code = paper_info.get("paper_id") or str(paper_doc.get("_id", "paper"))
+    filename = f"{paper_id_code}.pdf"
+    canonical_path = os.path.abspath(os.path.join("app", "static", "generated_papers", filename))
 
-    if not pdf_path:
-        return {
-            "status": False,
-            "message": "PDF path not found in database.",
-            "data": None
-        }
+    db_pdf_path = paper_doc.get("pdf_path")
+    full_path = None
 
-    # Construct full file path
-    full_path = os.path.join(os.getcwd(), pdf_path)
+    if os.path.isfile(canonical_path):
+        full_path = canonical_path
+    elif db_pdf_path and os.path.isfile(os.path.abspath(db_pdf_path)):
+        full_path = os.path.abspath(db_pdf_path)
+    else:
+        # Re-render on the fly if missing
+        if paper_info:
+            try:
+                raw_std = paper_info.get("standard") or paper_doc.get("standard") or 1
+                try:
+                    std = int(raw_std)
+                except (ValueError, TypeError):
+                    std = 1
 
-    # Check whether file exists
-    if not os.path.isfile(full_path):
+                paper_info["standard"] = str(std)
+                if std <= 5:
+                    save_primary_question_paper(paper_info, canonical_path)
+                else:
+                    save_scert_question_paper(paper_info, canonical_path)
+
+                if os.path.isfile(canonical_path):
+                    full_path = canonical_path
+            except Exception as e:
+                print(f"[USER-EXAM-PDF] Auto-heal failed: {e}")
+
+    if not full_path or not os.path.isfile(full_path):
         return {
             "status": False,
             "message": "PDF file not found in server storage.",
-            "data": full_path
+            "data": None
         }
 
     # Return file for download

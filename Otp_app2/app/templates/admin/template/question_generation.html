@@ -53,8 +53,10 @@
               <label class="form-label fw-bold font-primary"><i class="icofont icofont-star-shape me-1"></i> Total Marks
                 per Paper</label>
               <select id="marks" class="form-select shadow-sm">
-                <option value="25">25 Marks</option>
+                <option value="30">30 Marks</option>
+                <option value="40">40 Marks</option>
                 <option value="50" selected>50 Marks</option>
+                <option value="60">60 Marks</option>
                 <option value="80">80 Marks</option>
               </select>
             </div>
@@ -83,7 +85,12 @@
   const taskStatusDiv = document.getElementById("taskStatus"), recentPapersDiv = document.getElementById("recentPapers");
   let currentTaskPoll = null;
 
-  const markOptions = { "1": [25], "2": [25, 30], "3": [25, 30], "4": [30, 40], "5": [40, 50], "6": [30, 50], "7": [50], "8": [50], "9": [50, 80], "10": [50, 80], "11": [50, 80], "12": [50, 80] };
+  const markOptions = { 
+    "1": [30, 50], "2": [30, 50], "3": [30, 50], "4": [30, 50], "5": [30, 50], 
+    "6": [50, 80], "7": [50, 80], "8": [50, 80], 
+    "9": [40, 80], "10": [40, 80], 
+    "11": [60, 80], "12": [60, 80] 
+  };
 
   function setUIEnabled(e) {
     stdSel.disabled = !e; subjectSel.disabled = !e || !stdSel.value; chaptersSel.disabled = !e || !subjectSel.value;
@@ -148,11 +155,23 @@
   generateBtn.onclick = async () => {
     const payload = { standard: stdSel.value, subject: subjectSel.value, chapters: Array.from(chaptersSel.selectedOptions).map(o => o.value), paper_count: parseInt(papersInput.value), total_marks: parseInt(marksSel.value) };
     setUIEnabled(false);
-    const res = await fetch("/admin-panel/generate-questions", { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    const data = await res.json(); startTaskPoll(data.task_id);
+    try {
+      const res = await fetch("/admin-panel/generate-questions", { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (res.ok && data && data.task_id) {
+        startTaskPoll(data.task_id);
+      } else {
+        showProgress("failed", 0, data.detail || data.message || "Failed to initiate question generation.");
+        setUIEnabled(true);
+      }
+    } catch (err) {
+      showProgress("failed", 0, "Network or server error while initiating task.");
+      setUIEnabled(true);
+    }
   };
 
   function startTaskPoll(id) {
+    if (!id || id === "undefined") return;
     if (currentTaskPoll) clearInterval(currentTaskPoll);
     currentTaskPoll = setInterval(async () => {
       const res = await fetch(`/admin-panel/question-task-status/${id}`, { headers: { "Authorization": "Bearer " + token } });
@@ -163,12 +182,30 @@
   }
 
   async function loadGeneratedPapers(id) {
-    const res = await fetch(`/admin-panel/generated-papers?task_id=${id}`, { headers: { "Authorization": "Bearer " + token } });
-    const papers = await res.json();
-    recentPapersDiv.innerHTML = papers.map(p => `<div class="card mb-3"><div class="card-body"><h5>${p.filename}</h5><a href="${p.download_url}" class="btn btn-sm btn-outline-primary">Download</a></div></div>`).join('');
+    let url = "/admin-panel/generated-papers";
+    if (id && id !== "undefined") {
+      url += `?task_id=${id}`;
+    }
+    try {
+      const res = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
+      const papers = await res.json();
+      if (!Array.isArray(papers) || papers.length === 0) {
+        recentPapersDiv.innerHTML = `<div class="alert alert-info">No generated paper files found.</div>`;
+        return;
+      }
+      recentPapersDiv.innerHTML = papers.map(p => {
+        const title = escapeHtml(p.filename || 'Generated Question Paper');
+        const url = p.download_url || p.pdf_url;
+        const downloadBtn = url ? `<a href="${url}" target="_blank" class="btn btn-sm btn-outline-primary shadow-sm"><i class="icofont icofont-download me-1"></i> Download PDF</a>` : `<span class="badge bg-secondary">PDF Not Ready</span>`;
+        return `<div class="card mb-3 shadow-sm border-0"><div class="card-body d-flex justify-content-between align-items-center"><div><h5 class="mb-1 text-dark fw-bold">${title}</h5></div><div>${downloadBtn}</div></div></div>`;
+      }).join('');
+    } catch (err) {
+      console.error("Error loading generated papers:", err);
+    }
   }
 
   function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
   loadStandards();
+  loadGeneratedPapers();
 </script>
 {% endblock %}

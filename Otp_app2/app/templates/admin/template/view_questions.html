@@ -509,19 +509,17 @@
                 <div class="card-body p-4 bg-white">
                   <div class="row g-4 mb-3">
                     <div class="col-md-5">
-                      <label class="form-label fw-bold font-primary"><i class="icofont icofont-graduate-alt me-1"></i>
-                        Standard</label>
-                      <select id="filterStandard" class="form-select shadow-sm border-light-subtle"></select>
+                      <label class="form-label fw-bold font-primary"><i class="icofont icofont-graduate-alt me-1"></i> Standard</label>
+                      <select id="filterStandard" class="form-select shadow-sm py-2 px-3 rounded-3" style="border: 1px solid #dcdfe4; background-color: #fff;"></select>
                     </div>
 
                     <div class="col-md-5">
-                      <label class="form-label fw-bold font-primary"><i class="icofont icofont-book-alt me-1"></i>
-                        Subject</label>
-                      <select id="filterSubject" class="form-select shadow-sm border-light-subtle"></select>
+                      <label class="form-label fw-bold font-primary"><i class="icofont icofont-book-alt me-1"></i> Subject</label>
+                      <select id="filterSubject" class="form-select shadow-sm py-2 px-3 rounded-3" style="border: 1px solid #dcdfe4; background-color: #fff;"></select>
                     </div>
 
                     <div class="col-md-2 d-flex align-items-end">
-                      <button class="btn btn-miki w-100 rounded-pill py-2 shadow" onclick="loadGeneratedFiltered()">
+                      <button class="btn btn-miki w-100 rounded-pill py-2 shadow fw-bold" onclick="loadGeneratedFiltered()">
                         <i class="icofont icofont-search-job me-1"></i> Search
                       </button>
                     </div>
@@ -667,6 +665,13 @@
             const col = document.createElement("div");
             col.className = "col-xl-6 col-md-12";
 
+            const pdfUrl = p.pdf_url || p.download_url;
+            const pdfBtn = pdfUrl ?
+              `<a href="${pdfUrl}" target="_blank" class="btn btn-outline-miki flex-grow-1 rounded-pill fw-bold d-flex align-items-center justify-content-center">
+                  <i data-feather="download" class="me-2" style="width:18px;"></i> Download PDF
+              </a>` :
+              `<span class="badge bg-secondary py-2 px-3 flex-grow-1 text-center rounded-pill d-flex align-items-center justify-content-center">PDF Not Ready</span>`;
+
             col.innerHTML = `
                 <div class="card shadow-sm border-0 h-100 paper-card">
                     <div class="card-body p-4 d-flex flex-column">
@@ -693,9 +698,7 @@
                         </div>
                         
                         <div class="d-flex gap-2 border-top pt-4 mt-auto">
-                            <a href="${p.pdf_url}" target="_blank" class="btn btn-outline-miki flex-grow-1 rounded-pill fw-bold d-flex align-items-center justify-content-center">
-                                <i data-feather="download" class="me-2" style="width:18px;"></i> Download PDF
-                            </a>
+                            ${pdfBtn}
                             <button class="btn btn-danger rounded-pill fw-bold px-4 d-flex align-items-center justify-content-center shadow-sm" onclick="deletePaper('${p._id}')" title="Delete">
                                 <i data-feather="trash-2" style="width:18px;"></i>
                             </button>

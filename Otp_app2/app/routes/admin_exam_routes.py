@@ -7,6 +7,7 @@ import pdfplumber
 import uuid
 import json
 import os
+import re
 import asyncio
 from app.report.scert_pdf_professional import save_scert_question_paper
 from app.report.primary_pdf_layout import save_primary_question_paper

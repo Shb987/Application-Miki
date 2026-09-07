@@ -608,8 +608,13 @@ async def process_chapter_worker(
 # --------------------------
 
 @router.get("/standards")
-async def get_standards():
-    standards = await db.textbook.distinct("standard")
+async def get_standards(board: Optional[str] = Query(None)):
+    query = {}
+    if board and board.strip():
+        query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
+    standards = await db.textbook.distinct("standard", query)
+    if not standards:
+        standards = await db.textbook.distinct("standard")
     try:
         standards_sorted = sorted(standards, key=lambda x: int(x))
     except:
@@ -617,8 +622,13 @@ async def get_standards():
     return {"standards": standards_sorted}
 
 @router.get("/subjects/{standard}")
-async def get_subjects(standard: str):
-    subjects = await db.textbook.distinct("subject", {"standard": standard})
+async def get_subjects(standard: str, board: Optional[str] = Query(None)):
+    query = {"standard": standard}
+    if board and board.strip():
+        query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
+    subjects = await db.textbook.distinct("subject", query)
+    if not subjects:
+        subjects = await db.textbook.distinct("subject", {"standard": standard})
     subjects = sorted([s for s in subjects if s])
     return {"subjects": subjects}
 
@@ -629,8 +639,11 @@ def natural_sort_key(s):
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
 @router.get("/chapters/{standard}/{subject}")
-async def get_chapters(standard: str, subject: str):
-    docs = await db.textbook.find({"standard": standard, "subject": subject, "processed": True}).to_list(None)
+async def get_chapters(standard: str, subject: str, board: Optional[str] = Query(None)):
+    query = {"standard": standard, "subject": subject, "processed": True}
+    if board and board.strip():
+        query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
+    docs = await db.textbook.find(query).to_list(None)
     chapter_set = []
     for d in docs:
         chs = d.get("chapters")
@@ -639,11 +652,22 @@ async def get_chapters(standard: str, subject: str):
                 if c and c not in chapter_set:
                     chapter_set.append(c)
     if not chapter_set:
-        ch_docs = await db.textbook_chapters.find({"standard": standard, "subject": subject}).to_list(None)
+        ch_query = {"standard": standard, "subject": subject}
+        if board and board.strip():
+            ch_query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
+        ch_docs = await db.textbook_chapters.find(ch_query).to_list(None)
         for cd in ch_docs:
             title = cd.get("chapter_title")
             if title and title not in chapter_set:
                 chapter_set.append(title)
+    if not chapter_set:
+        docs = await db.textbook.find({"standard": standard, "subject": subject, "processed": True}).to_list(None)
+        for d in docs:
+            chs = d.get("chapters")
+            if isinstance(chs, list):
+                for c in chs:
+                    if c and c not in chapter_set:
+                        chapter_set.append(c)
     chapter_set = sorted(chapter_set, key=natural_sort_key)
     return {"chapters": chapter_set}
     
@@ -855,6 +879,7 @@ async def generate_questions_trigger(
         standard = payload.get("standard")
         subject = payload.get("subject")
         chapters = payload.get("chapters", [])
+        board = payload.get("board") or payload.get("curriculum") or "SCERT"
         # Align with question_generation.html payload keys: paper_count, total_marks
         papers = int(payload.get("paper_count") or payload.get("papers") or 1)
         marks = int(payload.get("total_marks") or payload.get("marks") or payload.get("TotalMarks") or 50)
@@ -863,9 +888,8 @@ async def generate_questions_trigger(
         if not standard or not subject or not chapters:
             raise HTTPException(status_code=400, detail="standard, subject and chapters are required")
 
-        # task_id = str(uuid.uuid4())  <-- REMOVED
         task_doc = {
-            # "task_id": task_id,      <-- REMOVED
+            "board": board,
             "standard": standard,
             "subject": subject,
             "chapters": chapters,
@@ -928,17 +952,28 @@ async def generate_questions_worker(task_id: str, activity_log_id: str | None = 
     chapters = task["chapters"]
     subject = task["subject"]
     papers = task["papers"]
+    board = task.get("board") or "SCERT"
 
     allowed_types, sections = get_exam_structure(std, total_marks)
     generated_ids = []
 
     # --- RAG: Fetch Chapter Content ---
-    print(f"[BG-GEN] Step 1: Fetching chapter content from database (RAG)...")
-    chapter_docs = await db.textbook_chapters.find({
+    print(f"[BG-GEN] Step 1: Fetching chapter content from database for Board '{board}' (RAG)...")
+    rag_query = {
         "standard": str(std),
         "subject": subject,
         "chapter_title": {"$in": chapters}
-    }).sort("passage_index", 1).to_list(None)
+    }
+    if board:
+        rag_query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
+
+    chapter_docs = await db.textbook_chapters.find(rag_query).sort("passage_index", 1).to_list(None)
+    if not chapter_docs:
+        chapter_docs = await db.textbook_chapters.find({
+            "standard": str(std),
+            "subject": subject,
+            "chapter_title": {"$in": chapters}
+        }).sort("passage_index", 1).to_list(None)
 
     # Determine overall language based on Subject (Hindi -> hi, Malayalam -> ml, Others -> en)
     majority_lang = determine_language_from_subject(subject)

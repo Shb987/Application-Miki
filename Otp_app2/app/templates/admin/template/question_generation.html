@@ -32,10 +32,17 @@
         </div>
         <div class="card-body p-4 bg-white">
           <div class="row g-4">
-            <div class="col-md-6"><label class="form-label fw-bold font-primary"><i
+            <div class="col-md-4">
+              <label class="form-label fw-bold font-primary"><i class="icofont icofont-university me-1"></i> Board / Curriculum</label>
+              <select id="board" class="form-select shadow-sm">
+                <option value="SCERT" selected>SCERT (Kerala)</option>
+                <option value="NCERT">NCERT</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label fw-bold font-primary"><i
                   class="icofont icofont-graduate-alt me-1"></i> Standard</label><select id="std"
                 class="form-select shadow-sm"></select></div>
-            <div class="col-md-6"><label class="form-label fw-bold font-primary"><i
+            <div class="col-md-4"><label class="form-label fw-bold font-primary"><i
                   class="icofont icofont-book-alt me-1"></i> Subject</label><select id="subject"
                 class="form-select shadow-sm" disabled></select></div>
             <div class="col-md-12">
@@ -80,7 +87,7 @@
 {% block scripts %}
 <script>
   const token = localStorage.getItem("admin_token");
-  const stdSel = document.getElementById("std"), subjectSel = document.getElementById("subject"), chaptersSel = document.getElementById("chapters");
+  const boardSel = document.getElementById("board"), stdSel = document.getElementById("std"), subjectSel = document.getElementById("subject"), chaptersSel = document.getElementById("chapters");
   const generateBtn = document.getElementById("generateBtn"), papersInput = document.getElementById("count"), marksSel = document.getElementById("marks");
   const taskStatusDiv = document.getElementById("taskStatus"), recentPapersDiv = document.getElementById("recentPapers");
   let currentTaskPoll = null;
@@ -93,7 +100,7 @@
   };
 
   function setUIEnabled(e) {
-    stdSel.disabled = !e; subjectSel.disabled = !e || !stdSel.value; chaptersSel.disabled = !e || !subjectSel.value;
+    boardSel.disabled = !e; stdSel.disabled = !e; subjectSel.disabled = !e || !stdSel.value; chaptersSel.disabled = !e || !subjectSel.value;
     papersInput.disabled = !e; marksSel.disabled = !e || !stdSel.value; generateBtn.disabled = !e;
   }
 
@@ -123,7 +130,8 @@
   }
 
   async function loadStandards() {
-    const res = await fetch("/admin-panel/standards", { headers: { "Authorization": "Bearer " + token } });
+    const board = boardSel ? boardSel.value : "SCERT";
+    const res = await fetch(`/admin-panel/standards?board=${encodeURIComponent(board)}`, { headers: { "Authorization": "Bearer " + token } });
     const js = await res.json();
     stdSel.innerHTML = `<option value="">-- Select Standard --</option>`;
     js.standards.forEach(s => { const o = document.createElement("option"); o.value = s; o.textContent = s; stdSel.appendChild(o); });
@@ -131,7 +139,8 @@
 
   async function loadSubjects(std) {
     subjectSel.innerHTML = ""; chaptersSel.innerHTML = "";
-    const res = await fetch(`/admin-panel/subjects/${encodeURIComponent(std)}`, { headers: { "Authorization": "Bearer " + token } });
+    const board = boardSel ? boardSel.value : "SCERT";
+    const res = await fetch(`/admin-panel/subjects/${encodeURIComponent(std)}?board=${encodeURIComponent(board)}`, { headers: { "Authorization": "Bearer " + token } });
     const js = await res.json();
     subjectSel.innerHTML = `<option value="">-- Select Subject --</option>`;
     js.subjects.forEach(s => { const o = document.createElement("option"); o.value = s; o.textContent = s; subjectSel.appendChild(o); });
@@ -140,7 +149,8 @@
 
   async function loadChapters(std, sub) {
     chaptersSel.innerHTML = "";
-    const res = await fetch(`/admin-panel/chapters/${encodeURIComponent(std)}/${encodeURIComponent(sub)}`, { headers: { "Authorization": "Bearer " + token } });
+    const board = boardSel ? boardSel.value : "SCERT";
+    const res = await fetch(`/admin-panel/chapters/${encodeURIComponent(std)}/${encodeURIComponent(sub)}?board=${encodeURIComponent(board)}`, { headers: { "Authorization": "Bearer " + token } });
     const js = await res.json();
     js.chapters.forEach(ch => { const o = document.createElement("option"); o.value = ch; o.textContent = ch; chaptersSel.appendChild(o); });
     chaptersSel.disabled = false; checkEnableGenerate();
@@ -148,12 +158,20 @@
 
   function checkEnableGenerate() { generateBtn.disabled = !(stdSel.value && subjectSel.value && Array.from(chaptersSel.selectedOptions).length > 0 && papersInput.value >= 1 && marksSel.value); }
 
+  boardSel.onchange = () => { loadStandards(); updateMarksOptions(stdSel.value); };
   stdSel.onchange = () => { loadSubjects(stdSel.value); updateMarksOptions(stdSel.value); };
   subjectSel.onchange = () => loadChapters(stdSel.value, subjectSel.value);
   chaptersSel.onchange = papersInput.oninput = marksSel.onchange = checkEnableGenerate;
 
   generateBtn.onclick = async () => {
-    const payload = { standard: stdSel.value, subject: subjectSel.value, chapters: Array.from(chaptersSel.selectedOptions).map(o => o.value), paper_count: parseInt(papersInput.value), total_marks: parseInt(marksSel.value) };
+    const payload = {
+      board: boardSel.value,
+      standard: stdSel.value,
+      subject: subjectSel.value,
+      chapters: Array.from(chaptersSel.selectedOptions).map(o => o.value),
+      paper_count: parseInt(papersInput.value),
+      total_marks: parseInt(marksSel.value)
+    };
     setUIEnabled(false);
     try {
       const res = await fetch("/admin-panel/generate-questions", { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(payload) });

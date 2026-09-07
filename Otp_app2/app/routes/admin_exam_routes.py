@@ -608,14 +608,38 @@ async def process_chapter_worker(
 # ROUTES - STANDARDS / SUBJECTS / CHAPTERS
 # --------------------------
 
+def build_board_filter(board: Optional[str]) -> dict:
+    if not board or not board.strip():
+        return {}
+    b = board.strip()
+    if b.upper() in ["NCERT", "CBSE"]:
+        return {
+            "$or": [
+                {"board": {"$regex": "^(NCERT|CBSE)$", "$options": "i"}},
+                {"category": {"$regex": "^NCERT$", "$options": "i"}}
+            ]
+        }
+    elif b.upper() in ["SCERT", "STATE", "KERALA"]:
+        return {
+            "$or": [
+                {"board": {"$regex": "^(SCERT|State)$", "$options": "i"}},
+                {"category": {"$regex": "^SCERT$", "$options": "i"}}
+            ]
+        }
+    else:
+        return {
+            "$or": [
+                {"board": {"$regex": f"^{re.escape(b)}$", "$options": "i"}},
+                {"category": {"$regex": f"^{re.escape(b)}$", "$options": "i"}}
+            ]
+        }
+
 @router.get("/standards")
 async def get_standards(board: Optional[str] = Query(None)):
-    query = {}
-    if board and board.strip():
-        query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
-    standards = await db.textbook.distinct("standard", query)
-    if not standards:
-        standards = await db.textbook.distinct("standard")
+    query = build_board_filter(board)
+    standards_tb = await db.textbook.distinct("standard", query) if query else await db.textbook.distinct("standard")
+    standards_tc = await db.textbook_chapters.distinct("standard", query) if query else await db.textbook_chapters.distinct("standard")
+    standards = list(set([str(s) for s in (standards_tb + standards_tc) if s]))
     try:
         standards_sorted = sorted(standards, key=lambda x: int(x))
     except:
@@ -624,13 +648,13 @@ async def get_standards(board: Optional[str] = Query(None)):
 
 @router.get("/subjects/{standard}")
 async def get_subjects(standard: str, board: Optional[str] = Query(None)):
-    query = {"standard": standard}
-    if board and board.strip():
-        query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
-    subjects = await db.textbook.distinct("subject", query)
-    if not subjects:
-        subjects = await db.textbook.distinct("subject", {"standard": standard})
-    subjects = sorted([s for s in subjects if s])
+    query = {"standard": str(standard)}
+    board_filter = build_board_filter(board)
+    if board_filter:
+        query.update(board_filter)
+    subjects_tb = await db.textbook.distinct("subject", query)
+    subjects_tc = await db.textbook_chapters.distinct("subject", query)
+    subjects = sorted(list(set([s for s in (subjects_tb + subjects_tc) if s])))
     return {"subjects": subjects}
 
 def natural_sort_key(s):
@@ -641,34 +665,29 @@ def natural_sort_key(s):
 
 @router.get("/chapters/{standard}/{subject}")
 async def get_chapters(standard: str, subject: str, board: Optional[str] = Query(None)):
-    query = {"standard": standard, "subject": subject, "processed": True}
-    if board and board.strip():
-        query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
-    docs = await db.textbook.find(query).to_list(None)
+    query = {"standard": str(standard), "subject": subject, "processed": True}
+    board_filter = build_board_filter(board)
+    if board_filter:
+        query.update(board_filter)
+    
     chapter_set = []
+    docs = await db.textbook.find(query).to_list(None)
     for d in docs:
         chs = d.get("chapters")
         if isinstance(chs, list):
             for c in chs:
                 if c and c not in chapter_set:
                     chapter_set.append(c)
-    if not chapter_set:
-        ch_query = {"standard": standard, "subject": subject}
-        if board and board.strip():
-            ch_query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
-        ch_docs = await db.textbook_chapters.find(ch_query).to_list(None)
-        for cd in ch_docs:
-            title = cd.get("chapter_title")
-            if title and title not in chapter_set:
-                chapter_set.append(title)
-    if not chapter_set:
-        docs = await db.textbook.find({"standard": standard, "subject": subject, "processed": True}).to_list(None)
-        for d in docs:
-            chs = d.get("chapters")
-            if isinstance(chs, list):
-                for c in chs:
-                    if c and c not in chapter_set:
-                        chapter_set.append(c)
+                    
+    ch_query = {"standard": str(standard), "subject": subject}
+    if board_filter:
+        ch_query.update(board_filter)
+    ch_docs = await db.textbook_chapters.find(ch_query).to_list(None)
+    for cd in ch_docs:
+        title = cd.get("chapter_title")
+        if title and title not in chapter_set:
+            chapter_set.append(title)
+            
     chapter_set = sorted(chapter_set, key=natural_sort_key)
     return {"chapters": chapter_set}
     
@@ -965,16 +984,11 @@ async def generate_questions_worker(task_id: str, activity_log_id: str | None = 
         "subject": subject,
         "chapter_title": {"$in": chapters}
     }
-    if board:
-        rag_query["board"] = {"$regex": f"^{re.escape(board.strip())}$", "$options": "i"}
+    board_filter = build_board_filter(board)
+    if board_filter:
+        rag_query.update(board_filter)
 
     chapter_docs = await db.textbook_chapters.find(rag_query).sort("passage_index", 1).to_list(None)
-    if not chapter_docs:
-        chapter_docs = await db.textbook_chapters.find({
-            "standard": str(std),
-            "subject": subject,
-            "chapter_title": {"$in": chapters}
-        }).sort("passage_index", 1).to_list(None)
 
     # Determine overall language based on Subject (Hindi -> hi, Malayalam -> ml, Others -> en)
     majority_lang = determine_language_from_subject(subject)

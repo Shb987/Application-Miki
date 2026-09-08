@@ -70,9 +70,9 @@ async def fetch_student_by_id(student_id: str) -> Optional[dict]:
 
     return student
 
-def get_student_board_value(student: dict) -> str:
+def get_student_board_value(student: dict) -> Optional[str]:
     if not student:
-        return "NCERT"
+        return None
     
     possible_keys = ["syllabus", "board", "category", "curriculum", "school_board", "education_board"]
     val = None
@@ -89,56 +89,53 @@ def get_student_board_value(student: dict) -> str:
             return "NCERT"
         return v_str
         
-    return "NCERT"
+    return None
 
 @router.get("/standard/{standard}")
 async def get_subjects_and_chapters(
     standard: str, 
-    student_id: str = Query(..., description="Student ID (Required)")
+    student_id: Optional[str] = Query(None, description="Optional Student ID to filter NCERT/SCERT syllabus")
 ):
     """
     Get subjects and chapters for a standard.
-    student_id is required. Checks whether student is NCERT or SCERT and shows board-specific contents only.
+    If student_id is provided, checks whether student is NCERT or SCERT and shows board-specific contents only.
     """
-    if not student_id or not str(student_id).strip():
-        raise HTTPException(status_code=400, detail="student_id is required")
-
-    student = await fetch_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail=f"Student not found with ID: {student_id}")
-
-    board_val = get_student_board_value(student)
-
-    if board_val.upper() == "SCERT":
-        board_filter = {
-            "$or": [
-                {"board": {"$regex": "SCERT|State|Kerala", "$options": "i"}},
-                {"category": {"$regex": "SCERT|State|Kerala", "$options": "i"}},
-                {"syllabus": {"$regex": "SCERT|State|Kerala", "$options": "i"}}
-            ]
-        }
-    else:  # NCERT / CBSE
-        board_filter = {
-            "$or": [
-                {"board": {"$regex": "NCERT|CBSE", "$options": "i"}},
-                {"category": {"$regex": "NCERT|CBSE", "$options": "i"}},
-                {"syllabus": {"$regex": "NCERT|CBSE", "$options": "i"}},
-                {"board": {"$exists": False}},
-                {"board": None},
-                {"board": ""}
-            ]
-        }
-
     query = {
         "standard": str(standard),
         "processed": True
     }
-    query.update(board_filter)
-
     fallback_query = {
         "standard": str(standard)
     }
-    fallback_query.update(board_filter)
+
+    if student_id and str(student_id).strip():
+        student = await fetch_student_by_id(student_id)
+        if student:
+            board_val = get_student_board_value(student)
+            if board_val:
+                if board_val.upper() == "SCERT":
+                    board_filter = {
+                        "$or": [
+                            {"board": {"$regex": "SCERT|State|Kerala", "$options": "i"}},
+                            {"category": {"$regex": "SCERT|State|Kerala", "$options": "i"}},
+                            {"syllabus": {"$regex": "SCERT|State|Kerala", "$options": "i"}}
+                        ]
+                    }
+                    query.update(board_filter)
+                    fallback_query.update(board_filter)
+                elif board_val.upper() == "NCERT":
+                    board_filter = {
+                        "$or": [
+                            {"board": {"$regex": "NCERT|CBSE", "$options": "i"}},
+                            {"category": {"$regex": "NCERT|CBSE", "$options": "i"}},
+                            {"syllabus": {"$regex": "NCERT|CBSE", "$options": "i"}},
+                            {"board": {"$exists": False}},
+                            {"board": None},
+                            {"board": ""}
+                        ]
+                    }
+                    query.update(board_filter)
+                    fallback_query.update(board_filter)
 
     # Fetch all processed textbooks for this standard (and category if applicable)
     docs = await db.textbook.find(query).to_list(None)

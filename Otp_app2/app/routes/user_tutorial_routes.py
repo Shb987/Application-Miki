@@ -10,6 +10,8 @@ async def fetch_student_by_id(student_id: str) -> Optional[dict]:
     if not student_id:
         return None
     s_clean = str(student_id).strip()
+    if not s_clean:
+        return None
     student = None
     try:
         if ObjectId.is_valid(s_clean):
@@ -47,9 +49,9 @@ async def fetch_student_by_id(student_id: str) -> Optional[dict]:
 
     return student
 
-def get_student_board_value(student: dict) -> str:
+def get_student_board_value(student: dict) -> Optional[str]:
     if not student:
-        return "NCERT"
+        return None
     
     possible_keys = ["syllabus", "board", "category", "curriculum", "school_board", "education_board"]
     val = None
@@ -66,30 +68,29 @@ def get_student_board_value(student: dict) -> str:
             return "NCERT"
         return v_str
         
-    return "NCERT"
+    return None
 
 @router.get("/")
 async def get_user_tutorials(
-    student_id: str = Query(..., description="Student ID (Required)"),
-    student_class: Optional[str] = Query(None, description="Class/Standard (e.g. '4', 'Class 4')")
+    student_class: Optional[str] = Query(None, description="Class/Standard (e.g. '4', 'Class 4')"),
+    student_id: Optional[str] = Query(None, description="Optional Student ID to filter NCERT/SCERT syllabus")
 ):
     """
-    Get tutorials for a specific student.
-    student_id is required. Checks whether student is NCERT or SCERT and shows board-specific contents only.
+    Get tutorials for a specific class/student.
+    If student_id is provided, checks whether student is NCERT or SCERT and shows board-specific contents only.
     """
-    if not student_id or not str(student_id).strip():
-        raise HTTPException(status_code=400, detail="student_id is required")
-
-    student = await fetch_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail=f"Student not found with ID: {student_id}")
-
     target_class = student_class
-    if not target_class:
-        target_class = student.get("student_class") or student.get("class") or student.get("standard")
+    target_board = None
+
+    if student_id and str(student_id).strip():
+        student = await fetch_student_by_id(student_id)
+        if student:
+            if not target_class:
+                target_class = student.get("student_class") or student.get("class") or student.get("standard")
+            target_board = get_student_board_value(student)
 
     if not target_class:
-        raise HTTPException(status_code=400, detail="student_class is required or must be set in student profile")
+        raise HTTPException(status_code=400, detail="student_class or valid student_id is required")
 
     c_str = str(target_class).strip()
     c_digits = "".join([ch for ch in c_str if ch.isdigit()]) or c_str
@@ -106,29 +107,30 @@ async def get_user_tutorials(
 
     class_query = {"$or": class_match_patterns}
 
-    target_board = get_student_board_value(student)
+    and_conditions = [class_query]
 
-    if target_board.upper() == "SCERT":
-        board_query = {
-            "$or": [
-                {"board": {"$regex": "SCERT|State|Kerala", "$options": "i"}},
-                {"category": {"$regex": "SCERT|State|Kerala", "$options": "i"}},
-                {"syllabus": {"$regex": "SCERT|State|Kerala", "$options": "i"}}
-            ]
-        }
-    else:
-        board_query = {
-            "$or": [
-                {"board": {"$regex": "NCERT|CBSE", "$options": "i"}},
-                {"category": {"$regex": "NCERT|CBSE", "$options": "i"}},
-                {"syllabus": {"$regex": "NCERT|CBSE", "$options": "i"}},
-                {"board": {"$exists": False}},
-                {"board": None},
-                {"board": ""}
-            ]
-        }
+    if target_board:
+        if target_board.upper() == "SCERT":
+            and_conditions.append({
+                "$or": [
+                    {"board": {"$regex": "SCERT|State|Kerala", "$options": "i"}},
+                    {"category": {"$regex": "SCERT|State|Kerala", "$options": "i"}},
+                    {"syllabus": {"$regex": "SCERT|State|Kerala", "$options": "i"}}
+                ]
+            })
+        elif target_board.upper() == "NCERT":
+            and_conditions.append({
+                "$or": [
+                    {"board": {"$regex": "NCERT|CBSE", "$options": "i"}},
+                    {"category": {"$regex": "NCERT|CBSE", "$options": "i"}},
+                    {"syllabus": {"$regex": "NCERT|CBSE", "$options": "i"}},
+                    {"board": {"$exists": False}},
+                    {"board": None},
+                    {"board": ""}
+                ]
+            })
 
-    final_query = {"$and": [class_query, board_query]}
+    final_query = {"$and": and_conditions} if len(and_conditions) > 1 else class_query
 
     cursor = db.tutorials.find(final_query)
     tutorials = await cursor.to_list(length=100)
@@ -137,5 +139,6 @@ async def get_user_tutorials(
         t["_id"] = str(t["_id"])
 
     return tutorials
+
 
 

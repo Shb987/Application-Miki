@@ -29,21 +29,79 @@ def natural_sort_key(s):
         return []
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
+async def fetch_student_by_id(student_id: str) -> Optional[dict]:
+    if not student_id:
+        return None
+    student = None
+    try:
+        if ObjectId.is_valid(student_id):
+            student = await db.students.find_one({"_id": ObjectId(student_id)})
+    except Exception:
+        pass
+    if not student:
+        student = await db.students.find_one({"_id": student_id})
+    if not student:
+        student = await db.students.find_one({"student_id": student_id})
+    return student
+
+def get_student_board_value(student: dict) -> Optional[str]:
+    if not student:
+        return None
+    val = (
+        student.get("syllabus") or 
+        student.get("board") or 
+        student.get("category") or 
+        student.get("curriculum")
+    )
+    if val:
+        v_str = str(val).strip().upper()
+        if v_str in ["NCERT", "CBSE"]:
+            return "NCERT"
+        elif v_str in ["SCERT", "STATE", "KERALA"]:
+            return "SCERT"
+        return v_str
+    return None
+
 @router.get("/standard/{standard}")
 async def get_subjects_and_chapters(standard: str, student_id: Optional[str] = None):
+    import re
     query = {
-        "standard": standard,
+        "standard": str(standard),
         "processed": True
     }
+    fallback_query = {
+        "standard": str(standard)
+    }
     
-    # If student_id is provided, fetch their syllabus dynamically
+    # If student_id is provided, fetch their syllabus dynamically and apply board filter
     if student_id:
-        try:
-            student = await db.students.find_one({"_id": ObjectId(student_id)})
-            if student and student.get("syllabus"):
-                query["category"] = student.get("syllabus")
-        except Exception:
-            pass
+        student = await fetch_student_by_id(student_id)
+        if student:
+            board_val = get_student_board_value(student)
+            if board_val:
+                if board_val.upper() in ["NCERT", "CBSE"]:
+                    board_filter = {
+                        "$or": [
+                            {"board": {"$regex": "^(NCERT|CBSE)$", "$options": "i"}},
+                            {"category": {"$regex": "^NCERT$", "$options": "i"}}
+                        ]
+                    }
+                elif board_val.upper() in ["SCERT", "STATE", "KERALA"]:
+                    board_filter = {
+                        "$or": [
+                            {"board": {"$regex": "^(SCERT|State|Kerala)$", "$options": "i"}},
+                            {"category": {"$regex": "^SCERT$", "$options": "i"}}
+                        ]
+                    }
+                else:
+                    board_filter = {
+                        "$or": [
+                            {"board": {"$regex": f"^{re.escape(board_val)}$", "$options": "i"}},
+                            {"category": {"$regex": f"^{re.escape(board_val)}$", "$options": "i"}}
+                        ]
+                    }
+                query.update(board_filter)
+                fallback_query.update(board_filter)
             
     # Fetch all processed textbooks for this standard (and category if applicable)
     docs = await db.textbook.find(query).to_list(None)
@@ -114,9 +172,7 @@ async def get_subjects_and_chapters(standard: str, student_id: Optional[str] = N
 
     # Fallback to textbook_chapters for any subjects/textbooks
     # that don't have chapters in db.textbook
-    fallback_docs = await db.textbook_chapters.find({
-        "standard": standard
-    }).to_list(None)
+    fallback_docs = await db.textbook_chapters.find(fallback_query).to_list(None)
 
     # Cache textbook_id -> textbook_name to avoid excessive DB calls
     textbook_cache = {}

@@ -49,6 +49,31 @@ async def extract_student_id(current_user: dict, explicit_student_id: Optional[s
 
 
 async def build_student_id_filter(current_user: dict, explicit_student_id: Optional[str] = None) -> dict:
+    has_explicit = (
+        explicit_student_id is not None
+        and str(explicit_student_id).strip() != ""
+        and str(explicit_student_id).strip().lower() != "string"
+    )
+
+    if current_user.get("role") == "admin" and not has_explicit:
+        return {}
+
+    target_sid = None
+    if has_explicit:
+        target_sid = str(explicit_student_id).strip()
+    else:
+        sid = current_user.get("student_id") or current_user.get("_id")
+        if sid and str(sid).strip() and str(sid).strip().lower() != "string":
+            target_sid = str(sid).strip()
+        else:
+            try:
+                target_sid = await extract_student_id(current_user)
+            except Exception:
+                pass
+
+    if not target_sid:
+        raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
+
     candidates: List[Any] = []
 
     def add_candidate(val):
@@ -64,56 +89,7 @@ async def build_student_id_filter(current_user: dict, explicit_student_id: Optio
             if oid not in candidates:
                 candidates.append(oid)
 
-    if explicit_student_id:
-        add_candidate(explicit_student_id)
-
-    add_candidate(current_user.get("student_id"))
-    add_candidate(current_user.get("_id"))
-    add_candidate(current_user.get("sub"))
-
-    sub = current_user.get("sub")
-    if sub and str(sub).strip():
-        sub_str = str(sub).strip()
-        add_candidate(sub_str)
-        
-        digits = "".join([c for c in sub_str if c.isdigit()])
-        if len(digits) >= 10:
-            last_10 = digits[-10:]
-            add_candidate(last_10)
-            add_candidate(f"+91{last_10}")
-            
-            regex_pattern = {"$regex": f"{last_10}$"}
-
-            user_cursor = db.usertable.find({"mobile_number": regex_pattern})
-            user_recs = await user_cursor.to_list(length=10)
-            for urec in user_recs:
-                add_candidate(urec.get("student_id"))
-                for sid in urec.get("student_ids", []):
-                    add_candidate(sid)
-
-            st_cursor = db.students.find({"mobile_number": regex_pattern})
-            st_recs = await st_cursor.to_list(length=10)
-            for srec in st_recs:
-                add_candidate(srec.get("_id"))
-
-    if explicit_student_id and ObjectId.is_valid(str(explicit_student_id).strip()):
-        try:
-            st_doc = await db.students.find_one({"_id": ObjectId(str(explicit_student_id).strip())})
-            if st_doc and st_doc.get("mobile_number"):
-                st_mob = str(st_doc["mobile_number"]).strip()
-                add_candidate(st_mob)
-                st_digits = "".join([c for c in st_mob if c.isdigit()])
-                if len(st_digits) >= 10:
-                    add_candidate(st_digits[-10:])
-                    add_candidate(f"+91{st_digits[-10:]}")
-        except Exception:
-            pass
-
-    if current_user.get("role") == "admin" and not explicit_student_id:
-        return {}
-
-    if not candidates:
-        raise HTTPException(status_code=400, detail="Student ID could not be resolved from auth token or query")
+    add_candidate(target_sid)
 
     return {"student_id": {"$in": candidates}}
 

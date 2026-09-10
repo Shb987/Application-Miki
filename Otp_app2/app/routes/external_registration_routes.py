@@ -54,14 +54,27 @@ class ExternalStudentRegistration(BaseModel):
 # 🔑 API Key Security Dependency
 # ─────────────────────────────────────────────
 
-async def verify_api_key(x_api_key: str = Header(..., alias="X-API-Key")):
+async def verify_api_key(
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    api_key: Optional[str] = Header(None, alias="api-key"),
+    authorization: Optional[str] = Header(None, alias="Authorization")
+):
     """
-    Simple API key guard. Partner apps must include the header:
-        X-API-Key: <value from EXTERNAL_API_KEY in .env>
+    API key guard for external student registration.
+    If an API key is provided in headers, validate it against EXTERNAL_API_KEY / EDUSOFT_API_KEY.
+    If no key header is sent (e.g., from browser web registration), allow the request.
     """
-    if x_api_key != settings.EXTERNAL_API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid or missing API key")
-    return x_api_key
+    key_to_check = x_api_key or api_key or authorization
+    if key_to_check:
+        if key_to_check.startswith("Bearer "):
+            key_to_check = key_to_check[7:]
+        valid_keys = [
+            getattr(settings, "EXTERNAL_API_KEY", ""),
+            getattr(settings, "EDUSOFT_API_KEY", "")
+        ]
+        if key_to_check not in valid_keys and settings.EXTERNAL_API_KEY:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+    return key_to_check
 
 
 # ─────────────────────────────────────────────

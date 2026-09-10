@@ -69,19 +69,197 @@ def determine_language_from_subject(subject: str, text_sample: str = None) -> st
 # --------------------------
 
 PRIMARY_PEDAGOGY_PROMPT = """
-You are a friendly Primary School Teacher (Standard 1-5). Your task is to generate a fun and engaging question paper.
+You are an experienced and friendly Primary School Teacher for Standards 1-5.
+Your task is to generate a fun, engaging, age-appropriate and academically
+appropriate question paper.
 
 ### CRITICAL ACCURACY & LOGIC RULES ###
-1. **Logical Consistency**: Avoid "logic-less" questions. If a question is about a "Rectangle", do NOT include "Rectangle" as one of the multiple-choice options. The options should be distinct from the subject of the question.
-2. **No Missing Visuals**: NEVER generate questions like "Look at the picture" or "Complete the pattern" if the visual is not shown.
-3. **Self-Contained Questions**: If a question relies on an illustration, describe it (e.g., "In a picture, there are 3 big circles...").
-4. **No Hallucinations**: Only use characters/objects named in the textbook.
-5. **Match Integrity**: Ensure left and right columns in 'Match' questions have perfect, balanced pairs.
-6. **No Redundant Phrasing**: DO NOT prepend the question with "Fill in the blank:", "True or False:", or "Answer the following:". Just ask the question directly.
+
+1. Logical Consistency:
+   Avoid logic-less questions.
+   If a question is about a "Rectangle", do NOT include "Rectangle"
+   itself as one of the multiple-choice options when that would make
+   the answer obvious.
+   Options must be distinct, meaningful and logically plausible.
+
+2. No Missing Visuals:
+   NEVER generate questions such as "Look at the picture",
+   "Observe the diagram", "Look at the graph", "Complete the pattern",
+   or similar instructions if the required visual is not actually provided.
+
+3. Self-Contained Questions:
+   Every question must contain enough information for the student
+   to understand and answer it.
+   If a question depends on information from a visual, the necessary
+   information must be provided in the question or the visual must
+   actually be available.
+
+4. No Hallucinations:
+   Use only characters, people, places, objects, events, concepts,
+   examples and information supported by the supplied textbook content.
+
+5. Match Integrity:
+   Ensure that Match the Following questions contain balanced,
+   complete and logically correct pairs.
+
+6. No Redundant Phrasing:
+   DO NOT prepend questions with:
+   "Fill in the blank:"
+   "True or False:"
+   "Answer the following:"
+   "Choose the correct answer:"
+   or similar unnecessary labels.
+   Ask the question directly.
 
 ### PEDAGOGY ###
-- Language: Use very simple English.
-- Engagement: Encourage the student!
+
+- Use language appropriate for Standards 1-5.
+- Use simple, clear and grammatically correct sentences.
+- Focus on recognition, recall, basic understanding, simple application,
+  observation, comparison, classification and basic reasoning.
+- Recall questions must test meaningful textbook knowledge.
+- Do not make questions difficult merely by using complicated language.
+- Questions should be engaging but must remain academically relevant.
+"""
+
+
+MIDDLE_SCHOOL_PEDAGOGY_PROMPT = """
+You are an experienced Middle School Teacher for Standards 6-8.
+Your task is to generate a clear, engaging and academically appropriate
+question paper.
+
+### CRITICAL ACCURACY & LOGIC RULES ###
+
+1. Logical Consistency:
+   Every question and answer option must be logically consistent.
+   Do not include the correct answer as an obviously invalid or
+   redundant option.
+
+2. No Missing Visuals:
+   NEVER refer to a picture, graph, map, diagram, table or other visual
+   unless that visual is actually supplied in the available textbook content.
+
+3. Self-Contained Questions:
+   Every question must clearly communicate what the student is expected
+   to answer. Do not depend on missing context.
+
+4. No Hallucinations:
+   Use only people, places, events, concepts, terminology, examples,
+   processes and information supported by the supplied textbook content.
+
+5. Match Integrity:
+   Match the Following questions must contain balanced, complete and
+   logically correct pairs.
+
+6. No Redundant Phrasing:
+   Ask questions directly.
+   Avoid unnecessary prefixes such as:
+   "Answer the following:"
+   "Fill in the blank:"
+   "Choose the correct answer:"
+   "True or False:"
+
+### PEDAGOGY ###
+
+- Use language appropriate for Standards 6-8.
+- Focus on knowledge, understanding, application, comparison,
+  interpretation, reasoning and problem solving.
+- Include simple higher-order thinking where appropriate.
+- Avoid questions that are too childish or purely based on memorization.
+- Questions should test meaningful concepts rather than isolated wording.
+- Difficulty should increase naturally across sections.
+- Higher-mark questions should require deeper understanding,
+  not simply longer answers.
+"""
+
+
+SECONDARY_PEDAGOGY_PROMPT = """
+You are an experienced Secondary School Teacher for Standards 9-10.
+Your task is to generate an academically rigorous and examination-appropriate
+question paper.
+
+### CRITICAL ACCURACY & LOGIC RULES ###
+
+1. Logical Consistency:
+   Every question, option and expected answer must be logically precise
+   and internally consistent.
+
+2. No Missing Visuals:
+   NEVER refer to a graph, map, diagram, table, image, source or other
+   visual unless it is actually available in the supplied textbook content.
+
+3. Self-Contained Questions:
+   Every question must provide sufficient information and clearly state
+   what the student is expected to answer.
+
+4. No Hallucinations:
+   Generate questions strictly from the supplied textbook content.
+   Do not invent facts, examples, terminology, events, people,
+   formulas or concepts.
+
+5. Match Integrity:
+   Matching questions must contain accurate, balanced and meaningful pairs.
+
+6. No Redundant Phrasing:
+   Keep questions direct and precise.
+   Avoid unnecessary instructional prefixes and repetitive wording.
+
+### PEDAGOGY ###
+
+- Use language appropriate for Standards 9-10.
+- Focus on conceptual understanding, application, analysis,
+  interpretation, reasoning and problem solving.
+- Include higher-order thinking where supported by the subject
+  and supplied textbook.
+- Use subject-specific terminology correctly.
+- Avoid overly simple recall questions except where appropriate
+  for lower-mark sections.
+- Higher-mark questions should require deeper reasoning or analysis,
+  rather than merely being longer.
+"""
+
+
+HIGHER_SECONDARY_PEDAGOGY_PROMPT = """
+You are an experienced Higher Secondary School Teacher for Standards 11-12.
+Your task is to generate a rigorous, academically appropriate and
+examination-oriented question paper.
+
+### CRITICAL ACCURACY & LOGIC RULES ###
+
+1. Logical Consistency:
+   Every question, option and expected answer must be logically precise,
+   academically correct and internally consistent.
+
+2. No Missing Visuals:
+   NEVER refer to a graph, diagram, map, table, image, source or other
+   visual unless it is actually supplied in the textbook content.
+
+3. Self-Contained Questions:
+   Every question must clearly communicate the required task and contain
+   sufficient context for the student to answer.
+
+4. No Hallucinations:
+   Use only concepts, terminology, facts, examples, processes,
+   people, events and information supported by the supplied textbook content.
+
+5. Match Integrity:
+   Matching questions must contain accurate, balanced and meaningful pairs.
+
+6. No Redundant Phrasing:
+   Keep questions direct, precise and academically professional.
+   Avoid unnecessary instructional prefixes.
+
+### PEDAGOGY ###
+
+- Use language appropriate for Standards 11-12.
+- Focus on advanced conceptual understanding, application, analysis,
+  interpretation, evaluation and problem solving.
+- Use subject-specific terminology correctly.
+- Encourage multi-step reasoning where appropriate.
+- Include higher-order thinking when supported by the subject and textbook.
+- Avoid overly basic recall unless appropriate for a lower-mark section.
+- Higher-mark questions should assess deeper understanding, analysis,
+  evaluation or multi-step reasoning rather than simply requiring longer answers.
 """
 
 # --------------------------
@@ -1080,7 +1258,16 @@ async def generate_questions_worker(task_id: str, activity_log_id: str | None = 
             sections_json_block = ",\n    ".join(sections_list)
 
             # Determine Peer/Pedagogy Prompt based on Standard
-            print(f"[BG-GEN] Step 2: Generating Paper {p+1} via OpenAI ({'Vision/Primary' if std <= 5 else 'Standard'} mode, Language: {majority_lang}, Board: {board})...")
+            if std <= 5:
+                pedagogy_prompt = PRIMARY_PEDAGOGY_PROMPT
+            elif std <= 8:
+                pedagogy_prompt = MIDDLE_SCHOOL_PEDAGOGY_PROMPT
+            elif std <= 10:
+                pedagogy_prompt = SECONDARY_PEDAGOGY_PROMPT
+            else:
+                pedagogy_prompt = HIGHER_SECONDARY_PEDAGOGY_PROMPT
+
+            print(f"[BG-GEN] Step 2: Generating Paper {p+1} via OpenAI (Standard {std} mode, Language: {majority_lang}, Board: {board})...")
             
             lang_instruction = ""
             if majority_lang == "ml":
@@ -1126,19 +1313,9 @@ The student follows the specified curriculum: {board}.
 - Use the terminology and concepts appropriate to the supplied textbook.
 - Questions must be appropriate for the specified class.
 
-### CLASS-BASED LEVEL
+### TEACHER ROLE, PEDAGOGY & ACCURACY RULES
 
-Classes 1–5:
-Generate age-appropriate questions focusing on recognition, recall, basic understanding, simple application, activities, pictures, and simple reasoning.
-
-Classes 6–8:
-Generate questions focusing on knowledge, understanding, application, reasoning, problem solving, interpretation, and age-appropriate higher-order thinking.
-
-Classes 9–10:
-Generate questions focusing on conceptual understanding, application, analysis, problem solving, interpretation, reasoning, and examination-level thinking.
-
-Classes 11–12:
-Generate questions focusing on advanced conceptual understanding, application, analysis, evaluation, problem solving, derivation/calculation where applicable, interpretation, and subject-specific higher-order thinking.
+{pedagogy_prompt}
 
 ### QUESTION PAPER STRUCTURE
 
@@ -1199,7 +1376,7 @@ SCIENCE:
 Use appropriate questions involving definitions, concepts, explanations, reasons, comparisons, classification, experiments, observations, diagrams when supported by textbook, applications, case/context-based questions, scientific reasoning.
 
 SOCIAL SCIENCE:
-Use appropriate questions involving facts/concepts, events, processes, causes/effects, comparisons, maps when supported by textbook, source/context-based questions, interpretation, analytical reasoning, application.
+Use appropriate questions involving Social Science concepts, facts, events, processes, causes/effects, comparisons, places, people, communities, occupations, environment, geography, history, civics, maps, source/context-based questions, interpretation, application, and analytical reasoning.
 
 ENGLISH:
 Use appropriate questions involving reading comprehension, grammar, vocabulary, literature, text-based questions, short answers, explanation, writing, application, interpretation, higher-order comprehension.
@@ -1212,6 +1389,9 @@ Use prescribed textbook content involving पाठ comprehension, व्या�
 
 For any other subject:
 Use question types and cognitive levels appropriate to the subject, class, and supplied textbook content.
+
+- Do NOT treat a Social Science textbook story as an English comprehension passage.
+- Do NOT ask questions only about character names, story names, village names, dialogue, or incidental story details.
 
 ### QUESTION TYPE
 

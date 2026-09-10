@@ -147,37 +147,45 @@ async def get_subjects_and_chapters(
     def get_subject_image(subject):
         if not subject:
             return None
-        normalized_subject = subject.lower().replace(" ", "")
-        
-        # Manual mapping for common abbreviations or typos
-        special_cases = {
-            "english": "eng.jpg",
-            "biology": "biolagy.jpg",
-            "mathematics": "maths.jpg",
-            "socialscience": "socialscience.jpg",
-            "informationandtechnology": "IT.jpg",
-            "informationandcommunicationtechnology": "IT.jpeg",
-            "information&technology": "IT.jpeg",
-            "information&communicationtechnology": "IT.jpeg",
-            "socialscience-1": "socialscience.jpg"
+        raw_subj = subject.lower().strip()
+        norm_subj = raw_subj.replace(" ", "").replace("&", "and").replace("-", "")
+
+        # Define common subject aliases (normalized)
+        alias_map = {
+            "english": ["english", "eng"],
+            "biology": ["biology", "biolagy", "bio"],
+            "mathematics": ["mathematics", "maths", "math"],
+            "socialscience": ["socialscience", "socialscience1", "social"],
+            "socialscience1": ["socialscience", "socialscience1", "social"],
+            "informationandtechnology": ["it", "computer", "information"],
+            "informationandcommunicationtechnology": ["it", "computer", "information"],
         }
         
-        if "information" in subject.lower():
-            return "subject_images/IT.jpeg"
+        # Candidate search terms
+        search_terms = alias_map.get(norm_subj, [norm_subj])
+        if norm_subj not in search_terms:
+            search_terms.append(norm_subj)
             
-        if normalized_subject in special_cases:
-            return f"subject_images/{special_cases[normalized_subject]}"
-        else:
-            # Search for loosely matching image
+        # 1. First priority: Exact base-name match in image_files (supports .png, .jpg, .jpeg, .webp)
+        for term in search_terms:
             for img in image_files:
-                if img.lower().startswith(normalized_subject):
+                img_base = os.path.splitext(img)[0].lower().replace(" ", "").replace("-", "")
+                if img_base == term:
                     return f"subject_images/{img}"
                     
-        # Fallback: match by name without extension
-        for img in image_files:
-            img_name = os.path.splitext(img)[0].lower()
-            if img_name == normalized_subject:
-                return f"subject_images/{img}"
+        # 2. Second priority: Prefix or substring match in image_files
+        for term in search_terms:
+            for img in image_files:
+                img_base = os.path.splitext(img)[0].lower().replace(" ", "").replace("-", "")
+                if img_base.startswith(term) or term.startswith(img_base):
+                    return f"subject_images/{img}"
+
+        # 3. Third priority: Keyword match for IT / Computer
+        if "information" in raw_subj or "computer" in raw_subj:
+            for img in image_files:
+                if "it" in img.lower() or "computer" in img.lower():
+                    return f"subject_images/{img}"
+
         return None
 
     # Group chapters by subject first, then by textbook_name

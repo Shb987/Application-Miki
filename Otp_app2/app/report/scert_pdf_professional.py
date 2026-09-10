@@ -99,78 +99,101 @@ def save_scert_question_paper(json_paper: dict, filename: str):
   .lang-hi {{ font-family: 'NotoDevanagari', sans-serif; }}
   .lang-hi-bold {{ font-family: 'NotoDevanagariBold', sans-serif; }}
   
-  .header {{ text-align: center; margin-bottom: 10px; width: 100%; }}
+  .header {{ text-align: center; margin-bottom: 10px; width: 100%; clear: both; }}
   .title {{ font-size: 20px; font-weight: bold; color: #002B49; margin-bottom: 4px; letter-spacing: 0.5px; text-transform: uppercase; }}
   .subtitle {{ font-size: 12px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }}
   
-  .meta-header {{
+  table.meta-header-table {{
     width: 100%;
+    border-collapse: collapse;
     border-bottom: 1.5px solid #000;
+    margin-top: 10px;
+    margin-bottom: 16px;
+    clear: both;
+  }}
+  td.meta-left {{
+    text-align: left;
+    vertical-align: bottom;
     padding-bottom: 6px;
-    margin-bottom: 12px;
     font-size: 11px;
     font-weight: bold;
-    clear: both;
-    overflow: hidden;
   }}
-  .meta-left {{
-    float: left;
-    text-align: left;
-  }}
-  .meta-right {{
-    float: right;
+  td.meta-right {{
     text-align: right;
-  }}
-  .clear-fix {{
-    clear: both;
+    vertical-align: bottom;
+    padding-bottom: 6px;
+    font-size: 11px;
+    font-weight: bold;
   }}
 
   .gen-instructions {{
     font-size: 11px;
     border-bottom: 1.5px solid #000;
-    padding-bottom: 8px;
-    margin-bottom: 14px;
+    padding-bottom: 10px;
+    margin-top: 6px;
+    margin-bottom: 20px;
     width: 100%;
+    clear: both;
   }}
   .gen-title {{ font-weight: bold; margin-bottom: 4px; }}
   .gen-list {{ margin: 0; padding-left: 20px; }}
 
   .section-hdr {{
+    display: block;
+    clear: both;
     background-color: #eef2f5;
     color: #002B49;
     font-size: 13px;
     font-weight: bold;
-    padding: 6px 10px;
-    margin-top: 14px;
-    margin-bottom: 12px;
+    padding: 8px 10px;
+    margin-top: 20px;
+    margin-bottom: 14px;
     border-left: 4px solid #002B49;
     width: 100%;
+    line-height: 1.4;
     page-break-after: avoid;
     break-after: avoid;
   }}
-  .question {{ margin-bottom: 14px; page-break-inside: avoid; break-inside: avoid; width: 100%; }}
-  .q-text {{ font-size: 13px; margin-bottom: 6px; line-height: 1.6; color: #111111; }}
+  .question {{
+    display: block;
+    clear: both;
+    margin-bottom: 14px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    width: 100%;
+  }}
+  .q-text {{
+    font-size: 13px;
+    margin-bottom: 6px;
+    line-height: 1.6;
+    color: #111111;
+    display: block;
+    clear: both;
+  }}
   
-  .options-grid {{
+  table.options-grid {{
     width: 100%;
     margin-top: 6px;
     margin-bottom: 8px;
+    border-collapse: collapse;
     clear: both;
   }}
-  .option-cell {{
-    float: left;
-    width: 48%;
-    padding: 3px 2px;
+  td.option-cell {{
+    width: 50%;
+    padding: 3px 4px;
     font-size: 12px;
+    vertical-align: top;
+    line-height: 1.5;
   }}
-  .match-table {{
+  table.match-table {{
     width: 100%;
     margin-top: 6px;
     margin-bottom: 8px;
+    border-collapse: collapse;
     clear: both;
   }}
-  .match-left {{ float: left; width: 48%; padding: 3px 2px; }}
-  .match-right {{ float: right; width: 48%; padding: 3px 2px; }}
+  td.match-left {{ width: 50%; padding: 3px 4px; vertical-align: top; font-size: 12px; line-height: 1.5; }}
+  td.match-right {{ width: 50%; padding: 3px 4px; vertical-align: top; font-size: 12px; line-height: 1.5; }}
 </style>
 </head>
 <body>
@@ -179,11 +202,12 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     <div class="subtitle">CLASS: {std}</div>
     <div class="subtitle">SUBJECT: {subj_title}</div>
   </div>
-  <div class="meta-header">
-    <div class="meta-left">{time_text}</div>
-    <div class="meta-right">TOTAL MARKS: {marks_val}</div>
-    <div class="clear-fix"></div>
-  </div>
+  <table class="meta-header-table">
+    <tr>
+      <td class="meta-left">{time_text}</td>
+      <td class="meta-right">TOTAL MARKS: {marks_val}</td>
+    </tr>
+  </table>
 
 """)
 
@@ -224,7 +248,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
         
         sec_instr = sec.get("instruction")
         if sec_instr:
-            html_parts.append(f"""<div style="font-style:italic; margin-bottom:8px;" class="{lang_class}">{_escape_html(str(sec_instr))}</div>""")
+            html_parts.append(f"""<div style="font-style:italic; margin-bottom:8px; clear:both;" class="{lang_class}">{_escape_html(str(sec_instr))}</div>""")
 
         questions = sec.get("questions")
         if not isinstance(questions, list):
@@ -258,24 +282,24 @@ def save_scert_question_paper(json_paper: dict, filename: str):
                     
                 if len(cleaned_options) >= 4:
                     html_parts.append(f"""
-  <div class="options-grid {lang_class}">
-    <div class="option-row">
-      <div class="option-cell">A. {cleaned_options[0]}</div>
-      <div class="option-cell">B. {cleaned_options[1]}</div>
-    </div>
-    <div class="option-row">
-      <div class="option-cell">C. {cleaned_options[2]}</div>
-      <div class="option-cell">D. {cleaned_options[3]}</div>
-    </div>
-  </div>
+  <table class="options-grid {lang_class}">
+    <tr>
+      <td class="option-cell">A. {cleaned_options[0]}</td>
+      <td class="option-cell">B. {cleaned_options[1]}</td>
+    </tr>
+    <tr>
+      <td class="option-cell">C. {cleaned_options[2]}</td>
+      <td class="option-cell">D. {cleaned_options[3]}</td>
+    </tr>
+  </table>
 """)
                 else:
                     for idx, opt in enumerate(cleaned_options):
-                        html_parts.append(f"""<div style="margin-left:16px;" class="{lang_class}">{chr(65+idx)}. {opt}</div>""")
+                        html_parts.append(f"""<div style="margin-left:16px; clear:both;" class="{lang_class}">{chr(65+idx)}. {opt}</div>""")
 
             elif qtype in ("TRUEFALSE", "TRUE/FALSE"):
                 tf_opts = "ശരി &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; തെറ്റ്" if is_ml else ("സത്യ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; असत्य" if is_hi else "True &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; False")
-                html_parts.append(f"""<div style="margin-left:16px;" class="{lang_class}">{tf_opts}</div>""")
+                html_parts.append(f"""<div style="margin-left:16px; clear:both;" class="{lang_class}">{tf_opts}</div>""")
 
             elif qtype == "MATCHTHEFOLLOWING":
                 left_list = q.get("left")
@@ -284,18 +308,18 @@ def save_scert_question_paper(json_paper: dict, filename: str):
                 if not isinstance(right_list, list): right_list = []
                 lefts = [_escape_html(str(l)) for l in left_list]
                 rights = [_escape_html(str(r)) for r in right_list]
-                html_parts.append(f"""<div class="match-table {lang_class}">""")
+                html_parts.append(f"""<table class="match-table {lang_class}">""")
                 for i, (l_item, r_item) in enumerate(zip(lefts, rights)):
                     html_parts.append(f"""
-    <div class="match-row">
-      <div class="match-left">{i+1}. {l_item}</div>
-      <div class="match-right">{chr(65+i)}. {r_item}</div>
-    </div>
+    <tr>
+      <td class="match-left">{i+1}. {l_item}</td>
+      <td class="match-right">{chr(65+i)}. {r_item}</td>
+    </tr>
 """)
-                html_parts.append("""</div>""")
+                html_parts.append("""</table>""")
 
             elif qtype == "FILLINTHEBLANKS":
-                html_parts.append(f"""<div style="margin-left:16px; margin-top:4px;" class="{lang_class}">Answer: ____________________________________</div>""")
+                html_parts.append(f"""<div style="margin-left:16px; margin-top:4px; clear:both;" class="{lang_class}">Answer: ____________________________________</div>""")
 
             elif qtype == "PICTUREBASED":
                 html_parts.append("""<div style="border:1px solid #666; height:120px; text-align:center; line-height:120px; color:#888; margin-top:6px; margin-bottom:6px;">[ SPACE FOR IMAGE / PICTURE ]</div>""")

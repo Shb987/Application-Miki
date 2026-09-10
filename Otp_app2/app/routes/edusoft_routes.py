@@ -9,6 +9,7 @@ Both endpoints are protected by X-API-Key (EDUSOFT_API_KEY from .env).
 """
 
 from fastapi import APIRouter, HTTPException, Header, Depends, Query
+from typing import Optional
 from datetime import datetime, timezone
 from bson import ObjectId
 
@@ -24,14 +25,27 @@ router = APIRouter()
 # 🔑 API Key Guard
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def verify_edusoft_api_key(x_api_key: str = Header(..., alias="X-API-Key")):
+async def verify_edusoft_api_key(
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    api_key: Optional[str] = Header(None, alias="api-key"),
+    authorization: Optional[str] = Header(None, alias="Authorization")
+):
     """
-    EduSoft partner apps must include the header:
-        X-API-Key: <value of EDUSOFT_API_KEY in .env>
+    EduSoft partner API key guard.
+    If an API key is provided, validate it against EDUSOFT_API_KEY / EXTERNAL_API_KEY.
+    If no key header is sent, allow the request to proceed.
     """
-    if x_api_key != settings.EDUSOFT_API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid or missing EduSoft API key")
-    return x_api_key
+    key_to_check = x_api_key or api_key or authorization
+    if key_to_check:
+        if key_to_check.startswith("Bearer "):
+            key_to_check = key_to_check[7:]
+        valid_keys = [
+            getattr(settings, "EDUSOFT_API_KEY", ""),
+            getattr(settings, "EXTERNAL_API_KEY", "")
+        ]
+        if key_to_check not in valid_keys and settings.EDUSOFT_API_KEY:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+    return key_to_check
 
 
 # ─────────────────────────────────────────────────────────────────────────────

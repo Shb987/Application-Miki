@@ -64,7 +64,7 @@ async def verify_api_key(
 ):
     """
     API key guard for external student registration.
-    Uses APIKeyHeader lock scheme for Swagger UI documentation.
+    Displays lock icon in API documentation.
     """
     if x_api_key:
         if x_api_key.startswith("Bearer "):

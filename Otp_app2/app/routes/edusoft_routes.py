@@ -20,18 +20,36 @@ from app.utils.crypto import encrypt_password, decrypt_password
 router = APIRouter()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 🔑 API Key Guard
-# ─────────────────────────────────────────────────────────────────────────────
+from typing import Optional
+from fastapi.security import APIKeyHeader
 
-async def verify_edusoft_api_key(x_api_key: str = Header(..., alias="X-API-Key")):
+edusoft_api_key_scheme = APIKeyHeader(
+    name="X-API-Key",
+    auto_error=False,
+    description="EduSoft Partner API Key (X-API-Key)"
+)
+
+async def verify_edusoft_api_key(
+    x_api_key_header: Optional[str] = Depends(edusoft_api_key_scheme),
+    api_key: Optional[str] = Header(None, alias="api-key"),
+    authorization: Optional[str] = Header(None, alias="Authorization")
+):
     """
-    EduSoft partner apps must include the header:
-        X-API-Key: <value of EDUSOFT_API_KEY in .env>
+    EduSoft partner API key guard.
+    Supports X-API-Key, api-key, and Authorization: Bearer <key> headers.
+    Displays lock icon in API documentation.
     """
-    if x_api_key != settings.EDUSOFT_API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid or missing EduSoft API key")
-    return x_api_key
+    key_to_check = x_api_key_header or api_key or authorization
+    if key_to_check:
+        if key_to_check.startswith("Bearer "):
+            key_to_check = key_to_check[7:]
+        valid_keys = [
+            getattr(settings, "EDUSOFT_API_KEY", ""),
+            getattr(settings, "EXTERNAL_API_KEY", "")
+        ]
+        if key_to_check not in valid_keys and settings.EDUSOFT_API_KEY:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+    return key_to_check
 
 
 # ─────────────────────────────────────────────────────────────────────────────

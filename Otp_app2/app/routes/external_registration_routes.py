@@ -50,24 +50,25 @@ class ExternalStudentRegistration(BaseModel):
         return v_upper
 
 
-# ─────────────────────────────────────────────
-# 🔑 API Key Security Dependency
-# ─────────────────────────────────────────────
+from fastapi.security import APIKeyHeader
+
+api_key_header_scheme = APIKeyHeader(
+    name="X-API-Key",
+    auto_error=False,
+    description="API key header (X-API-Key)"
+)
 
 async def verify_api_key(
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    api_key: Optional[str] = Header(None, alias="api-key"),
-    authorization: Optional[str] = Header(None, alias="Authorization")
+    x_api_key_header: Optional[str] = Depends(api_key_header_scheme),
+    api_key: Optional[str] = Header(None, alias="api-key")
 ):
     """
     API key guard for external student registration.
-    If an API key is provided in headers, validate it against EXTERNAL_API_KEY / EDUSOFT_API_KEY.
+    Supports X-API-Key and api-key headers.
     If no key header is sent (e.g., from browser web registration), allow the request.
     """
-    key_to_check = x_api_key or api_key or authorization
+    key_to_check = x_api_key_header or api_key
     if key_to_check:
-        if key_to_check.startswith("Bearer "):
-            key_to_check = key_to_check[7:]
         valid_keys = [
             getattr(settings, "EXTERNAL_API_KEY", ""),
             getattr(settings, "EDUSOFT_API_KEY", "")

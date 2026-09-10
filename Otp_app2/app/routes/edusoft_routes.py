@@ -21,24 +21,25 @@ from app.utils.crypto import encrypt_password, decrypt_password
 router = APIRouter()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 🔑 API Key Guard
-# ─────────────────────────────────────────────────────────────────────────────
+from fastapi.security import APIKeyHeader
+
+edusoft_api_key_scheme = APIKeyHeader(
+    name="X-API-Key",
+    auto_error=False,
+    description="EduSoft Partner API Key (X-API-Key)"
+)
 
 async def verify_edusoft_api_key(
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    api_key: Optional[str] = Header(None, alias="api-key"),
-    authorization: Optional[str] = Header(None, alias="Authorization")
+    x_api_key_header: Optional[str] = Depends(edusoft_api_key_scheme),
+    api_key: Optional[str] = Header(None, alias="api-key")
 ):
     """
     EduSoft partner API key guard.
-    If an API key is provided, validate it against EDUSOFT_API_KEY / EXTERNAL_API_KEY.
+    Supports X-API-Key and api-key headers.
     If no key header is sent, allow the request to proceed.
     """
-    key_to_check = x_api_key or api_key or authorization
+    key_to_check = x_api_key_header or api_key
     if key_to_check:
-        if key_to_check.startswith("Bearer "):
-            key_to_check = key_to_check[7:]
         valid_keys = [
             getattr(settings, "EDUSOFT_API_KEY", ""),
             getattr(settings, "EXTERNAL_API_KEY", "")

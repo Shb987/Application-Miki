@@ -42,3 +42,36 @@ def decrypt_password(token: str) -> str:
             status_code=500,
             detail="Failed to decrypt stored credentials. Contact system administrator."
         )
+
+
+import secrets
+import string
+
+def generate_default_edusoft_credentials(student_doc: dict = None, student_id_str: str = ""):
+    """
+    Generates default EduSoft auto-credentials:
+    - Username: Short numeric student identifier like '327'
+    - Password: 6-character random lowercase alphanumeric code like '5uwzop'
+    """
+    student_doc = student_doc or {}
+    raw_user = (
+        student_doc.get("admission_no") or 
+        student_doc.get("roll_no") or 
+        student_doc.get("student_code") or 
+        student_doc.get("user_id")
+    )
+    if raw_user:
+        auto_username = str(raw_user).strip()
+    elif student_id_str:
+        try:
+            num_val = int(student_id_str[-6:], 16) % 900 + 100
+            auto_username = str(num_val)
+        except Exception:
+            auto_username = "327"
+    else:
+        auto_username = "327"
+
+    alphabet = string.ascii_lowercase + string.digits
+    auto_password = ''.join(secrets.choice(alphabet) for _ in range(6))
+
+    return auto_username, auto_password

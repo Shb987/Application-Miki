@@ -173,11 +173,8 @@ async def external_register_student(
         })
         if not existing_cred:
             try:
-                clean_name = re.sub(r'[^a-z0-9]', '', payload.name.lower())[:10] or "student"
-                short_id = student_id_str[-6:]
-                auto_username = f"{clean_name}_{short_id}"
-                auto_password = f"Edu@{short_id}!"
-                from app.utils.crypto import encrypt_password
+                from app.utils.crypto import encrypt_password, generate_default_edusoft_credentials
+                auto_username, auto_password = generate_default_edusoft_credentials(existing_student, student_id_str)
                 encrypted_pwd = encrypt_password(auto_password)
                 await db.edusoft_credentials.insert_one({
                     "student_id": student_id_str,
@@ -237,11 +234,8 @@ async def external_register_student(
 
     # ── 4b. Auto-provision EduSoft Credentials ────────────────────────────
     try:
-        clean_name = re.sub(r'[^a-z0-9]', '', payload.name.lower())[:10] or "student"
-        short_id = student_id_str[-6:]
-        auto_username = f"{clean_name}_{short_id}"
-        auto_password = f"Edu@{short_id}!"
-        from app.utils.crypto import encrypt_password
+        from app.utils.crypto import encrypt_password, generate_default_edusoft_credentials
+        auto_username, auto_password = generate_default_edusoft_credentials(student_doc, student_id_str)
         encrypted_pwd = encrypt_password(auto_password)
         await db.edusoft_credentials.insert_one({
             "student_id": student_id_str,

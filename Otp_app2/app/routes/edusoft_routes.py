@@ -16,7 +16,7 @@ import re
 from app.core.database import db
 from app.core.settings import settings
 from app.models.edusoft_models import EduSoftStoreCredentials
-from app.utils.crypto import encrypt_password, decrypt_password
+from app.utils.crypto import encrypt_password, decrypt_password, generate_default_edusoft_credentials
 
 router = APIRouter()
 
@@ -226,17 +226,13 @@ async def get_edusoft_credentials(
             )
 
         # Auto-provision credentials for valid registered student
-        raw_name = student_doc.get("student_name", "")
-        clean_name = re.sub(r'[^a-z0-9]', '', raw_name.lower())[:10] or "student"
-        short_id = student_id[-6:]
-        auto_username = f"{clean_name}_{short_id}"
+        auto_username, auto_password = generate_default_edusoft_credentials(student_doc, student_id)
 
-        # Ensure username uniqueness
+        # Ensure username uniqueness if needed
         existing_user = await db.edusoft_credentials.find_one({"username": auto_username})
-        if existing_user:
-            auto_username = f"user_{student_id}"
+        if existing_user and existing_user.get("student_id") != student_id:
+            auto_username = f"{auto_username}_{student_id[-3:]}"
 
-        auto_password = f"Edu@{short_id}!"
         encrypted_pwd = encrypt_password(auto_password)
 
         credential_doc = {

@@ -233,6 +233,7 @@ async def external_register_student(
     student_id_str = str(student_oid)
 
     # ── 4b. Auto-provision EduSoft Credentials ────────────────────────────
+    auto_username, auto_password = None, None
     try:
         from app.utils.crypto import encrypt_password, generate_default_edusoft_credentials
         auto_username, auto_password = generate_default_edusoft_credentials(student_doc, student_id_str)
@@ -247,6 +248,35 @@ async def external_register_student(
         })
     except Exception as e:
         print(f"[EduSoft] Auto credential creation warning: {e}")
+
+    # ── 4c. Forward Registration to EduSoft Server to Sync with MySQL ─────
+    try:
+        import httpx
+        import urllib.parse
+        parsed = urllib.parse.urlparse(payload.link)
+        base_url = f"{parsed.scheme}://{parsed.netloc}" if parsed.netloc else payload.link.rstrip('/')
+        edusoft_webhook_url = f"{base_url}/site/api_register_student"
+
+        sync_payload = {
+            "student_id": student_id_str,
+            "name": payload.name,
+            "student_class": payload.student_class,
+            "division": payload.division,
+            "address": payload.address,
+            "dob": payload.dob,
+            "guardian_name": payload.guardian_name,
+            "guardian_phone": payload.guardian_phone,
+            "username": auto_username,
+            "password": auto_password,
+            "category": payload.category,
+            "school_link": payload.link
+        }
+
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            resp = await client.post(edusoft_webhook_url, json=sync_payload)
+            print(f"[EduSoft Sync] Forwarded registration to {edusoft_webhook_url}: Status {resp.status_code}")
+    except Exception as e:
+        print(f"[EduSoft Sync] Forwarding warning: {e}")
 
     # ── 5. Link parent / guardian in usertable ────────────────────────────
     await db.usertable.update_one(

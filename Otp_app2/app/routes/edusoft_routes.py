@@ -288,6 +288,24 @@ async def get_edusoft_credentials(
     if not school_link and credential:
         school_link = credential.get("school_link")
 
+    # 4e. Fallback to default configured school link if missing for existing student
+    if not school_link:
+        school_link = getattr(settings, "EDUSOFT_DEFAULT_SCHOOL_LINK", "https://school.onedusoft.in/")
+
+    # 4f. Backfill resolved school_link into db.students and db.edusoft_credentials
+    try:
+        if student_id and school_link:
+            await db.students.update_one(
+                {"$or": student_query},
+                {"$set": {"school_link": school_link}}
+            )
+            await db.edusoft_credentials.update_one(
+                {"$or": cred_query},
+                {"$set": {"school_link": school_link}}
+            )
+    except Exception as e:
+        print(f"Error backfilling school_link: {e}")
+
     return {
         "student_id": student_id,
         "username":   credential["username"],

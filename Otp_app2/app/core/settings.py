@@ -35,4 +35,7 @@ class Settings:
     # Generate once with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     FERNET_SECRET_KEY: str = os.getenv("FERNET_SECRET_KEY", "")
 
+    # EduSoft default school link fallback
+    EDUSOFT_DEFAULT_SCHOOL_LINK: str = os.getenv("EDUSOFT_DEFAULT_SCHOOL_LINK", "https://school.onedusoft.in/")
+
 settings = Settings()

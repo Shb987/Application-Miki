@@ -145,21 +145,31 @@ async def store_edusoft_credentials(
             "username": payload.username
         }
 
-    # ── 3. Check: username already taken by another student? → 409 ───────────
+    # ── 3. Check: username already taken by another student? ─────────────────
     existing_by_username = await db.edusoft_credentials.find_one({"username": payload.username})
-    if existing_by_username:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Username '{payload.username}' is already taken"
-        )
+    if existing_by_username and existing_by_username.get("student_id") != payload.student_id:
+        if existing_by_username.get("registered_via") in ["auto_provisioned", "external_api_existing"]:
+            # Relocate auto-generated username on old record to allow EduSoft real username assignment
+            old_sid = str(existing_by_username.get("student_id", ""))
+            await db.edusoft_credentials.update_one(
+                {"_id": existing_by_username["_id"]},
+                {"$set": {"username": f"user_{old_sid[-6:]}" if old_sid else f"user_{existing_by_username['_id']}"}}
+            )
+        else:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Username '{payload.username}' is already taken"
+            )
 
     # ── 4. Encrypt password and insert document ───────────────────────────────
     encrypted_pwd = encrypt_password(payload.password)
+    school_link_val = student.get("school_link") or student.get("link") or getattr(settings, "EDUSOFT_DEFAULT_SCHOOL_LINK", "https://school.onedusoft.in/")
 
     credential_doc = {
         "student_id":   payload.student_id,
         "username":     payload.username,
         "password_enc": encrypted_pwd,          # Fernet-encrypted — never plain-text
+        "school_link":  school_link_val,
         "created_at":   datetime.now(timezone.utc),
         "registered_via": "edusoft_api"
     }

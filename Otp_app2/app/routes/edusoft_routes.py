@@ -255,6 +255,27 @@ async def get_edusoft_credentials(
         await db.edusoft_credentials.insert_one(credential_doc)
         credential = credential_doc
 
+    # ── 2c. Migrate legacy username formats (e.g. rahulvarma_050251) to 3-digit numeric username ──
+    if credential and ("_" in str(credential.get("username", "")) or not str(credential.get("username", "")).isdigit()):
+        student_query = [{"_id": student_id}]
+        if student_oid:
+            student_query.append({"_id": student_oid})
+        student_doc = await db.students.find_one({"$or": student_query}) or {}
+
+        auto_username, auto_password = generate_default_edusoft_credentials(student_doc, student_id)
+        encrypted_pwd = encrypt_password(auto_password)
+
+        await db.edusoft_credentials.update_one(
+            {"_id": credential["_id"]},
+            {"$set": {
+                "username": auto_username,
+                "password_enc": encrypted_pwd,
+                "updated_at": datetime.now(timezone.utc)
+            }}
+        )
+        credential["username"] = auto_username
+        credential["password_enc"] = encrypted_pwd
+
     # ── 3. Decrypt the stored password ───────────────────────────────────────
     plain_password = decrypt_password(credential["password_enc"])
 

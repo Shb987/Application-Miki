@@ -22,7 +22,7 @@ class ExternalStudentRegistration(BaseModel):
     guardian_name: str = Field(..., description="Name of parent / guardian")
     guardian_phone: str = Field(..., description="Guardian's 10-digit mobile number")
     link: str = Field(..., description="Unique school identifier link (used to look up the school)")
-    category: str = Field(..., description="Curriculum category (e.g. NCERT, SCERT)")
+    category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
 
     @field_validator("guardian_phone")
     @classmethod
@@ -41,12 +41,14 @@ class ExternalStudentRegistration(BaseModel):
             raise ValueError("dob must be in YYYY-MM-DD format")
         return v
 
-    @field_validator("category")
+    @field_validator("category", mode="before")
     @classmethod
-    def validate_category(cls, v: str) -> str:
-        v_upper = v.strip().upper()
+    def validate_category(cls, v: Optional[str]) -> str:
+        if not v:
+            return "SCERT"
+        v_upper = str(v).strip().upper()
         if v_upper not in ["NCERT", "SCERT"]:
-            raise ValueError("Category must be either NCERT or SCERT")
+            return "SCERT"
         return v_upper
 
 
@@ -128,10 +130,33 @@ async def external_register_student(
         "school_id": school_id
     })
     if existing_student:
+        student_id_str = str(existing_student["_id"])
+        # Ensure EduSoft credentials exist for already registered student
+        existing_cred = await db.edusoft_credentials.find_one({
+            "$or": [{"student_id": student_id_str}, {"student_id": existing_student["_id"]}]
+        })
+        if not existing_cred:
+            try:
+                clean_name = re.sub(r'[^a-z0-9]', '', payload.name.lower())[:10] or "student"
+                short_id = student_id_str[-6:]
+                auto_username = f"{clean_name}_{short_id}"
+                auto_password = f"Edu@{short_id}!"
+                from app.utils.crypto import encrypt_password
+                encrypted_pwd = encrypt_password(auto_password)
+                await db.edusoft_credentials.insert_one({
+                    "student_id": student_id_str,
+                    "username": auto_username,
+                    "password_enc": encrypted_pwd,
+                    "created_at": datetime.now(timezone.utc),
+                    "registered_via": "external_api_existing"
+                })
+            except Exception as e:
+                print(f"[EduSoft] Auto credential creation warning: {e}")
+
         return {
             "status": "already_registered",
             "message": "Student is already registered in this school.",
-            "student_id": str(existing_student["_id"]),
+            "student_id": student_id_str,
             "school_id": school_id,
             "school_name": school_name
         }
@@ -169,6 +194,25 @@ async def external_register_student(
 
     student_result = await db.students.insert_one(student_doc)
     student_oid = student_result.inserted_id
+    student_id_str = str(student_oid)
+
+    # ── 4b. Auto-provision EduSoft Credentials ────────────────────────────
+    try:
+        clean_name = re.sub(r'[^a-z0-9]', '', payload.name.lower())[:10] or "student"
+        short_id = student_id_str[-6:]
+        auto_username = f"{clean_name}_{short_id}"
+        auto_password = f"Edu@{short_id}!"
+        from app.utils.crypto import encrypt_password
+        encrypted_pwd = encrypt_password(auto_password)
+        await db.edusoft_credentials.insert_one({
+            "student_id": student_id_str,
+            "username": auto_username,
+            "password_enc": encrypted_pwd,
+            "created_at": datetime.now(timezone.utc),
+            "registered_via": "external_api_registration"
+        })
+    except Exception as e:
+        print(f"[EduSoft] Auto credential creation warning: {e}")
 
     # ── 5. Link parent / guardian in usertable ────────────────────────────
     await db.usertable.update_one(
@@ -198,7 +242,7 @@ async def external_register_student(
     return {
         "status": "success",
         "message": "Student registered successfully",
-        "student_id": str(student_oid),
+        "student_id": student_id_str,
         "school_id": school_id,
         "school_name": school_name,
         "guardian_phone": payload.guardian_phone

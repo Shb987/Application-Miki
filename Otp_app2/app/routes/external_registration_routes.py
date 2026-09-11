@@ -183,6 +183,7 @@ async def external_register_student(
                     "student_id": student_id_str,
                     "username": auto_username,
                     "password_enc": encrypted_pwd,
+                    "school_link": payload.link,
                     "created_at": datetime.now(timezone.utc),
                     "registered_via": "external_api_existing"
                 })
@@ -194,7 +195,8 @@ async def external_register_student(
             "message": "Student is already registered in this school.",
             "student_id": student_id_str,
             "school_id": school_id,
-            "school_name": school_name
+            "school_name": school_name,
+            "school_link": payload.link
         }
 
     # ── 3. Fetch default subscription plan ────────────────────────────────
@@ -215,6 +217,7 @@ async def external_register_student(
         "address": payload.address,
         "guardian_name": payload.guardian_name,
         "school_id": school_id,
+        "school_link": payload.link,
         "image_url": None,
         "created_at": datetime.now(timezone.utc),
         "registered_via": "external_api",          # track the source
@@ -244,6 +247,7 @@ async def external_register_student(
             "student_id": student_id_str,
             "username": auto_username,
             "password_enc": encrypted_pwd,
+            "school_link": payload.link,
             "created_at": datetime.now(timezone.utc),
             "registered_via": "external_api_registration"
         })

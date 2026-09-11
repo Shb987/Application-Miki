@@ -260,18 +260,33 @@ async def get_edusoft_credentials(
             student_query.append({"_id": student_oid})
         student_doc = await db.students.find_one({"$or": student_query})
 
-        if student_doc and "school_id" in student_doc:
-            school_id_val = student_doc["school_id"]
-            school_query = [{"_id": school_id_val}]
-            try:
-                school_query.append({"_id": ObjectId(str(school_id_val))})
-            except Exception:
-                pass
-            school_doc = await db.schools.find_one({"$or": school_query})
-            if school_doc and "link" in school_doc:
-                school_link = school_doc["link"]
+        if student_doc:
+            # 4a. Check direct link fields on student_doc
+            school_link = student_doc.get("school_link") or student_doc.get("link")
+
+            # 4b. Check db.schools via school_id (string or ObjectId)
+            if not school_link and "school_id" in student_doc:
+                school_id_val = str(student_doc["school_id"])
+                school_query = [{"_id": school_id_val}]
+                try:
+                    school_query.append({"_id": ObjectId(school_id_val)})
+                except Exception:
+                    pass
+                school_doc = await db.schools.find_one({"$or": school_query})
+                if school_doc:
+                    school_link = school_doc.get("link") or school_doc.get("school_link") or school_doc.get("url")
+
+            # 4c. Check db.schools via school_name if available
+            if not school_link and "school_name" in student_doc:
+                school_doc = await db.schools.find_one({"name": student_doc["school_name"]})
+                if school_doc:
+                    school_link = school_doc.get("link") or school_doc.get("school_link")
     except Exception as e:
         print(f"Error fetching school link for student {student_id}: {e}")
+
+    # 4d. Fallback to credential doc
+    if not school_link and credential:
+        school_link = credential.get("school_link")
 
     return {
         "student_id": student_id,

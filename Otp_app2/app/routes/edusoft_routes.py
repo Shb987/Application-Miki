@@ -305,8 +305,7 @@ async def get_edusoft_credentials(
     return {
         "student_id": student_id,
         "username":   credential["username"],
-        "password":   credential.get("password_enc") or plain_password,
-        "plain_password": plain_password,
+        "password":   plain_password,
         "school_link": school_link
     }
 

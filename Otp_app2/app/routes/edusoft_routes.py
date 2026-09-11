@@ -312,10 +312,16 @@ async def get_edusoft_credentials(
     except Exception as e:
         print(f"Error backfilling school_link: {e}")
 
+    # 4g. Resolve direct login_url endpoint (e.g. /site/userlogin)
+    login_url = school_link
+    if login_url and not any(p in login_url.lower() for p in ["/login", "/userlogin", "/site/"]):
+        login_url = login_url.rstrip('/') + "/site/userlogin"
+
     return {
         "student_id": student_id,
         "username":   credential["username"],
         "password":   plain_password,
-        "school_link": school_link
+        "school_link": school_link,
+        "login_url":   login_url
     }
 

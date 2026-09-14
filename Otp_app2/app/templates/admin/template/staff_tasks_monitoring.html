@@ -725,12 +725,38 @@
     }
   }
 
+  function formatISTTimestamp(timestamp, options = {}) {
+    if (!timestamp) return options.fallback || '-';
+    try {
+      let str = timestamp;
+      if (typeof str === 'string' && str.includes('T') && !str.endsWith('Z') && !str.includes('+') && !str.includes('-', 10)) {
+        str += 'Z';
+      }
+      const date = new Date(str);
+      if (isNaN(date.getTime())) return timestamp;
+      const defaultOpts = {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      };
+      const finalOpts = Object.assign({}, defaultOpts, options.fmtOpts || {});
+      return date.toLocaleString('en-IN', finalOpts);
+    } catch {
+      return timestamp;
+    }
+  }
+
   function renderReport(data) {
     const total = data.total_events || 0;
     const success = data.success_count || 0;
     const failed = data.failed_count || 0;
     const rate = total > 0 ? Math.round((success / total) * 100) : 0;
-    const lastActive = data.last_active ? new Date(data.last_active).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No Activity Recorded';
+    const lastActive = data.last_active ? formatISTTimestamp(data.last_active) : 'No Activity Recorded';
     const breakdown = data.action_breakdown || [];
     const recentLogs = data.recent_logs || [];
 
@@ -755,7 +781,7 @@
         <td class="fw-bold" style="color:#0f172a;">${item.total}</td>
         <td><span class="kpi-badge-success">${item.success}</span></td>
         <td><span class="kpi-badge-failed">${item.failed}</span></td>
-        <td style="font-size:0.8rem; color:#475569; font-weight:600;">${item.last_done ? new Date(item.last_done).toLocaleDateString() : '-'}</td>
+        <td style="font-size:0.8rem; color:#475569; font-weight:600;">${formatISTTimestamp(item.last_done, { fmtOpts: { year: 'numeric', month: 'numeric', day: 'numeric' }, fallback: '-' })}</td>
       </tr>`;
     }).join('') : `<tr><td colspan="5" class="text-center py-4 text-muted">No activity categorized for this period.</td></tr>`;
 
@@ -763,7 +789,7 @@
     const timelineHtml = recentLogs.length > 0 ? recentLogs.map(log => {
       const isSuccess = (log.status === 'completed' || log.status === 'success');
       const dotClass = isSuccess ? 'success' : log.status === 'failed' ? 'failed' : '';
-      const timeStr = log.timestamp ? new Date(log.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const timeStr = log.timestamp ? formatISTTimestamp(log.timestamp) : '';
       return `
       <div class="timeline-node">
         <div class="node-dot ${dotClass}"></div>

@@ -10,6 +10,17 @@ from bson import ObjectId
 router = APIRouter(tags=["Admin Stats"])
 
 
+def format_iso_timestamp(dt):
+    if dt is None:
+        return None
+    if hasattr(dt, "isoformat"):
+        s = dt.isoformat()
+        if hasattr(dt, "tzinfo") and dt.tzinfo is None:
+            return s + "Z"
+        return s.replace("+00:00", "Z")
+    return str(dt)
+
+
 @router.get("/stats/summary", response_model=Dict[str, Any])
 async def get_dashboard_summary(current_admin: dict = Depends(require_permission("Analytics", "read"))):
     """
@@ -474,13 +485,6 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
         
         # Helper to serialize log docs
         def serialize_log(log):
-            ts = log.get("timestamp")
-            if hasattr(ts, "isoformat"):
-                ts_str = ts.isoformat()
-            elif ts is not None:
-                ts_str = str(ts)
-            else:
-                ts_str = None
             return {
                 "id": str(log["_id"]),
                 "username": log.get("username"),
@@ -489,7 +493,7 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
                 "status": log.get("status", "success"),
                 "details": log.get("details"),
                 "task_id": log.get("task_id"),
-                "timestamp": ts_str
+                "timestamp": format_iso_timestamp(log.get("timestamp"))
             }
             
         return {
@@ -583,7 +587,7 @@ async def get_staff_profile(
                     "total": r["total"],
                     "success": r["success"],
                     "failed": r["failed"],
-                    "last_done": r["last_done"].isoformat() if r.get("last_done") else None
+                    "last_done": format_iso_timestamp(r.get("last_done"))
                 }
                 for r in results
             ]
@@ -594,14 +598,12 @@ async def get_staff_profile(
             logs = await cursor.to_list(length=25)
 
             def serialize(log):
-                ts = log.get("timestamp")
-                ts_str = ts.isoformat() if hasattr(ts, "isoformat") else str(ts) if ts else None
                 return {
                     "id": str(log["_id"]),
                     "action": log.get("action", ""),
                     "status": log.get("status", "success"),
                     "details": log.get("details", ""),
-                    "timestamp": ts_str
+                    "timestamp": format_iso_timestamp(log.get("timestamp"))
                 }
 
             return [serialize(l) for l in logs]
@@ -613,7 +615,7 @@ async def get_staff_profile(
                 sort=[("timestamp", -1)]
             )
             if doc and doc.get("timestamp"):
-                return doc["timestamp"].isoformat()
+                return format_iso_timestamp(doc["timestamp"])
             return None
 
         # ── 7. Admin Info & Rank ───────────────────────────────────
@@ -725,13 +727,12 @@ async def get_all_staff_tasks(days: Optional[int] = None, current_admin: dict = 
         for r in results:
             tasks = []
             for t in r.get("tasks", []):
-                last_done = t.get("last_done")
                 tasks.append({
                     "action": t["action"] or "Unknown",
                     "total": t["total"],
                     "success": t["success"],
                     "failed": t["failed"],
-                    "last_done": last_done.isoformat() if hasattr(last_done, 'isoformat') else str(last_done) if last_done else None
+                    "last_done": format_iso_timestamp(t.get("last_done"))
                 })
             # sort tasks by total descending
             tasks.sort(key=lambda x: x["total"], reverse=True)

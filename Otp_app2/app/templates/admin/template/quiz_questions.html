@@ -36,6 +36,32 @@
         font-weight: 600;
         border-radius: 6px;
     }
+    .badge-correct-ans {
+        background-color: rgba(16, 185, 129, 0.12) !important;
+        color: #059669 !important;
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        padding: 6px 12px;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+    body.dark-only .badge-correct-ans,
+    .dark-only .badge-correct-ans {
+        background-color: rgba(16, 185, 129, 0.25) !important;
+        color: #34d399 !important;
+        border-color: rgba(16, 185, 129, 0.5);
+    }
+    .correct-option-highlight {
+        background: rgba(16, 185, 129, 0.12) !important;
+        border: 2px solid #10b981 !important;
+        color: #065f46 !important;
+        font-weight: 600;
+    }
+    body.dark-only .correct-option-highlight,
+    .dark-only .correct-option-highlight {
+        background: rgba(16, 185, 129, 0.25) !important;
+        border-color: #10b981 !important;
+        color: #34d399 !important;
+    }
     /* Adding some subtle shadows and rounded corners for attractiveness */
     .card {
         border-radius: 12px;
@@ -253,18 +279,19 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th style="width: 50px;">#</th>
-                                    <th style="width: 38%">Question</th>
+                                    <th style="width: 30%">Question</th>
                                     <th>Domain</th>
                                     <th>Type</th>
                                     <th>Class</th>
                                     <th>Difficulty</th>
-                                    <th>Marks</th>
-                                    <th>Actions</th>
+                                    <th style="min-width: 170px;">Correct Answer</th>
+                                    <th style="width: 60px;">Marks</th>
+                                    <th style="width: 140px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="questionsBody">
                                 <tr>
-                                    <td colspan="8" class="text-center">
+                                    <td colspan="9" class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -340,7 +367,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Correct Answer</label>
-                            <input type="text" class="form-control premium-form-control" id="editCorrectAnswer" required>
+                            <input type="text" class="form-control premium-form-control" id="editCorrectAnswer" required oninput="reindexEditOptions()">
+                            <small class="form-text text-muted">Enter option number (1, 2, 3, etc.) or click 'Set Correct' above.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Marks</label>
@@ -438,6 +466,24 @@
     let quizCurrentPage = 1;
     let allQuestionsCache = [];
 
+    function getCorrectAnswerText(q) {
+        if (q.correct_answer === undefined || q.correct_answer === null || q.correct_answer === '') {
+            return 'N/A';
+        }
+        const num = parseInt(q.correct_answer);
+        if (!isNaN(num) && q.options && q.options.length >= num && num >= 1) {
+            return `Option ${num}: ${q.options[num - 1]}`;
+        }
+        if (q.options && q.options.length > 0) {
+            const strVal = String(q.correct_answer).trim().toLowerCase();
+            const idx = q.options.findIndex(opt => String(opt).trim().toLowerCase() === strVal);
+            if (idx !== -1) {
+                return `Option ${idx + 1}: ${q.options[idx]}`;
+            }
+        }
+        return String(q.correct_answer);
+    }
+
     function renderPaginationControls(currentPage, totalItems, pageSize) {
         if (totalItems <= 0) return '';
         const totalPages = Math.ceil(totalItems / pageSize) || 1;
@@ -513,7 +559,7 @@
         } catch (err) {
             console.error("Error loading questions:", err);
             document.getElementById("questionsBody").innerHTML =
-                '<tr><td colspan="8" class="text-center text-danger">Error loading questions</td></tr>';
+                '<tr><td colspan="9" class="text-center text-danger">Error loading questions</td></tr>';
             document.getElementById("paginationWrapper").innerHTML = '';
         }
     }
@@ -522,29 +568,38 @@
     function displayQuestions(questions, startIndex = 0) {
         const tbody = document.getElementById("questionsBody");
         if (questions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center">No questions found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No questions found</td></tr>';
             return;
         }
         tbody.innerHTML = questions.map((q, i) => `
             <tr>
             <td><strong>${startIndex + i + 1}</strong></td>
             <td>
-                <div class="text-truncate" style="max-width: 400px;" title="${escapeHtml(q.question_text)}">
+                <div class="text-truncate fw-medium" style="max-width: 320px;" title="${escapeHtml(q.question_text)}">
                 ${escapeHtml(q.question_text)}
                 </div>
             </td>
-            <td><span class="badge badge-domain">${q.domain}</span></td>
-            <td><span class="badge badge-type">${q.question_type}</span></td>
-            <td>${q.class_range}</td>
-            <td><span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${q.difficulty_level}</span></td>
-            <td>${q.marks}</td>
+            <td><span class="badge badge-domain">${escapeHtml(q.domain || '-')}</span></td>
+            <td><span class="badge badge-type">${escapeHtml(q.question_type || '-')}</span></td>
+            <td><span class="fw-semibold">${escapeHtml(q.class_range || '-')}</span></td>
+            <td><span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${escapeHtml(q.difficulty_level || '-')}</span></td>
+            <td>
+                <span class="badge badge-correct-ans text-start d-inline-flex align-items-center gap-1" style="max-width: 220px; white-space: normal; line-height: 1.3;" title="Correct Answer">
+                    <i data-feather="check-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></i>
+                    <span>${escapeHtml(getCorrectAnswerText(q))}</span>
+                </span>
+            </td>
+            <td><span class="fw-bold">${q.marks || 1}</span></td>
             <td>
                 <div class="action-group">
+                    <button class="action-btn btn-view" onclick="viewQuestion('${q.question_id}')" title="View Details">
+                        <i data-feather="eye"></i>
+                    </button>
                     <button class="action-btn btn-edit" onclick="openEditModal('${q.question_id}')" title="Edit">
-                    <i data-feather="edit-2"></i>
+                        <i data-feather="edit-2"></i>
                     </button>
                     <button class="action-btn btn-delete" onclick="deleteQuestion('${q.question_id}')" title="Delete">
-                    <i data-feather="trash-2"></i>
+                        <i data-feather="trash-2"></i>
                     </button>
                 </div>
             </td>
@@ -560,13 +615,43 @@
             });
             const result = await res.json();
             const q = result.data;
+            const correctAnsText = getCorrectAnswerText(q);
+            const ansNum = parseInt(q.correct_answer);
+
             let optionsHtml = '';
             if (q.options && q.options.length > 0) {
                 optionsHtml = `
                     <div class="view-card">
-                        <div class="view-card-title">Options</div>
+                        <div class="view-card-title d-flex justify-content-between align-items-center">
+                            <span>Options (${q.options.length})</span>
+                            <small class="text-muted text-transform-none fw-normal">Green highlight indicates correct answer</small>
+                        </div>
                         <div>
-                            ${q.options.map(opt => `<div class="view-option-item">${escapeHtml(opt)}</div>`).join('')}
+                            ${q.options.map((opt, idx) => {
+                                const optNum = idx + 1;
+                                const isCorrect = (!isNaN(ansNum) && ansNum === optNum) || 
+                                                  (String(opt).trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase());
+                                if (isCorrect) {
+                                    return `
+                                        <div class="view-option-item correct-option-highlight d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-success me-2" style="font-size: 0.75rem;">Option ${optNum}</span>
+                                                <span>${escapeHtml(opt)}</span>
+                                            </div>
+                                            <span class="badge bg-success text-white px-2 py-1 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                                <i data-feather="check-circle" style="width: 13px; height: 13px;"></i> Correct Answer
+                                            </span>
+                                        </div>
+                                    `;
+                                } else {
+                                    return `
+                                        <div class="view-option-item d-flex align-items-center">
+                                            <span class="badge bg-light text-dark border me-2" style="font-size: 0.75rem;">Option ${optNum}</span>
+                                            <span>${escapeHtml(opt)}</span>
+                                        </div>
+                                    `;
+                                }
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -579,20 +664,20 @@
                 ${optionsHtml}
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="view-card">
+                        <div class="view-card" style="border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.06);">
                             <div class="view-card-title text-success"><i data-feather="check-circle" style="width: 16px; margin-top: -3px;" class="me-1"></i> Correct Answer</div>
-                            <p class="fs-6 mb-0 fw-bold text-success">${escapeHtml(q.correct_answer)}</p>
+                            <p class="fs-6 mb-0 fw-bold text-success">${escapeHtml(correctAnsText)}</p>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="view-card">
                             <div class="view-card-title">Metadata</div>
                             <div class="d-flex flex-wrap gap-2">
-                                <span class="badge badge-domain">${q.domain}</span>
-                                <span class="badge badge-type">${q.question_type}</span>
-                                <span class="badge bg-light text-dark border">Class: ${q.class_range}</span>
-                                <span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${q.difficulty_level}</span>
-                                <span class="badge bg-light text-dark border">Marks: ${q.marks}</span>
+                                <span class="badge badge-domain">${escapeHtml(q.domain || '')}</span>
+                                <span class="badge badge-type">${escapeHtml(q.question_type || '')}</span>
+                                <span class="badge bg-light text-dark border">Class: ${escapeHtml(q.class_range || '')}</span>
+                                <span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${escapeHtml(q.difficulty_level || '')}</span>
+                                <span class="badge bg-light text-dark border">Marks: ${q.marks || 1}</span>
                             </div>
                         </div>
                     </div>
@@ -646,12 +731,56 @@
         section.style.display = withOptions.includes(type) ? 'block' : 'none';
     }
 
+    function reindexEditOptions() {
+        const list = document.getElementById("editOptionsList");
+        const currentCorrect = document.getElementById("editCorrectAnswer").value.trim();
+        const currentNum = parseInt(currentCorrect);
+
+        Array.from(list.children).forEach((div, idx) => {
+            const optNum = idx + 1;
+            const labelSpan = div.querySelector('.opt-num-label');
+            if (labelSpan) labelSpan.textContent = `Opt ${optNum}`;
+            const btnCorrect = div.querySelector('.btn-set-correct');
+            if (btnCorrect) {
+                const isCorrect = currentNum === optNum;
+                btnCorrect.className = `btn btn-set-correct ${isCorrect ? 'btn-success' : 'btn-outline-success'}`;
+                btnCorrect.setAttribute('onclick', `setEditCorrectOption(${optNum})`);
+                btnCorrect.innerHTML = `<i data-feather="check" style="width:14px;height:14px;"></i> ${isCorrect ? 'Correct' : 'Set Correct'}`;
+            }
+        });
+        feather.replace();
+    }
+
+    function setEditCorrectOption(optNum) {
+        document.getElementById("editCorrectAnswer").value = optNum;
+        reindexEditOptions();
+    }
+
     function addEditOption(val = '') {
         const list = document.getElementById("editOptionsList");
+        const optNum = list.children.length + 1;
         const div = document.createElement('div');
-        div.className = 'input-group mb-2';
-        div.innerHTML = `<input type="text" class="form-control edit-option-input" value="${escapeHtml(val)}" placeholder="Option ${list.children.length + 1}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i data-feather="x"></i></button>`;
-        list.appendChild(div); feather.replace();
+        div.className = 'input-group mb-2 edit-option-row';
+        div.innerHTML = `
+            <span class="input-group-text bg-light text-dark fw-bold opt-num-label" style="font-size: 0.8rem; min-width: 60px;">Opt ${optNum}</span>
+            <input type="text" class="form-control edit-option-input" value="${escapeHtml(val)}" placeholder="Option ${optNum}">
+            <button class="btn btn-outline-success btn-set-correct" type="button" onclick="setEditCorrectOption(${optNum})" title="Set as Correct Answer">
+                <i data-feather="check" style="width:14px;height:14px;"></i> Set Correct
+            </button>
+            <button class="btn btn-outline-danger" type="button" onclick="removeEditOption(this)"><i data-feather="x" style="width:14px;height:14px;"></i></button>
+        `;
+        list.appendChild(div);
+        reindexEditOptions();
+    }
+
+    function removeEditOption(btn) {
+        const list = document.getElementById("editOptionsList");
+        if (list.children.length > 2) {
+            btn.parentElement.remove();
+            reindexEditOptions();
+        } else {
+            alert("At least 2 options are required.");
+        }
     }
 
     async function openEditModal(questionId) {
@@ -774,4 +903,4 @@
     loadDomains();
     loadQuestions();
 </script>
-{% endblock %}
+{% endblock %}

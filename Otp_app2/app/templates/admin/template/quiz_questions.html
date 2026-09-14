@@ -279,19 +279,18 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th style="width: 50px;">#</th>
-                                    <th style="width: 30%">Question</th>
+                                    <th style="width: 35%">Question</th>
                                     <th>Domain</th>
                                     <th>Type</th>
                                     <th>Class</th>
                                     <th>Difficulty</th>
                                     <th style="min-width: 170px;">Correct Answer</th>
-                                    <th style="width: 60px;">Marks</th>
                                     <th style="width: 140px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="questionsBody">
                                 <tr>
-                                    <td colspan="9" class="text-center">
+                                    <td colspan="8" class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -559,7 +558,7 @@
         } catch (err) {
             console.error("Error loading questions:", err);
             document.getElementById("questionsBody").innerHTML =
-                '<tr><td colspan="9" class="text-center text-danger">Error loading questions</td></tr>';
+                '<tr><td colspan="8" class="text-center text-danger">Error loading questions</td></tr>';
             document.getElementById("paginationWrapper").innerHTML = '';
         }
     }
@@ -568,7 +567,7 @@
     function displayQuestions(questions, startIndex = 0) {
         const tbody = document.getElementById("questionsBody");
         if (questions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No questions found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No questions found</td></tr>';
             return;
         }
         tbody.innerHTML = questions.map((q, i) => `
@@ -589,7 +588,6 @@
                     <span>${escapeHtml(getCorrectAnswerText(q))}</span>
                 </span>
             </td>
-            <td><span class="fw-bold">${q.marks || 1}</span></td>
             <td>
                 <div class="action-group">
                     <button class="action-btn btn-edit" onclick="openEditModal('${q.question_id}')" title="Edit">

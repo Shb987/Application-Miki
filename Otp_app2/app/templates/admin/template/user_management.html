@@ -614,12 +614,14 @@
             return;
         }
         let html = `<table class="table table-hover table-bordered">
-    <thead class="table-dark"><tr><th>#</th><th>Name</th><th>Class</th><th>School</th><th>DOB</th><th>Guardian</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+    <thead class="table-dark"><tr><th>#</th><th>Name</th><th>Phone / Mobile</th><th>Class</th><th>School</th><th>DOB</th><th>Guardian</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
         json.data.forEach((s, i) => {
             const isActive = s.is_active !== false;
+            const mobileNum = s.mobile_number || s.phone || s.mobile || "—";
             html += `<tr>
         <td>${studentSkip + i + 1}</td>
         <td><strong>${s.student_name || "—"}</strong></td>
+        <td><span class="text-muted small">${mobileNum}</span></td>
         <td><span class="class-badge">Class ${s.student_class || "—"}</span></td>
         <td>${s.school_name || "—"}</td>
         <td>${s.dob || "—"}</td>

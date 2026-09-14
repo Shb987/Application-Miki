@@ -282,7 +282,7 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
                     <select id="wordle-filter-range" class="form-select"
-                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="loadWordle(); loadWordleStats();">
+                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="wordleCurrentPage = 1; loadWordle(); loadWordleStats();">
                         <option value="">All Ranges</option>
                         <option value="1-3">Class 1-3</option>
                         <option value="3-5">Class 3-5</option>
@@ -291,7 +291,7 @@
                         <option value="11-12">Class 11-12</option>
                     </select>
                     <select id="wordle-filter-diff" class="form-select"
-                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="loadWordle()">
+                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="wordleCurrentPage = 1; loadWordle()">
                         <option value="">All Difficulties</option>
                         <option value="Easy">Easy</option>
                         <option value="Medium">Medium</option>
@@ -299,7 +299,7 @@
                     </select>
                     <input type="text" id="wordle-search" class="form-control"
                         style="max-width:180px;border-radius:8px;font-size:.85rem;" placeholder="Search word..."
-                        oninput="loadWordle()">
+                        oninput="wordleCurrentPage = 1; loadWordle()">
                     <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #19a1a1;"
                         onclick="openWordleModal()">+ Add Word</button>
                     <span class="text-muted" id="wordle-count" style="font-size:.82rem;"></span>
@@ -324,7 +324,7 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
                     <select id="squares-filter-range" class="form-select"
-                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="loadSquares()">
+                        style="max-width:160px;border-radius:8px;font-size:.85rem;" onchange="squaresCurrentPage = 1; loadSquares()">
                         <option value="">All Ranges</option>
                         <option value="1-3">Class 1-3</option>
                         <option value="3-5">Class 3-5</option>
@@ -356,7 +356,7 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
                     <select id="puzzle-filter-diff" class="form-select"
-                        style="max-width:180px;border-radius:8px;font-size:.85rem;" onchange="loadPuzzle()">
+                        style="max-width:180px;border-radius:8px;font-size:.85rem;" onchange="puzzleCurrentPage = 1; loadPuzzle()">
                         <option value="">All Difficulties</option>
                         <option value="Beginner">Beginner (3x3 Grid)</option>
                         <option value="Intermediate">Intermediate (4x4 Grid)</option>
@@ -644,6 +644,53 @@
 <script>
     const token = window.token || localStorage.getItem("admin_token");
     const API_BASE = window.API_BASE;
+
+    const PAGE_SIZE = 100;
+    let wordleCurrentPage = 1;
+    let squaresCurrentPage = 1;
+    let puzzleCurrentPage = 1;
+
+    function renderPaginationControls(currentPage, totalItems, pageSize, changePageFnName) {
+        if (totalItems <= 0) return '';
+        const totalPages = Math.ceil(totalItems / pageSize) || 1;
+        const startItem = (currentPage - 1) * pageSize + 1;
+        const endItem = Math.min(currentPage * pageSize, totalItems);
+
+        const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+        const nextDisabled = currentPage >= totalPages ? 'disabled' : '';
+
+        return `
+            <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 pt-3 border-top">
+                <div class="d-flex align-items-center gap-2 mb-2 mb-md-0">
+                    <button class="btn btn-sm btn-outline-secondary" ${prevDisabled} onclick="${changePageFnName}(${currentPage - 1})" style="border-radius: 8px;">
+                        <i data-feather="chevron-left" style="width: 14px; height: 14px; margin-bottom: 2px;"></i> Previous
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" ${nextDisabled} onclick="${changePageFnName}(${currentPage + 1})" style="border-radius: 8px;">
+                        Next <i data-feather="chevron-right" style="width: 14px; height: 14px; margin-bottom: 2px;"></i>
+                    </button>
+                    <span class="ms-2 text-muted fw-semibold" style="font-size: 0.85rem;">Page ${currentPage} of ${totalPages}</span>
+                </div>
+                <div class="text-muted" style="font-size: 0.85rem;">
+                    Showing <strong class="text-dark">${startItem}</strong> - <strong class="text-dark">${endItem}</strong> of <strong class="text-dark">${totalItems}</strong> entries
+                </div>
+            </div>
+        `;
+    }
+
+    function changeWordlePage(newPage) {
+        wordleCurrentPage = newPage;
+        loadWordle();
+    }
+
+    function changeSquaresPage(newPage) {
+        squaresCurrentPage = newPage;
+        loadSquares();
+    }
+
+    function changePuzzlePage(newPage) {
+        puzzleCurrentPage = newPage;
+        loadPuzzle();
+    }
     function showToastGm(msg, type='success') {
         const toast = document.getElementById('toast-gm');
         const toastBody = document.getElementById('toast-gm-msg');
@@ -687,17 +734,28 @@
         const range = document.getElementById("wordle-filter-range").value;
         const diff = document.getElementById("wordle-filter-diff").value;
         const search = document.getElementById("wordle-search").value.trim();
-        let url = `${API_BASE}/admin-panel/games/wordle/words?limit=1000`;
+        let url = `${API_BASE}/admin-panel/games/wordle/words?limit=2000`;
         if (range) url += `&class_range=${range}`;
         if (diff) url += `&difficulty=${encodeURIComponent(diff)}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
         const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
-        document.getElementById("wordle-count").textContent = `${json.total || 0} words`;
+        const allWords = json.data || [];
+        const total = allWords.length;
+        document.getElementById("wordle-count").textContent = `${total} words`;
+
+        const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+        if (wordleCurrentPage > totalPages) wordleCurrentPage = totalPages;
+        if (wordleCurrentPage < 1) wordleCurrentPage = 1;
+
+        const startIndex = (wordleCurrentPage - 1) * PAGE_SIZE;
+        const pageWords = allWords.slice(startIndex, startIndex + PAGE_SIZE);
+
         let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Word</th><th>Difficulty</th><th>Level</th><th>Class Range</th><th>Hints</th><th>Actions</th></tr></thead><tbody>`;
-        (json.data || []).forEach((w, i) => {
+        pageWords.forEach((w, i) => {
             const hintsStr = JSON.stringify(w.hints || []).replace(/'/g, "\\'");
-            html += `<tr><td>${i + 1}</td><td><strong>${w.word}</strong></td><td><span class="badge ${w.difficulty === 'Easy' ? 'bg-success' : w.difficulty === 'Medium' ? 'bg-warning' : 'bg-danger'}">${w.difficulty}</span></td>
+            const itemNumber = startIndex + i + 1;
+            html += `<tr><td>${itemNumber}</td><td><strong>${w.word}</strong></td><td><span class="badge ${w.difficulty === 'Easy' ? 'bg-success' : w.difficulty === 'Medium' ? 'bg-warning' : 'bg-danger'}">${w.difficulty}</span></td>
             <td>${w.level}</td><td><span class="range-badge">${w.class_range}</span></td><td><small>${w.hints ? w.hints.length : 0} hints</small></td>
             <td>
                 <div class="action-group">
@@ -710,7 +768,9 @@
                 </div>
             </td></tr>`;
         });
-        document.getElementById("wordle-table-wrapper").innerHTML = html + `</tbody></table>`;
+        html += `</tbody></table>`;
+        html += renderPaginationControls(wordleCurrentPage, total, PAGE_SIZE, 'changeWordlePage');
+        document.getElementById("wordle-table-wrapper").innerHTML = html;
         feather.replace();
     }
 
@@ -826,18 +886,29 @@
 
     async function loadSquares() {
         const range = document.getElementById("squares-filter-range").value;
-        const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels?limit=1000${range ? `&class_range=${range}` : ''}`, { headers: { Authorization: "Bearer " + token } });
+        const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels?limit=2000${range ? `&class_range=${range}` : ''}`, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
-        document.getElementById("squares-count").textContent = `${json.total || 0} levels`;
+        const allLevels = json.data || [];
+        const total = allLevels.length;
+        document.getElementById("squares-count").textContent = `${total} levels`;
+
+        const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+        if (squaresCurrentPage > totalPages) squaresCurrentPage = totalPages;
+        if (squaresCurrentPage < 1) squaresCurrentPage = 1;
+
+        const startIndex = (squaresCurrentPage - 1) * PAGE_SIZE;
+        const pageLevels = allLevels.slice(startIndex, startIndex + PAGE_SIZE);
+
         let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Level</th><th>Range</th><th>Topic</th><th>Words (M/B)</th><th>Actions</th></tr></thead><tbody>`;
-        (json.data || []).forEach((lv, i) => {
+        pageLevels.forEach((lv, i) => {
             const mWords = JSON.stringify(lv.main_words || []).replace(/'/g, "\\'");
             const bWords = JSON.stringify(lv.bonus_words || []).replace(/'/g, "\\'");
             const gridJson = JSON.stringify(lv.grid || []).replace(/'/g, "\\'");
             const hint = (lv.hint || "").replace(/'/g, "\\'");
+            const itemNumber = startIndex + i + 1;
 
-            html += `<tr><td>${i + 1}</td><td>${lv.level}</td><td><span class="range-badge">${lv.class_range}</span></td><td>${lv.hint || "—"}</td>
-            <td><small>Main: ${lv.main_words.length}, Bonus: ${lv.bonus_words.length}</small></td>
+            html += `<tr><td>${itemNumber}</td><td>${lv.level}</td><td><span class="range-badge">${lv.class_range}</span></td><td>${lv.hint || "—"}</td>
+            <td><small>Main: ${lv.main_words ? lv.main_words.length : 0}, Bonus: ${lv.bonus_words ? lv.bonus_words.length : 0}</small></td>
             <td>
                 <div class="action-group">
                     <button class="action-btn btn-edit" onclick='editSquares("${lv.id}",${lv.level},"${lv.class_range}",${mWords},${bWords},${gridJson},"${hint}")' title="Edit">
@@ -849,7 +920,9 @@
                 </div>
             </td></tr>`;
         });
-        document.getElementById("squares-table-wrapper").innerHTML = html + `</tbody></table>`;
+        html += `</tbody></table>`;
+        html += renderPaginationControls(squaresCurrentPage, total, PAGE_SIZE, 'changeSquaresPage');
+        document.getElementById("squares-table-wrapper").innerHTML = html;
         feather.replace();
     }
 
@@ -1052,25 +1125,35 @@
 
     async function loadPuzzle() {
         const diff = document.getElementById("puzzle-filter-diff").value;
-        let url = `${API_BASE}/admin-panel/games/puzzle/levels?limit=1000`;
+        let url = `${API_BASE}/admin-panel/games/puzzle/levels?limit=2000`;
         if (diff) url += `&difficulty=${diff}`;
 
         try {
             const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
             const json = await res.json();
-            document.getElementById("puzzle-count").textContent = `${json.total || 0} levels`;
+            const allLevels = json.data || [];
+            const total = allLevels.length;
+            document.getElementById("puzzle-count").textContent = `${total} levels`;
+
+            const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+            if (puzzleCurrentPage > totalPages) puzzleCurrentPage = totalPages;
+            if (puzzleCurrentPage < 1) puzzleCurrentPage = 1;
+
+            const startIndex = (puzzleCurrentPage - 1) * PAGE_SIZE;
+            const pageLevels = allLevels.slice(startIndex, startIndex + PAGE_SIZE);
 
             let html = `<table class="table table-hover table-bordered align-middle"><thead class="table-dark"><tr>
                 <th style="width:40px;"><input type="checkbox" id="pz-select-all" onclick="toggleAllPuzzleSelect(this)"></th>
                 <th>#</th><th>Preview</th><th>Difficulty</th><th>Level</th><th>Grid Size</th><th>Title / Image Path</th><th>Actions</th></tr></thead><tbody>`;
-            (json.data || []).forEach((lv, i) => {
+            pageLevels.forEach((lv, i) => {
                 const imgUrl = lv.image_url || '';
-                const titleEsc = (lv.title || '').replace(/'/g, "\'");
+                const titleEsc = (lv.title || '').replace(/'/g, "\\'");
                 const diffBadge = lv.difficulty === 'Beginner' ? 'bg-success' : lv.difficulty === 'Intermediate' ? 'bg-warning' : 'bg-danger';
+                const itemNumber = startIndex + i + 1;
 
                 html += `<tr>
                     <td><input type="checkbox" class="pz-row-checkbox" value="${lv.id}" data-level="${lv.level}" data-diff="${lv.difficulty}" onchange="updateDeleteSelectedBtnVisibility()"></td>
-                    <td>${i + 1}</td>
+                    <td>${itemNumber}</td>
                     <td style="width: 80px;">
                         ${imgUrl ? `<img src="${imgUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;" onerror="this.onerror=null; this.src='/assets/images/other-images/boxbg.jpg';">` : '<span class="text-muted">No Image</span>'}
                     </td>
@@ -1090,7 +1173,9 @@
                     </td>
                 </tr>`;
             });
-            document.getElementById("puzzle-table-wrapper").innerHTML = html + `</tbody></table>`;
+            html += `</tbody></table>`;
+            html += renderPaginationControls(puzzleCurrentPage, total, PAGE_SIZE, 'changePuzzlePage');
+            document.getElementById("puzzle-table-wrapper").innerHTML = html;
             feather.replace();
             updateDeleteSelectedBtnVisibility();
         } catch (err) { console.error(err); }

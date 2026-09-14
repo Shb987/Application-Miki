@@ -16,7 +16,7 @@ def serialize_doc(doc):
 
 @router.get("/", response_model=list[SpecialDayResponse])
 async def get_all_special_days(
-    limit: int = 50, 
+    limit: int = 1000, 
     skip: int = 0,
     current_admin: dict = Depends(require_permission("Special Days", "read"))
 ):

@@ -342,6 +342,7 @@
                     <h1 class="profile-name">${s.student_name || "Unknown Student"}</h1>
                     <div class="d-flex align-items-center gap-3 mt-2">
                         <span class="profile-badge ${badgeClass}"><i data-feather="shield" style="width:14px;height:14px;margin-right:4px;"></i> ${tier} Plan</span>
+                        <span><i data-feather="phone" style="width:14px;height:14px;margin-right:4px;"></i> ${s.mobile_number || s.phone || s.mobile || "N/A"}</span>
                         <span><i data-feather="book-open" style="width:14px;height:14px;margin-right:4px;"></i> Class ${s.student_class || "N/A"}</span>
                         <span><i data-feather="calendar" style="width:14px;height:14px;margin-right:4px;"></i> Joined: ${new Date(s.created_at).toLocaleDateString()}</span>
                     </div>

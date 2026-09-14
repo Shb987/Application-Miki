@@ -714,11 +714,50 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 async def get_students(admin=Depends(require_permission("User Management", "read"))):
     cursor = db.students.find({})
     students = await cursor.to_list(length=None)
+    
+    missing_mobile_sids = [s["_id"] for s in students if not (s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile"))]
+    mobile_map = {}
+    if missing_mobile_sids:
+        sid_str_list = [str(x) for x in missing_mobile_sids]
+        u_cursor = db.usertable.find({
+            "$or": [
+                {"student_ids": {"$in": missing_mobile_sids}},
+                {"student_ids": {"$in": sid_str_list}},
+                {"student_id": {"$in": missing_mobile_sids}},
+                {"student_id": {"$in": sid_str_list}}
+            ]
+        })
+        async for u in u_cursor:
+            m_num = u.get("mobile_number")
+            if m_num:
+                st_ids = u.get("student_ids", [])
+                if not isinstance(st_ids, list):
+                    st_ids = [st_ids]
+                if u.get("student_id"):
+                    st_ids.append(u.get("student_id"))
+                for st_id in st_ids:
+                    mobile_map[str(st_id)] = m_num
+
+    for s in students:
+        m_val = s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile") or mobile_map.get(str(s["_id"]))
+        if m_val:
+            s["mobile_number"] = m_val
+
     serialized_students = [serialize_mongo_doc(doc) for doc in students]
     return {
         "status_code": 200,
         "students": serialized_students
     }
+
+
+@router.get("/stats/student-usage-analytics")
+async def get_student_usage_analytics_direct(
+    days: int = 30,
+    standard: Optional[str] = None,
+    current_admin: dict = Depends(require_permission("Analytics", "read"))
+):
+    from app.routes.admin_stats_routes import get_student_usage_analytics
+    return await get_student_usage_analytics(days=days, standard=standard, current_admin=current_admin)
 
 
 

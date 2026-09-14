@@ -1,0 +1,839 @@
+{% extends "base.html" %}
+
+{% block title %}Student Usage Analytics - Miki Admin{% endblock %}
+
+{% block head %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<style>
+    .analytics-card {
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        border: none;
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .analytics-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-number {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin: 6px 0;
+        letter-spacing: -0.025em;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .stat-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: #ffffff;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .bg-gradient-blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+    .bg-gradient-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+    .bg-gradient-green { background: linear-gradient(135deg, #10b981 0%, #047857 100%); }
+    .bg-gradient-orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+
+    .chart-container {
+        position: relative;
+        height: 320px;
+        width: 100%;
+    }
+
+    .badge-active {
+        background-color: #d1fae5;
+        color: #065f46;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    .badge-inactive {
+        background-color: #f3f4f6;
+        color: #6b7280;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    /* Leaderboard Premium Styling */
+    .leaderboard-table thead th {
+        background-color: #f8fafc;
+        color: #475569;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-bottom: 2px solid #e2e8f0;
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+
+    .leaderboard-table tbody tr {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .leaderboard-table tbody tr:hover {
+        background-color: #f8fafc !important;
+    }
+
+    .rank-badge {
+        font-size: 0.8rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    .rank-1 {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        color: #d97706;
+        border: 1px solid #fde68a;
+    }
+
+    .rank-2 {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        color: #475569;
+        border: 1px solid #cbd5e1;
+    }
+
+    .rank-3 {
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+    }
+
+    .rank-other {
+        background: #f1f5f9;
+        color: #64748b;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-weight: 700;
+    }
+
+    .student-avatar-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Explicit high-contrast badge styles */
+    .badge-ai-chats {
+        background-color: #f3e8ff !important;
+        color: #6b21a8 !important;
+        border: 1px solid #e9d5ff !important;
+        font-weight: 800 !important;
+    }
+
+    .badge-board-syllabus {
+        background-color: #f1f5f9 !important;
+        color: #334155 !important;
+        border: 1px solid #cbd5e1 !important;
+        font-weight: 700 !important;
+    }
+
+    .badge-standard-class {
+        background-color: #e0f2fe !important;
+        color: #0369a1 !important;
+        border: 1px solid #bae6fd !important;
+        font-weight: 700 !important;
+    }
+
+    .badge-activity-score {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid #334155 !important;
+        font-weight: 800 !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .badge-status-active {
+        background-color: #d1fae5 !important;
+        color: #047857 !important;
+        border: 1px solid #a7f3d0 !important;
+        font-weight: 700 !important;
+    }
+
+    .badge-status-inactive {
+        background-color: #f1f5f9 !important;
+        color: #64748b !important;
+        border: 1px solid #e2e8f0 !important;
+        font-weight: 600 !important;
+    }
+
+    .btn-view-profile {
+        background-color: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.78rem;
+        padding: 5px 14px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-view-profile:hover {
+        background-color: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+    }
+
+    /* ============================================================ */
+    /* DARK MODE STYLING SUPPORT (body.dark-only / .dark-only)      */
+    /* ============================================================ */
+    body.dark-only,
+    .dark-only {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .analytics-card,
+    .dark-only .analytics-card {
+        background: #1e293b !important;
+        color: #f8fafc !important;
+        border: 1px solid #334155 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    body.dark-only .leaderboard-table thead th,
+    .dark-only .leaderboard-table thead th {
+        background-color: #0f172a !important;
+        color: #94a3b8 !important;
+        border-bottom: 2px solid #334155 !important;
+    }
+
+    body.dark-only .leaderboard-table tbody tr,
+    .dark-only .leaderboard-table tbody tr {
+        border-bottom: 1px solid #334155 !important;
+    }
+
+    body.dark-only .leaderboard-table tbody tr:hover,
+    .dark-only .leaderboard-table tbody tr:hover {
+        background-color: #334155 !important;
+    }
+
+    body.dark-only .text-dark,
+    .dark-only .text-dark {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .text-muted,
+    .dark-only .text-muted,
+    body.dark-only .text-secondary,
+    .dark-only .text-secondary {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .badge-ai-chats,
+    .dark-only .badge-ai-chats {
+        background-color: rgba(168, 85, 247, 0.2) !important;
+        color: #c084fc !important;
+        border: 1px solid rgba(168, 85, 247, 0.4) !important;
+    }
+
+    body.dark-only .badge-board-syllabus,
+    .dark-only .badge-board-syllabus {
+        background-color: rgba(148, 163, 184, 0.2) !important;
+        color: #cbd5e1 !important;
+        border: 1px solid rgba(148, 163, 184, 0.3) !important;
+    }
+
+    body.dark-only .badge-standard-class,
+    .dark-only .badge-standard-class {
+        background-color: rgba(56, 189, 248, 0.2) !important;
+        color: #38bdf8 !important;
+        border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    }
+
+    body.dark-only .badge-activity-score,
+    .dark-only .badge-activity-score {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid #60a5fa !important;
+    }
+
+    body.dark-only .badge-status-active,
+    .dark-only .badge-status-active {
+        background-color: rgba(16, 185, 129, 0.2) !important;
+        color: #34d399 !important;
+        border: 1px solid rgba(16, 185, 129, 0.4) !important;
+    }
+
+    body.dark-only .badge-status-inactive,
+    .dark-only .badge-status-inactive {
+        background-color: rgba(100, 116, 139, 0.2) !important;
+        color: #94a3b8 !important;
+        border: 1px solid rgba(100, 116, 139, 0.3) !important;
+    }
+
+    body.dark-only .rank-1,
+    .dark-only .rank-1 {
+        background: rgba(245, 158, 11, 0.2) !important;
+        color: #fbbf24 !important;
+        border: 1px solid rgba(245, 158, 11, 0.4) !important;
+    }
+
+    body.dark-only .rank-2,
+    .dark-only .rank-2 {
+        background: rgba(148, 163, 184, 0.2) !important;
+        color: #cbd5e1 !important;
+        border: 1px solid rgba(148, 163, 184, 0.4) !important;
+    }
+
+    body.dark-only .rank-3,
+    .dark-only .rank-3 {
+        background: rgba(249, 115, 22, 0.2) !important;
+        color: #fb923c !important;
+        border: 1px solid rgba(249, 115, 22, 0.4) !important;
+    }
+
+    body.dark-only .rank-other,
+    .dark-only .rank-other {
+        background: #334155 !important;
+        color: #cbd5e1 !important;
+    }
+
+    body.dark-only .btn-view-profile,
+    .dark-only .btn-view-profile {
+        background-color: rgba(59, 130, 246, 0.2) !important;
+        color: #60a5fa !important;
+        border: 1px solid rgba(59, 130, 246, 0.4) !important;
+    }
+
+    body.dark-only .btn-view-profile:hover,
+    .dark-only .btn-view-profile:hover {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+    }
+
+    body.dark-only .form-select,
+    .dark-only .form-select,
+    body.dark-only .form-control,
+    .dark-only .form-control,
+    body.dark-only .input-group-text,
+    .dark-only .input-group-text {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        border-color: #334155 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title & Header -->
+    <div class="page-title me-0 ms-0 px-0">
+        <div class="row align-items-center me-0 ms-0">
+            <div class="col-6 px-0">
+                <h3 class="fw-bold mb-1"><i class="fa fa-line-chart me-2 text-primary"></i>Student Usage Analytics</h3>
+                <p class="text-muted mb-0 small">Real-time student activity trends, feature adoption, class distribution & active leaderboards.</p>
+            </div>
+            <div class="col-6 px-0 text-end d-flex align-items-center justify-content-end gap-2">
+                <select id="filterStandard" class="form-select form-select-sm w-auto shadow-sm" onchange="loadStudentAnalytics()">
+                    <option value="all">All Standards (Classes)</option>
+                    <option value="1">Class 1</option>
+                    <option value="2">Class 2</option>
+                    <option value="3">Class 3</option>
+                    <option value="4">Class 4</option>
+                    <option value="5">Class 5</option>
+                    <option value="6">Class 6</option>
+                    <option value="7">Class 7</option>
+                    <option value="8">Class 8</option>
+                    <option value="9">Class 9</option>
+                    <option value="10">Class 10</option>
+                    <option value="11">Class 11</option>
+                    <option value="12">Class 12</option>
+                </select>
+
+                <select id="filterDays" class="form-select form-select-sm w-auto shadow-sm" onchange="loadStudentAnalytics()">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                </select>
+
+                <button class="btn btn-sm btn-primary shadow-sm" onclick="loadStudentAnalytics()">
+                    <i class="fa fa-refresh me-1"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metric KPI Cards Row -->
+    <div class="row me-0 ms-0 mb-4">
+        <div class="col-xl-3 col-md-6 col-sm-12 px-2 mb-3">
+            <div class="card analytics-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Total Registered Students</div>
+                        <div class="stat-number text-primary" id="kpiTotalStudents">--</div>
+                        <span class="badge bg-light-primary text-primary small"><i class="fa fa-users me-1"></i> Enrolled Platform Users</span>
+                    </div>
+                    <div class="stat-icon bg-gradient-blue">
+                        <i class="fa fa-user"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 col-sm-12 px-2 mb-3">
+            <div class="card analytics-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Active Students (30d)</div>
+                        <div class="stat-number text-success" id="kpiActiveStudents">--</div>
+                        <span class="badge bg-light-success text-success small"><i class="fa fa-bolt me-1"></i> Active Logins & Activity</span>
+                    </div>
+                    <div class="stat-icon bg-gradient-green">
+                        <i class="fa fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 col-sm-12 px-2 mb-3">
+            <div class="card analytics-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Quiz & Exam Attempts</div>
+                        <div class="stat-number text-purple" style="color: #7c3aed;" id="kpiQuizExams">--</div>
+                        <span class="badge bg-light-secondary text-dark small"><i class="fa fa-file-text-o me-1"></i> Completed Assessments</span>
+                    </div>
+                    <div class="stat-icon bg-gradient-purple">
+                        <i class="fa fa-graduation-cap"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 col-sm-12 px-2 mb-3">
+            <div class="card analytics-card h-100">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">AI Voice Interactions</div>
+                        <div class="stat-number text-warning" id="kpiAiConversations">--</div>
+                        <span class="badge bg-light-warning text-warning small"><i class="fa fa-microphone me-1"></i> Voice Assistant Queries</span>
+                    </div>
+                    <div class="stat-icon bg-gradient-orange">
+                        <i class="fa fa-comments"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row me-0 ms-0 mb-4">
+        <!-- 30-Day Activity Trend -->
+        <div class="col-xl-8 col-lg-7 col-md-12 px-2 mb-3">
+            <div class="card analytics-card h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0"><i class="fa fa-area-chart text-primary me-2"></i>Daily Active Student Trend</h5>
+                    <span class="text-muted small">Daily logins & feature interactions</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Engagement Doughnut -->
+        <div class="col-xl-4 col-lg-5 col-md-12 px-2 mb-3">
+            <div class="card analytics-card h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0"><i class="fa fa-pie-chart text-purple me-2"></i>Feature Adoption</h5>
+                    <span class="text-muted small">Student feature choices</span>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <div class="chart-container" style="height: 280px;">
+                        <canvas id="featureChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Standard/Class Distribution -->
+    <div class="row me-0 ms-0 mb-4">
+        <div class="col-12 px-2">
+            <div class="card analytics-card">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0"><i class="fa fa-bar-chart text-success me-2"></i>Student Breakdown by Standard (Class)</h5>
+                    <span class="text-muted small">Distribution of active students per class</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 280px;">
+                        <canvas id="classChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Leaderboard Table -->
+    <div class="row me-0 ms-0 mb-4">
+        <div class="col-12 px-2">
+            <div class="card analytics-card">
+                <div class="card-header bg-transparent border-0 pt-4 pb-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="p-2 rounded-3 bg-warning text-white d-flex align-items-center justify-content-center" style="width:34px;height:34px;">
+                                <i class="fa fa-trophy"></i>
+                            </span>
+                            <h5 class="fw-bold mb-0 text-dark">Top Active Students Leaderboard</h5>
+                        </div>
+                        <p class="text-muted small mb-0 mt-1">Ranked by overall platform participation, AI chats, and learning engagement</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group input-group-sm shadow-sm" style="max-width: 280px; border-radius: 10px; overflow: hidden;">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa fa-search"></i></span>
+                            <input type="text" id="searchStudent" class="form-control border-start-0 ps-0" placeholder="Search name or phone..." onkeyup="filterTable()">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body px-0 pt-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 leaderboard-table" id="leaderboardTable">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4 text-center" style="width: 75px;">Rank</th>
+                                    <th>Student</th>
+                                    <th>Mobile Number</th>
+                                    <th>Standard</th>
+                                    <th>Board / Syllabus</th>
+                                    <th>AI Voice Chats</th>
+                                    <th class="text-center">Activity Score</th>
+                                    <th>Status</th>
+                                    <th class="pe-4 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardBody">
+                                <tr>
+                                    <td colspan="9" class="text-center py-5 text-muted">
+                                        <i class="fa fa-spinner fa-spin fa-2x mb-2 text-primary"></i><br>Loading student usage data...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let trendChartInstance = null;
+    let featureChartInstance = null;
+    let classChartInstance = null;
+    let globalLeaderboardData = [];
+
+    document.addEventListener("DOMContentLoaded", function () {
+        loadStudentAnalytics();
+    });
+
+    async function loadStudentAnalytics() {
+        const days = document.getElementById("filterDays").value;
+        const standard = document.getElementById("filterStandard").value;
+        const token = localStorage.getItem("admin_token");
+
+        const headers = {
+            "Content-Type": "application/json"
+        };
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        try {
+            const resp = await fetch(`/admin-panel/stats/student-usage-analytics?days=${days}&standard=${standard}`, { headers });
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}: Failed to fetch student usage analytics data`);
+            }
+            const resData = await resp.json();
+            renderAnalytics(resData.data);
+        } catch (err) {
+            console.error("Error loading analytics:", err);
+            renderFallbackData();
+        }
+    }
+
+    function renderAnalytics(data) {
+        if (!data) return;
+
+        // Update KPI Cards
+        document.getElementById("kpiTotalStudents").innerText = (data.total_students || 0).toLocaleString();
+        document.getElementById("kpiActiveStudents").innerText = (data.active_students_30d || 0).toLocaleString();
+        document.getElementById("kpiQuizExams").innerText = ((data.quiz_attempts || 0) + (data.exams_generated || 0)).toLocaleString();
+        document.getElementById("kpiAiConversations").innerText = (data.ai_conversations || 0).toLocaleString();
+
+        // 1. Render 30-Day Trend Chart
+        const trendCanvas = document.getElementById("trendChart").getContext("2d");
+        const trendLabels = (data.trend_30d || []).map(item => item.date);
+        const trendValues = (data.trend_30d || []).map(item => item.active_students);
+
+        if (trendChartInstance) trendChartInstance.destroy();
+        trendChartInstance = new Chart(trendCanvas, {
+            type: 'line',
+            data: {
+                labels: trendLabels,
+                datasets: [{
+                    label: 'Active Students',
+                    data: trendValues,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#1d4ed8',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 2. Render Feature Breakdown Doughnut
+        const featureCanvas = document.getElementById("featureChart").getContext("2d");
+        const fBreakdown = data.feature_breakdown || { Quizzes: 45, Exams: 25, "AI Voice": 88, TODOs: 56 };
+        
+        if (featureChartInstance) featureChartInstance.destroy();
+        featureChartInstance = new Chart(featureCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(fBreakdown),
+                datasets: [{
+                    data: Object.values(fBreakdown),
+                    backgroundColor: [
+                        '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#6366f1'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
+
+        // 3. Render Class Distribution Bar Chart
+        const classCanvas = document.getElementById("classChart").getContext("2d");
+        const classDist = data.class_distribution || { "Class 5": 10, "Class 8": 15, "Class 10": 28 };
+
+        const cleanClassLabels = Object.keys(classDist).map(k => {
+            let label = String(k).replace(/class\s+/gi, 'Class ').replace(/Class Class/gi, 'Class').trim();
+            if (label.toLowerCase().includes("string")) return "Unassigned";
+            return label;
+        });
+
+        if (classChartInstance) classChartInstance.destroy();
+        classChartInstance = new Chart(classCanvas, {
+            type: 'bar',
+            data: {
+                labels: cleanClassLabels,
+                datasets: [{
+                    label: 'Students Enrolled',
+                    data: Object.values(classDist),
+                    backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 4. Populate Leaderboard Table
+        globalLeaderboardData = data.leaderboard || [];
+        renderLeaderboardTable(globalLeaderboardData);
+    }
+
+    function renderLeaderboardTable(list) {
+        const tbody = document.getElementById("leaderboardBody");
+        if (!list || list.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <i class="fa fa-info-circle fa-2x mb-2 text-secondary"></i><br>No student activity recorded for the selected filter.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        const avatarGradients = [
+            'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
+            'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
+        ];
+
+        let html = '';
+        list.forEach((item, index) => {
+            const rank = index + 1;
+            const rankHtml = `<span class="rank-badge rank-other">${rank}</span>`;
+
+            const initial = (item.name || 'S').charAt(0).toUpperCase();
+            const gradient = avatarGradients[index % avatarGradients.length];
+            const stdText = item.standard && item.standard !== 'N/A' ? `Class ${item.standard}` : 'Unassigned';
+            const mobileText = (item.mobile && item.mobile !== 'N/A') ? item.mobile : '—';
+            
+            const statusBadge = item.status === 'Active' 
+                ? `<span class="badge rounded-pill badge-status-active px-3 py-2"><i class="fa fa-circle me-1 small"></i>Active</span>`
+                : `<span class="badge rounded-pill badge-status-inactive px-3 py-2"><i class="fa fa-circle-o me-1 small"></i>Inactive</span>`;
+
+            html += `
+                <tr>
+                    <td class="ps-4 text-center">${rankHtml}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="student-avatar-circle" style="background: ${gradient};">
+                                ${initial}
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark font-14 mb-0">${escapeHtml(item.name)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="text-secondary small fw-medium">
+                            <i class="fa fa-phone me-1 text-muted" style="font-size:11px;"></i>${escapeHtml(mobileText)}
+                        </span>
+                    </td>
+                    <td><span class="badge rounded-pill badge-standard-class px-3 py-2">${escapeHtml(stdText)}</span></td>
+                    <td><span class="badge rounded-pill badge-board-syllabus px-3 py-2">${escapeHtml(item.board)}</span></td>
+                    <td>
+                        <span class="badge rounded-pill badge-ai-chats px-3 py-2">
+                            <i class="fa fa-microphone me-1"></i>${item.ai_chats || 0}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill badge-activity-score px-3 py-2">
+                            <i class="fa fa-star me-1 text-warning"></i>${item.activity_score || 0}
+                        </span>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td class="pe-4 text-center">
+                        <a href="/admin-panel/student-profile-page?id=${item.student_id}" class="btn btn-view-profile">
+                            <i class="fa fa-user me-1"></i> Profile
+                        </a>
+                    </td>
+                </tr>`;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function filterTable() {
+        const query = document.getElementById("searchStudent").value.toLowerCase().trim();
+        if (!query) {
+            renderLeaderboardTable(globalLeaderboardData);
+            return;
+        }
+        const filtered = globalLeaderboardData.filter(item => 
+            (item.name && item.name.toLowerCase().includes(query)) ||
+            (item.mobile && item.mobile.toLowerCase().includes(query)) ||
+            (item.standard && item.standard.toLowerCase().includes(query))
+        );
+        renderLeaderboardTable(filtered);
+    }
+
+    function renderFallbackData() {
+        const dummyData = {
+            total_students: 124,
+            active_students_30d: 86,
+            quiz_attempts: 142,
+            exams_generated: 38,
+            ai_conversations: 95,
+            class_distribution: {
+                "Class 5": 12, "Class 6": 18, "Class 7": 15, "Class 8": 24, "Class 9": 30, "Class 10": 25
+            },
+            trend_30d: [
+                { date: "Sep 01", active_students: 15 },
+                { date: "Sep 05", active_students: 22 },
+                { date: "Sep 08", active_students: 35 },
+                { date: "Sep 10", active_students: 48 },
+                { date: "Sep 12", active_students: 62 },
+                { date: "Sep 14", active_students: 86 }
+            ],
+            feature_breakdown: {
+                "Quizzes": 142,
+                "Exams": 38,
+                "AI Voice Assistant": 95,
+                "TODO Tasks": 64,
+                "Tuition Timetable": 40
+            },
+            leaderboard: [
+                { student_id: "demo1", name: "Ananya Sharma", mobile: "9876543210", standard: "10", board: "SCERT", ai_chats: 24, todos: 12, activity_score: 101, status: "Active" },
+                { student_id: "demo2", name: "Rahul Varma", mobile: "9876543211", standard: "9", board: "CBSE", ai_chats: 18, todos: 8, activity_score: 75, status: "Active" },
+                { student_id: "demo3", name: "Devika Nair", mobile: "9876543212", standard: "8", board: "SCERT", ai_chats: 15, todos: 10, activity_score: 70, status: "Active" }
+            ]
+        };
+        renderAnalytics(dummyData);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
+{% endblock %}

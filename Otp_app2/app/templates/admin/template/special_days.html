@@ -3,102 +3,369 @@
 {% block title %}Calendar Overview - Miki Assessment Portal{% endblock %}
 
 {% block head %}
-<!-- FullCalendar CSS - Keeping user's version -->
+<!-- FullCalendar Script -->
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
 <style>
-    .fc-event {
-        cursor: pointer;
-        border: none;
-        padding: 4px 8px;
-        font-size: 0.85rem;
-        border-radius: 4px;
-        transition: all 0.2s;
-        margin-bottom: 2px;
+    /* Premium Glass & Card Styling */
+    .calendar-card {
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        background: #ffffff;
+        overflow: hidden;
+        margin-bottom: 30px;
     }
 
-    .fc-event:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        z-index: 5;
-    }
-
-    .fc .fc-toolbar {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        gap: 10px !important;
-    }
-
-    .fc .fc-toolbar-title {
-        font-size: 1.5rem !important;
-        font-weight: 700;
-        color: #2c3e50 !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin: 0 !important;
-    }
-
-    .fc .fc-button {
-        background: linear-gradient(135deg, #56dfdf 0%, #19a1a1 100%) !important;
-        border: none !important;
-        color: #ffffff !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        text-transform: capitalize;
-        font-weight: 600;
-        padding: 8px 16px !important;
-        display: inline-flex !important;
+    .calendar-header-banner {
+        padding: 20px 24px;
+        background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+        color: #ffffff;
+        display: flex;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
-        min-width: 40px;
+        flex-wrap: wrap;
+        gap: 16px;
     }
 
-    .fc .fc-button-primary,
-    .fc .btn-primary,
-    .fc button.fc-prev-button,
-    .fc button.fc-next-button,
-    .fc button.fc-today-button {
-        background: linear-gradient(135deg, #56dfdf 0%, #19a1a1 100%) !important;
-        border: none !important;
-        color: #ffffff !important;
+    .calendar-title-text {
+        font-size: 1.25rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+        color: #ffffff;
     }
 
-    .fc .fc-button .fc-icon {
-        color: #ffffff !important;
-        font-size: 1.2em;
-        vertical-align: middle;
+    .calendar-sub-text {
+        font-size: 0.84rem;
+        opacity: 0.92;
+        margin: 2px 0 0 0;
+    }
+
+    .btn-add-special-day {
+        background-color: #ffffff !important;
+        color: #0f766e !important;
+        font-weight: 800 !important;
+        font-size: 0.9rem !important;
+        border-radius: 10px !important;
+        border: 2px solid #ffffff !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+        transition: all 0.25s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
+
+    .btn-add-special-day:hover {
+        background-color: #f8fafc !important;
+        color: #0d9488 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    /* Category Legend & Mini KPI Pills */
+    .legend-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px 24px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        align-items: center;
+    }
+
+    .legend-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        transition: all 0.2s ease;
+        color: #334155;
+    }
+
+    .legend-pill:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06);
+    }
+
+    .dot-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
         display: inline-block;
     }
 
-    .fc .fc-button:hover {
-        background: linear-gradient(135deg, #19a1a1 0%, #56dfdf 100%) !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
-        transform: translateY(-1px);
+    .dot-event { background: #0d9488; }
+    .dot-holiday { background: #ef4444; }
+    .dot-exam { background: #4f46e5; }
+    .dot-celebration { background: #f59e0b; }
+
+    /* FullCalendar Custom Theme Overrides */
+    .fc {
+        font-family: inherit;
+    }
+
+    .fc .fc-toolbar {
+        padding: 16px 24px 8px 24px;
+        margin-bottom: 0 !important;
+        gap: 12px;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.65rem !important;
+        font-weight: 800 !important;
+        color: #2b3d52 !important;
+        letter-spacing: 0.04em !important;
+        text-transform: uppercase !important;
+    }
+
+    .fc .fc-button-group {
+        border-radius: 8px;
+        overflow: hidden;
+        margin-right: 4px;
+    }
+
+    .fc .fc-button-primary {
+        background: #0d9488 !important;
+        border: 1px solid #0d9488 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        font-size: 0.88rem !important;
+        padding: 6px 14px !important;
+        transition: all 0.2s ease !important;
+        border-radius: 6px !important;
+        margin: 0 2px !important;
+    }
+
+    .fc .fc-button-primary:hover {
+        background: #0f766e !important;
+        border-color: #0f766e !important;
+        color: #ffffff !important;
+    }
+
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+        background: #0f766e !important;
+        border-color: #0f766e !important;
+        color: #ffffff !important;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.15) !important;
+    }
+
+    .fc .fc-today-button {
+        background: #0d9488 !important;
+        border-color: #0d9488 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        border-radius: 6px !important;
+    }
+
+    .fc .fc-today-button:hover {
+        background: #0f766e !important;
+        border-color: #0f766e !important;
+    }
+
+    /* List View Custom Styling matching screenshot */
+    .fc-list {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        overflow: hidden;
+    }
+
+    .fc-list-day-cushion {
+        background-color: #f8fafc !important;
+        padding: 10px 20px !important;
+    }
+
+    .fc-list-day-text, .fc-list-day-side-text {
+        font-weight: 800 !important;
+        color: #0f766e !important;
+        font-size: 0.95rem !important;
+        text-decoration: none !important;
+    }
+
+    .fc-list-event {
+        cursor: pointer;
+    }
+
+    .fc-list-event:hover td {
+        background-color: #f1f5f9 !important;
+    }
+
+    .fc-list-event-title {
+        font-weight: 700 !important;
+        color: #0f172a !important;
+        font-size: 0.92rem !important;
+    }
+
+    .fc-list-event-time {
+        font-weight: 600 !important;
+        color: #64748b !important;
+        font-size: 0.85rem !important;
+    }
+
+    .btn-view-toggle {
+        background-color: #ffffff !important;
+        color: #0f766e !important;
+        border: 1.5px solid #0d9488 !important;
+        font-size: 0.84rem !important;
+        padding: 5px 12px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .btn-view-toggle:hover {
+        background-color: #f0fdf4 !important;
+        color: #0d9488 !important;
+    }
+
+    .btn-view-toggle.active {
+        background-color: #0d9488 !important;
+        color: #ffffff !important;
+        border-color: #0d9488 !important;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Day Header Grid */
+    .fc .fc-col-header-cell {
+        background: #f8fafc;
+        padding: 10px 0 !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        font-weight: 800 !important;
+        color: #475569 !important;
+        font-size: 0.8rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em;
+        text-decoration: none !important;
+    }
+
+    .fc-daygrid-day {
+        transition: background-color 0.2s ease;
+        border-color: #e2e8f0 !important;
+    }
+
+    .fc-daygrid-day:hover {
+        background-color: #f8fafc;
     }
 
     .fc-daygrid-day.fc-day-today {
-        background-color: rgba(25, 161, 161, 0.08) !important;
+        background-color: rgba(13, 148, 136, 0.07) !important;
+    }
+
+    .fc-daygrid-day-number {
+        font-weight: 700 !important;
+        color: #334155 !important;
+        font-size: 0.85rem !important;
+        padding: 6px 10px !important;
+        text-decoration: none !important;
+    }
+
+    /* Custom Event Pills Inside Calendar Grid */
+    .fc-event {
+        cursor: pointer;
+        border: none !important;
+        padding: 4px 8px !important;
+        font-size: 0.8rem !important;
+        border-radius: 8px !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        margin-bottom: 3px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    .fc-event:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15) !important;
+        z-index: 10 !important;
     }
 
     #calendar {
-        min-height: 750px;
+        min-height: 720px;
+    }
+
+    /* Premium Form Modal Styles */
+    .premium-form-control {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        background-color: #f8fafc;
+    }
+
+    .premium-form-control:focus {
+        border-color: #0d9488;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
+        outline: none;
     }
 
     .type-select-card {
         cursor: pointer;
-        transition: all 0.2s;
-        border: 2px solid transparent;
-        background-color: #f8f9fa;
-        border-radius: 8px;
+        transition: all 0.25s ease;
+        border: 2px solid #e2e8f0;
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 12px 8px;
     }
 
-    input[type="radio"]:checked+.type-select-card {
-        border-color: #19a1a1;
-        background-color: rgba(25, 161, 161, 0.08);
-        transform: scale(1.02);
+    .type-select-card:hover {
+        border-color: #cbd5e1;
+        background-color: #f8fafc;
+        transform: translateY(-2px);
+    }
+
+    input[type="radio"]:checked + .type-select-card {
+        border-color: #0d9488;
+        background-color: rgba(13, 148, 136, 0.08);
+        box-shadow: 0 4px 10px rgba(13, 148, 136, 0.15);
+        transform: scale(1.03);
+    }
+
+    /* Dark Mode Overrides */
+    body.dark-only .calendar-card {
+        background: #262932 !important;
+        border-color: #374151 !important;
+    }
+    body.dark-only .legend-bar {
+        background: #1e293b !important;
+        border-color: #374151 !important;
+    }
+    body.dark-only .legend-pill {
+        background: #262932 !important;
+        border-color: #374151 !important;
+        color: #e2e8f0 !important;
+    }
+    body.dark-only .fc .fc-toolbar-title {
+        color: #f8fafc !important;
+    }
+    body.dark-only .fc .fc-col-header-cell {
+        background: #1e293b !important;
+        border-color: #374151 !important;
+    }
+    body.dark-only .fc .fc-col-header-cell-cushion {
+        color: #cbd5e1 !important;
+    }
+    body.dark-only .fc-daygrid-day {
+        border-color: #374151 !important;
+    }
+    body.dark-only .fc-daygrid-day-number {
+        color: #cbd5e1 !important;
+    }
+    body.dark-only .type-select-card {
+        background-color: #1e293b !important;
+        border-color: #475569 !important;
+        color: #e2e8f0 !important;
+    }
+    body.dark-only .premium-form-control {
+        background-color: #1e293b !important;
+        border-color: #475569 !important;
+        color: #f8fafc !important;
     }
 </style>
 {% endblock %}
@@ -123,19 +390,89 @@
 </div>
 
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-sm-12">
-            <div class="card">
-                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-                    <h5>Event Calendar</h5>
-                    <button class="btn btn-primary" onclick="openModal(null, new Date().toISOString().split('T')[0])">
-                        <i class="fa fa-plus me-2"></i> Add Special Day
-                    </button>
+    <div class="calendar-card">
+        <!-- Banner Header -->
+        <div class="calendar-header-banner">
+            <div>
+                <h4 class="calendar-title-text">Event Calendar</h4>
+                <p class="calendar-sub-text">Schedule holidays, exam dates, celebrations, and academic events</p>
+            </div>
+            <button class="btn font-weight-bold px-4 py-2 btn-add-special-day" onclick="openModal(null, new Date().toISOString().split('T')[0])">
+                <i class="fa fa-plus me-2"></i> Add Special Day
+            </button>
+        </div>
+
+        <!-- Category Legend & Navigation Bar -->
+        <div class="legend-bar">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="legend-pill">
+                    <span class="dot-indicator dot-event"></span>
+                    <span>General Events: <strong id="count-event">0</strong></span>
                 </div>
-                <div class="card-body">
-                    <div id="calendar"></div>
+                <div class="legend-pill">
+                    <span class="dot-indicator dot-holiday"></span>
+                    <span>Holidays: <strong id="count-holiday">0</strong></span>
+                </div>
+                <div class="legend-pill">
+                    <span class="dot-indicator dot-exam"></span>
+                    <span>Exams: <strong id="count-exam">0</strong></span>
+                </div>
+                <div class="legend-pill">
+                    <span class="dot-indicator dot-celebration"></span>
+                    <span>Celebrations: <strong id="count-celebration">0</strong></span>
                 </div>
             </div>
+
+            <!-- Month & Year Navigation Controls -->
+            <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
+                <button class="btn btn-sm btn-outline-secondary font-weight-bold px-3 py-1 text-dark" style="border-radius: 8px; background: #fff;" onclick="mainCalendar.prev()" title="Previous Month">
+                    <i class="fa fa-chevron-left me-1"></i> Prev
+                </button>
+                <select id="monthSelect" class="form-select form-select-sm font-weight-bold border-secondary-subtle" style="width: 125px; border-radius: 8px;" onchange="jumpToSelectedDate()">
+                    <option value="0">January</option>
+                    <option value="1">February</option>
+                    <option value="2">March</option>
+                    <option value="3">April</option>
+                    <option value="4">May</option>
+                    <option value="5">June</option>
+                    <option value="6">July</option>
+                    <option value="7">August</option>
+                    <option value="8">September</option>
+                    <option value="9">October</option>
+                    <option value="10">November</option>
+                    <option value="11">December</option>
+                </select>
+                <select id="yearSelect" class="form-select form-select-sm font-weight-bold border-secondary-subtle" style="width: 95px; border-radius: 8px;" onchange="jumpToSelectedDate()">
+                    <!-- Populated dynamically via JS -->
+                </select>
+                <button class="btn btn-sm btn-outline-secondary font-weight-bold px-3 py-1 text-dark me-2" style="border-radius: 8px; background: #fff;" onclick="mainCalendar.next()" title="Next Month">
+                    Next <i class="fa fa-chevron-right ms-1"></i>
+                </button>
+
+                <!-- Dedicated View Switch Buttons -->
+                <div class="btn-group me-2" role="group" aria-label="View Switchers">
+                    <button type="button" class="btn btn-sm font-weight-bold btn-view-toggle" id="btnViewMonthGrid" onclick="switchCalendarView('dayGridMonth')" title="Show Month Grid Calendar">
+                        <i class="fa fa-calendar me-1"></i> Month Grid
+                    </button>
+                    <button type="button" class="btn btn-sm font-weight-bold btn-view-toggle" id="btnViewMonthList" onclick="switchCalendarView('listMonth')" title="Show Special Days in Month">
+                        <i class="fa fa-list-ul me-1"></i> Month Special Days
+                    </button>
+                    <button type="button" class="btn btn-sm font-weight-bold btn-view-toggle" id="btnViewYearList" onclick="switchCalendarView('listYear')" title="Show Special Days in Year">
+                        <i class="fa fa-calendar-check-o me-1"></i> Year Special Days
+                    </button>
+                </div>
+
+                <button class="btn btn-sm text-white font-weight-bold px-3 py-1" style="background: #0d9488; border-radius: 8px;" onclick="mainCalendar.today()" title="Jump to Today">
+                    <i class="fa fa-calendar-check-o me-1"></i> Today
+                </button>
+            </div>
+        </div>
+
+        <!-- FullCalendar Area -->
+        <div class="p-3">
+            <!-- Centered Month Name & Year Title -->
+            <h3 id="currentMonthYearHeading" class="text-center font-weight-bold my-3 text-uppercase" style="color: #2b3d52; letter-spacing: 0.05em; font-size: 1.75rem;">SEPTEMBER 2026</h3>
+            <div id="calendar"></div>
         </div>
     </div>
 </div>
@@ -143,41 +480,41 @@
 <!-- Modal -->
 <div class="modal fade" id="eventModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header bg-primary text-white" style="border-radius:16px 16px 0 0;">
-                <h5 class="modal-title" id="modalTitle"><i class="fa fa-calendar-plus-o me-2"></i> Add Special Day</h5>
+        <div class="modal-content" style="border-radius:16px; overflow: hidden; border: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <div class="modal-header text-white p-3 px-4" style="background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);">
+                <h5 class="modal-title font-weight-bold" id="modalTitle"><i class="fa fa-calendar-plus-o me-2"></i> Add Special Day</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <form id="eventForm">
                     <input type="hidden" id="eventId">
                     <div class="mb-3">
-                        <label class="form-label font-weight-bold">Event Title *</label>
-                        <input type="text" class="form-control" id="eventTitle" placeholder="e.g. Earth Day" required>
+                        <label class="form-label font-weight-bold text-secondary" style="font-size:0.85rem;">EVENT TITLE *</label>
+                        <input type="text" class="form-control premium-form-control" id="eventTitle" placeholder="e.g. Earth Day" required>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label font-weight-bold">Date *</label>
-                            <input type="date" class="form-control" id="eventDate" required>
+                            <label class="form-label font-weight-bold text-secondary" style="font-size:0.85rem;">DATE *</label>
+                            <input type="date" class="form-control premium-form-control" id="eventDate" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label font-weight-bold">Activity (Optional)</label>
-                            <input type="text" class="form-control" id="eventActivity" placeholder="e.g. Experiment">
+                            <label class="form-label font-weight-bold text-secondary" style="font-size:0.85rem;">ACTIVITY (OPTIONAL)</label>
+                            <input type="text" class="form-control premium-form-control" id="eventActivity" placeholder="e.g. Science Fair">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label font-weight-bold">Description *</label>
-                        <textarea class="form-control" id="eventDesc" rows="3" required></textarea>
+                        <label class="form-label font-weight-bold text-secondary" style="font-size:0.85rem;">DESCRIPTION</label>
+                        <textarea class="form-control premium-form-control" id="eventDesc" rows="3" placeholder="Add description details..."></textarea>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label font-weight-bold">Event Type</label>
+                        <label class="form-label font-weight-bold text-secondary" style="font-size:0.85rem;">EVENT TYPE</label>
                         <div class="row g-2">
                             <div class="col-3">
                                 <label class="w-100">
                                     <input type="radio" name="eventType" value="Event" class="d-none" checked>
                                     <div class="card type-select-card text-center p-2 h-100 mb-0 shadow-sm">
-                                        <i class="fa fa-calendar-check-o text-primary mb-1"></i>
-                                        <h6 class="mb-0 small">General</h6>
+                                        <i class="fa fa-calendar-check-o mb-1" style="color: #0d9488; font-size: 1.1rem;"></i>
+                                        <h6 class="mb-0 small font-weight-bold">General</h6>
                                     </div>
                                 </label>
                             </div>
@@ -185,8 +522,8 @@
                                 <label class="w-100">
                                     <input type="radio" name="eventType" value="Holiday" class="d-none">
                                     <div class="card type-select-card text-center p-2 h-100 mb-0 shadow-sm">
-                                        <i class="fa fa-star text-danger mb-1"></i>
-                                        <h6 class="mb-0 small">Holiday</h6>
+                                        <i class="fa fa-star mb-1" style="color: #ef4444; font-size: 1.1rem;"></i>
+                                        <h6 class="mb-0 small font-weight-bold">Holiday</h6>
                                     </div>
                                 </label>
                             </div>
@@ -194,8 +531,8 @@
                                 <label class="w-100">
                                     <input type="radio" name="eventType" value="Exam" class="d-none">
                                     <div class="card type-select-card text-center p-2 h-100 mb-0 shadow-sm">
-                                        <i class="fa fa-pencil-square-o text-dark mb-1"></i>
-                                        <h6 class="mb-0 small">Exam</h6>
+                                        <i class="fa fa-pencil-square-o mb-1" style="color: #4f46e5; font-size: 1.1rem;"></i>
+                                        <h6 class="mb-0 small font-weight-bold">Exam</h6>
                                     </div>
                                 </label>
                             </div>
@@ -203,8 +540,8 @@
                                 <label class="w-100">
                                     <input type="radio" name="eventType" value="Celebration" class="d-none">
                                     <div class="card type-select-card text-center p-2 h-100 mb-0 shadow-sm">
-                                        <i class="fa fa-gift text-warning mb-1"></i>
-                                        <h6 class="mb-0 small">Celebration</h6>
+                                        <i class="fa fa-gift mb-1" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                                        <h6 class="mb-0 small font-weight-bold">Celebration</h6>
                                     </div>
                                 </label>
                             </div>
@@ -212,11 +549,32 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-outline-danger me-auto" id="deleteBtn" style="display: none;"
-                    onclick="deleteEvent()">Delete</button>
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveEvent()">Save Event</button>
+            <div class="modal-footer bg-light p-3 px-4">
+                <button type="button" class="btn btn-outline-danger me-auto font-weight-bold" id="deleteBtn" style="display: none; border-radius: 8px;"
+                    onclick="openDeleteConfirmModal()">Delete Event</button>
+                <button type="button" class="btn btn-light font-weight-bold" style="border-radius: 8px;" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn text-white font-weight-bold" style="background: #0d9488; border-radius: 8px;" id="saveBtn" onclick="saveEvent()">Save Event</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HTML Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 56px; height: 56px; background-color: #fee2e2; color: #ef4444;">
+                        <i class="fa fa-trash-o fa-2x"></i>
+                    </div>
+                </div>
+                <h5 class="font-weight-bold mb-2" style="color: #0f172a;">Delete Special Day?</h5>
+                <p class="text-secondary small mb-4" id="deleteConfirmText">Are you sure you want to delete this event? This action cannot be undone.</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-light font-weight-bold w-50" style="border-radius: 8px;" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger font-weight-bold w-50" style="border-radius: 8px; background-color: #ef4444; border-color: #ef4444;" id="confirmDeleteBtn" onclick="confirmDeleteEvent()">Delete</button>
+                </div>
             </div>
         </div>
     </div>
@@ -230,19 +588,52 @@
     let mainCalendar;
     let modalInstance;
 
+    let deleteModalInstance;
+    let eventIdToDelete = null;
+
     document.addEventListener('DOMContentLoaded', function () {
+        populateYearSelect();
         var calendarEl = document.getElementById('calendar');
         modalInstance = new bootstrap.Modal(document.getElementById('eventModal'));
+        deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
 
         mainCalendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,listMonth,listYear'
-            },
+            headerToolbar: false,
             themeSystem: 'bootstrap5',
             events: fetchEvents,
+            datesSet: function (info) {
+                updateViewToggleState(info.view.type);
+                // Sync month and year dropdowns when view changes
+                const midDate = new Date(info.view.currentStart.getTime() + 15 * 24 * 60 * 60 * 1000);
+                const m = midDate.getMonth();
+                const y = midDate.getFullYear();
+
+                const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+                const headingEl = document.getElementById('currentMonthYearHeading');
+                if (headingEl) {
+                    if (info.view.type === 'listYear') {
+                        headingEl.textContent = `${y}`;
+                    } else {
+                        headingEl.textContent = `${monthNames[m]} ${y}`;
+                    }
+                }
+
+                updateCategoryCounts(y);
+
+                const monthSel = document.getElementById('monthSelect');
+                const yearSel = document.getElementById('yearSelect');
+                if (monthSel) monthSel.value = m;
+                if (yearSel) {
+                    if (!yearSel.querySelector(`option[value="${y}"]`)) {
+                        const opt = document.createElement('option');
+                        opt.value = y;
+                        opt.textContent = y;
+                        yearSel.appendChild(opt);
+                    }
+                    yearSel.value = y;
+                }
+            },
             dateClick: (info) => openModal(null, info.dateStr),
             eventClick: (info) => openModal(info.event),
             eventContent: function (arg) {
@@ -251,51 +642,139 @@
                 if (type === 'Holiday') icon = '★';
                 else if (type === 'Exam') icon = '📝';
                 else if (type === 'Celebration') icon = '🎉';
+
+                if (arg.view.type.startsWith('list')) {
+                    const dotColor = getColorByType(type);
+                    return {
+                        html: `<div class="d-flex align-items-center gap-2">
+                            <span class="dot-indicator" style="background-color: ${dotColor};"></span>
+                            <span style="font-size:0.95rem;">${icon}</span>
+                            <span class="fw-bold" style="color:#0f172a;">${arg.event.title}</span>
+                        </div>`
+                    };
+                }
+
                 return {
-                    html: `<div class="fc-content text-truncate"><span class="me-1">${icon}</span><span class="fw-bold">${arg.event.title}</span></div>`
+                    html: `<div class="fc-content text-truncate d-flex align-items-center gap-1"><span style="font-size:0.85rem;">${icon}</span><span class="fw-bold">${arg.event.title}</span></div>`
                 };
             }
         });
         mainCalendar.render();
     });
 
+    function populateYearSelect() {
+        const yearSel = document.getElementById('yearSelect');
+        if (!yearSel) return;
+        const currentYear = new Date().getFullYear();
+        yearSel.innerHTML = '';
+        for (let y = currentYear - 5; y <= currentYear + 10; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            yearSel.appendChild(opt);
+        }
+    }
+
+    function jumpToSelectedDate() {
+        const m = parseInt(document.getElementById('monthSelect').value, 10);
+        const y = parseInt(document.getElementById('yearSelect').value, 10);
+        if (!isNaN(m) && !isNaN(y) && mainCalendar) {
+            mainCalendar.gotoDate(new Date(y, m, 1));
+        }
+    }
+
+    function switchCalendarView(viewName) {
+        if (mainCalendar) {
+            mainCalendar.changeView(viewName);
+        }
+        updateViewToggleState(viewName);
+    }
+
+    function updateViewToggleState(viewName) {
+        const btnGrid = document.getElementById('btnViewMonthGrid');
+        const btnMonthList = document.getElementById('btnViewMonthList');
+        const btnYearList = document.getElementById('btnViewYearList');
+
+        if (!btnGrid || !btnMonthList || !btnYearList) return;
+
+        btnGrid.classList.toggle('active', viewName === 'dayGridMonth');
+        btnMonthList.classList.toggle('active', viewName === 'listMonth');
+        btnYearList.classList.toggle('active', viewName === 'listYear');
+    }
+
+    let rawSpecialDaysData = [];
+
+    function updateCategoryCounts(targetYear) {
+        if (!targetYear) {
+            const midDate = mainCalendar ? mainCalendar.getDate() : new Date();
+            targetYear = midDate.getFullYear();
+        }
+        const yearStr = String(targetYear);
+        let countEvent = 0, countHoliday = 0, countExam = 0, countCelebration = 0;
+
+        (rawSpecialDaysData || []).forEach(d => {
+            if (d.date && String(d.date).startsWith(yearStr)) {
+                const type = d.type || 'Event';
+                if (type === 'Holiday') countHoliday++;
+                else if (type === 'Exam') countExam++;
+                else if (type === 'Celebration') countCelebration++;
+                else countEvent++;
+            }
+        });
+
+        document.getElementById("count-event").textContent = countEvent;
+        document.getElementById("count-holiday").textContent = countHoliday;
+        document.getElementById("count-exam").textContent = countExam;
+        document.getElementById("count-celebration").textContent = countCelebration;
+    }
+
     async function fetchEvents(info, success, failure) {
         try {
-            const res = await fetch(`${API_BASE}/admin-panel/special-days/`, {
+            const res = await fetch(`${API_BASE}/admin-panel/special-days/?limit=1000`, {
                 headers: { "Authorization": "Bearer " + token }
             });
             const data = await res.json();
-            const events = data.map(d => ({
-                id: d.id, title: d.title, start: d.date,
-                extendedProps: { description: d.description, activity: d.activity, type: d.type },
-                backgroundColor: getColorByType(d.type), borderColor: getColorByType(d.type),
-                textColor: d.type === 'Celebration' ? '#333' : '#fff'
-            }));
+            rawSpecialDaysData = data || [];
+
+            const midDate = (info && info.view) ? new Date(info.view.currentStart.getTime() + 15 * 24 * 60 * 60 * 1000) : new Date();
+            updateCategoryCounts(midDate.getFullYear());
+
+            const events = rawSpecialDaysData.map(d => {
+                const type = d.type || 'Event';
+                return {
+                    id: d.id, title: d.title, start: d.date,
+                    extendedProps: { description: d.description || '', activity: d.activity || '', type: type },
+                    backgroundColor: getColorByType(type),
+                    borderColor: getColorByType(type),
+                    textColor: '#ffffff'
+                };
+            });
+
             success(events);
         } catch (err) { failure(err); }
     }
 
     function getColorByType(type) {
-        if (type === 'Holiday') return '#ff6b6b';
-        if (type === 'Exam') return '#2c3e50';
-        if (type === 'Celebration') return '#ffd93b';
-        return '#19a1a1';
+        if (type === 'Holiday') return '#ef4444';
+        if (type === 'Exam') return '#4f46e5';
+        if (type === 'Celebration') return '#f59e0b';
+        return '#0d9488';
     }
 
     function openModal(event, dateStr) {
         document.getElementById('eventForm').reset();
         document.getElementById('deleteBtn').style.display = event ? 'block' : 'none';
         if (event) {
-            document.getElementById('modalTitle').textContent = 'Edit Special Day';
+            document.getElementById('modalTitle').innerHTML = '<i class="fa fa-pencil me-2"></i> Edit Special Day';
             document.getElementById('eventId').value = event.id;
             document.getElementById('eventDate').value = event.startStr;
             document.getElementById('eventTitle').value = event.title;
-            document.getElementById('eventDesc').value = event.extendedProps.description;
+            document.getElementById('eventDesc').value = event.extendedProps.description || '';
             document.getElementById('eventActivity').value = event.extendedProps.activity || '';
             const typeRadio = document.querySelector(`input[name="eventType"][value="${event.extendedProps.type}"]`);
             if (typeRadio) typeRadio.checked = true;
         } else {
-            document.getElementById('modalTitle').textContent = 'Add Special Day';
+            document.getElementById('modalTitle').innerHTML = '<i class="fa fa-calendar-plus-o me-2"></i> Add Special Day';
             document.getElementById('eventId').value = '';
             document.getElementById('eventDate').value = dateStr || new Date().toISOString().split('T')[0];
             document.querySelector('input[name="eventType"][value="Event"]').checked = true;
@@ -307,28 +786,65 @@
         const id = document.getElementById('eventId').value;
         const payload = {
             date: document.getElementById('eventDate').value,
-            title: document.getElementById('eventTitle').value,
-            description: document.getElementById('eventDesc').value,
-            activity: document.getElementById('eventActivity').value,
+            title: document.getElementById('eventTitle').value.trim(),
+            description: document.getElementById('eventDesc').value || "",
+            activity: document.getElementById('eventActivity').value || "",
             type: document.querySelector('input[name="eventType"]:checked').value,
             is_active: true
         };
         const method = id ? 'PUT' : 'POST';
         const url = id ? `${API_BASE}/admin-panel/special-days/${id}` : `${API_BASE}/admin-panel/special-days/`;
-        const res = await fetch(url, {
-            method, headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        if (res.ok) { modalInstance.hide(); mainCalendar.refetchEvents(); }
+        try {
+            const res = await fetch(url, {
+                method, headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) { 
+                modalInstance.hide(); 
+                mainCalendar.refetchEvents(); 
+            } else {
+                const errData = await res.json();
+                alert("Error saving special day: " + (errData.detail || JSON.stringify(errData)));
+            }
+        } catch(err) {
+            console.error("Error saving special day:", err);
+            alert("Failed to save special day: " + err);
+        }
     }
 
-    async function deleteEvent() {
-        if (!confirm("Delete this event?")) return;
-        const id = document.getElementById('eventId').value;
-        const res = await fetch(`${API_BASE}/admin-panel/special-days/${id}`, {
-            method: "DELETE", headers: { "Authorization": "Bearer " + token }
-        });
-        if (res.ok) { modalInstance.hide(); mainCalendar.refetchEvents(); }
+    function openDeleteConfirmModal() {
+        eventIdToDelete = document.getElementById('eventId').value;
+        const title = document.getElementById('eventTitle').value || 'this event';
+        if (!eventIdToDelete) return;
+        document.getElementById('deleteConfirmText').textContent = `Are you sure you want to delete "${title}"? This action cannot be undone.`;
+        modalInstance.hide();
+        deleteModalInstance.show();
+    }
+
+    async function confirmDeleteEvent() {
+        if (!eventIdToDelete) return;
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Deleting...';
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/special-days/${eventIdToDelete}`, {
+                method: "DELETE", headers: { "Authorization": "Bearer " + token }
+            });
+            if (res.ok) { 
+                deleteModalInstance.hide(); 
+                mainCalendar.refetchEvents(); 
+            } else {
+                const errData = await res.json();
+                alert("Error deleting event: " + (errData.detail || JSON.stringify(errData)));
+            }
+        } catch(err) {
+            console.error("Error deleting event:", err);
+            alert("Failed to delete event: " + err);
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = 'Delete';
+            eventIdToDelete = null;
+        }
     }
 </script>
 {% endblock %}

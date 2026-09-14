@@ -248,11 +248,12 @@
                     <span id="totalCount" class="badge rounded-pill bg-white text-dark shadow-sm ms-3 px-3 py-2" style="font-size: 0.85rem; font-weight: 600;">0</span>
                 </div>
                 <div class="card-body mt-3">
-                    <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+                    <div class="table-responsive">
                         <table class="table table-hover table-striped" id="questionsTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th style="width: 40%">Question</th>
+                                    <th style="width: 50px;">#</th>
+                                    <th style="width: 38%">Question</th>
                                     <th>Domain</th>
                                     <th>Type</th>
                                     <th>Class</th>
@@ -263,7 +264,7 @@
                             </thead>
                             <tbody id="questionsBody">
                                 <tr>
-                                    <td colspan="7" class="text-center">
+                                    <td colspan="8" class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -272,6 +273,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <div id="paginationWrapper"></div>
                 </div>
             </div>
         </div>
@@ -432,14 +434,69 @@
         }
     }
 
+    const PAGE_SIZE = 100;
+    let quizCurrentPage = 1;
+    let allQuestionsCache = [];
+
+    function renderPaginationControls(currentPage, totalItems, pageSize) {
+        if (totalItems <= 0) return '';
+        const totalPages = Math.ceil(totalItems / pageSize) || 1;
+        const startItem = (currentPage - 1) * pageSize + 1;
+        const endItem = Math.min(currentPage * pageSize, totalItems);
+
+        const prevDisabled = currentPage <= 1 ? 'disabled' : '';
+        const nextDisabled = currentPage >= totalPages ? 'disabled' : '';
+
+        return `
+            <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 pt-3 border-top">
+                <div class="d-flex align-items-center gap-2 mb-2 mb-md-0">
+                    <button class="btn btn-sm btn-outline-secondary" ${prevDisabled} onclick="changeQuizPage(${currentPage - 1})" style="border-radius: 8px;">
+                        <i data-feather="chevron-left" style="width: 14px; height: 14px; margin-bottom: 2px;"></i> Previous
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" ${nextDisabled} onclick="changeQuizPage(${currentPage + 1})" style="border-radius: 8px;">
+                        Next <i data-feather="chevron-right" style="width: 14px; height: 14px; margin-bottom: 2px;"></i>
+                    </button>
+                    <span class="ms-2 text-muted fw-semibold" style="font-size: 0.85rem;">Page ${currentPage} of ${totalPages}</span>
+                </div>
+                <div class="text-muted" style="font-size: 0.85rem;">
+                    Showing <strong class="text-dark">${startItem}</strong> - <strong class="text-dark">${endItem}</strong> of <strong class="text-dark">${totalItems}</strong> entries
+                </div>
+            </div>
+        `;
+    }
+
+    function changeQuizPage(newPage) {
+        quizCurrentPage = newPage;
+        renderQuizPage();
+    }
+
+    function renderQuizPage() {
+        const total = allQuestionsCache.length;
+        const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+        if (quizCurrentPage > totalPages) quizCurrentPage = totalPages;
+        if (quizCurrentPage < 1) quizCurrentPage = 1;
+
+        const startIndex = (quizCurrentPage - 1) * PAGE_SIZE;
+        const pageQuestions = allQuestionsCache.slice(startIndex, startIndex + PAGE_SIZE);
+
+        displayQuestions(pageQuestions, startIndex);
+
+        const pagEl = document.getElementById("paginationWrapper");
+        if (pagEl) {
+            pagEl.innerHTML = renderPaginationControls(quizCurrentPage, total, PAGE_SIZE);
+            feather.replace();
+        }
+    }
+
     // Load questions with filters
     async function loadQuestions() {
+        quizCurrentPage = 1;
         const domain = document.getElementById("filterDomain").value;
         const classRange = document.getElementById("filterClass").value;
         const difficulty = document.getElementById("filterDifficulty").value;
         const questionType = document.getElementById("filterType").value;
 
-        let url = `${API_BASE}/admin-panel/quiz/questions?limit=100`;
+        let url = `${API_BASE}/admin-panel/quiz/questions?limit=2000`;
         if (domain) url += `&domain=${encodeURIComponent(domain)}`;
         if (classRange) url += `&class_range=${encodeURIComponent(classRange)}`;
         if (difficulty) url += `&difficulty_level=${encodeURIComponent(difficulty)}`;
@@ -450,24 +507,27 @@
                 headers: { "Authorization": "Bearer " + token }
             });
             const data = await res.json();
-            document.getElementById("totalCount").textContent = data.total_count;
-            displayQuestions(data.data || []);
+            allQuestionsCache = data.data || [];
+            document.getElementById("totalCount").textContent = data.total_count || allQuestionsCache.length;
+            renderQuizPage();
         } catch (err) {
             console.error("Error loading questions:", err);
             document.getElementById("questionsBody").innerHTML =
-                '<tr><td colspan="7" class="text-center text-danger">Error loading questions</td></tr>';
+                '<tr><td colspan="8" class="text-center text-danger">Error loading questions</td></tr>';
+            document.getElementById("paginationWrapper").innerHTML = '';
         }
     }
 
     // Display questions in table
-    function displayQuestions(questions) {
+    function displayQuestions(questions, startIndex = 0) {
         const tbody = document.getElementById("questionsBody");
         if (questions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No questions found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">No questions found</td></tr>';
             return;
         }
-        tbody.innerHTML = questions.map(q => `
+        tbody.innerHTML = questions.map((q, i) => `
             <tr>
+            <td><strong>${startIndex + i + 1}</strong></td>
             <td>
                 <div class="text-truncate" style="max-width: 400px;" title="${escapeHtml(q.question_text)}">
                 ${escapeHtml(q.question_text)}

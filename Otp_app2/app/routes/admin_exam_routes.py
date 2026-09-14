@@ -70,196 +70,160 @@ def determine_language_from_subject(subject: str, text_sample: str = None) -> st
 
 PRIMARY_PEDAGOGY_PROMPT = """
 You are an experienced and friendly Primary School Teacher for Standards 1-5.
-Your task is to generate a fun, engaging, age-appropriate and academically
-appropriate question paper.
+Your task is to generate a fun, engaging, age-appropriate, and academically rigorous question paper.
 
-### CRITICAL ACCURACY & LOGIC RULES ###
+### CRITICAL ACCURACY, PEDAGOGY & QUESTION PAPER DIRECTIVES ###
 
-1. Logical Consistency:
-   Avoid logic-less questions.
-   If a question is about a "Rectangle", do NOT include "Rectangle"
-   itself as one of the multiple-choice options when that would make
-   the answer obvious.
-   Options must be distinct, meaningful and logically plausible.
+1. NO DUPLICATE QUESTIONS OR REPEATED SCENARIOS:
+   - Do NOT repeat the same question, scenario, numerical values, or substantially similar question across different sections.
+   - Section D/C MUST NOT repeat or rephrase questions from earlier sections.
+   - Real-life scenarios (e.g. horse grazing, car wipers, umbrella ribs, lighthouse, round table cover, circle segment designs) MUST NOT be used more than once in the entire paper.
 
-2. No Missing Visuals:
-   NEVER generate questions such as "Look at the picture",
-   "Observe the diagram", "Look at the graph", "Complete the pattern",
-   or similar instructions if the required visual is not actually provided.
+2. AVOID SAME-SKILL REPETITION:
+   - Do NOT ask multiple questions that test exactly the same formula, algorithm, or recall skill unnecessarily. Each question must test a distinct concept or skill.
 
-3. Self-Contained Questions:
-   Every question must contain enough information for the student
-   to understand and answer it.
-   If a question depends on information from a visual, the necessary
-   information must be provided in the question or the visual must
-   actually be available.
+3. STRICT DIFFICULTY PROGRESSION:
+   - Questions must become progressively more complex from Section A → Section B → Section C → Section D.
+   - Higher-mark questions (3-5 marks) MUST require multiple logical steps, application, or reasoning, and MUST NOT simply be longer versions of 1-mark or 2-mark questions.
 
-4. No Hallucinations:
-   Use only characters, people, places, objects, events, concepts,
-   examples and information supported by the supplied textbook content.
+4. SUFFICIENT & UNAMBIGUOUS INFORMATION:
+   - Every question must contain all required information to solve it uniquely.
+   - Never create ambiguous questions (e.g., asking for the area of a "design" without stating its shape and dimensions).
+   - Wording must be unambiguous: explicitly state whether major/minor sector or major/minor segment is meant.
 
-5. Match Integrity:
-   Ensure that Match the Following questions contain balanced,
-   complete and logically correct pairs.
+5. FIX DIAGRAM REFERENCES:
+   - NEVER refer to "as shown in the figure", "look at the diagram below", or missing visual images. If a diagram is not explicitly provided, write the question as a self-contained text question with all measurements stated.
 
-6. No Redundant Phrasing:
-   DO NOT prepend questions with:
-   "Fill in the blank:"
-   "True or False:"
-   "Answer the following:"
-   "Choose the correct answer:"
-   or similar unnecessary labels.
-   Ask the question directly.
+6. REMOVE UNNECESSARY INFORMATION:
+   - Do not include irrelevant information that is unnecessary for solving the problem.
 
-### PEDAGOGY ###
+7. BALANCE QUESTION TYPES:
+   - Include a balanced mix of conceptual, computational, application-based, reasoning, and higher-order questions suitable for Standards 1-5.
 
-- Use language appropriate for Standards 1-5.
-- Use simple, clear and grammatically correct sentences.
-- Focus on recognition, recall, basic understanding, simple application,
-  observation, comparison, classification and basic reasoning.
-- Recall questions must test meaningful textbook knowledge.
-- Do not make questions difficult merely by using complicated language.
-- Questions should be engaging but must remain academically relevant.
+8. NO MCQ QUESTIONS:
+   - Do NOT generate Multiple Choice Questions (MCQ). Generate direct text-based questions (Very Short, Short, Fill in the Blanks, True/False, Essay).
+
+9. NO REDUNDANT PHRASING:
+   - Ask questions directly. Do NOT prepend with "Fill in the blank:", "True or False:", "Choose the correct answer:", etc.
 """
 
 
 MIDDLE_SCHOOL_PEDAGOGY_PROMPT = """
 You are an experienced Middle School Teacher for Standards 6-8.
-Your task is to generate a clear, engaging and academically appropriate
-question paper.
+Your task is to generate a clear, engaging, academically appropriate, and structurally perfect question paper.
 
-### CRITICAL ACCURACY & LOGIC RULES ###
+### CRITICAL ACCURACY, PEDAGOGY & QUESTION PAPER DIRECTIVES ###
 
-1. Logical Consistency:
-   Every question and answer option must be logically consistent.
-   Do not include the correct answer as an obviously invalid or
-   redundant option.
+1. NO DUPLICATE QUESTIONS OR REPEATED SCENARIOS:
+   - Do NOT repeat the same question, scenario, numerical values, or substantially similar question across different sections.
+   - Section D MUST NOT repeat or rephrase questions from Section C or earlier sections.
+   - Real-life scenarios (e.g. horse grazing in a field, car wipers, umbrella, lighthouse warning, round table cover, circle segment calculations) MUST NOT be repeated across sections or papers. Each real-world scenario must appear at most once.
 
-2. No Missing Visuals:
-   NEVER refer to a picture, graph, map, diagram, table or other visual
-   unless that visual is actually supplied in the available textbook content.
+2. AVOID SAME-SKILL REPETITION:
+   - Do NOT ask multiple questions that test exactly the same formula or recall skill. Each question must assess a distinct learning outcome.
 
-3. Self-Contained Questions:
-   Every question must clearly communicate what the student is expected
-   to answer. Do not depend on missing context.
+3. STRICT DIFFICULTY PROGRESSION:
+   - Questions must become progressively more complex from Section A → Section B → Section C → Section D.
+   - A 4-mark or 5-mark question MUST require multiple logical steps, reasoning, or application, and MUST NOT be a longer/repeated version of a 2-mark or 3-mark question.
 
-4. No Hallucinations:
-   Use only people, places, events, concepts, terminology, examples,
-   processes and information supported by the supplied textbook content.
+4. SUFFICIENT & UNAMBIGUOUS INFORMATION:
+   - Every question must contain all information required to solve it uniquely.
+   - Clearly state shapes, lengths, angles, and regions. Always explicitly specify major vs. minor sector/segment where applicable.
 
-5. Match Integrity:
-   Match the Following questions must contain balanced, complete and
-   logically correct pairs.
+5. FIX DIAGRAM REFERENCES:
+   - NEVER generate questions referencing missing figures ("as shown in the diagram", "refer to the graph below"). If visual content is unavailable, write self-contained text questions with all geometric parameters explicitly given.
 
-6. No Redundant Phrasing:
-   Ask questions directly.
-   Avoid unnecessary prefixes such as:
-   "Answer the following:"
-   "Fill in the blank:"
-   "Choose the correct answer:"
-   "True or False:"
+6. REMOVE UNNECESSARY INFORMATION:
+   - Avoid adding extraneous, irrelevant details that detract from the core problem.
 
-### PEDAGOGY ###
+7. BALANCE QUESTION TYPES:
+   - Provide a balanced mix of conceptual, computational, application-based, analytical, and higher-order questions.
 
-- Use language appropriate for Standards 6-8.
-- Focus on knowledge, understanding, application, comparison,
-  interpretation, reasoning and problem solving.
-- Include simple higher-order thinking where appropriate.
-- Avoid questions that are too childish or purely based on memorization.
-- Questions should test meaningful concepts rather than isolated wording.
-- Difficulty should increase naturally across sections.
-- Higher-mark questions should require deeper understanding,
-  not simply longer answers.
+8. NO MCQ QUESTIONS:
+   - Do NOT generate Multiple Choice Questions (MCQ). Generate direct text-based questions.
+
+9. NO REDUNDANT PHRASING:
+   - Ask questions directly without unnecessary instructional prefixes.
 """
 
 
 SECONDARY_PEDAGOGY_PROMPT = """
 You are an experienced Secondary School Teacher for Standards 9-10.
-Your task is to generate an academically rigorous and examination-appropriate
-question paper.
+Your task is to generate an academically rigorous, examination-appropriate, and flawlessly structured question paper.
 
-### CRITICAL ACCURACY & LOGIC RULES ###
+### CRITICAL ACCURACY, PEDAGOGY & QUESTION PAPER DIRECTIVES ###
 
-1. Logical Consistency:
-   Every question, option and expected answer must be logically precise
-   and internally consistent.
+1. NO DUPLICATE QUESTIONS OR REPEATED SCENARIOS:
+   - Do NOT repeat the same question, scenario, numerical values, or substantially similar question in different sections.
+   - In particular, Section D MUST NOT repeat questions from Section C (such as horse grazing, car wipers, umbrella, lighthouse, table cover, circle segment questions). Section D MUST present distinct, higher-level topics and multi-step applications.
+   - Specific real-life scenarios MUST NOT be repeated anywhere in the paper.
 
-2. No Missing Visuals:
-   NEVER refer to a graph, map, diagram, table, image, source or other
-   visual unless it is actually available in the supplied textbook content.
+2. AVOID SAME-SKILL REPETITION:
+   - Do NOT ask multiple questions that test exactly the same formula or skill (e.g., repeating basic area-of-circle or direct formula-recall questions unnecessarily).
 
-3. Self-Contained Questions:
-   Every question must provide sufficient information and clearly state
-   what the student is expected to answer.
+3. STRICT DIFFICULTY PROGRESSION & MARKS DEPTH:
+   - Section A (1 mark): Knowledge, recall, recognition, direct calculation, short questions.
+   - Section B (2 marks): Understanding, short explanation, 1-2 step applications.
+   - Section C (3 marks): Multi-step application, problem solving, interpretation.
+   - Section D (4-5 marks): Higher-Order Thinking Skills (HOTS), multi-step reasoning, geometric proofs, or complex real-world synthesis. A 5-mark question MUST require multiple distinct steps and deep reasoning, not simply longer wording.
 
-4. No Hallucinations:
-   Generate questions strictly from the supplied textbook content.
-   Do not invent facts, examples, terminology, events, people,
-   formulas or concepts.
+4. SUFFICIENT & UNAMBIGUOUS INFORMATION:
+   - Every question must contain all required information to solve it uniquely. Avoid ambiguous phrasing like asking for the area of a "design" without stating its exact shape and measurements.
+   - Wording must be unambiguous: explicitly state whether major/minor sector or major/minor segment is meant.
 
-5. Match Integrity:
-   Matching questions must contain accurate, balanced and meaningful pairs.
+5. FIX DIAGRAM REFERENCES:
+   - NEVER refer to a figure, diagram, graph, table, or image ("shown in figure", "as shown below") unless the visual is actually supplied. If unavailable, provide all geometric measurements and conditions explicitly in text.
 
-6. No Redundant Phrasing:
-   Keep questions direct and precise.
-   Avoid unnecessary instructional prefixes and repetitive wording.
+6. REMOVE UNNECESSARY INFORMATION:
+   - Keep questions focused and concise without unnecessary clutter unless intended as a specific analytical distractor.
 
-### PEDAGOGY ###
+7. BALANCE QUESTION TYPES:
+   - Maintain a balanced distribution of conceptual, computational, application-based, reasoning, proof-based, and higher-order analytical questions.
 
-- Use language appropriate for Standards 9-10.
-- Focus on conceptual understanding, application, analysis,
-  interpretation, reasoning and problem solving.
-- Include higher-order thinking where supported by the subject
-  and supplied textbook.
-- Use subject-specific terminology correctly.
-- Avoid overly simple recall questions except where appropriate
-  for lower-mark sections.
-- Higher-mark questions should require deeper reasoning or analysis,
-  rather than merely being longer.
+8. NO MCQ QUESTIONS:
+   - Do NOT generate Multiple Choice Questions (MCQ). Generate direct text-based questions.
+
+9. INTERNAL CHOICE / OR FORMATTING:
+   - Format internal choices clearly with "OR" and ensure alternative questions have equivalent marks and difficulty.
+
+10. DO NOT REVEAL SIMILARITY / CONGRUENCE CRITERIA IN QUESTION STEMS:
+    - Do NOT explicitly reveal the similarity or congruence criterion (AAA, SSS, SAS, ASA, AAS, RHS) in proof or application questions unless explicitly asking the student to identify it. Describe given conditions and ask the student to determine the criterion or prove similarity.
 """
 
 
 HIGHER_SECONDARY_PEDAGOGY_PROMPT = """
 You are an experienced Higher Secondary School Teacher for Standards 11-12.
-Your task is to generate a rigorous, academically appropriate and
-examination-oriented question paper.
+Your task is to generate a rigorous, examination-oriented, and impeccably structured question paper.
 
-### CRITICAL ACCURACY & LOGIC RULES ###
+### CRITICAL ACCURACY, PEDAGOGY & QUESTION PAPER DIRECTIVES ###
 
-1. Logical Consistency:
-   Every question, option and expected answer must be logically precise,
-   academically correct and internally consistent.
+1. NO DUPLICATE QUESTIONS OR REPEATED SCENARIOS:
+   - Do NOT repeat the same question, scenario, numerical values, or substantially similar question across different sections.
+   - Section D and Section E MUST NOT repeat or rephrase questions from earlier sections.
+   - Real-world application scenarios MUST NOT be repeated across sections or papers.
 
-2. No Missing Visuals:
-   NEVER refer to a graph, diagram, map, table, image, source or other
-   visual unless it is actually supplied in the textbook content.
+2. AVOID SAME-SKILL REPETITION:
+   - Each question must assess a distinct mathematical, scientific, or analytical skill. Avoid repeating direct formula recall or identical computation types.
 
-3. Self-Contained Questions:
-   Every question must clearly communicate the required task and contain
-   sufficient context for the student to answer.
+3. STRICT DIFFICULTY PROGRESSION & MARKS DEPTH:
+   - Clear cognitive progression from Section A (recall/direct) through Section E (HOTS/advanced multi-step analysis/evaluation).
+   - Higher-mark questions (4-5 marks) MUST require multi-step reasoning, derivation, or complex application, not merely longer text.
 
-4. No Hallucinations:
-   Use only concepts, terminology, facts, examples, processes,
-   people, events and information supported by the supplied textbook content.
+4. SUFFICIENT & UNAMBIGUOUS INFORMATION:
+   - Questions must be self-contained and mathematically/conceptually rigorous with all necessary variables, boundary conditions, and parameters defined.
 
-5. Match Integrity:
-   Matching questions must contain accurate, balanced and meaningful pairs.
+5. FIX DIAGRAM REFERENCES:
+   - NEVER refer to missing visuals ("as shown in figure"). Write complete text-based descriptions with exact parameters if visual diagrams are not supplied.
 
-6. No Redundant Phrasing:
-   Keep questions direct, precise and academically professional.
-   Avoid unnecessary instructional prefixes.
+6. REMOVE UNNECESSARY INFORMATION:
+   - Ensure clean, precise statement of problem conditions without irrelevant noise.
 
-### PEDAGOGY ###
+7. BALANCE QUESTION TYPES & CORRECT FORMATTING:
+   - Include conceptual, analytical, computational, derivation, and application questions.
+   - Do NOT generate Multiple Choice Questions (MCQ). Internal choices must be clearly formatted as OR.
 
-- Use language appropriate for Standards 11-12.
-- Focus on advanced conceptual understanding, application, analysis,
-  interpretation, evaluation and problem solving.
-- Use subject-specific terminology correctly.
-- Encourage multi-step reasoning where appropriate.
-- Include higher-order thinking when supported by the subject and textbook.
-- Avoid overly basic recall unless appropriate for a lower-mark section.
-- Higher-mark questions should assess deeper understanding, analysis,
-  evaluation or multi-step reasoning rather than simply requiring longer answers.
+8. DO NOT REVEAL SIMILARITY / CONGRUENCE CRITERIA IN QUESTION STEMS:
+   - Do NOT explicitly state the similarity or congruence criterion (AAA, SSS, SAS, ASA, etc.) in the question text. Require the student to determine the criterion or prove similarity from the given geometric conditions.
 """
 
 # --------------------------
@@ -280,43 +244,43 @@ def get_exam_structure(standard: int, total: int):
     # Primary Standards (1-5)
     if standard <= 5:
         if total == 30:
-            allowed_types = ["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"]
+            allowed_types = ["FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"]
             sections = {"A": (1, 10), "B": (2, 5), "C": (5, 2)}
             return (allowed_types, sections)
         else:  # Default 50 marks
-            allowed_types = ["MCQ", "FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort", "Short"]
+            allowed_types = ["FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort", "Short"]
             sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 3)}
             return (allowed_types, sections)
 
     # Middle Standards (6-8)
     if standard <= 8:
         if total == 80:
-            allowed_types = ["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "ShortEssay", "Reasoning"]
+            allowed_types = ["FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "ShortEssay", "Reasoning"]
             sections = {"A": (1, 6), "B": (2, 6), "C": (3, 10), "D": (4, 8)}
             return (allowed_types, sections)
         else:  # Default 50 marks
-            allowed_types = ["MCQ", "FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "Reasoning"]
+            allowed_types = ["FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "Reasoning"]
             sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 3)}
             return (allowed_types, sections)
 
     # High School Standards (9-10)
     if standard in [9, 10]:
         if total == 40:
-            allowed_types = ["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze"]
+            allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze"]
             sections = {"A": (1, 8), "B": (2, 6), "C": (3, 4), "D": (4, 2)}
             return (allowed_types, sections)
         else:  # Default 80 marks
-            allowed_types = ["MCQ", "VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy"]
+            allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy"]
             sections = {"A": (1, 8), "B": (2, 6), "C": (3, 10), "D": (5, 6)}
             return (allowed_types, sections)
 
     # Plus Two Standards (11-12)
     if total == 60:
-        allowed_types = ["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
+        allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
         sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 5)}
         return (allowed_types, sections)
     else:  # Default 80 marks
-        allowed_types = ["MCQ", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
+        allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
         sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (4, 5), "E": (5, 5)}
         return (allowed_types, sections)
 
@@ -394,11 +358,96 @@ async def extract_text_via_vision(file_path: str, status_query: dict = None) -> 
         return ""
 
 def validate_fix_marks(paper: dict, required_total: int):
-    total = sum(q.get("marks", 0) for q in paper["questions"])
+    if not isinstance(paper, dict):
+        return paper
+    sections = paper.get("sections", [])
+    total = 0
+    all_qs = []
+    for sec in sections:
+        if isinstance(sec, dict):
+            m_per_q = sec.get("marks_per_question", 1)
+            qs = sec.get("questions", [])
+            for q in qs:
+                if isinstance(q, dict):
+                    q_m = q.get("marks", m_per_q)
+                    total += q_m
+                    all_qs.append(q)
     diff = required_total - total
-    if diff != 0 and paper["questions"]:
-        paper["questions"][-1]["marks"] += diff
+    if diff != 0 and all_qs:
+        all_qs[-1]["marks"] = max(1, all_qs[-1].get("marks", 1) + diff)
     return paper
+
+def post_process_and_validate_paper(paper_json: dict, total_marks: int, std: int, subject: str) -> dict:
+    if not isinstance(paper_json, dict):
+        paper_json = {"sections": []}
+    
+    sections = paper_json.get("sections", [])
+    if not isinstance(sections, list):
+        sections = []
+        paper_json["sections"] = sections
+        
+    global_qnum = 1
+    
+    for sec_idx, sec in enumerate(sections):
+        if not isinstance(sec, dict): continue
+        sname = str(sec.get("section") or sec.get("title") or chr(65 + sec_idx)).strip().upper()
+        sec["section"] = sname
+        
+        marks_per_q = sec.get("marks_per_question", 1)
+        try:
+            marks_per_q = int(marks_per_q)
+        except:
+            marks_per_q = 1
+        sec["marks_per_question"] = marks_per_q
+        
+        qs = sec.get("questions", [])
+        if not isinstance(qs, list):
+            qs = []
+            sec["questions"] = qs
+            
+        cleaned_qs = []
+        for q in qs:
+            if isinstance(q, str):
+                q = {"question": q, "type": "SHORT", "marks": marks_per_q}
+            elif not isinstance(q, dict):
+                continue
+                
+            q["marks"] = q.get("marks", marks_per_q)
+            q["qnum"] = global_qnum
+            global_qnum += 1
+            
+            qtext = str(q.get("question") or q.get("text") or "").strip()
+            
+            # Clean redundant prefixes like "Fill in the blank:", "True or False:", "Choose the correct answer:"
+            qtext = re.sub(r'^\s*(Fill\s+in\s+the\s+blanks?|True\s+or\s+False|Choose\s+the\s+correct\s+(answer|option)|State\s+whether\s+True\s+or\s+False)[\s:-]*', '', qtext, flags=re.IGNORECASE)
+            
+            # Clean missing visual references
+            qtext = re.sub(r'\(?\s*as shown in (the )?(figure|diagram|image|picture|graph|table)\s*\)?', '', qtext, flags=re.IGNORECASE)
+            qtext = re.sub(r'Look at the (figure|diagram|image|picture|graph|table) (below|above) and\s*', '', qtext, flags=re.IGNORECASE)
+            qtext = re.sub(r'Refer to the (figure|diagram|image|picture) (below|above) to\s*', '', qtext, flags=re.IGNORECASE)
+            
+            # Clean revealing theorem/criterion names from question text unless specifically asking to state or identify it
+            if not re.search(r'which (similarity|congruence|theorem|criterion)|state the (similarity|congruence|theorem|criterion)|identify the (similarity|congruence|theorem|criterion)', qtext, flags=re.IGNORECASE):
+                qtext = re.sub(r'^(Using|By|Applying)\s+(the\s+)?(AAA|SSS|SAS|AA|ASA|AAS|RHS|Pythagoras|Pythagorean|Basic Proportionality|Thales|intercept)\s*(criterion|theorem|rule|property)?[\s,:-]*', '', qtext, flags=re.IGNORECASE)
+            
+            if qtext and len(qtext) > 0 and qtext[0].islower():
+                qtext = qtext[0].upper() + qtext[1:]
+            
+            q["question"] = qtext.strip()
+            
+            # Strip MCQ type completely and convert to direct text question
+            qtype = str(q.get("type") or "").upper()
+            if qtype == "MCQ":
+                q["type"] = "VERYSHORT"
+                q.pop("options", None)
+            
+            cleaned_qs.append(q)
+            
+        sec["questions"] = cleaned_qs
+
+    paper_json = validate_fix_marks(paper_json, total_marks)
+    return paper_json
+
 
 
 @router.post("/textbook/upload-batch")
@@ -1284,12 +1333,11 @@ async def generate_questions_worker(task_id: str, activity_log_id: str | None = 
                 lang_instruction = """Follow English language rules:
 - All questions, options, and answers must be in clean, grammatically accurate English based strictly on the textbook content."""
 
-            prompt = f"""You are an experienced school teacher and professional question-paper setter.
+            prompt = f"""You are an experienced school teacher, master examination controller, and professional question-paper setter.
 
-Your task is to generate a high-quality question paper for the specified BOARD/CURRICULUM, CLASS, SUBJECT, CHAPTERS, and TOTAL MARKS.
+Your task is to generate a high-quality, flawless question paper for the specified BOARD/CURRICULUM, CLASS, SUBJECT, CHAPTERS, and TOTAL MARKS.
 
 ### EXAM DETAILS
-
 Board/Curriculum: {board}
 Class/Standard: {std}
 Subject: {subject}
@@ -1301,164 +1349,96 @@ Paper Number: {p + 1} of {papers}
 {lang_instruction}
 
 ### IMPORTANT CURRICULUM RULE
-
 The student follows the specified curriculum: {board}.
-
 - If Board/Curriculum is NCERT, generate questions strictly from the supplied NCERT textbook content.
 - If Board/Curriculum is SCERT, generate questions strictly from the supplied SCERT textbook content.
 - NEVER mix NCERT and SCERT content.
 - Do not use content from another board, curriculum, class, or textbook.
 - The supplied textbook content is the PRIMARY and AUTHORITATIVE source for question generation.
 - Do not invent facts, definitions, formulas, examples, characters, events, terminology, diagrams, or concepts that are not supported by the supplied textbook content.
-- Use the terminology and concepts appropriate to the supplied textbook.
-- Questions must be appropriate for the specified class.
 
-### TEACHER ROLE, PEDAGOGY & ACCURACY RULES
-
+### TEACHER ROLE & PEDAGOGY RULES
 {pedagogy_prompt}
 
-### QUESTION PAPER STRUCTURE
+### CRITICAL QUESTION PAPER DIRECTIVES (MUST FOLLOW ALL) ###
 
-Follow the exact section structure supplied by the system.
+1. AVOID DUPLICATE QUESTIONS & REPEATED SCENARIOS:
+   - Do NOT repeat the same question, scenario, numerical values, or substantially similar question in different sections.
+   - Section D/E MUST NOT repeat questions or scenarios from Section A, B, or C.
+   - DO NOT repeat specific real-life scenarios anywhere in the paper. Scenarios like horse grazing in a meadow, car wipers sweeping area, umbrella ribs, lighthouse warning ships, round table cover with 6 designs, or circle segment area calculations MUST NOT be used more than once across the entire paper.
+   - If a concept (e.g. area of a sector/segment) is tested in Section C, Section D MUST test an entirely different topic (e.g. volume/surface area of combined solids, proofs, or higher-level applications).
 
-For every section:
-- Use exactly the specified number of questions.
-- Use exactly the specified marks per question.
-- Do not add extra questions.
-- Do not remove questions.
-- Do not change the marks.
-- Do not merge sections.
-- Do not create additional sections.
+2. AVOID SAME-SKILL REPETITION:
+   - Do NOT ask multiple questions that test exactly the same formula or skill. Avoid repeating basic area calculations or direct formula recall. Each question must assess a distinct learning objective.
 
-The total marks of the generated paper MUST exactly equal {total_marks}.
+3. ENSURE STRICT DIFFICULTY PROGRESSION:
+   - Questions must become progressively more complex from Section A → Section B → Section C → Section D (→ Section E).
+   - Section A (1-mark): Basic knowledge, recall, direct understanding, single-step response.
+   - Section B (2-marks): Short explanation, simple application, 1-2 logical steps.
+   - Section C (3-marks): Multi-step application, problem solving, interpretation, 2-3 logical steps.
+   - Section D/E (4-5 marks): Higher-Order Thinking Skills (HOTS), multi-step reasoning, geometric proofs, analysis, or complex synthesis requiring 3-4 distinct steps. A 5-mark question MUST NOT simply be a longer version of a 3-mark question!
 
-### DIFFICULTY PROGRESSION
+4. ENSURE SUFFICIENT & UNAMBIGUOUS INFORMATION:
+   - Every question must contain all information required to solve it uniquely.
+   - Never create ambiguous questions (e.g., asking for the area of a "design" without specifying its exact shape, radius, central angle, or side length).
+   - Wording must be unambiguous: explicitly state whether major/minor sector or major/minor segment is meant!
 
-Section A:
-- Basic knowledge
-- Recall
-- Recognition
-- Direct understanding
-- Simple calculation where appropriate
+5. FIX DIAGRAM & VISUAL REFERENCES:
+   - NEVER write "as shown in the figure", "look at the diagram below", or refer to a visual unless that visual is explicitly provided in the textbook content.
+   - If visual images are unavailable, write complete text-based questions with all measurements and geometric properties explicitly stated.
 
-Section B:
-- Understanding
-- Short explanation
-- Simple application
-- One or two logical steps
+6. REMOVE UNNECESSARY INFORMATION:
+   - Do not include extraneous, irrelevant information that is unnecessary for solving the question.
 
-Section C:
-- Application
-- Reasoning
-- Problem solving
-- Interpretation
-- Multiple logical steps
+7. BALANCE QUESTION TYPES:
+   - Maintain an appropriate balance of conceptual, computational, application-based, reasoning, proof/derivation, and higher-order questions suitable for Class {std} {subject}.
 
-Section D/E:
-- Higher-order thinking
-- Analysis
-- Complex application
-- Interpretation
-- Multi-step reasoning
-- Problem solving
-- Evaluation where appropriate
+8. NO MULTIPLE CHOICE QUESTIONS (MCQ):
+   - DO NOT generate Multiple Choice Questions (MCQ). Generate direct, text-based questions such as Very Short Answer, Short Answer, Fill in the Blanks, True/False, or Essay questions.
 
-IMPORTANT:
-Higher-mark questions must be more intellectually demanding, not simply longer.
-Do not make a question difficult merely by adding unnecessary words.
+9. INTERNAL CHOICE / OR QUESTIONS:
+   - Where internal choices are provided in 4-mark or 5-mark sections, format them clearly with "OR" between choices and ensure both options have equivalent marks and difficulty.
 
-### SUBJECT-SPECIFIC RULES
+10. EXACT MARKS DISTRIBUTION & SECTION HEADINGS:
+    - Every section must clearly state its name, question count, marks per question, and section total marks (e.g. "Section A (8 × 1 = 8 Marks)").
+    - The sum of marks of all questions across all sections MUST EXACTLY equal {total_marks}.
 
-MATHEMATICS:
-Use appropriate questions involving calculations, mathematical concepts, algebra, geometry, mensuration, graphs, tables, construction, verification/proof where applicable, real-life applications, reasoning, multi-step problem solving.
+11. DO NOT REVEAL THE NAME OF MATHEMATICAL CRITERIA, THEOREMS, OR METHODS IN QUESTION STEMS:
+    - Do NOT explicitly reveal the name of a mathematical criterion, theorem, or method (e.g., "Using the AAA criterion", "Using SSS similarity", "Using the SAS criterion", "Using the AA criterion", "Using Pythagoras theorem", "Using Thales theorem") in an application or proof question unless the question specifically asks students to identify or state it.
+    - Provide the mathematical conditions (side lengths, ratios, angles, parallel lines, etc.) and ask the student to determine whether the triangles/shapes are similar or solve for required values and justify their answer.
+    - NEVER use leading labels or prefixes like "Using the AAA criterion...", "Using the SSS criterion...", "Using SAS criterion...", or "Using AA criterion..." in application/proof questions.
 
-SCIENCE:
-Use appropriate questions involving definitions, concepts, explanations, reasons, comparisons, classification, experiments, observations, diagrams when supported by textbook, applications, case/context-based questions, scientific reasoning.
+12. STRICT RELEVANCE TO SELECTED CHAPTER/TOPIC:
+    - Every question MUST be strictly relevant to the selected chapters ({', '.join(chapters)}).
+    - Do NOT include questions testing unrelated topics (such as Pythagoras theorem, perimeter, or basic angle classification) UNLESS those topics are explicitly part of the selected textbook chapter content.
 
-SOCIAL SCIENCE:
-Use appropriate questions involving Social Science concepts, facts, events, processes, causes/effects, comparisons, places, people, communities, occupations, environment, geography, history, civics, maps, source/context-based questions, interpretation, application, and analytical reasoning.
+13. MATCH DIFFICULTY STRICTLY TO MARKS:
+    - 1 mark: Short response, direct recall, single-step response.
+    - 2 marks: Brief explanation or simple calculation (1-2 steps).
+    - 3 marks: Meaningful calculation, multi-step reasoning, or short proof.
+    - 5 marks: Multi-step proof, derivation, or complex application requiring 3-4 distinct steps. NEVER assign 5 marks to a question solvable using one simple calculation!
 
-ENGLISH:
-Use appropriate questions involving reading comprehension, grammar, vocabulary, literature, text-based questions, short answers, explanation, writing, application, interpretation, higher-order comprehension.
-
-MALAYALAM:
-Use prescribed textbook content involving ആശയഗ്രഹണം, പദപ്രയോഗം, വ്യാകരണം, കവിത/ഗദ്യ comprehension, Context-based questions, Explanation, Literary analysis, Application.
-
-HINDI:
-Use prescribed textbook content involving पाठ comprehension, व्याकरण, शब्दावली, गद्य/पद्य comprehension, संदर्भ आधारित प्रश्न, Explanation, Application.
-
-For any other subject:
-Use question types and cognitive levels appropriate to the subject, class, and supplied textbook content.
-
-- Do NOT treat a Social Science textbook story as an English comprehension passage.
-- Do NOT ask questions only about character names, story names, village names, dialogue, or incidental story details.
-
-### QUESTION TYPE
-
-Do NOT force every question to be an MCQ. Choose the most appropriate question type based on Subject, Class, Section, Marks, Learning objective, and Textbook content.
-Allowed Question Types for this paper: {allowed_types}
-
-### QUESTION QUALITY
-
-Every question MUST:
-1. Be grammatically correct, clear, and unambiguous.
-2. Be complete and self-contained with a clear expected answer.
-3. Match the allocated marks and student's class level.
-4. Test a meaningful concept using correct textbook terminology.
-5. Avoid unnecessary complexity, repeated questions, or reworded versions of another question.
-6. Avoid invented facts, concepts, or unrelated information.
-
-### CHAPTER COVERAGE
-
-Distribute questions appropriately across ALL selected chapters: {', '.join(chapters)}. Do not generate most questions from only one chapter.
-
-### VISUAL QUESTIONS
-
-Use pictures, diagrams, graphs, tables, maps, or other visual questions ONLY when the required visual information is actually available in the supplied textbook content.
-NEVER write "Look at the picture below" or "Observe the graph below" unless that visual is provided. If unavailable, convert into a clear text-based equivalent.
-
-### MARKING DEPTH
-
-1 mark: Direct answer, recall, identification, simple calculation, one-step response.
-2 marks: Short explanation, simple application, approximately two logical steps.
-3 marks: Application, reasoning, calculation, multiple logical steps, supporting reasoning.
-4–5 marks: Detailed application, multi-step problem solving, analysis, interpretation, higher-order reasoning.
+14. AVOID EXCESSIVE DEFINITION RECALL & REPETITION ACROSS SECTIONS:
+    - Section A may contain basic definitions, terminology, formulas, and theorem identification.
+    - Sections B–D (and E) MUST increasingly test understanding, application, reasoning, calculations, and multi-step proofs.
+    - Do NOT repeat the same concept unnecessarily across sections. If a theorem/criterion is recalled in Section A, test a completely different application or distinct topic in later sections.
 
 ### MULTIPLE PAPERS
-
 This is Paper {p + 1} of {papers}. Every paper must contain fresh, non-duplicate questions.
 {exclusion_block}
 
 ### TEXTBOOK SOURCE MATERIAL
-
 Use ONLY the following supplied textbook/RAG content:
-
 {context_text}
 
 ### QUESTION TYPE JSON STRUCTURES ###
-- MCQ: {{ "question": "...", "type": "MCQ", "options": ["A", "B", "C", "D"], "answer": "..." }}
 - TRUEFALSE: {{ "question": "...", "type": "TRUEFALSE", "answer": "True" }}
 - FILLINTHEBLANKS: {{ "question": "The ___ is blue.", "type": "FILLINTHEBLANKS", "answer": "sky" }}
-- MATCHTHEFOLLOWING: {{ "question": "Match items", "type": "MATCHTHEFOLLOWING", "left": ["Cat", "Dog"], "right": ["Meow", "Bark"] }}
-- PICTUREBASED: {{ "question": "What is in the picture?", "type": "PICTUREBASED", "answer": "..." }}
-- VERYSHORT/SHORT/ESSAY: {{ "question": "...", "type": "SHORT", "answer": "..." }}
+- MATCHTHEFOLLOWING: {{ "question": "Match items", "type": "MATCHTHEFOLLOWING", "left": ["Item 1", "Item 2"], "right": ["Match 1", "Match 2"] }}
+- VERYSHORT/SHORT/ESSAY: {{ "question": "...", "type": "VERYSHORT", "answer": "..." }}
 
 ### REQUIRED SECTIONS & QUESTION COUNTS ###
 {section_text}
-
-### FINAL VALIDATION BEFORE OUTPUT
-
-Before returning the paper, internally verify:
-1. Correct board/curriculum: {board}
-2. Correct class: {std}
-3. Correct subject: {subject}
-4. Only selected chapters are used.
-5. No NCERT/SCERT content is mixed.
-6. Every question is supported by the supplied textbook content.
-7. Correct section count and marks per question matching the section blueprint exactly.
-8. Correct total marks equal to {total_marks}.
-9. Correct difficulty progression and no duplicate/rephrased questions.
-10. JSON format is valid.
 
 ### OUTPUT FORMAT ###
 Respond with valid JSON only. No text outside JSON.
@@ -1476,7 +1456,7 @@ Respond with valid JSON only. No text outside JSON.
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.2  # Higher temperature = more creative variation across papers
+                temperature=0.2
             )
 
             content = response.choices[0].message.content
@@ -1499,10 +1479,12 @@ Respond with valid JSON only. No text outside JSON.
             paper_id_val = paper_json.get("paper_id") or f"{task_id}-{p+1}"
             paper_json["paper_id"] = paper_id_val
 
+            # Post-process & validate paper structure, deduplicate, enforce options & marks
+            paper_json = post_process_and_validate_paper(paper_json, total_marks, std, subject)
+
             # Collect all question texts from this paper to exclude from next papers
             for section in paper_json.get("sections", []):
                 for q in section.get("questions", []):
-                    # Defensive check: AI might return strings instead of objects
                     if isinstance(q, dict):
                         q_text = q.get("question") or q.get("text") or ""
                     else:
@@ -1657,6 +1639,14 @@ def _ensure_pdf_exists(paper_doc: dict, force_rerender: bool = False) -> Optiona
                 paper_info["subject"] = paper_doc.get("subject") or "General"
             if "marks" not in paper_info or not paper_info["marks"]:
                 paper_info["marks"] = paper_doc.get("marks") or 50
+
+            # Sanitize time string in paper_info
+            raw_time_str = str(paper_info.get("time") or "")
+            clean_time_str = re.sub(r'\s*TOTAL\s*MARKS.*', '', raw_time_str, flags=re.IGNORECASE).strip()
+            if not clean_time_str or "MINUTES" not in clean_time_str.upper():
+                m_val = paper_info["marks"]
+                clean_time_str = "TIME - 90 MINUTES" if int(m_val) >= 50 else "TIME - 45 MINUTES"
+            paper_info["time"] = clean_time_str
 
             if std <= 5:
                 save_primary_question_paper(paper_info, canonical_pdf_path)

@@ -170,6 +170,12 @@ async def ai_usage_dashboard_page(request: Request):
     return templates.TemplateResponse("admin_ai_dashboard.html", {"request": request})
 
 
+@router.get("/student-usage-analytics-page", response_class=HTMLResponse)
+async def student_usage_analytics_page(request: Request):
+    """Student Usage Analytics page"""
+    return templates.TemplateResponse("student_usage_analytics.html", {"request": request})
+
+
 # ==================== NEW FEATURE ROUTES ====================
 
 @router.get("/user-management-page", response_class=HTMLResponse)

@@ -122,7 +122,7 @@
             value = item[col.key] ?? "";
           }
           if (typeof col.format === "function") {
-            value = col.format(value);
+            value = col.format(value, item);
           }
           else if (Array.isArray(value)) {
             value = value.join(", ");
@@ -154,6 +154,7 @@
       displayTable(data.students || [], "Students", [
         { key: "student_id", label: "Student ID" },
         { key: "student_name", label: "Name" },
+        { key: "mobile_number", label: "Phone Number", format: (val, item) => val || (item && (item.phone || item.mobile)) || "—" },
         { key: "dob", label: "DOB" },
         { key: "student_class", label: "Class" },
         { key: "guardian_name", label: "Guardian" },

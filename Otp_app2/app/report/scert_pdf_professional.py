@@ -52,8 +52,9 @@ def save_scert_question_paper(json_paper: dict, filename: str):
 
     std = _escape_html(str(json_paper.get("standard", "N/A")))
     subj_title = _escape_html(str(json_paper.get("subject", "N/A")))
-    time_val = _escape_html(str(json_paper.get("time", "90 MINUTES")))
-    time_text = f"TIME: {time_val}" if "TIME" not in time_val.upper() else time_val
+    raw_time = _escape_html(str(json_paper.get("time", "90 MINUTES")))
+    time_val = re.sub(r'\s*TOTAL\s*MARKS.*', '', raw_time, flags=re.IGNORECASE).strip()
+    time_text = f"TIME - {time_val}" if "TIME" not in time_val.upper() else time_val
     marks_val = _escape_html(str(json_paper.get("marks", 50)))
 
     # Get workspace base directory for font paths in fitz.Archive
@@ -104,7 +105,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
   .subtitle {{ font-size: 12px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }}
   
   table.meta-header-table {{
-    width: 100%;
+    width: 100% !important;
     border-collapse: collapse;
     border-bottom: 1.5px solid #000;
     margin-top: 10px;
@@ -112,18 +113,22 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     clear: both;
   }}
   td.meta-left {{
-    text-align: left;
+    width: 50% !important;
+    text-align: left !important;
     vertical-align: bottom;
     padding-bottom: 6px;
     font-size: 11px;
     font-weight: bold;
+    color: #111111;
   }}
   td.meta-right {{
-    text-align: right;
+    width: 50% !important;
+    text-align: right !important;
     vertical-align: bottom;
     padding-bottom: 6px;
     font-size: 11px;
     font-weight: bold;
+    color: #111111;
   }}
 
   .gen-instructions {{
@@ -202,10 +207,10 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     <div class="subtitle">CLASS: {std}</div>
     <div class="subtitle">SUBJECT: {subj_title}</div>
   </div>
-  <table class="meta-header-table">
+  <table class="meta-header-table" width="100%">
     <tr>
-      <td class="meta-left">{time_text}</td>
-      <td class="meta-right">TOTAL MARKS: {marks_val}</td>
+      <td class="meta-left" width="50%" align="left">{time_text}</td>
+      <td class="meta-right" width="50%" align="right">TOTAL MARKS: {marks_val}</td>
     </tr>
   </table>
 
@@ -227,9 +232,9 @@ def save_scert_question_paper(json_paper: dict, filename: str):
         sname = _escape_html(str(sec.get("section") or sec.get("title") or "")).replace("Section", "").replace("SECTION", "").strip()
         qs = sec.get("questions")
         total_q = len(qs) if isinstance(qs, list) else 0
-        html_parts.append(f"""      <li>Section {sname} has {total_q} questions.</li>\n""")
-    html_parts.append("""      <li>Attempt all questions.</li>
-      <li>There is no negative marking.</li>
+        m_per_q = sec.get("marks_per_question", 1)
+        html_parts.append(f"""      <li>Section {sname}: {total_q} questions ({total_q} &times; {m_per_q} = {total_q * m_per_q} Marks).</li>\n""")
+    html_parts.append("""      <li>All questions are compulsory. Internal choices are provided where indicated.</li>
     </ol>
   </div>
 """)
@@ -241,18 +246,19 @@ def save_scert_question_paper(json_paper: dict, filename: str):
         raw_sname = str(sec.get("section") or sec.get("title") or "Section")
         clean_sname = _escape_html(raw_sname).replace("Section", "").replace("SECTION", "").strip()
         sec_name_display = f"SECTION {clean_sname}" if clean_sname else f"{_escape_html(raw_sname)}"
-        marks_per_q = sec.get("marks_per_question")
-        marks_info = f" (Each question: {marks_per_q} mark{'s' if isinstance(marks_per_q, (int, float)) and marks_per_q > 1 else ''})" if marks_per_q else ""
+        marks_per_q = sec.get("marks_per_question", 1)
+        questions = sec.get("questions")
+        if not isinstance(questions, list):
+            questions = []
+        q_count = len(questions)
+        sec_total = q_count * marks_per_q if marks_per_q else 0
+        marks_info = f" ({q_count} &times; {marks_per_q} = {sec_total} Marks)" if sec_total > 0 else ""
         
         html_parts.append(f"""<div class="section-hdr {bold_class}">{sec_name_display}{marks_info}</div>""")
         
         sec_instr = sec.get("instruction")
         if sec_instr:
             html_parts.append(f"""<div style="font-style:italic; margin-bottom:8px; clear:both;" class="{lang_class}">{_escape_html(str(sec_instr))}</div>""")
-
-        questions = sec.get("questions")
-        if not isinstance(questions, list):
-            questions = []
 
         for q in questions:
             if isinstance(q, str):
@@ -263,7 +269,7 @@ def save_scert_question_paper(json_paper: dict, filename: str):
             qtext = _escape_html(str(q.get("question") or q.get("text") or "").strip())
             qtype = (str(q.get("type") or "")).upper()
             qmarks = q.get("marks", marks_per_q)
-            qmarks_str = f" <b>({qmarks} mark{'s' if isinstance(qmarks, (int, float)) and qmarks > 1 else ''})</b>" if qmarks else ""
+            qmarks_str = f" <b>[{qmarks} Mark{'s' if isinstance(qmarks, (int, float)) and qmarks > 1 else ''}]</b>" if qmarks else ""
             
             html_parts.append(f"""
 <div class="question">
@@ -284,21 +290,23 @@ def save_scert_question_paper(json_paper: dict, filename: str):
                     html_parts.append(f"""
   <table class="options-grid {lang_class}">
     <tr>
-      <td class="option-cell">A. {cleaned_options[0]}</td>
-      <td class="option-cell">B. {cleaned_options[1]}</td>
+      <td class="option-cell">(A) {cleaned_options[0]}</td>
+      <td class="option-cell">(B) {cleaned_options[1]}</td>
     </tr>
     <tr>
-      <td class="option-cell">C. {cleaned_options[2]}</td>
-      <td class="option-cell">D. {cleaned_options[3]}</td>
+      <td class="option-cell">(C) {cleaned_options[2]}</td>
+      <td class="option-cell">(D) {cleaned_options[3]}</td>
     </tr>
   </table>
 """)
-                else:
+                elif len(cleaned_options) > 0:
                     for idx, opt in enumerate(cleaned_options):
-                        html_parts.append(f"""<div style="margin-left:16px; clear:both;" class="{lang_class}">{chr(65+idx)}. {opt}</div>""")
+                        html_parts.append(f"""<div style="margin-left:16px; clear:both;" class="{lang_class}">({chr(65+idx)}) {opt}</div>""")
+                else:
+                    html_parts.append(f"""<div style="margin-left:16px; margin-top:4px; clear:both;" class="{lang_class}">Answer: ____________________________________</div>""")
 
             elif qtype in ("TRUEFALSE", "TRUE/FALSE"):
-                tf_opts = "ശരി &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; തെറ്റ്" if is_ml else ("സത്യ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; असत्य" if is_hi else "True &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; False")
+                tf_opts = "ശരി &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; തെറ്റ്" if is_ml else ("സത്യ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; असत्य" if is_hi else "(A) True &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (B) False")
                 html_parts.append(f"""<div style="margin-left:16px; clear:both;" class="{lang_class}">{tf_opts}</div>""")
 
             elif qtype == "MATCHTHEFOLLOWING":
@@ -313,22 +321,32 @@ def save_scert_question_paper(json_paper: dict, filename: str):
                     html_parts.append(f"""
     <tr>
       <td class="match-left">{i+1}. {l_item}</td>
-      <td class="match-right">{chr(65+i)}. {r_item}</td>
+      <td class="match-right">({chr(65+i)}) {r_item}</td>
     </tr>
 """)
                 html_parts.append("""</table>""")
 
             elif qtype == "FILLINTHEBLANKS":
-                html_parts.append(f"""<div style="margin-left:16px; margin-top:4px; clear:both;" class="{lang_class}">Answer: ____________________________________</div>""")
+                pass
 
             elif qtype == "PICTUREBASED":
-                html_parts.append("""<div style="border:1px solid #666; height:120px; text-align:center; line-height:120px; color:#888; margin-top:6px; margin-bottom:6px;">[ SPACE FOR IMAGE / PICTURE ]</div>""")
+                html_parts.append("""<div style="border:1px dashed #666; height:100px; text-align:center; line-height:100px; color:#666; margin-top:6px; margin-bottom:6px;">[ DIAGRAM / VISUAL ]</div>""")
 
             elif qtype in ("VERYSHORT", "SHORT"):
-                html_parts.append("""<div style="height:35px;"></div>""")
+                html_parts.append("""<div style="height:25px;"></div>""")
 
             elif qtype in ("ESSAY", "LONG", "ANALYZE", "APPLY"):
-                html_parts.append("""<div style="height:70px;"></div>""")
+                html_parts.append("""<div style="height:50px;"></div>""")
+
+            # Render internal choice OR question if present
+            or_q = q.get("or_question") or q.get("or_text")
+            if or_q:
+                or_qtext = _escape_html(str(or_q if isinstance(or_q, str) else or_q.get("question", "")))
+                if or_qtext:
+                    html_parts.append(f"""
+<div style="text-align:center; font-weight:bold; margin:8px 0; color:#002B49;" class="{bold_class}">OR</div>
+<div class="q-text {lang_class}"><b>{qnum} (Alternative).</b> {or_qtext}{qmarks_str}</div>
+""")
 
             html_parts.append("</div>")
             qnum += 1
@@ -378,7 +396,8 @@ def _save_fallback_pdf(json_paper: dict, filename: str):
             std = json_paper.get("standard", "N/A")
             subj = json_paper.get("subject", "N/A")
             marks = json_paper.get("marks", 50)
-            time_val = json_paper.get("time", "90 MINUTES")
+            raw_time = str(json_paper.get("time", "90 MINUTES"))
+            time_val = re.sub(r'\s*TOTAL\s*MARKS.*', '', raw_time, flags=re.IGNORECASE).strip()
             time_text = f"TIME - {time_val}" if "TIME" not in str(time_val).upper() else str(time_val)
             
             y = 45
@@ -450,7 +469,8 @@ def _save_reportlab_fallback(json_paper: dict, filename: str):
         std = str(json_paper.get("standard", "N/A"))
         subj = str(json_paper.get("subject", "N/A"))
         marks = str(json_paper.get("marks", 50))
-        time_val = str(json_paper.get("time", "90 MINUTES"))
+        raw_time = str(json_paper.get("time", "90 MINUTES"))
+        time_val = re.sub(r'\s*TOTAL\s*MARKS.*', '', raw_time, flags=re.IGNORECASE).strip()
         time_text = f"TIME - {time_val}" if "TIME" not in time_val.upper() else time_val
 
         y = height - 45

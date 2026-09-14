@@ -67,10 +67,39 @@ async def search_students(
             async for school in s_cursor:
                 school_map[str(school["_id"])] = school.get("name")
 
+    # Batch lookup mobile numbers from usertable if not directly on student doc
+    missing_mobile_sids = [s["_id"] for s in students if not (s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile"))]
+    mobile_map = {}
+    if missing_mobile_sids:
+        sid_str_list = [str(x) for x in missing_mobile_sids]
+        u_cursor = db.usertable.find({
+            "$or": [
+                {"student_ids": {"$in": missing_mobile_sids}},
+                {"student_ids": {"$in": sid_str_list}},
+                {"student_id": {"$in": missing_mobile_sids}},
+                {"student_id": {"$in": sid_str_list}}
+            ]
+        })
+        async for u in u_cursor:
+            m_num = u.get("mobile_number")
+            if m_num:
+                st_ids = u.get("student_ids", [])
+                if not isinstance(st_ids, list):
+                    st_ids = [st_ids]
+                if u.get("student_id"):
+                    st_ids.append(u.get("student_id"))
+                for st_id in st_ids:
+                    mobile_map[str(st_id)] = m_num
+
     for s in students:
         sid = s.get("school_id")
         if sid and sid in school_map:
             s["school_name"] = school_map[sid]
+        
+        st_id_str = str(s["_id"])
+        m_val = s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile") or mobile_map.get(st_id_str)
+        if m_val:
+            s["mobile_number"] = m_val
 
     return {
         "status": "success",
@@ -101,6 +130,18 @@ async def get_student_profile(
     student = await db.students.find_one({"_id": s_oid})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+
+    if not (student.get("mobile_number") or student.get("phone") or student.get("mobile") or student.get("parent_mobile")):
+        parent = await db.usertable.find_one({
+            "$or": [
+                {"student_ids": s_oid},
+                {"student_ids": student_id},
+                {"student_id": s_oid},
+                {"student_id": student_id}
+            ]
+        })
+        if parent and parent.get("mobile_number"):
+            student["mobile_number"] = parent.get("mobile_number")
 
     # Career analysis (latest)
     career = await db.career_analyzer.find_one(

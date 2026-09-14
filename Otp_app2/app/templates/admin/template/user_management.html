@@ -178,12 +178,15 @@
     }
 
     .class-badge {
-        background: #00666622;
-        color: #006666;
-        border-radius: 12px;
-        padding: 2px 10px;
-        font-size: 0.75rem;
-        font-weight: 600;
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+        display: inline-block;
     }
 
     #toast-um {
@@ -618,11 +621,13 @@
         json.data.forEach((s, i) => {
             const isActive = s.is_active !== false;
             const mobileNum = s.mobile_number || s.phone || s.mobile || "—";
+            const rawCls = s.student_class ? String(s.student_class).replace(/^class\s+/gi, '').trim() : '';
+            const stdBadgeText = rawCls ? (rawCls.toLowerCase() === 'string' ? 'Unassigned' : `Class ${rawCls}`) : '—';
             html += `<tr>
         <td>${studentSkip + i + 1}</td>
         <td><strong>${s.student_name || "—"}</strong></td>
         <td><span class="text-muted small">${mobileNum}</span></td>
-        <td><span class="class-badge">Class ${s.student_class || "—"}</span></td>
+        <td><span class="class-badge">${stdBadgeText}</span></td>
         <td>${s.school_name || "—"}</td>
         <td>${s.dob || "—"}</td>
         <td>${s.guardian_name || "—"}</td>

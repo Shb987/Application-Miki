@@ -62,6 +62,54 @@
         border-color: #10b981 !important;
         color: #34d399 !important;
     }
+    .btn-action-edit {
+        background-color: rgba(243, 156, 18, 0.12) !important;
+        color: #d97706 !important;
+        border: 1px solid rgba(243, 156, 18, 0.3) !important;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 5px 12px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .btn-action-edit:hover {
+        background-color: #f39c12 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 10px rgba(243, 156, 18, 0.25);
+    }
+    .btn-action-delete {
+        background-color: rgba(239, 68, 68, 0.12) !important;
+        color: #dc2626 !important;
+        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 5px 12px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .btn-action-delete:hover {
+        background-color: #ef4444 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
+    }
+    body.dark-only .btn-action-edit,
+    .dark-only .btn-action-edit {
+        background-color: rgba(245, 158, 11, 0.22) !important;
+        color: #fbbf24 !important;
+        border-color: rgba(245, 158, 11, 0.4) !important;
+    }
+    body.dark-only .btn-action-delete,
+    .dark-only .btn-action-delete {
+        background-color: rgba(239, 68, 68, 0.22) !important;
+        color: #fca5a5 !important;
+        border-color: rgba(239, 68, 68, 0.4) !important;
+    }
     /* Adding some subtle shadows and rounded corners for attractiveness */
     .card {
         border-radius: 12px;
@@ -275,17 +323,17 @@
                 </div>
                 <div class="card-body mt-3">
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped" id="questionsTable">
+                        <table class="table table-hover table-striped align-middle" id="questionsTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th style="width: 50px;">#</th>
-                                    <th style="width: 35%">Question</th>
-                                    <th>Domain</th>
-                                    <th>Type</th>
-                                    <th>Class</th>
-                                    <th>Difficulty</th>
+                                    <th style="width: 50px;" class="text-center">#</th>
+                                    <th style="min-width: 220px;">Question</th>
+                                    <th style="width: 100px;">Domain</th>
+                                    <th style="width: 100px;">Type</th>
+                                    <th style="width: 80px;" class="text-center">Class</th>
+                                    <th style="width: 100px;" class="text-center">Difficulty</th>
                                     <th style="min-width: 170px;">Correct Answer</th>
-                                    <th style="width: 140px;">Actions</th>
+                                    <th style="width: 170px;" class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="questionsBody">
@@ -572,29 +620,29 @@
         }
         tbody.innerHTML = questions.map((q, i) => `
             <tr>
-            <td><strong>${startIndex + i + 1}</strong></td>
+            <td class="text-center"><strong>${startIndex + i + 1}</strong></td>
             <td>
-                <div class="text-truncate fw-medium" style="max-width: 320px;" title="${escapeHtml(q.question_text)}">
+                <div class="text-truncate fw-medium" style="max-width: 300px;" title="${escapeHtml(q.question_text)}">
                 ${escapeHtml(q.question_text)}
                 </div>
             </td>
             <td><span class="badge badge-domain">${escapeHtml(q.domain || '-')}</span></td>
             <td><span class="badge badge-type">${escapeHtml(q.question_type || '-')}</span></td>
-            <td><span class="fw-semibold">${escapeHtml(q.class_range || '-')}</span></td>
-            <td><span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${escapeHtml(q.difficulty_level || '-')}</span></td>
+            <td class="text-center"><span class="fw-semibold">${escapeHtml(q.class_range || '-')}</span></td>
+            <td class="text-center"><span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${escapeHtml(q.difficulty_level || '-')}</span></td>
             <td>
-                <span class="badge badge-correct-ans text-start d-inline-flex align-items-center gap-1" style="max-width: 220px; white-space: normal; line-height: 1.3;" title="Correct Answer">
-                    <i data-feather="check-circle" style="width: 14px; height: 14px; flex-shrink: 0;"></i>
+                <span class="badge badge-correct-ans text-start d-inline-flex align-items-center gap-1.5" style="max-width: 220px; white-space: normal; line-height: 1.3;" title="Correct Answer">
+                    <i class="fa fa-check-circle me-1" style="font-size: 0.85rem; color: #059669;"></i>
                     <span>${escapeHtml(getCorrectAnswerText(q))}</span>
                 </span>
             </td>
-            <td>
-                <div class="action-group">
-                    <button class="action-btn btn-edit" onclick="openEditModal('${q.question_id}')" title="Edit">
-                        <i data-feather="edit-2"></i>
+            <td class="text-center" style="white-space: nowrap; min-width: 160px;">
+                <div class="d-inline-flex align-items-center justify-content-center gap-2">
+                    <button class="btn btn-action-edit" onclick="openEditModal('${q.question_id}')" title="Edit Question">
+                        <i class="fa fa-pencil"></i> Edit
                     </button>
-                    <button class="action-btn btn-delete" onclick="deleteQuestion('${q.question_id}')" title="Delete">
-                        <i data-feather="trash-2"></i>
+                    <button class="btn btn-action-delete" onclick="deleteQuestion('${q.question_id}')" title="Delete Question">
+                        <i class="fa fa-trash"></i> Delete
                     </button>
                 </div>
             </td>

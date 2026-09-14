@@ -62,51 +62,46 @@
         border-color: #10b981 !important;
         color: #34d399 !important;
     }
-    .btn-action-edit {
-        background-color: rgba(243, 156, 18, 0.12) !important;
-        color: #d97706 !important;
-        border: 1px solid rgba(243, 156, 18, 0.3) !important;
-        font-weight: 600;
-        font-size: 0.8rem;
-        padding: 5px 12px;
-        border-radius: 6px;
-        transition: all 0.2s ease;
+    .btn-action-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 0.82rem;
+        transition: all 0.2s ease;
     }
-    .btn-action-edit:hover {
+    .btn-action-icon-edit {
+        background-color: rgba(243, 156, 18, 0.15) !important;
+        color: #d97706 !important;
+        border: 1px solid rgba(243, 156, 18, 0.35) !important;
+    }
+    .btn-action-icon-edit:hover {
         background-color: #f39c12 !important;
         color: #ffffff !important;
-        box-shadow: 0 4px 10px rgba(243, 156, 18, 0.25);
+        box-shadow: 0 3px 8px rgba(243, 156, 18, 0.3);
     }
-    .btn-action-delete {
-        background-color: rgba(239, 68, 68, 0.12) !important;
+    .btn-action-icon-delete {
+        background-color: rgba(239, 68, 68, 0.15) !important;
         color: #dc2626 !important;
-        border: 1px solid rgba(239, 68, 68, 0.3) !important;
-        font-weight: 600;
-        font-size: 0.8rem;
-        padding: 5px 12px;
-        border-radius: 6px;
-        transition: all 0.2s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
+        border: 1px solid rgba(239, 68, 68, 0.35) !important;
     }
-    .btn-action-delete:hover {
+    .btn-action-icon-delete:hover {
         background-color: #ef4444 !important;
         color: #ffffff !important;
-        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
+        box-shadow: 0 3px 8px rgba(239, 68, 68, 0.3);
     }
-    body.dark-only .btn-action-edit,
-    .dark-only .btn-action-edit {
-        background-color: rgba(245, 158, 11, 0.22) !important;
+    body.dark-only .btn-action-icon-edit,
+    .dark-only .btn-action-icon-edit {
+        background-color: rgba(245, 158, 11, 0.25) !important;
         color: #fbbf24 !important;
         border-color: rgba(245, 158, 11, 0.4) !important;
     }
-    body.dark-only .btn-action-delete,
-    .dark-only .btn-action-delete {
-        background-color: rgba(239, 68, 68, 0.22) !important;
+    body.dark-only .btn-action-icon-delete,
+    .dark-only .btn-action-icon-delete {
+        background-color: rgba(239, 68, 68, 0.25) !important;
         color: #fca5a5 !important;
         border-color: rgba(239, 68, 68, 0.4) !important;
     }
@@ -323,17 +318,17 @@
                 </div>
                 <div class="card-body mt-3">
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped align-middle" id="questionsTable">
+                        <table class="table table-hover table-striped align-middle w-100" id="questionsTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th style="width: 50px;" class="text-center">#</th>
-                                    <th style="min-width: 220px;">Question</th>
-                                    <th style="width: 100px;">Domain</th>
-                                    <th style="width: 100px;">Type</th>
-                                    <th style="width: 80px;" class="text-center">Class</th>
-                                    <th style="width: 100px;" class="text-center">Difficulty</th>
-                                    <th style="min-width: 170px;">Correct Answer</th>
-                                    <th style="width: 170px;" class="text-center">Actions</th>
+                                    <th style="width: 40px;" class="text-center">#</th>
+                                    <th>Question</th>
+                                    <th style="width: 90px;">Domain</th>
+                                    <th style="width: 90px;">Type</th>
+                                    <th style="width: 70px;" class="text-center">Class</th>
+                                    <th style="width: 85px;" class="text-center">Difficulty</th>
+                                    <th style="width: 150px;">Correct Answer</th>
+                                    <th style="width: 90px;" class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="questionsBody">
@@ -622,7 +617,7 @@
             <tr>
             <td class="text-center"><strong>${startIndex + i + 1}</strong></td>
             <td>
-                <div class="text-truncate fw-medium" style="max-width: 300px;" title="${escapeHtml(q.question_text)}">
+                <div class="text-truncate fw-medium" style="max-width: 220px;" title="${escapeHtml(q.question_text)}">
                 ${escapeHtml(q.question_text)}
                 </div>
             </td>
@@ -631,18 +626,18 @@
             <td class="text-center"><span class="fw-semibold">${escapeHtml(q.class_range || '-')}</span></td>
             <td class="text-center"><span class="badge badge-${getDifficultyColor(q.difficulty_level)}">${escapeHtml(q.difficulty_level || '-')}</span></td>
             <td>
-                <span class="badge badge-correct-ans text-start d-inline-flex align-items-center gap-1.5" style="max-width: 220px; white-space: normal; line-height: 1.3;" title="Correct Answer">
-                    <i class="fa fa-check-circle me-1" style="font-size: 0.85rem; color: #059669;"></i>
-                    <span>${escapeHtml(getCorrectAnswerText(q))}</span>
+                <span class="badge badge-correct-ans text-start d-inline-flex align-items-center gap-1 text-truncate" style="max-width: 140px; line-height: 1.3;" title="${escapeHtml(getCorrectAnswerText(q))}">
+                    <i class="fa fa-check-circle me-1" style="font-size: 0.75rem; color: #059669; flex-shrink: 0;"></i>
+                    <span class="text-truncate">${escapeHtml(getCorrectAnswerText(q))}</span>
                 </span>
             </td>
-            <td class="text-center" style="white-space: nowrap; min-width: 160px;">
-                <div class="d-inline-flex align-items-center justify-content-center gap-2">
-                    <button class="btn btn-action-edit" onclick="openEditModal('${q.question_id}')" title="Edit Question">
-                        <i class="fa fa-pencil"></i> Edit
+            <td class="text-center" style="white-space: nowrap;">
+                <div class="d-inline-flex align-items-center justify-content-center gap-1.5">
+                    <button class="btn btn-action-icon btn-action-icon-edit" onclick="openEditModal('${q.question_id}')" title="Edit Question">
+                        <i class="fa fa-pencil"></i>
                     </button>
-                    <button class="btn btn-action-delete" onclick="deleteQuestion('${q.question_id}')" title="Delete Question">
-                        <i class="fa fa-trash"></i> Delete
+                    <button class="btn btn-action-icon btn-action-icon-delete" onclick="deleteQuestion('${q.question_id}')" title="Delete Question">
+                        <i class="fa fa-trash"></i>
                     </button>
                 </div>
             </td>

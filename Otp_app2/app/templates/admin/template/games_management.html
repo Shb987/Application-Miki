@@ -803,7 +803,15 @@
         const startIndex = (wordleCurrentPage - 1) * PAGE_SIZE;
         const pageWords = allWords.slice(startIndex, startIndex + PAGE_SIZE);
 
-        let html = `<table class="table table-hover table-bordered align-middle w-100"><thead class="table-dark"><tr><th style="width:40px;" class="text-center">#</th><th>Word</th><th style="width:90px;" class="text-center">Difficulty</th><th style="width:70px;" class="text-center">Level</th><th style="width:90px;" class="text-center">Class Range</th><th style="width:90px;" class="text-center">Hints</th><th style="width:85px;" class="text-center">Actions</th></tr></thead><tbody>`;
+        let html = `<table class="table table-hover table-bordered align-middle w-100"><thead class="table-dark"><tr>
+            <th style="width: 50px;" class="text-center">#</th>
+            <th style="width: 28%;">Word</th>
+            <th style="width: 15%;" class="text-center">Difficulty</th>
+            <th style="width: 10%;" class="text-center">Level</th>
+            <th style="width: 16%;" class="text-center">Class Range</th>
+            <th style="width: 16%;" class="text-center">Hints</th>
+            <th style="width: 15%;" class="text-center">Actions</th>
+        </tr></thead><tbody>`;
         pageWords.forEach((w, i) => {
             const hintsStr = JSON.stringify(w.hints || []).replace(/'/g, "\\'");
             const itemNumber = startIndex + i + 1;
@@ -951,7 +959,14 @@
         const startIndex = (squaresCurrentPage - 1) * PAGE_SIZE;
         const pageLevels = allLevels.slice(startIndex, startIndex + PAGE_SIZE);
 
-        let html = `<table class="table table-hover table-bordered align-middle w-100"><thead class="table-dark"><tr><th style="width:40px;" class="text-center">#</th><th style="width:70px;" class="text-center">Level</th><th style="width:90px;" class="text-center">Range</th><th>Topic</th><th style="width:140px;">Words (M/B)</th><th style="width:85px;" class="text-center">Actions</th></tr></thead><tbody>`;
+        let html = `<table class="table table-hover table-bordered align-middle w-100"><thead class="table-dark"><tr>
+            <th style="width: 50px;" class="text-center">#</th>
+            <th style="width: 10%;" class="text-center">Level</th>
+            <th style="width: 15%;" class="text-center">Range</th>
+            <th style="width: 35%;">Topic</th>
+            <th style="width: 25%;">Words (M/B)</th>
+            <th style="width: 15%;" class="text-center">Actions</th>
+        </tr></thead><tbody>`;
         pageLevels.forEach((lv, i) => {
             const mWords = JSON.stringify(lv.main_words || []).replace(/'/g, "\\'");
             const bWords = JSON.stringify(lv.bonus_words || []).replace(/'/g, "\\'");
@@ -1202,13 +1217,14 @@
 
             let html = `<table class="table table-hover table-bordered align-middle w-100"><thead class="table-dark"><tr>
                 <th style="width:35px;" class="text-center"><input type="checkbox" id="pz-select-all" onclick="toggleAllPuzzleSelect(this)"></th>
-                <th style="width:40px;" class="text-center">#</th>
-                <th style="width:70px;" class="text-center">Preview</th>
-                <th style="width:95px;" class="text-center">Difficulty</th>
-                <th style="width:80px;" class="text-center">Level</th>
-                <th style="width:80px;" class="text-center">Grid Size</th>
-                <th>Title / Image Path</th>
-                <th style="width:85px;" class="text-center">Actions</th></tr></thead><tbody>`;
+                <th style="width:45px;" class="text-center">#</th>
+                <th style="width:75px;" class="text-center">Preview</th>
+                <th style="width:14%;" class="text-center">Difficulty</th>
+                <th style="width:10%;" class="text-center">Level</th>
+                <th style="width:11%;" class="text-center">Grid Size</th>
+                <th style="width:38%;">Title / Image Path</th>
+                <th style="width:12%;" class="text-center">Actions</th>
+            </tr></thead><tbody>`;
             pageLevels.forEach((lv, i) => {
                 const imgUrl = lv.image_url || '';
                 const titleEsc = (lv.title || '').replace(/'/g, "\\'");

@@ -243,6 +243,51 @@
         border-color: #475569 !important;
         color: #f8fafc !important;
     }
+
+    .btn-action-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 0.82rem;
+        transition: all 0.2s ease;
+        border: none;
+    }
+    .btn-action-icon-edit {
+        background-color: rgba(243, 156, 18, 0.15) !important;
+        color: #d97706 !important;
+        border: 1px solid rgba(243, 156, 18, 0.35) !important;
+    }
+    .btn-action-icon-edit:hover {
+        background-color: #f39c12 !important;
+        color: #ffffff !important;
+        box-shadow: 0 3px 8px rgba(243, 156, 18, 0.3);
+    }
+    .btn-action-icon-delete {
+        background-color: rgba(239, 68, 68, 0.15) !important;
+        color: #dc2626 !important;
+        border: 1px solid rgba(239, 68, 68, 0.35) !important;
+    }
+    .btn-action-icon-delete:hover {
+        background-color: #ef4444 !important;
+        color: #ffffff !important;
+        box-shadow: 0 3px 8px rgba(239, 68, 68, 0.3);
+    }
+    body.dark-only .btn-action-icon-edit,
+    .dark-only .btn-action-icon-edit {
+        background-color: rgba(245, 158, 11, 0.25) !important;
+        color: #fbbf24 !important;
+        border-color: rgba(245, 158, 11, 0.4) !important;
+    }
+    body.dark-only .btn-action-icon-delete,
+    .dark-only .btn-action-icon-delete {
+        background-color: rgba(239, 68, 68, 0.25) !important;
+        color: #fca5a5 !important;
+        border-color: rgba(239, 68, 68, 0.4) !important;
+    }
 </style>
 {% endblock %}
 
@@ -751,19 +796,19 @@
         const startIndex = (wordleCurrentPage - 1) * PAGE_SIZE;
         const pageWords = allWords.slice(startIndex, startIndex + PAGE_SIZE);
 
-        let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Word</th><th>Difficulty</th><th>Level</th><th>Class Range</th><th>Hints</th><th>Actions</th></tr></thead><tbody>`;
+        let html = `<table class="table table-hover table-bordered align-middle w-100"><thead class="table-dark"><tr><th style="width:40px;" class="text-center">#</th><th>Word</th><th style="width:90px;" class="text-center">Difficulty</th><th style="width:70px;" class="text-center">Level</th><th style="width:90px;" class="text-center">Class Range</th><th style="width:90px;" class="text-center">Hints</th><th style="width:85px;" class="text-center">Actions</th></tr></thead><tbody>`;
         pageWords.forEach((w, i) => {
             const hintsStr = JSON.stringify(w.hints || []).replace(/'/g, "\\'");
             const itemNumber = startIndex + i + 1;
-            html += `<tr><td>${itemNumber}</td><td><strong>${w.word}</strong></td><td><span class="badge ${w.difficulty === 'Easy' ? 'bg-success' : w.difficulty === 'Medium' ? 'bg-warning' : 'bg-danger'}">${w.difficulty}</span></td>
-            <td>${w.level}</td><td><span class="range-badge">${w.class_range}</span></td><td><small>${w.hints ? w.hints.length : 0} hints</small></td>
-            <td>
-                <div class="action-group">
-                    <button class="action-btn btn-edit" onclick='editWord("${w.id}","${w.word}",${hintsStr},${w.level},"${w.class_range}","${w.difficulty}")' title="Edit">
-                        <i data-feather="edit-2"></i>
+            html += `<tr><td class="text-center"><strong>${itemNumber}</strong></td><td><strong>${escapeHtml(w.word)}</strong></td><td class="text-center"><span class="badge ${w.difficulty === 'Easy' ? 'bg-success' : w.difficulty === 'Medium' ? 'bg-warning' : 'bg-danger'}">${w.difficulty}</span></td>
+            <td class="text-center">${w.level}</td><td class="text-center"><span class="range-badge">${w.class_range}</span></td><td class="text-center"><small>${w.hints ? w.hints.length : 0} hints</small></td>
+            <td class="text-center" style="white-space: nowrap;">
+                <div class="d-inline-flex align-items-center justify-content-center gap-1.5">
+                    <button class="btn btn-action-icon btn-action-icon-edit" onclick='editWord("${w.id}","${w.word}",${hintsStr},${w.level},"${w.class_range}","${w.difficulty}")' title="Edit Word">
+                        <i class="fa fa-pencil"></i>
                     </button>
-                    <button class="action-btn btn-delete" onclick='deleteWord("${w.id}","${w.word}")' title="Delete">
-                        <i data-feather="trash-2"></i>
+                    <button class="btn btn-action-icon btn-action-icon-delete" onclick='deleteWord("${w.id}","${w.word}")' title="Delete Word">
+                        <i class="fa fa-trash"></i>
                     </button>
                 </div>
             </td></tr>`;
@@ -899,7 +944,7 @@
         const startIndex = (squaresCurrentPage - 1) * PAGE_SIZE;
         const pageLevels = allLevels.slice(startIndex, startIndex + PAGE_SIZE);
 
-        let html = `<table class="table table-hover table-bordered"><thead class="table-dark"><tr><th>#</th><th>Level</th><th>Range</th><th>Topic</th><th>Words (M/B)</th><th>Actions</th></tr></thead><tbody>`;
+        let html = `<table class="table table-hover table-bordered align-middle w-100"><thead class="table-dark"><tr><th style="width:40px;" class="text-center">#</th><th style="width:70px;" class="text-center">Level</th><th style="width:90px;" class="text-center">Range</th><th>Topic</th><th style="width:140px;">Words (M/B)</th><th style="width:85px;" class="text-center">Actions</th></tr></thead><tbody>`;
         pageLevels.forEach((lv, i) => {
             const mWords = JSON.stringify(lv.main_words || []).replace(/'/g, "\\'");
             const bWords = JSON.stringify(lv.bonus_words || []).replace(/'/g, "\\'");
@@ -907,15 +952,15 @@
             const hint = (lv.hint || "").replace(/'/g, "\\'");
             const itemNumber = startIndex + i + 1;
 
-            html += `<tr><td>${itemNumber}</td><td>${lv.level}</td><td><span class="range-badge">${lv.class_range}</span></td><td>${lv.hint || "—"}</td>
+            html += `<tr><td class="text-center"><strong>${itemNumber}</strong></td><td class="text-center"><strong>${lv.level}</strong></td><td class="text-center"><span class="range-badge">${lv.class_range}</span></td><td>${escapeHtml(lv.hint || "—")}</td>
             <td><small>Main: ${lv.main_words ? lv.main_words.length : 0}, Bonus: ${lv.bonus_words ? lv.bonus_words.length : 0}</small></td>
-            <td>
-                <div class="action-group">
-                    <button class="action-btn btn-edit" onclick='editSquares("${lv.id}",${lv.level},"${lv.class_range}",${mWords},${bWords},${gridJson},"${hint}")' title="Edit">
-                        <i data-feather="edit-2"></i>
+            <td class="text-center" style="white-space: nowrap;">
+                <div class="d-inline-flex align-items-center justify-content-center gap-1.5">
+                    <button class="btn btn-action-icon btn-action-icon-edit" onclick='editSquares("${lv.id}",${lv.level},"${lv.class_range}",${mWords},${bWords},${gridJson},"${hint}")' title="Edit Level">
+                        <i class="fa fa-pencil"></i>
                     </button>
-                    <button class="action-btn btn-delete" onclick='deleteSquares("${lv.id}",${lv.level})' title="Delete">
-                        <i data-feather="trash-2"></i>
+                    <button class="btn btn-action-icon btn-action-icon-delete" onclick='deleteSquares("${lv.id}",${lv.level})' title="Delete Level">
+                        <i class="fa fa-trash"></i>
                     </button>
                 </div>
             </td></tr>`;
@@ -1142,9 +1187,15 @@
             const startIndex = (puzzleCurrentPage - 1) * PAGE_SIZE;
             const pageLevels = allLevels.slice(startIndex, startIndex + PAGE_SIZE);
 
-            let html = `<table class="table table-hover table-bordered align-middle"><thead class="table-dark"><tr>
-                <th style="width:40px;"><input type="checkbox" id="pz-select-all" onclick="toggleAllPuzzleSelect(this)"></th>
-                <th>#</th><th>Preview</th><th>Difficulty</th><th>Level</th><th>Grid Size</th><th>Title / Image Path</th><th>Actions</th></tr></thead><tbody>`;
+            let html = `<table class="table table-hover table-bordered align-middle w-100"><thead class="table-dark"><tr>
+                <th style="width:35px;" class="text-center"><input type="checkbox" id="pz-select-all" onclick="toggleAllPuzzleSelect(this)"></th>
+                <th style="width:40px;" class="text-center">#</th>
+                <th style="width:70px;" class="text-center">Preview</th>
+                <th style="width:95px;" class="text-center">Difficulty</th>
+                <th style="width:80px;" class="text-center">Level</th>
+                <th style="width:80px;" class="text-center">Grid Size</th>
+                <th>Title / Image Path</th>
+                <th style="width:85px;" class="text-center">Actions</th></tr></thead><tbody>`;
             pageLevels.forEach((lv, i) => {
                 const imgUrl = lv.image_url || '';
                 const titleEsc = (lv.title || '').replace(/'/g, "\\'");
@@ -1152,22 +1203,25 @@
                 const itemNumber = startIndex + i + 1;
 
                 html += `<tr>
-                    <td><input type="checkbox" class="pz-row-checkbox" value="${lv.id}" data-level="${lv.level}" data-diff="${lv.difficulty}" onchange="updateDeleteSelectedBtnVisibility()"></td>
-                    <td>${itemNumber}</td>
-                    <td style="width: 80px;">
-                        ${imgUrl ? `<img src="${imgUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;" onerror="this.onerror=null; this.src='/assets/images/other-images/boxbg.jpg';">` : '<span class="text-muted">No Image</span>'}
+                    <td class="text-center"><input type="checkbox" class="pz-row-checkbox" value="${lv.id}" data-level="${lv.level}" data-diff="${lv.difficulty}" onchange="updateDeleteSelectedBtnVisibility()"></td>
+                    <td class="text-center"><strong>${itemNumber}</strong></td>
+                    <td class="text-center" style="width: 70px;">
+                        ${imgUrl ? `<img src="${imgUrl}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;" onerror="this.onerror=null; this.src='/assets/images/other-images/boxbg.jpg';">` : '<span class="text-muted" style="font-size:0.75rem;">No Image</span>'}
                     </td>
-                    <td><span class="badge ${diffBadge}">${lv.difficulty}</span></td>
-                    <td><strong>Level ${lv.level}</strong></td>
-                    <td><span class="badge bg-secondary">${lv.grid_size}x${lv.grid_size}</span></td>
-                    <td><div style="font-weight: 600;">${lv.title || ('Level ' + lv.level)}</div><small class="text-muted">${imgUrl}</small></td>
+                    <td class="text-center"><span class="badge ${diffBadge}">${lv.difficulty}</span></td>
+                    <td class="text-center"><strong>Level ${lv.level}</strong></td>
+                    <td class="text-center"><span class="badge bg-secondary">${lv.grid_size}x${lv.grid_size}</span></td>
                     <td>
-                        <div class="action-group">
-                            <button class="action-btn btn-edit" onclick='editPuzzle("${lv.id}","${lv.difficulty}",${lv.level},"${titleEsc}","${imgUrl}")' title="Edit">
-                                <i data-feather="edit-2"></i>
+                        <div class="fw-semibold text-truncate" style="max-width: 200px;" title="${escapeHtml(lv.title || ('Level ' + lv.level))}">${escapeHtml(lv.title || ('Level ' + lv.level))}</div>
+                        <small class="text-muted text-truncate d-block" style="max-width: 200px;" title="${escapeHtml(imgUrl)}">${escapeHtml(imgUrl)}</small>
+                    </td>
+                    <td class="text-center" style="white-space: nowrap;">
+                        <div class="d-inline-flex align-items-center justify-content-center gap-1.5">
+                            <button class="btn btn-action-icon btn-action-icon-edit" onclick='editPuzzle("${lv.id}","${lv.difficulty}",${lv.level},"${titleEsc}","${imgUrl}")' title="Edit Puzzle">
+                                <i class="fa fa-pencil"></i>
                             </button>
-                            <button class="action-btn btn-delete" onclick='deletePuzzle("${lv.id}", ${lv.level}, "${lv.difficulty}")' title="Delete">
-                                <i data-feather="trash-2"></i>
+                            <button class="btn btn-action-icon btn-action-icon-delete" onclick='deletePuzzle("${lv.id}", ${lv.level}, "${lv.difficulty}")' title="Delete Puzzle">
+                                <i class="fa fa-trash"></i>
                             </button>
                         </div>
                     </td>

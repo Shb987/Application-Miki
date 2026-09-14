@@ -690,6 +690,13 @@
     const token = window.token || localStorage.getItem("admin_token");
     const API_BASE = window.API_BASE;
 
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     const PAGE_SIZE = 100;
     let wordleCurrentPage = 1;
     let squaresCurrentPage = 1;
@@ -1180,6 +1187,12 @@
             const total = allLevels.length;
             document.getElementById("puzzle-count").textContent = `${total} levels`;
 
+            if (allLevels.length === 0) {
+                document.getElementById("puzzle-table-wrapper").innerHTML = '<div class="text-center py-4 text-muted fw-semibold">No puzzle levels found. Click "+ Add Puzzle Level" above to add one.</div>';
+                updateDeleteSelectedBtnVisibility();
+                return;
+            }
+
             const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
             if (puzzleCurrentPage > totalPages) puzzleCurrentPage = totalPages;
             if (puzzleCurrentPage < 1) puzzleCurrentPage = 1;
@@ -1232,7 +1245,10 @@
             document.getElementById("puzzle-table-wrapper").innerHTML = html;
             feather.replace();
             updateDeleteSelectedBtnVisibility();
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error("Error loading puzzle:", err);
+            document.getElementById("puzzle-table-wrapper").innerHTML = '<div class="text-center py-4 text-danger font-weight-bold">Error loading puzzle levels.</div>';
+        }
     }
 
     async function loadPuzzleStats() {

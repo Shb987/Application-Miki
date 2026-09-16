@@ -19,7 +19,8 @@ from app.routes import (
     admin_notification_routes, admin_games_routes, user_tuition_routes,
     payment_routes, admin_plan_routes, admin_school_routes, public_school_routes,
     external_registration_routes, admin_social_routes, contributor_routes, user_social_routes,
-    edusoft_routes, user_sudoku_routes, user_todo_routes, user_maths_game_routes
+    edusoft_routes, user_sudoku_routes, user_todo_routes, user_maths_game_routes,
+    admin_space_explorer_routes, user_space_explorer_routes
 ) 
 
 from fastapi.responses import JSONResponse, Response
@@ -118,6 +119,7 @@ app.include_router(otp_routes.router, prefix="/otp", tags=["OTP"])
 app.include_router(user_exam_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(exam_evaluation_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(user_todo_routes.router, prefix="/user", tags=["User To-Do Module"])
+app.include_router(user_space_explorer_routes.router, prefix="/user", tags=["Space Explorer - User"])
 app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Futurestudy Module"])
 app.include_router(companion_routes.router, tags=["AI Student Companion"])
 app.include_router(chat_routes.router, prefix="/user")
@@ -177,4 +179,7 @@ app.include_router(edusoft_routes.router, prefix="/api/v1/edusoft", tags=["EduSo
 app.include_router(admin_social_routes.router, prefix="/admin-panel/social", tags=["Admin Social"])
 app.include_router(contributor_routes.router, prefix="/contributor", tags=["Contributor Social"])
 app.include_router(user_social_routes.router, prefix="/user/social", tags=["User Social"])
+
+# Space Explorer Module
+app.include_router(admin_space_explorer_routes.router, prefix="/admin-panel", tags=["Space Explorer - Admin"])
 

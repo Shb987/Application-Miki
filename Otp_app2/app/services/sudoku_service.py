@@ -97,16 +97,7 @@ class SudokuGenerator:
         return puzzle, solution
 
 def get_mistake_limit(level: int):
-    if 1 <= level <= 5: return 10
-    elif 6 <= level <= 10: return 9
-    elif 11 <= level <= 15: return 8
-    elif 16 <= level <= 20: return 7
-    elif 21 <= level <= 25: return 6
-    elif 26 <= level <= 30: return 5
-    elif 31 <= level <= 35: return 4
-    elif 36 <= level <= 40: return 3
-    elif 41 <= level <= 45: return 2
-    elif 46 <= level <= 50: return 1
+    # Life/mistake limit removed for unlimited play
     return None
 
 def get_level_config(level: int):
@@ -133,5 +124,5 @@ def get_level_config(level: int):
     else:
         return None
         
-    config["mistake_limit"] = get_mistake_limit(level)
+    config["mistake_limit"] = None
     return config

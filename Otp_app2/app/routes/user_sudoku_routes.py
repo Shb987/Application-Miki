@@ -76,33 +76,6 @@ async def play_sudoku(level: int, current_user: dict = Depends(get_current_user)
     progress = await db.sudoku_progress.find_one({"user_id": user_id, "level": level})
     
     if progress:
-        mistake_limit = config.get("mistake_limit", 10)
-        if progress.get("mistakes", 0) > mistake_limit:
-            # Mistake limit reached, generate new puzzle for retry
-            generator = SudokuGenerator(config["grid_size"], config["block_rows"], config["block_cols"])
-            puzzle, solution = generator.generate(config["difficulty"])
-            await db.sudoku_progress.update_one(
-                {"_id": progress["_id"]},
-                {"$set": {
-                    "original_board": puzzle,
-                    "current_board": puzzle,
-                    "solution_board": solution,
-                    "is_completed": False,
-                    "mistakes": 0,
-                    "time_spent_seconds": 0,
-                    "updated_at": datetime.now(timezone.utc)
-                }}
-            )
-            return {
-                "level": level,
-                "config": config,
-                "original_board": puzzle,
-                "current_board": puzzle,
-                "is_completed": False,
-                "time_spent_seconds": 0,
-                "mistakes": 0
-            }
-            
         return {
             "level": level,
             "config": config,
@@ -217,8 +190,6 @@ async def validate_sudoku_move(
     if data.row < 0 or data.row >= grid_size or data.col < 0 or data.col >= grid_size:
         return {"is_valid": False, "error_type": "invalid_position", "reason": f"Row and column must be between 0 and {grid_size - 1}."}
 
-    mistake_limit = config.get("mistake_limit", 10)
-
     progress = await db.sudoku_progress.find_one({"user_id": user_id, "level": level})
 
     # Validate current_board grid size, with fallback to progress board if valid
@@ -229,38 +200,8 @@ async def validate_sudoku_move(
         else:
             return {"is_valid": False, "error_type": "invalid_board", "reason": f"Current board dimensions must be {grid_size}x{grid_size}."}
 
-    # Rule 9: Original/pre-filled puzzle numbers cannot be changed
+    # Rule: Original/pre-filled puzzle numbers cannot be changed
     if progress:
-        if progress.get("mistakes", 0) > mistake_limit:
-            generator = SudokuGenerator(config["grid_size"], config["block_rows"], config["block_cols"])
-            puzzle, solution = generator.generate(config["difficulty"])
-            
-            await db.sudoku_progress.update_one(
-                {"_id": progress["_id"]},
-                {"$set": {
-                    "original_board": puzzle,
-                    "current_board": puzzle,
-                    "solution_board": solution,
-                    "is_completed": False,
-                    "mistakes": 0,
-                    "time_spent_seconds": 0,
-                    "updated_at": datetime.now(timezone.utc)
-                }}
-            )
-            return {
-                "is_valid": False,
-                "error_type": "game_over",
-                "reason": "Mistake limit exceeded. Level has been reset.",
-                "row": data.row,
-                "col": data.col,
-                "num": data.num,
-                "mistakes": 0,
-                "mistake_limit": mistake_limit,
-                "retry_required": True,
-                "new_original_board": puzzle,
-                "new_current_board": puzzle
-            }
-            
         original_board = progress.get("original_board")
         if original_board and len(original_board) > data.row and len(original_board[data.row]) > data.col:
             if original_board[data.row][data.col] != 0:
@@ -278,36 +219,6 @@ async def validate_sudoku_move(
         mistakes = 0
         if progress:
             mistakes = progress.get("mistakes", 0) + 1
-            if mistakes > mistake_limit:
-                generator = SudokuGenerator(config["grid_size"], config["block_rows"], config["block_cols"])
-                puzzle, solution = generator.generate(config["difficulty"])
-                
-                await db.sudoku_progress.update_one(
-                    {"_id": progress["_id"]},
-                    {"$set": {
-                        "original_board": puzzle,
-                        "current_board": puzzle,
-                        "solution_board": solution,
-                        "is_completed": False,
-                        "mistakes": 0,
-                        "time_spent_seconds": 0,
-                        "updated_at": datetime.now(timezone.utc)
-                    }}
-                )
-                return {
-                    "is_valid": False,
-                    "error_type": "game_over",
-                    "reason": "Mistake limit exceeded. Level has been reset.",
-                    "row": data.row,
-                    "col": data.col,
-                    "num": data.num,
-                    "mistakes": 0,
-                    "mistake_limit": mistake_limit,
-                    "retry_required": True,
-                    "new_original_board": puzzle,
-                    "new_current_board": puzzle
-                }
-                
             await db.sudoku_progress.update_one(
                 {"_id": progress["_id"]},
                 {"$set": {"mistakes": mistakes, "updated_at": datetime.now(timezone.utc)}}
@@ -320,21 +231,21 @@ async def validate_sudoku_move(
             "col": data.col,
             "num": data.num,
             "mistakes": mistakes,
-            "mistake_limit": mistake_limit,
+            "mistake_limit": None,
             "retry_required": False
         }
     
-    # Rule 2 & 3: Check row for duplicates
+    # Check row for duplicates
     for i in range(grid_size):
         if i < len(board_copy[data.row]) and board_copy[data.row][i] == data.num:
             return await handle_mistake("row_duplicate", "The same number appears twice in the same row.")
             
-    # Rule 4 & 5: Check column for duplicates
+    # Check column for duplicates
     for i in range(grid_size):
         if i < len(board_copy) and data.col < len(board_copy[i]) and board_copy[i][data.col] == data.num:
             return await handle_mistake("column_duplicate", "The same number appears twice in the same column.")
             
-    # Rule 6 & 7: Check subgrid for duplicates
+    # Check subgrid for duplicates
     start_row = data.row - data.row % block_rows
     start_col = data.col - data.col % block_cols
     for i in range(block_rows):
@@ -344,7 +255,5 @@ async def validate_sudoku_move(
             if r_idx < len(board_copy) and c_idx < len(board_copy[r_idx]) and board_copy[r_idx][c_idx] == data.num:
                 return await handle_mistake("box_duplicate", "The same number appears twice inside the same box.")
                 
-    # Rule 10: Valid move if no violations
+    # Valid move if no violations
     return {"is_valid": True, "error_type": None, "reason": "Valid move.", "row": data.row, "col": data.col, "num": data.num}
-
-

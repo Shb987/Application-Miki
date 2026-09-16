@@ -41,6 +41,8 @@ def extract_json(text: str):
 # ---------- API ----------
 @router.get("/{student_id}")
 async def generate_future_study_guidance(student_id: str, current_user: dict = Depends(get_current_user)):
+    if not ObjectId.is_valid(student_id):
+        raise HTTPException(status_code=404, detail="Invalid student_id format")
     await check_premium(student_id)
 
     # Fetch student details

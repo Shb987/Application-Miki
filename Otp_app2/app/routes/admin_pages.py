@@ -235,4 +235,9 @@ async def staff_task_monitoring_page(request: Request):
     """Render the Staff Task Monitoring page."""
     return templates.TemplateResponse("staff_tasks_monitoring.html", {"request": request})
 
+@router.get("/space-explorer-page", response_class=HTMLResponse)
+async def space_explorer_page(request: Request):
+    """Render the Space Explorer Management admin page."""
+    return templates.TemplateResponse("space_explorer.html", {"request": request})
+
 

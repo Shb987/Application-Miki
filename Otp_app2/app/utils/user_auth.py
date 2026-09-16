@@ -51,7 +51,7 @@ def admin_or_user(token_obj=Depends(oauth2_user_scheme)):
     except:
         try:
             payload = decode_admin_token(token_obj)
-            if payload.get("role") == "admin":
+            if payload.get("role") in ["admin", "superadmin"]:
                 return payload
         except:
             pass

@@ -785,8 +785,13 @@
 
     try {
       Swal.fire({ title: 'Uploading image...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
       const res = await fetch('/admin-panel/space-explorer/upload-image', {
         method: 'POST',
+        headers: headers,
         body: formData
       });
 
@@ -811,8 +816,13 @@
 
     try {
       Swal.fire({ title: 'Uploading gallery images...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
       const res = await fetch('/admin-panel/space-explorer/upload-multiple-images', {
         method: 'POST',
+        headers: headers,
         body: formData
       });
 

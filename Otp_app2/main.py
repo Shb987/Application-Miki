@@ -44,15 +44,15 @@ async def seed_default_roles():
         data_operator_role = await db.roles.find_one({
             "role_name": {"$regex": "^data[ _]operator$", "$options": "i"}
         })
+        full_space_perms = {"read": True, "create": True, "update": True, "delete": True}
         if data_operator_role:
             perms = data_operator_role.get("permissions", {})
-            if "Space Explorer" not in perms:
-                perms["Space Explorer"] = {"read": True, "create": False, "update": False, "delete": False}
-                await db.roles.update_one(
-                    {"_id": data_operator_role["_id"]},
-                    {"$set": {"permissions": perms}}
-                )
-                print("[INFO] Updated Data Operator role with default Space Explorer view permission.")
+            perms["Space Explorer"] = full_space_perms
+            await db.roles.update_one(
+                {"_id": data_operator_role["_id"]},
+                {"$set": {"permissions": perms}}
+            )
+            print("[INFO] Updated Data Operator role with full Space Explorer permissions.")
         else:
             default_perms = {
                 "User Management": {"read": True, "create": False, "update": False, "delete": False},
@@ -61,7 +61,7 @@ async def seed_default_roles():
                 "Quizzes": {"read": True, "create": True, "update": True, "delete": False},
                 "Games": {"read": True, "create": False, "update": False, "delete": False},
                 "Tutorials": {"read": True, "create": True, "update": True, "delete": False},
-                "Space Explorer": {"read": True, "create": False, "update": False, "delete": False},
+                "Space Explorer": full_space_perms,
                 "Notifications": {"read": True, "create": False, "update": False, "delete": False},
                 "Analytics": {"read": True, "create": False, "update": False, "delete": False},
                 "Special Days": {"read": True, "create": False, "update": False, "delete": False},
@@ -73,7 +73,7 @@ async def seed_default_roles():
             }
             await db.roles.insert_one({
                 "role_name": "Data Operator",
-                "description": "Data entry and management operator with view access to Space Explorer.",
+                "description": "Data entry and management operator with full access to Space Explorer.",
                 "permissions": default_perms
             })
             print("[INFO] Seeded default Data Operator role.")

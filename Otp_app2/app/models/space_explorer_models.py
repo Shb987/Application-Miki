@@ -11,6 +11,7 @@ class SpaceExplorerBase(BaseModel):
     descriptions: Optional[List[str]] = Field(default_factory=list, description="Multiple descriptions list (Description 1, Description 2, etc.)")
     image_url: Optional[str] = Field("", description="Planet Image URL")
     banner_image_url: Optional[str] = Field("", description="Cover Image URL")
+    description_image_url: Optional[str] = Field("", description="Description Image URL")
     gallery_images: Optional[List[str]] = Field(default_factory=list, description="List of gallery image URLs")
     distance_from_sun: Optional[str] = Field(None, description="Distance from sun (Optional)")
     diameter: Optional[str] = Field(None, description="Diameter (Optional)")
@@ -31,6 +32,7 @@ class SpaceExplorerUpdate(BaseModel):
     descriptions: Optional[List[str]] = None
     image_url: Optional[str] = None
     banner_image_url: Optional[str] = None
+    description_image_url: Optional[str] = None
     gallery_images: Optional[List[str]] = None
     distance_from_sun: Optional[str] = None
     diameter: Optional[str] = None

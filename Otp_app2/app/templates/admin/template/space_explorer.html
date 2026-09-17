@@ -110,6 +110,49 @@
     box-shadow: 0 2px 6px rgba(25, 161, 161, 0.4);
   }
 
+  /* Sleek Table Action Buttons */
+  .table-action-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid transparent !important;
+    padding: 0 !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+  }
+
+  .table-action-edit {
+    background-color: #ecfdf5 !important;
+    color: #059669 !important;
+    border-color: #a7f3d0 !important;
+  }
+  .table-action-edit:hover {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+    border-color: #10b981 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+  }
+
+  .table-action-delete {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+  }
+  .table-action-delete:hover {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+  }
+
   /* Search Input Custom Styling */
   .search-input-wrapper {
     position: relative;
@@ -378,7 +421,7 @@
     </div>
 
     <!-- Top Action Buttons -->
-    <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="d-flex align-items-center gap-3">
       <div class="stat-pill">
         <i class="fa fa-globe text-info fs-5"></i>
         <div>
@@ -387,16 +430,8 @@
         </div>
       </div>
 
-      <button type="button" class="btn btn-seed-data d-inline-flex align-items-center gap-2" onclick="openUploadedImagesModal()">
-        <i class="fa fa-images"></i> Uploaded Images (<span id="uploaded-images-badge-count">0</span>)
-      </button>
-
       <button type="button" class="btn btn-add-entity d-inline-flex align-items-center gap-2" onclick="openAddModal()">
         <i class="fa fa-plus-circle fs-6"></i> Add Space Entity
-      </button>
-
-      <button type="button" class="btn btn-seed-data d-inline-flex align-items-center gap-2" onclick="seedDefaultData()">
-        <i class="fa fa-magic"></i> Seed Default Planets
       </button>
     </div>
   </div>
@@ -434,7 +469,7 @@
             <th>Short Description</th>
             <th>Metrics</th>
             <th>Status</th>
-            <th class="text-end pe-3">Actions</th>
+            <th class="text-center pe-3" style="width: 110px;">Actions</th>
           </tr>
         </thead>
         <tbody id="space-table-body">
@@ -490,6 +525,30 @@
             <div class="col-12 form-group-custom">
               <label>Short Summary</label>
               <input type="text" id="entity-short-desc" class="form-control form-control-custom" placeholder="Brief summary (e.g. The third planet from the Sun...)">
+            </div>
+
+            <!-- Description Image (Featured / Name Description Graphic) -->
+            <div class="col-12 form-group-custom">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="mb-0">Name / Description Image <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <button type="button" class="btn btn-xs text-primary p-0 border-0 fw-bold" onclick="openUploadedImagesModal('entity-desc-image-url')">
+                  <i class="fa fa-images me-1"></i> Browse Library
+                </button>
+              </div>
+              <div class="input-group">
+                <input type="text" id="entity-desc-image-url" class="form-control form-control-custom" placeholder="Image URL or click upload button" oninput="updateImagePreview('entity-desc-image-url', 'preview-desc-img', 'preview-desc-img-wrap')">
+                <label class="btn btn-outline-secondary" for="upload-desc-img-file" style="border-radius: 0 12px 12px 0;"><i class="fa fa-upload"></i> Upload</label>
+                <input type="file" id="upload-desc-img-file" accept="image/*" class="d-none" onchange="uploadImageFile(this, 'entity-desc-image-url')">
+              </div>
+              <small class="text-muted" style="font-size: 0.75rem;">Image displayed alongside planet name & description in app detail view</small>
+              
+              <div id="preview-desc-img-wrap" class="mt-2 d-none align-items-center gap-2 p-2 bg-light rounded-3 border">
+                <img id="preview-desc-img" src="" class="img-thumbnail-preview" loading="lazy" decoding="async">
+                <div class="flex-grow-1">
+                  <small class="d-block text-success font-weight-bold" style="font-size: 0.78rem;"><i class="fa fa-check-circle me-1"></i> Description Image Set</small>
+                  <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 mt-1" style="font-size: 0.7rem;" onclick="clearImageField('entity-desc-image-url', 'preview-desc-img-wrap')">Clear</button>
+                </div>
+              </div>
             </div>
 
             <!-- Multiple Descriptions Support (Description 1, Description 2, etc.) -->
@@ -817,16 +876,11 @@
               <i class="fa fa-globe text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
               <h5 class="font-weight-bold text-dark mb-1">No Space Explorer Entities Found</h5>
               <p class="text-muted mb-3" style="font-size: 0.9rem;">
-                ${spaceEntities.length === 0 ? 'No planet data added yet. Click below to add a planet or seed default data.' : 'No entities match your search criteria.'}
+                ${spaceEntities.length === 0 ? 'No planet data added yet. Click below to add a planet.' : 'No entities match your search criteria.'}
               </p>
-              <button class="btn btn-add-entity me-2 shadow-sm" onclick="openAddModal()">
+              <button class="btn btn-add-entity shadow-sm" onclick="openAddModal()">
                 <i class="fa fa-plus-circle me-1"></i> Add Space Entity
               </button>
-              ${spaceEntities.length === 0 ? `
-                <button class="btn btn-outline-primary rounded-pill px-3 py-2 font-weight-bold" onclick="seedDefaultData()">
-                  <i class="fa fa-magic me-1"></i> Seed Default Planets
-                </button>
-              ` : ''}
             </div>
           </td>
         </tr>
@@ -863,13 +917,15 @@
           </td>
           <td>${metrics || '<small class="text-muted">-</small>'}</td>
           <td>${statusBadge}</td>
-          <td class="text-end pe-3">
-            <button type="button" class="btn btn-sm btn-outline-primary rounded-circle me-1" title="Edit Entity" onclick="openEditModal('${item.id}')">
-              <i class="fa fa-pencil"></i>
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" title="Delete Entity" onclick="deleteEntity('${item.id}', '${item.name.replace(/'/g, "\\'")}')">
-              <i class="fa fa-trash"></i>
-            </button>
+          <td class="text-center align-middle pe-3" style="white-space: nowrap;">
+            <div class="d-inline-flex align-items-center justify-content-center gap-2">
+              <button type="button" class="table-action-btn table-action-edit" title="Edit Entity" onclick="openEditModal('${item.id}')">
+                <i class="fa fa-pencil"></i>
+              </button>
+              <button type="button" class="table-action-btn table-action-delete" title="Delete Entity" onclick="deleteEntity('${item.id}', '${item.name.replace(/'/g, "\\'")}')">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -919,6 +975,8 @@
         updateImagePreview('entity-image-url', 'preview-main-img', 'preview-main-img-wrap');
       } else if (targetInputId === 'entity-banner-url') {
         updateImagePreview('entity-banner-url', 'preview-banner-img', 'preview-banner-img-wrap');
+      } else if (targetInputId === 'entity-desc-image-url') {
+        updateImagePreview('entity-desc-image-url', 'preview-desc-img', 'preview-desc-img-wrap');
       }
       fetchUploadedImages();
       Swal.fire({ icon: 'success', title: 'Image Uploaded & Optimized!', timer: 1400, showConfirmButton: false });
@@ -1110,6 +1168,9 @@
               <button type="button" class="btn btn-xs btn-outline-primary flex-grow-1" onclick="selectLibraryImage('${item.url}', 'entity-banner-url')">
                 <i class="fa fa-picture-o me-1"></i> Cover Img
               </button>
+              <button type="button" class="btn btn-xs btn-outline-warning flex-grow-1" onclick="selectLibraryImage('${item.url}', 'entity-desc-image-url')">
+                <i class="fa fa-file-image-o me-1"></i> Desc Img
+              </button>
               <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" onclick="selectLibraryImage('${item.url}', 'gallery')">
                 <i class="fa fa-plus me-1"></i> Gallery
               </button>
@@ -1137,6 +1198,9 @@
     } else if (dest === 'entity-banner-url') {
       document.getElementById('entity-banner-url').value = url;
       updateImagePreview('entity-banner-url', 'preview-banner-img', 'preview-banner-img-wrap');
+    } else if (dest === 'entity-desc-image-url') {
+      document.getElementById('entity-desc-image-url').value = url;
+      updateImagePreview('entity-desc-image-url', 'preview-desc-img', 'preview-desc-img-wrap');
     } else if (dest === 'gallery') {
       if (!currentGalleryUrls.includes(url)) {
         currentGalleryUrls.push(url);
@@ -1196,6 +1260,7 @@
 
     clearImageField('entity-image-url', 'preview-main-img-wrap');
     clearImageField('entity-banner-url', 'preview-banner-img-wrap');
+    clearImageField('entity-desc-image-url', 'preview-desc-img-wrap');
 
     new bootstrap.Modal(document.getElementById('spaceModal')).show();
   }
@@ -1212,6 +1277,7 @@
     document.getElementById('entity-short-desc').value = item.short_description || '';
     document.getElementById('entity-image-url').value = item.image_url || '';
     document.getElementById('entity-banner-url').value = item.banner_image_url || '';
+    document.getElementById('entity-desc-image-url').value = item.description_image_url || '';
     document.getElementById('entity-distance').value = item.distance_from_sun || '';
     document.getElementById('entity-diameter').value = item.diameter || '';
     document.getElementById('entity-moons').value = (item.moons !== null && item.moons !== undefined) ? item.moons : '';
@@ -1221,6 +1287,7 @@
 
     updateImagePreview('entity-image-url', 'preview-main-img', 'preview-main-img-wrap');
     updateImagePreview('entity-banner-url', 'preview-banner-img', 'preview-banner-img-wrap');
+    updateImagePreview('entity-desc-image-url', 'preview-desc-img', 'preview-desc-img-wrap');
 
     let descs = Array.isArray(item.descriptions) && item.descriptions.length > 0
       ? [...item.descriptions]
@@ -1260,6 +1327,7 @@
       descriptions: collectedDescs,
       image_url: document.getElementById('entity-image-url').value.trim(),
       banner_image_url: document.getElementById('entity-banner-url').value.trim(),
+      description_image_url: document.getElementById('entity-desc-image-url').value.trim(),
       gallery_images: currentGalleryUrls,
       distance_from_sun: distVal || null,
       diameter: diamVal || null,

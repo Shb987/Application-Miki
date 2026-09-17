@@ -39,13 +39,54 @@ app = FastAPI(title="Miki Application")
 async def favicon():
     return Response(status_code=204)
 
+async def seed_default_roles():
+    try:
+        data_operator_role = await db.roles.find_one({
+            "role_name": {"$regex": "^data[ _]operator$", "$options": "i"}
+        })
+        if data_operator_role:
+            perms = data_operator_role.get("permissions", {})
+            if "Space Explorer" not in perms:
+                perms["Space Explorer"] = {"read": True, "create": False, "update": False, "delete": False}
+                await db.roles.update_one(
+                    {"_id": data_operator_role["_id"]},
+                    {"$set": {"permissions": perms}}
+                )
+                print("[INFO] Updated Data Operator role with default Space Explorer view permission.")
+        else:
+            default_perms = {
+                "User Management": {"read": True, "create": False, "update": False, "delete": False},
+                "Questions Base": {"read": True, "create": True, "update": True, "delete": False},
+                "Exams, Textbooks & Syllabus": {"read": True, "create": True, "update": True, "delete": False},
+                "Quizzes": {"read": True, "create": True, "update": True, "delete": False},
+                "Games": {"read": True, "create": False, "update": False, "delete": False},
+                "Tutorials": {"read": True, "create": True, "update": True, "delete": False},
+                "Space Explorer": {"read": True, "create": False, "update": False, "delete": False},
+                "Notifications": {"read": True, "create": False, "update": False, "delete": False},
+                "Analytics": {"read": True, "create": False, "update": False, "delete": False},
+                "Special Days": {"read": True, "create": False, "update": False, "delete": False},
+                "Social Content & Contributors": {"read": True, "create": False, "update": False, "delete": False},
+                "AI Usage": {"read": True, "create": False, "update": False, "delete": False},
+                "Subscription Plans & Transactions": {"read": False, "create": False, "update": False, "delete": False},
+                "Schools": {"read": True, "create": False, "update": False, "delete": False},
+                "Roles & Permissions": {"read": False, "create": False, "update": False, "delete": False}
+            }
+            await db.roles.insert_one({
+                "role_name": "Data Operator",
+                "description": "Data entry and management operator with view access to Space Explorer.",
+                "permissions": default_perms
+            })
+            print("[INFO] Seeded default Data Operator role.")
+    except Exception as e:
+        print(f"[WARN] Failed to seed default roles: {e}")
+
 @app.on_event("startup")
 async def startup_event():
-    # Automatically seed default admin if not existing
+    # Automatically seed default roles & admin if not existing
     try:
-        pass
+        await seed_default_roles()
     except Exception as e:
-        print(f"[WARN] Failed to auto-seed admin: {e}")
+        print(f"[WARN] Failed to auto-seed default roles: {e}")
     # Start the background scheduler for Special Days
     asyncio.create_task(start_special_day_scheduler(db))
     # Start the background scheduler for Digital Tuition

@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 
 from app.core.database import db
 from app.models.space_explorer_models import SpaceExplorerCreate, SpaceExplorerUpdate, SpaceExplorerResponse
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import get_current_admin, require_permission
 
 router = APIRouter(prefix="/space-explorer", tags=["Space Explorer - Admin"])
 
@@ -25,14 +25,14 @@ def serialize_doc(doc):
     return doc
 
 @router.get("", response_model=List[SpaceExplorerResponse])
-async def get_all_space_entities(current_admin: dict = Depends(get_current_admin)):
+async def get_all_space_entities(current_admin: dict = Depends(require_permission("Space Explorer", "read"))):
     """Retrieve all Space Explorer entities ordered by order number (Requires Admin Authentication)"""
     cursor = db.space_explorer.find().sort("order", 1)
     entities = await cursor.to_list(length=None)
     return [serialize_doc(doc) for doc in entities]
 
 @router.post("", response_model=SpaceExplorerResponse)
-async def create_space_entity(data: SpaceExplorerCreate, current_admin: dict = Depends(get_current_admin)):
+async def create_space_entity(data: SpaceExplorerCreate, current_admin: dict = Depends(require_permission("Space Explorer", "create"))):
     """Create a new Space Explorer entity (Requires Admin Authentication)"""
     existing = await db.space_explorer.find_one({"name": {"$regex": f"^{data.name.strip()}$", "$options": "i"}})
     if existing:
@@ -47,7 +47,7 @@ async def create_space_entity(data: SpaceExplorerCreate, current_admin: dict = D
     return serialize_doc(created)
 
 @router.get("/{item_id}", response_model=SpaceExplorerResponse)
-async def get_space_entity(item_id: str, current_admin: dict = Depends(get_current_admin)):
+async def get_space_entity(item_id: str, current_admin: dict = Depends(require_permission("Space Explorer", "read"))):
     """Get single Space Explorer entity by ID (Requires Admin Authentication)"""
     if not ObjectId.is_valid(item_id):
         raise HTTPException(status_code=400, detail="Invalid ID format")
@@ -59,7 +59,7 @@ async def get_space_entity(item_id: str, current_admin: dict = Depends(get_curre
     return serialize_doc(doc)
 
 @router.put("/{item_id}", response_model=SpaceExplorerResponse)
-async def update_space_entity(item_id: str, update_data: SpaceExplorerUpdate, current_admin: dict = Depends(get_current_admin)):
+async def update_space_entity(item_id: str, update_data: SpaceExplorerUpdate, current_admin: dict = Depends(require_permission("Space Explorer", "update"))):
     """Update an existing Space Explorer entity (Requires Admin Authentication)"""
     if not ObjectId.is_valid(item_id):
         raise HTTPException(status_code=400, detail="Invalid ID format")
@@ -82,7 +82,7 @@ async def update_space_entity(item_id: str, update_data: SpaceExplorerUpdate, cu
     return serialize_doc(updated)
 
 @router.delete("/{item_id}")
-async def delete_space_entity(item_id: str, current_admin: dict = Depends(get_current_admin)):
+async def delete_space_entity(item_id: str, current_admin: dict = Depends(require_permission("Space Explorer", "delete"))):
     """Delete a Space Explorer entity (Requires Admin Authentication)"""
     if not ObjectId.is_valid(item_id):
         raise HTTPException(status_code=400, detail="Invalid ID format")
@@ -130,7 +130,7 @@ def save_and_optimize_image(file_obj, filepath: str, max_dim: int = 1920):
             shutil.copyfileobj(file_obj.file, buffer)
 
 @router.get("/uploaded-images")
-async def get_uploaded_images(current_admin: dict = Depends(get_current_admin)):
+async def get_uploaded_images(current_admin: dict = Depends(require_permission("Space Explorer", "read"))):
     """List all uploaded images stored in space uploads directory with size metadata."""
     if not os.path.exists(UPLOAD_DIR):
         return []
@@ -159,7 +159,7 @@ async def get_uploaded_images(current_admin: dict = Depends(get_current_admin)):
     return items
 
 @router.delete("/uploaded-images/{filename}")
-async def delete_uploaded_image(filename: str, current_admin: dict = Depends(get_current_admin)):
+async def delete_uploaded_image(filename: str, current_admin: dict = Depends(require_permission("Space Explorer", "delete"))):
     """Delete a specific uploaded image file from server disk."""
     safe_name = os.path.basename(filename)
     filepath = os.path.join(UPLOAD_DIR, safe_name)
@@ -173,7 +173,7 @@ async def delete_uploaded_image(filename: str, current_admin: dict = Depends(get
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
 
 @router.post("/upload-image")
-async def upload_space_image(file: UploadFile = File(...), current_admin: dict = Depends(get_current_admin)):
+async def upload_space_image(file: UploadFile = File(...), current_admin: dict = Depends(require_permission("Space Explorer", "create"))):
     """Upload a single image file for planet image or cover image (Requires Admin Authentication)"""
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image format (JPEG, PNG, WEBP, SVG)")
@@ -188,7 +188,7 @@ async def upload_space_image(file: UploadFile = File(...), current_admin: dict =
     return {"message": "Image uploaded successfully", "url": relative_url}
 
 @router.post("/upload-multiple-images")
-async def upload_multiple_space_images(files: List[UploadFile] = File(...), current_admin: dict = Depends(get_current_admin)):
+async def upload_multiple_space_images(files: List[UploadFile] = File(...), current_admin: dict = Depends(require_permission("Space Explorer", "create"))):
     """Upload multiple image files for planet gallery (Requires Admin Authentication)"""
     uploaded_urls = []
     for file in files:

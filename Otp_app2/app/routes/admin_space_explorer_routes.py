@@ -93,6 +93,85 @@ async def delete_space_entity(item_id: str, current_admin: dict = Depends(get_cu
 
     return {"message": "Space entity deleted successfully", "id": item_id}
 
+import io
+from PIL import Image
+
+def save_and_optimize_image(file_obj, filepath: str, max_dim: int = 1920):
+    """Saves uploaded image, automatically resizing & compressing to optimize load times."""
+    try:
+        file_bytes = file_obj.file.read()
+        file_obj.file.seek(0)
+        img = Image.open(io.BytesIO(file_bytes))
+
+        w, h = img.size
+        if w > max_dim or h > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
+        ext = os.path.splitext(filepath)[1].lower()
+        if ext in [".jpg", ".jpeg"]:
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            img.save(filepath, format="JPEG", quality=85, optimize=True)
+        elif ext == ".webp":
+            img.save(filepath, format="WEBP", quality=85, optimize=True)
+        elif ext == ".png":
+            if img.mode == "RGBA":
+                img.save(filepath, format="PNG", optimize=True)
+            else:
+                if img.mode != "RGB":
+                    img = img.convert("RGB")
+                img.save(filepath, format="JPEG", quality=85, optimize=True)
+        else:
+            with open(filepath, "wb") as buffer:
+                shutil.copyfileobj(file_obj.file, buffer)
+    except Exception:
+        file_obj.file.seek(0)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file_obj.file, buffer)
+
+@router.get("/uploaded-images")
+async def get_uploaded_images(current_admin: dict = Depends(get_current_admin)):
+    """List all uploaded images stored in space uploads directory with size metadata."""
+    if not os.path.exists(UPLOAD_DIR):
+        return []
+
+    items = []
+    for filename in os.listdir(UPLOAD_DIR):
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        if os.path.isfile(filepath):
+            stat = os.stat(filepath)
+            size_bytes = stat.st_size
+            if size_bytes > 1024 * 1024:
+                size_formatted = f"{size_bytes / (1024 * 1024):.1f} MB"
+            else:
+                size_formatted = f"{size_bytes / 1024:.0f} KB"
+
+            items.append({
+                "filename": filename,
+                "url": f"/uploads/space/{filename}",
+                "size_bytes": size_bytes,
+                "size_formatted": size_formatted,
+                "mtime": stat.st_mtime
+            })
+
+    # Sort newest first
+    items.sort(key=lambda x: x["mtime"], reverse=True)
+    return items
+
+@router.delete("/uploaded-images/{filename}")
+async def delete_uploaded_image(filename: str, current_admin: dict = Depends(get_current_admin)):
+    """Delete a specific uploaded image file from server disk."""
+    safe_name = os.path.basename(filename)
+    filepath = os.path.join(UPLOAD_DIR, safe_name)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        os.remove(filepath)
+        return {"message": f"Deleted {safe_name} successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
 @router.post("/upload-image")
 async def upload_space_image(file: UploadFile = File(...), current_admin: dict = Depends(get_current_admin)):
     """Upload a single image file for planet image or cover image (Requires Admin Authentication)"""
@@ -103,8 +182,7 @@ async def upload_space_image(file: UploadFile = File(...), current_admin: dict =
     filename = f"space_{int(datetime.now().timestamp())}_{os.urandom(4).hex()}{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    save_and_optimize_image(file, filepath)
 
     relative_url = f"/uploads/space/{filename}"
     return {"message": "Image uploaded successfully", "url": relative_url}
@@ -119,8 +197,7 @@ async def upload_multiple_space_images(files: List[UploadFile] = File(...), curr
             filename = f"space_gal_{int(datetime.now().timestamp())}_{os.urandom(4).hex()}{ext}"
             filepath = os.path.join(UPLOAD_DIR, filename)
 
-            with open(filepath, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
+            save_and_optimize_image(file, filepath)
 
             uploaded_urls.append(f"/uploads/space/{filename}")
 

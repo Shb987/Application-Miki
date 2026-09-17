@@ -182,6 +182,43 @@
     cursor: pointer;
   }
 
+  /* Live Thumbnail Previews & Uploaded Library */
+  .img-thumbnail-preview {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid #10b981;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.2);
+  }
+  .banner-thumbnail-preview {
+    width: 120px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid #3b82f6;
+    box-shadow: 0 3px 10px rgba(59, 130, 246, 0.2);
+  }
+  .uploaded-img-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .uploaded-img-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    border-color: #19a1a1;
+  }
+  .uploaded-img-preview {
+    height: 130px;
+    width: 100%;
+    object-fit: cover;
+    background: #0d1b2a;
+  }
+
   /* Reference UI Mobile Mockup Styling */
   .mobile-preview-frame {
     width: 100%;
@@ -350,6 +387,10 @@
         </div>
       </div>
 
+      <button type="button" class="btn btn-seed-data d-inline-flex align-items-center gap-2" onclick="openUploadedImagesModal()">
+        <i class="fa fa-images"></i> Uploaded Images (<span id="uploaded-images-badge-count">0</span>)
+      </button>
+
       <button type="button" class="btn btn-add-entity d-inline-flex align-items-center gap-2" onclick="openAddModal()">
         <i class="fa fa-plus-circle fs-6"></i> Add Space Entity
       </button>
@@ -466,29 +507,60 @@
 
             <!-- 3. Planet Image (Main planet thumbnail) -->
             <div class="col-md-6 form-group-custom">
-              <label>Planet Image (Main Image)</label>
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="mb-0">Planet Image (Main Image)</label>
+                <button type="button" class="btn btn-xs text-primary p-0 border-0 fw-bold" onclick="openUploadedImagesModal('entity-image-url')">
+                  <i class="fa fa-images me-1"></i> Browse Library
+                </button>
+              </div>
               <div class="input-group">
-                <input type="text" id="entity-image-url" class="form-control form-control-custom" placeholder="Image URL or click upload button">
+                <input type="text" id="entity-image-url" class="form-control form-control-custom" placeholder="Image URL or click upload button" oninput="updateImagePreview('entity-image-url', 'preview-main-img', 'preview-main-img-wrap')">
                 <label class="btn btn-outline-secondary" for="upload-thumb-file" style="border-radius: 0 12px 12px 0;"><i class="fa fa-upload"></i> Upload</label>
                 <input type="file" id="upload-thumb-file" accept="image/*" class="d-none" onchange="uploadImageFile(this, 'entity-image-url')">
               </div>
               <small class="text-muted" style="font-size: 0.75rem;">Main 3D / Sphere Planet Image</small>
+              
+              <div id="preview-main-img-wrap" class="mt-2 d-none align-items-center gap-2 p-2 bg-light rounded-3 border">
+                <img id="preview-main-img" src="" class="img-thumbnail-preview" loading="lazy" decoding="async">
+                <div class="flex-grow-1">
+                  <small class="d-block text-success font-weight-bold" style="font-size: 0.78rem;"><i class="fa fa-check-circle me-1"></i> Planet Image Set</small>
+                  <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 mt-1" style="font-size: 0.7rem;" onclick="clearImageField('entity-image-url', 'preview-main-img-wrap')">Clear</button>
+                </div>
+              </div>
             </div>
 
             <!-- 4. Cover Image (Banner graphic) -->
             <div class="col-md-6 form-group-custom">
-              <label>Cover Image (Banner / Background)</label>
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="mb-0">Cover Image (Banner / Background)</label>
+                <button type="button" class="btn btn-xs text-primary p-0 border-0 fw-bold" onclick="openUploadedImagesModal('entity-banner-url')">
+                  <i class="fa fa-images me-1"></i> Browse Library
+                </button>
+              </div>
               <div class="input-group">
-                <input type="text" id="entity-banner-url" class="form-control form-control-custom" placeholder="Cover Image URL or upload">
+                <input type="text" id="entity-banner-url" class="form-control form-control-custom" placeholder="Cover Image URL or upload" oninput="updateImagePreview('entity-banner-url', 'preview-banner-img', 'preview-banner-img-wrap')">
                 <label class="btn btn-outline-secondary" for="upload-banner-file" style="border-radius: 0 12px 12px 0;"><i class="fa fa-upload"></i> Upload</label>
                 <input type="file" id="upload-banner-file" accept="image/*" class="d-none" onchange="uploadImageFile(this, 'entity-banner-url')">
               </div>
               <small class="text-muted" style="font-size: 0.75rem;">Cover graphic for detail view</small>
+              
+              <div id="preview-banner-img-wrap" class="mt-2 d-none align-items-center gap-2 p-2 bg-light rounded-3 border">
+                <img id="preview-banner-img" src="" class="banner-thumbnail-preview" loading="lazy" decoding="async">
+                <div class="flex-grow-1">
+                  <small class="d-block text-primary font-weight-bold" style="font-size: 0.78rem;"><i class="fa fa-check-circle me-1"></i> Cover Set</small>
+                  <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2 mt-1" style="font-size: 0.7rem;" onclick="clearImageField('entity-banner-url', 'preview-banner-img-wrap')">Clear</button>
+                </div>
+              </div>
             </div>
 
             <!-- 5. Multiple Gallery Images Upload Field -->
             <div class="col-12 form-group-custom">
-              <label>Upload Multiple Images (Planet Gallery)</label>
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="mb-0">Upload Multiple Images (Planet Gallery)</label>
+                <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0" onclick="openUploadedImagesModal('gallery')">
+                  <i class="fa fa-images me-1"></i> Select from Uploaded Library
+                </button>
+              </div>
               <div class="input-group">
                 <input type="file" id="upload-gallery-files" class="form-control form-control-custom" accept="image/*" multiple onchange="uploadMultipleGalleryImages(this)">
                 <span class="input-group-text bg-white"><i class="fa fa-images text-primary"></i></span>
@@ -626,6 +698,47 @@
   </div>
 </div>
 
+<!-- Modal 3: Uploaded Images Library -->
+<div class="modal fade" id="uploadedImagesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+      <div class="modal-header border-0 bg-dark text-white p-4" style="border-radius: 24px 24px 0 0;">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle bg-primary bg-opacity-25 p-3 text-primary d-inline-flex">
+            <i class="fa fa-images fs-4 text-warning"></i>
+          </div>
+          <div>
+            <h5 class="modal-title font-weight-bold text-white mb-0">Uploaded Images Library</h5>
+            <small class="text-white-50">View all images stored on server, pick for Main/Cover/Gallery, or delete unused files</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4 bg-light">
+        <!-- Search & Info Bar -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 bg-white p-3 rounded-4 shadow-sm border">
+          <div class="search-input-wrapper flex-grow-1" style="max-width: 400px;">
+            <i class="fa fa-search"></i>
+            <input type="text" id="library-search-input" placeholder="Search by filename..." oninput="renderLibraryGrid()">
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill font-weight-bold" id="library-count-badge">0 Images</span>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="fetchUploadedImages()">
+              <i class="fa fa-refresh me-1"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid Container -->
+        <div id="library-grid-container" class="row g-3">
+          <!-- Dynamically populated card items -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -636,9 +749,12 @@
   let spaceEntities = [];
   let currentFilter = 'all';
   let currentGalleryUrls = [];
+  let uploadedImagesList = [];
+  let libraryTargetInput = null;
 
   document.addEventListener("DOMContentLoaded", function () {
     fetchSpaceEntities();
+    fetchUploadedImages();
   });
 
   // Helper token getter
@@ -734,7 +850,7 @@
         <tr>
           <td class="ps-3"><div class="order-badge">${item.order || 1}</div></td>
           <td>
-            <img src="${imgUrl}" class="planet-img-thumb" onerror="this.src='${defaultImg}'">
+            <img src="${imgUrl}" class="planet-img-thumb" loading="lazy" decoding="async" width="52" height="52" onerror="this.src='${defaultImg}'">
           </td>
           <td>
             <div class="font-weight-bold text-dark" style="font-size: 0.95rem;">${item.name}</div>
@@ -784,7 +900,7 @@
     formData.append("file", file);
 
     try {
-      Swal.fire({ title: 'Uploading image...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'Uploading & optimizing image...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const headers = {};
       const token = getAuthToken();
       if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -799,7 +915,13 @@
       const data = await res.json();
       
       document.getElementById(targetInputId).value = data.url;
-      Swal.fire({ icon: 'success', title: 'Image Uploaded!', timer: 1400, showConfirmButton: false });
+      if (targetInputId === 'entity-image-url') {
+        updateImagePreview('entity-image-url', 'preview-main-img', 'preview-main-img-wrap');
+      } else if (targetInputId === 'entity-banner-url') {
+        updateImagePreview('entity-banner-url', 'preview-banner-img', 'preview-banner-img-wrap');
+      }
+      fetchUploadedImages();
+      Swal.fire({ icon: 'success', title: 'Image Uploaded & Optimized!', timer: 1400, showConfirmButton: false });
     } catch (err) {
       console.error(err);
       Swal.fire('Error', 'Image upload failed. Please try again.', 'error');
@@ -815,7 +937,7 @@
     }
 
     try {
-      Swal.fire({ title: 'Uploading gallery images...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'Uploading & optimizing gallery images...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const headers = {};
       const token = getAuthToken();
       if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -834,6 +956,7 @@
         renderGalleryPreview();
       }
       
+      fetchUploadedImages();
       Swal.fire({ icon: 'success', title: `${data.urls.length} Gallery Images Uploaded!`, timer: 1400, showConfirmButton: false });
     } catch (err) {
       console.error(err);
@@ -906,6 +1029,157 @@
     return descs;
   }
 
+  // Live Image Previews & Uploaded Library Helpers
+  function updateImagePreview(inputId, imgId, wrapId) {
+    const val = document.getElementById(inputId).value.trim();
+    const wrap = document.getElementById(wrapId);
+    const img = document.getElementById(imgId);
+    if (!wrap || !img) return;
+
+    if (val) {
+      img.src = val;
+      wrap.classList.remove('d-none');
+      wrap.classList.add('d-flex');
+    } else {
+      wrap.classList.remove('d-flex');
+      wrap.classList.add('d-none');
+    }
+  }
+
+  function clearImageField(inputId, wrapId) {
+    document.getElementById(inputId).value = '';
+    const wrap = document.getElementById(wrapId);
+    if (wrap) {
+      wrap.classList.remove('d-flex');
+      wrap.classList.add('d-none');
+    }
+  }
+
+  async function fetchUploadedImages() {
+    try {
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const res = await fetch('/admin-panel/space-explorer/uploaded-images', { headers });
+      if (!res.ok) return;
+
+      uploadedImagesList = await res.json();
+      const countBadge = document.getElementById('library-count-badge');
+      const topBadge = document.getElementById('uploaded-images-badge-count');
+      if (countBadge) countBadge.innerText = `${uploadedImagesList.length} Images`;
+      if (topBadge) topBadge.innerText = uploadedImagesList.length;
+
+      renderLibraryGrid();
+    } catch (err) {
+      console.error("[Fetch Uploaded Images Error]", err);
+    }
+  }
+
+  function renderLibraryGrid() {
+    const container = document.getElementById('library-grid-container');
+    if (!container) return;
+
+    const query = (document.getElementById('library-search-input')?.value || '').toLowerCase().trim();
+    const filtered = uploadedImagesList.filter(item => item.filename.toLowerCase().includes(query));
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="col-12 text-center py-5 text-muted">
+          <i class="fa fa-folder-open-o fs-1 mb-2 text-secondary"></i>
+          <h6>No Uploaded Images Found</h6>
+          <small>Upload new images or clear search query.</small>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = filtered.map(item => `
+      <div class="col-md-4 col-sm-6">
+        <div class="uploaded-img-card">
+          <div class="position-relative">
+            <img src="${item.url}" class="uploaded-img-preview" loading="lazy" decoding="async">
+            <span class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 end-0 m-2 rounded-pill">${item.size_formatted}</span>
+          </div>
+          <div class="p-3">
+            <div class="text-truncate font-weight-bold text-dark mb-2" style="font-size: 0.85rem;" title="${item.filename}">${item.filename}</div>
+            <div class="d-flex flex-wrap gap-1">
+              <button type="button" class="btn btn-xs btn-outline-success flex-grow-1" onclick="selectLibraryImage('${item.url}', 'entity-image-url')">
+                <i class="fa fa-check me-1"></i> Planet Img
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-primary flex-grow-1" onclick="selectLibraryImage('${item.url}', 'entity-banner-url')">
+                <i class="fa fa-picture-o me-1"></i> Cover Img
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" onclick="selectLibraryImage('${item.url}', 'gallery')">
+                <i class="fa fa-plus me-1"></i> Gallery
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteLibraryImage('${item.filename}')" title="Delete file from server">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openUploadedImagesModal(targetField) {
+    libraryTargetInput = targetField || null;
+    fetchUploadedImages();
+    new bootstrap.Modal(document.getElementById('uploadedImagesModal')).show();
+  }
+
+  function selectLibraryImage(url, targetType) {
+    const dest = targetType || libraryTargetInput;
+    if (dest === 'entity-image-url') {
+      document.getElementById('entity-image-url').value = url;
+      updateImagePreview('entity-image-url', 'preview-main-img', 'preview-main-img-wrap');
+    } else if (dest === 'entity-banner-url') {
+      document.getElementById('entity-banner-url').value = url;
+      updateImagePreview('entity-banner-url', 'preview-banner-img', 'preview-banner-img-wrap');
+    } else if (dest === 'gallery') {
+      if (!currentGalleryUrls.includes(url)) {
+        currentGalleryUrls.push(url);
+        renderGalleryPreview();
+      }
+    }
+
+    const modalEl = document.getElementById('uploadedImagesModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+    if (modalInstance) modalInstance.hide();
+  }
+
+  async function deleteLibraryImage(filename) {
+    const confirm = await Swal.fire({
+      title: 'Delete image file?',
+      text: `Remove ${filename} from disk permanently?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const res = await fetch(`/admin-panel/space-explorer/uploaded-images/${encodeURIComponent(filename)}`, {
+        method: 'DELETE',
+        headers: headers
+      });
+
+      if (!res.ok) throw new Error("Delete failed");
+      Swal.fire({ icon: 'success', title: 'File Deleted!', timer: 1200, showConfirmButton: false });
+      fetchUploadedImages();
+    } catch (err) {
+      Swal.fire('Error', err.message, 'error');
+    }
+  }
+
   // 6. Open Add Modal
   function openAddModal() {
     document.getElementById('spaceForm').reset();
@@ -919,6 +1193,9 @@
 
     currentDescriptionsList = [''];
     renderDescriptionsContainer();
+
+    clearImageField('entity-image-url', 'preview-main-img-wrap');
+    clearImageField('entity-banner-url', 'preview-banner-img-wrap');
 
     new bootstrap.Modal(document.getElementById('spaceModal')).show();
   }
@@ -941,6 +1218,9 @@
     document.getElementById('entity-gravity').value = item.gravity || '';
     document.getElementById('entity-fun-fact').value = item.fun_fact || '';
     document.getElementById('entity-active').checked = item.is_active !== false;
+
+    updateImagePreview('entity-image-url', 'preview-main-img', 'preview-main-img-wrap');
+    updateImagePreview('entity-banner-url', 'preview-banner-img', 'preview-banner-img-wrap');
 
     let descs = Array.isArray(item.descriptions) && item.descriptions.length > 0
       ? [...item.descriptions]

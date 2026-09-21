@@ -240,4 +240,15 @@ async def space_explorer_page(request: Request):
     """Render the Space Explorer Management admin page."""
     return templates.TemplateResponse("space_explorer.html", {"request": request})
 
+@router.get("/ocean-explorer-page", response_class=HTMLResponse)
+async def ocean_explorer_page(request: Request):
+    """Render the Ocean Explorer Management admin page."""
+    return templates.TemplateResponse("ocean_explorer.html", {"request": request})
+
+@router.get("/plant-explorer-page", response_class=HTMLResponse)
+async def plant_explorer_page(request: Request):
+    """Render the Plant Explorer Management admin page."""
+    return templates.TemplateResponse("plant_explorer.html", {"request": request})
+
+
 

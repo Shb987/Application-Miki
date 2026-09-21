@@ -324,11 +324,13 @@
             {% include "sidebar.html" %}
             <!-- Page Sidebar Ends-->
 
-            <div class="page-body">
-                {% block content %}{% endblock %}
+            <div class="page-body" style="display: flex; flex-direction: column; min-height: calc(100vh - 80px);">
+                <div style="flex: 1 0 auto;">
+                    {% block content %}{% endblock %}
+                </div>
 
                 <!-- footer start-->
-                <footer class="footer" style="margin-left: 0; width: 100%; padding: 16px 0;">
+                <footer class="footer" style="margin-left: 0; width: 100%; padding: 16px 0; margin-top: auto;">
                     <div class="container-fluid">
                         <div class="row">
                             <div class="col-md-12 footer-copyright text-center">
@@ -366,7 +368,10 @@
                 "menu-schools": "Schools",
                 "menu-notifications": "Notifications",
                 "menu-games": "Games",
-                "menu-space-explorer": "Space Explorer",
+                "menu-explorer": "Explorer",
+                "menu-space-explorer": "Explorer",
+                "menu-ocean-explorer": "Explorer",
+                "menu-plant-explorer": "Explorer",
                 "menu-questions": "Questions Base",
                 "menu-Exams": "Exams, Textbooks & Syllabus",
                 "menu-quiz": "Quizzes",
@@ -452,7 +457,10 @@
                 "menu-schools": "Schools",
                 "menu-notifications": "Notifications",
                 "menu-games": "Games",
-                "menu-space-explorer": "Space Explorer",
+                "menu-explorer": "Explorer",
+                "menu-space-explorer": "Explorer",
+                "menu-ocean-explorer": "Explorer",
+                "menu-plant-explorer": "Explorer",
                 "menu-questions": "Questions Base",
                 "menu-Exams": "Exams, Textbooks & Syllabus",
                 "menu-quiz": "Quizzes",

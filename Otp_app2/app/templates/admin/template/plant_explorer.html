@@ -1,0 +1,802 @@
+{% extends "base.html" %}
+
+{% block title %}Plant Explorer Management - Miki Admin{% endblock %}
+
+{% block head %}
+<style>
+  /* Plant Explorer Header Card - Emerald Forest Theme */
+  .plant-header-card {
+    background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #10b981 100%);
+    border-radius: 20px;
+    color: white;
+    padding: 26px 30px;
+    box-shadow: 0 10px 30px rgba(6, 78, 59, 0.25);
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .plant-header-card::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* High contrast top action buttons */
+  .btn-add-entity {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: none !important;
+    border-radius: 30px !important;
+    padding: 10px 24px !important;
+    font-size: 0.92rem !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+  }
+  .btn-add-entity:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5) !important;
+    color: #ffffff !important;
+  }
+
+  .stat-pill {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 14px;
+    padding: 8px 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #e0e1dd;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .glass-table-card {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+  }
+
+  .plant-img-thumb {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    background: #064e3b;
+  }
+
+  .order-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    color: white;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+  }
+
+  /* Sleek Table Action Buttons */
+  .table-action-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid transparent !important;
+    padding: 0 !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+  }
+
+  .table-action-edit {
+    background-color: #ecfdf5 !important;
+    color: #059669 !important;
+    border-color: #a7f3d0 !important;
+  }
+  .table-action-edit:hover {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+    border-color: #10b981 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+  }
+
+  .table-action-delete {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+  }
+  .table-action-delete:hover {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+  }
+
+  /* Search Input Custom Styling */
+  .search-input-wrapper {
+    position: relative;
+    min-width: 280px;
+  }
+
+  .search-input-wrapper input {
+    width: 100% !important;
+    padding: 10px 16px 10px 42px !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 30px !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease !important;
+    background-color: #f8fafc !important;
+  }
+
+  .search-input-wrapper input:focus {
+    border-color: #10b981 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+  }
+
+  .search-input-wrapper i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.95rem;
+  }
+
+  /* Gallery Grid & Multiple Upload Preview */
+  .gallery-preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .gallery-thumb-item {
+    position: relative;
+    width: 75px;
+    height: 75px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #10b981;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  .gallery-thumb-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .gallery-thumb-item .btn-remove-gal {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(220, 38, 38, 0.85);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .form-group-custom label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #475569;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .form-control-custom, .form-select-custom {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
+  .form-control-custom:focus, .form-select-custom:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  }
+
+  .img-preview-box {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 2px solid #10b981;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header Banner Card -->
+  <div class="plant-header-card d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill font-weight-bold">
+          <i class="fa fa-leaf me-1"></i> ADMIN MODULE
+        </span>
+        <span class="badge bg-info text-white px-3 py-2 rounded-pill font-weight-bold">Swagger API Ready</span>
+      </div>
+      <h2 class="font-weight-bold text-white mb-1" style="letter-spacing: -0.02em;">Plant Explorer Dashboard</h2>
+      <p class="text-white-50 mb-0" style="font-size: 0.95rem;">
+        Add, view, update, and manage flora &amp; plant species for student learning and mobile app preview.
+      </p>
+    </div>
+
+    <!-- Top Action Buttons -->
+    <div class="d-flex align-items-center gap-3">
+      <div class="stat-pill">
+        <i class="fa fa-leaf text-success fs-5"></i>
+        <div>
+          <div style="font-size: 0.75rem; opacity: 0.85;">Total Entities</div>
+          <div id="stat-total-count" style="font-size: 1.15rem; font-weight: 800; color: #fff;">0</div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-add-entity d-inline-flex align-items-center gap-2" onclick="openAddPlantModal()">
+        <i class="fa fa-plus-circle fs-6"></i> Add Plant Entity
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Data Card -->
+  <div class="glass-table-card">
+    
+    <!-- Filter and Search Bar -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+      
+      <!-- Category Filter Pills -->
+      <div class="d-flex align-items-center gap-2 flex-wrap" id="category-filter-buttons">
+        <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 filter-btn active" data-cat="all" onclick="filterCategory('all', this)">All Entities</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Rainforest" onclick="filterCategory('Rainforest', this)">Rainforest</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Carnivorous" onclick="filterCategory('Carnivorous', this)">Carnivorous</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Medicinal" onclick="filterCategory('Medicinal', this)">Medicinal</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Flowering" onclick="filterCategory('Flowering', this)">Flowering</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Tree" onclick="filterCategory('Tree', this)">Trees</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Succulent" onclick="filterCategory('Succulent', this)">Succulents</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Aquatic" onclick="filterCategory('Aquatic', this)">Aquatic</button>
+      </div>
+
+      <!-- Prominent Search Bar -->
+      <div class="search-input-wrapper">
+        <i class="fa fa-search"></i>
+        <input type="text" id="plantSearchInput" placeholder="Search plant by title, description..." onkeyup="filterPlantTable()">
+      </div>
+    </div>
+
+    <!-- Data Table Container -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="plantTable">
+        <thead class="table-light">
+          <tr style="font-size: 0.82rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">
+            <th class="ps-3" style="width: 70px;">Order</th>
+            <th style="width: 80px;">Image</th>
+            <th>Plant Title &amp; Category</th>
+            <th>Short Description</th>
+            <th>Metrics</th>
+            <th>Status</th>
+            <th class="text-center pe-3" style="width: 110px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="plantTableBody">
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <div class="spinner-border text-success me-2" role="status"></div> Loading Plant Explorer data...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: Add / Edit Plant Entity -->
+<div class="modal fade" id="plantEntityModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #064e3b 0%, #047857 100%);">
+        <h5 class="modal-title font-weight-bold" id="plantModalTitle">Add Plant Entity</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 bg-light">
+        <form id="plantEntityForm">
+          <input type="hidden" id="plant_id" />
+
+          <div class="row g-3">
+            <div class="col-md-8 form-group-custom">
+              <label>Plant / Species Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-custom" id="plant_name" required placeholder="e.g. Venus Flytrap, Redwood Tree" />
+            </div>
+            <div class="col-md-4 form-group-custom">
+              <label>Order Number <span class="text-danger">*</span></label>
+              <input type="number" class="form-control form-control-custom" id="plant_order" required min="1" value="1" />
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>Category <span class="text-danger">*</span></label>
+              <select class="form-select form-select-custom" id="plant_category">
+                <option value="Rainforest">Rainforest</option>
+                <option value="Carnivorous">Carnivorous</option>
+                <option value="Medicinal">Medicinal</option>
+                <option value="Flowering">Flowering</option>
+                <option value="Tree">Tree</option>
+                <option value="Succulent">Succulent</option>
+                <option value="Aquatic">Aquatic</option>
+              </select>
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>Scientific Name <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+              <input type="text" class="form-control form-control-custom" id="plant_scientific_name" placeholder="e.g. Dionaea muscipula" />
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>Family <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+              <input type="text" class="form-control form-control-custom" id="plant_family" placeholder="e.g. Droseraceae" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Habitat / Region <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+              <input type="text" class="form-control form-control-custom" id="plant_habitat" placeholder="e.g. Tropical Wetlands" />
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>Climate Zone <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+              <input type="text" class="form-control form-control-custom" id="plant_climate" placeholder="e.g. Warm / Humid" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Fun Fact <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+              <input type="text" class="form-control form-control-custom" id="plant_fun_fact" placeholder="e.g. Traps close in 1/10th of a second!" />
+            </div>
+
+            <div class="col-12 form-group-custom">
+              <label>Short Summary</label>
+              <input type="text" class="form-control form-control-custom" id="plant_short_desc" placeholder="Brief summary of this plant species..." />
+            </div>
+
+            <div class="col-12 form-group-custom">
+              <label>Full Description</label>
+              <textarea class="form-control form-control-custom" id="plant_full_desc" rows="4" placeholder="Detailed botanical information for mobile detail screen..."></textarea>
+            </div>
+
+            <!-- Main Feature Image -->
+            <div class="col-md-6 form-group-custom">
+              <label>Main Image URL</label>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="plant_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('plant_image_url', 'plant_image_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('plant_image_url', 'plant_image_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="plant_image_preview_wrap" class="mt-2 d-none">
+                <img id="plant_image_preview" src="" class="img-preview-box" />
+              </div>
+            </div>
+
+            <!-- Banner Cover Image -->
+            <div class="col-md-6 form-group-custom">
+              <label>Banner Cover Image URL</label>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="plant_banner_url" placeholder="Paste banner URL or click upload" oninput="updateSinglePreview('plant_banner_url', 'plant_banner_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('plant_banner_url', 'plant_banner_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="plant_banner_preview_wrap" class="mt-2 d-none">
+                <img id="plant_banner_preview" src="" class="img-preview-box" style="width: 120px;" />
+              </div>
+            </div>
+
+            <!-- Multiple Image Gallery Upload -->
+            <div class="col-12 form-group-custom">
+              <label>Gallery Images (Multiple Upload Support)</label>
+              <input type="file" class="form-control form-control-custom" id="plant_gallery_files" multiple accept="image/*" onchange="handleMultipleUpload(this)" />
+              <small class="text-muted d-block mt-1">Upload multiple photos for species photo carousel</small>
+              <div id="gallery_preview_container" class="gallery-preview-grid mt-2"></div>
+            </div>
+
+            <div class="col-12 form-group-custom">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="plant_is_active" checked />
+                <label class="form-check-label fw-bold" for="plant_is_active">Active / Published</label>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success rounded-pill px-4" onclick="savePlantEntity()">Save Entity</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden File Input for Single Image Upload -->
+<input type="file" id="single_image_input" accept="image/*" class="d-none" onchange="handleSingleUpload(this)" />
+
+<script>
+  let plantEntities = [];
+  let currentFilter = 'all';
+  let currentTargetInputId = '';
+  let currentTargetPreviewId = '';
+  let galleryImageUrls = [];
+
+  function getAuthToken() {
+    return window.token || localStorage.getItem('admin_token') || '';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadPlantEntities();
+  });
+
+  async function loadPlantEntities() {
+    const tbody = document.getElementById('plantTableBody');
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-5 text-muted">
+          <div class="spinner-border text-success me-2" role="status"></div> Loading Plant Explorer data...
+        </td>
+      </tr>
+    `;
+
+    try {
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const resp = await fetch('/admin-panel/plant-explorer', { headers });
+      if (!resp.ok) throw new Error('Failed to fetch plant entities');
+      plantEntities = await resp.json();
+      document.getElementById('stat-total-count').innerText = plantEntities.length;
+      renderPlantTable();
+    } catch (err) {
+      console.error(err);
+      plantEntities = [];
+      document.getElementById('stat-total-count').innerText = "0";
+      renderPlantTable();
+    }
+  }
+
+  function filterCategory(cat, btn) {
+    currentFilter = cat;
+    document.querySelectorAll('#category-filter-buttons .filter-btn').forEach(b => {
+      b.classList.remove('btn-primary', 'active');
+      b.classList.add('btn-outline-secondary');
+    });
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-primary', 'active');
+    filterPlantTable();
+  }
+
+  function filterPlantTable() {
+    renderPlantTable();
+  }
+
+  function renderPlantTable() {
+    const tbody = document.getElementById('plantTableBody');
+    const q = document.getElementById('plantSearchInput').value.toLowerCase().trim();
+    
+    let list = plantEntities.filter(item => {
+      const matchCat = (currentFilter === 'all') || (item.category === currentFilter);
+      const nameStr = (item.name || '').toLowerCase();
+      const descStr = (item.full_description || item.short_description || '').toLowerCase();
+      const sciStr = (item.scientific_name || item.habitat || '').toLowerCase();
+      const matchSearch = nameStr.includes(q) || descStr.includes(q) || sciStr.includes(q) || String(item.order).includes(q);
+      return matchCat && matchSearch;
+    });
+
+    if (list.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-5">
+            <div class="my-3">
+              <i class="fa fa-leaf text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
+              <h5 class="font-weight-bold text-dark mb-1">No Plant Explorer Entities Found</h5>
+              <p class="text-muted mb-3" style="font-size: 0.9rem;">
+                ${plantEntities.length === 0 ? 'No plant data added yet. Click below to add a plant entity.' : 'No entities match your search criteria.'}
+              </p>
+              <button class="btn btn-add-entity shadow-sm" onclick="openAddPlantModal()">
+                <i class="fa fa-plus-circle me-1"></i> Add Plant Entity
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = list.map(item => {
+      const defaultImg = 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=200&q=80';
+      const imgUrl = item.image_url || defaultImg;
+      const statusBadge = item.is_active 
+        ? `<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill"><i class="fa fa-check-circle me-1"></i> Active</span>`
+        : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill">Inactive</span>`;
+
+      const metrics = [
+        item.scientific_name ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-italic me-1 text-success"></i> ${escapeHtml(item.scientific_name)}</span>` : '',
+        item.habitat ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-tree me-1 text-primary"></i> ${escapeHtml(item.habitat)}</span>` : ''
+      ].join('');
+
+      return `
+        <tr>
+          <td class="ps-3"><span class="order-badge">${item.order || 1}</span></td>
+          <td>
+            <img src="${imgUrl}" class="plant-img-thumb" onerror="this.src='${defaultImg}';" />
+          </td>
+          <td>
+            <div class="fw-bold text-dark d-flex align-items-center gap-2">
+              ${escapeHtml(item.name)}
+              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                ${escapeHtml(item.category || 'Rainforest')}
+              </span>
+            </div>
+          </td>
+          <td>
+            <div class="text-truncate text-muted" style="max-width: 240px; font-size: 0.88rem;" title="${escapeHtml(item.short_description || '')}">
+              ${escapeHtml(item.short_description || 'No summary set')}
+            </div>
+          </td>
+          <td>
+            <div>${metrics || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
+          </td>
+          <td>${statusBadge}</td>
+          <td class="text-center pe-3">
+            <div class="d-flex align-items-center justify-content-center gap-1">
+              <button type="button" class="table-action-btn table-action-edit" onclick="editPlantEntity('${item.id}')" title="Edit Entity">
+                <i class="fa fa-pencil"></i>
+              </button>
+              <button type="button" class="table-action-btn table-action-delete" onclick="deletePlantEntity('${item.id}', '${escapeHtml(item.name)}')" title="Delete Entity">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function openAddPlantModal() {
+    document.getElementById('plantModalTitle').innerText = 'Add Plant Entity';
+    document.getElementById('plantEntityForm').reset();
+    document.getElementById('plant_id').value = '';
+    galleryImageUrls = [];
+    renderGalleryPreviews();
+    document.getElementById('plant_image_preview_wrap').classList.add('d-none');
+    document.getElementById('plant_banner_preview_wrap').classList.add('d-none');
+    const modal = new bootstrap.Modal(document.getElementById('plantEntityModal'));
+    modal.show();
+  }
+
+  function editPlantEntity(id) {
+    const item = plantEntities.find(i => i.id === id);
+    if (!item) return;
+
+    document.getElementById('plantModalTitle').innerText = 'Edit Plant Entity';
+    document.getElementById('plant_id').value = item.id;
+    document.getElementById('plant_name').value = item.name || '';
+    document.getElementById('plant_order').value = item.order || 1;
+    document.getElementById('plant_category').value = item.category || 'Rainforest';
+    document.getElementById('plant_scientific_name').value = item.scientific_name || '';
+    document.getElementById('plant_family').value = item.family || '';
+    document.getElementById('plant_habitat').value = item.habitat || '';
+    document.getElementById('plant_climate').value = item.climate || '';
+    document.getElementById('plant_fun_fact').value = item.fun_fact || '';
+    document.getElementById('plant_short_desc').value = item.short_description || '';
+    document.getElementById('plant_full_desc').value = item.full_description || '';
+    document.getElementById('plant_image_url').value = item.image_url || '';
+    document.getElementById('plant_banner_url').value = item.banner_image_url || '';
+    document.getElementById('plant_is_active').checked = item.is_active !== false;
+
+    updateSinglePreview('plant_image_url', 'plant_image_preview');
+    updateSinglePreview('plant_banner_url', 'plant_banner_preview');
+
+    galleryImageUrls = item.gallery_images || [];
+    renderGalleryPreviews();
+
+    const modal = new bootstrap.Modal(document.getElementById('plantEntityModal'));
+    modal.show();
+  }
+
+  function updateSinglePreview(inputId, previewImgId) {
+    const val = document.getElementById(inputId).value.trim();
+    const previewImg = document.getElementById(previewImgId);
+    const wrap = document.getElementById(previewImgId + '_wrap');
+    if (val) {
+      previewImg.src = val;
+      wrap.classList.remove('d-none');
+    } else {
+      wrap.classList.add('d-none');
+    }
+  }
+
+  async function savePlantEntity() {
+    const id = document.getElementById('plant_id').value;
+    const name = document.getElementById('plant_name').value.trim();
+    if (!name) {
+      alert('Please enter plant name');
+      return;
+    }
+
+    const payload = {
+      name: name,
+      order: parseInt(document.getElementById('plant_order').value) || 1,
+      category: document.getElementById('plant_category').value,
+      scientific_name: document.getElementById('plant_scientific_name').value.trim(),
+      family: document.getElementById('plant_family').value.trim(),
+      habitat: document.getElementById('plant_habitat').value.trim(),
+      climate: document.getElementById('plant_climate').value.trim(),
+      fun_fact: document.getElementById('plant_fun_fact').value.trim(),
+      short_description: document.getElementById('plant_short_desc').value.trim(),
+      full_description: document.getElementById('plant_full_desc').value.trim(),
+      image_url: document.getElementById('plant_image_url').value.trim(),
+      banner_image_url: document.getElementById('plant_banner_url').value.trim(),
+      gallery_images: galleryImageUrls,
+      is_active: document.getElementById('plant_is_active').checked
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const url = id ? `/admin-panel/plant-explorer/${id}` : '/admin-panel/plant-explorer';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      const resp = await fetch(url, {
+        method: method,
+        headers: headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.detail || 'Failed to save plant entity');
+      }
+
+      bootstrap.Modal.getInstance(document.getElementById('plantEntityModal')).hide();
+      loadPlantEntities();
+    } catch (err) {
+      alert(`Error saving plant entity: ${err.message}`);
+    }
+  }
+
+  async function deletePlantEntity(id, name) {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch(`/admin-panel/plant-explorer/${id}`, {
+        method: 'DELETE',
+        headers: headers
+      });
+      if (!resp.ok) throw new Error('Failed to delete plant entity');
+      loadPlantEntities();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  /* Single Image Upload Helper */
+  function triggerSingleUpload(targetId, previewId) {
+    currentTargetInputId = targetId;
+    currentTargetPreviewId = previewId;
+    document.getElementById('single_image_input').click();
+  }
+
+  async function handleSingleUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/plant-explorer/upload-image', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Failed to upload image');
+      const data = await resp.json();
+      if (currentTargetInputId) {
+        document.getElementById(currentTargetInputId).value = data.url;
+        if (currentTargetPreviewId) {
+          updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
+        }
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+    input.value = '';
+  }
+
+  /* Multiple Image Upload Support for Gallery */
+  async function handleMultipleUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const formData = new FormData();
+    for (let i = 0; i < input.files.length; i++) {
+      formData.append('files', input.files[i]);
+    }
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/plant-explorer/upload-multiple-images', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Failed to upload multiple images');
+      const data = await resp.json();
+      if (data.urls) {
+        galleryImageUrls.push(...data.urls);
+        renderGalleryPreviews();
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+    input.value = '';
+  }
+
+  function renderGalleryPreviews() {
+    const container = document.getElementById('gallery_preview_container');
+    container.innerHTML = galleryImageUrls.map((url, idx) => `
+      <div class="gallery-thumb-item">
+        <img src="${url}" />
+        <button type="button" class="btn-remove-gal" onclick="removeGalleryImg(${idx})">&times;</button>
+      </div>
+    `).join('');
+  }
+
+  function removeGalleryImg(idx) {
+    galleryImageUrls.splice(idx, 1);
+    renderGalleryPreviews();
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+</script>
+{% endblock %}

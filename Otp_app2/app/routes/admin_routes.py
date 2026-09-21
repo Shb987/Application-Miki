@@ -90,7 +90,8 @@ async def login(admin: AdminLogin):
     if not record or not verify_password(admin.password, record["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token({"sub": record["username"], "role": record.get("role_name", "superadmin")})
+    user_role = record.get("role_name") or record.get("role") or "superadmin"
+    token = create_access_token({"sub": record["username"], "role": user_role})
     return {"access_token": token, "token_type": "bearer"}
 
 
@@ -98,16 +99,20 @@ async def login(admin: AdminLogin):
 @router.get("/get_details")
 async def get_admin_me(current_admin: dict = Depends(get_current_admin)):
     username = current_admin["sub"]
-    role_name = current_admin["role"]
+    role_name = current_admin.get("role") or "superadmin"
+    role_clean = str(role_name).strip().lower().replace(" ", "").replace("_", "")
     
     # Defaults
     permissions = {}
     is_superadmin = False
     
-    if role_name == "superadmin":
+    if role_clean in ["superadmin", "admin"]:
         is_superadmin = True
     else:
-        role_doc = await db.roles.find_one({"role_name": role_name})
+        import re
+        role_doc = await db.roles.find_one({
+            "role_name": {"$regex": f"^{re.escape(role_name.strip())}$", "$options": "i"}
+        })
         if role_doc:
             permissions = role_doc.get("permissions", {})
             

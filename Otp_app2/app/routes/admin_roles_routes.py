@@ -20,7 +20,8 @@ async def log_admin_activity(username: str, role: str, action: str, details: str
 
 # Only superadmins should manage roles.
 def require_superadmin(current_admin: dict = Depends(get_current_admin)):
-    if current_admin.get("role") != "superadmin":
+    role = str(current_admin.get("role", "")).strip().lower().replace(" ", "").replace("_", "")
+    if role not in ["superadmin", "admin"]:
         raise HTTPException(status_code=403, detail="Superadmin access required")
     return current_admin
 

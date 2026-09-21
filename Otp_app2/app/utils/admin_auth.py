@@ -67,25 +67,62 @@ def require_permission(module: str, action: str):
 
         act_normalized = action.strip().lower()
         mod_normalized = module.strip().lower().replace(" ", "_").replace(",", "")
+        role_clean = str(role_name).strip().lower().replace(" ", "").replace("_", "")
 
-        if role_name != "superadmin":
-            role = await db.roles.find_one({"role_name": role_name})
-            if not role:
-                raise HTTPException(status_code=403, detail="Role not found")
-                
-            permissions = role.get("permissions", {})
+        # Superadmin variants bypass all role checks
+        if role_clean in ["superadmin", "admin"]:
+            if act_normalized in ["create", "update", "delete"]:
+                action_key = f"{act_normalized}_{mod_normalized}"
+                details_str = f"Admin performed {action.upper()} on module '{module}'"
+                await log_admin_activity(
+                    username=username,
+                    role=role_name,
+                    action=action_key,
+                    details=details_str,
+                    status="success"
+                )
+            return {"sub": username, "role": role_name}
 
-            # Normalize keys: compare lowercase+stripped to handle typos like
-            # "Questions Base" vs "Question Base" saved in DB
-            module_normalized = module.strip().lower()
-            module_perms = {}
-            for db_key, db_val in permissions.items():
-                if db_key.strip().lower() == module_normalized:
-                    module_perms = db_val
-                    break
+        # Case-insensitive role lookup in db.roles for non-superadmin roles
+        import re
+        role = await db.roles.find_one({
+            "role_name": {"$regex": f"^{re.escape(role_name.strip())}$", "$options": "i"}
+        })
 
-            if not module_perms.get(action, False):
-                raise HTTPException(status_code=403, detail=f"Permission denied for module '{module}' with action '{action}'")
+        if not role:
+            role_alt = role_name.strip().replace("_", " ")
+            role = await db.roles.find_one({
+                "role_name": {"$regex": f"^{re.escape(role_alt)}$", "$options": "i"}
+            })
+
+        if not role:
+            raise HTTPException(status_code=403, detail="Role not found")
+            
+        permissions = role.get("permissions", {})
+
+        # Normalize keys: compare lowercase+stripped
+        module_normalized = module.strip().lower()
+        module_perms = {}
+
+        # Map fallbacks for explorer modules if role has Explorer or Space Explorer permission
+        fallback_modules = [module_normalized]
+        if module_normalized in ["ocean_explorer", "plant_explorer", "ocean explorer", "plant explorer", "space explorer", "space_explorer"]:
+            fallback_modules.extend(["explorer", "space explorer", "space_explorer", "ocean explorer", "ocean_explorer", "plant explorer", "plant_explorer"])
+
+        for db_key, db_val in permissions.items():
+            norm_key = db_key.strip().lower()
+            if norm_key in fallback_modules:
+                if isinstance(db_val, dict):
+                    if db_val.get(action, False):
+                        module_perms = db_val
+                        break
+                    elif not module_perms:
+                        module_perms = db_val
+
+        has_perm = module_perms.get(action, False) if isinstance(module_perms, dict) else False
+
+        if not has_perm:
+            raise HTTPException(status_code=403, detail=f"Permission denied for module '{module}' with action '{action}'")
 
         # Automatically log activity for mutating actions (create, update, delete)
         if act_normalized in ["create", "update", "delete"]:

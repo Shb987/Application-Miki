@@ -20,7 +20,10 @@ from app.routes import (
     payment_routes, admin_plan_routes, admin_school_routes, public_school_routes,
     external_registration_routes, admin_social_routes, contributor_routes, user_social_routes,
     edusoft_routes, user_sudoku_routes, user_todo_routes, user_maths_game_routes,
-    admin_space_explorer_routes, user_space_explorer_routes
+    admin_space_explorer_routes, user_space_explorer_routes,
+    admin_ocean_explorer_routes, user_ocean_explorer_routes,
+    admin_plant_explorer_routes, user_plant_explorer_routes,
+    user_explorer_routes
 ) 
 
 from fastapi.responses import JSONResponse, Response
@@ -41,18 +44,23 @@ async def favicon():
 
 async def seed_default_roles():
     try:
+        full_explorer_perms = {"read": True, "create": True, "update": True, "delete": True}
+        
+        # 1. Update Data Operator role
         data_operator_role = await db.roles.find_one({
             "role_name": {"$regex": "^data[ _]operator$", "$options": "i"}
         })
-        full_space_perms = {"read": True, "create": True, "update": True, "delete": True}
         if data_operator_role:
             perms = data_operator_role.get("permissions", {})
-            perms["Space Explorer"] = full_space_perms
+            perms["Space Explorer"] = full_explorer_perms
+            perms["Ocean Explorer"] = full_explorer_perms
+            perms["Plant Explorer"] = full_explorer_perms
+            perms["Explorer"] = full_explorer_perms
             await db.roles.update_one(
                 {"_id": data_operator_role["_id"]},
                 {"$set": {"permissions": perms}}
             )
-            print("[INFO] Updated Data Operator role with full Space Explorer permissions.")
+            print("[INFO] Updated Data Operator role with full Explorer permissions.")
         else:
             default_perms = {
                 "User Management": {"read": True, "create": False, "update": False, "delete": False},
@@ -61,7 +69,10 @@ async def seed_default_roles():
                 "Quizzes": {"read": True, "create": True, "update": True, "delete": False},
                 "Games": {"read": True, "create": False, "update": False, "delete": False},
                 "Tutorials": {"read": True, "create": True, "update": True, "delete": False},
-                "Space Explorer": full_space_perms,
+                "Space Explorer": full_explorer_perms,
+                "Ocean Explorer": full_explorer_perms,
+                "Plant Explorer": full_explorer_perms,
+                "Explorer": full_explorer_perms,
                 "Notifications": {"read": True, "create": False, "update": False, "delete": False},
                 "Analytics": {"read": True, "create": False, "update": False, "delete": False},
                 "Special Days": {"read": True, "create": False, "update": False, "delete": False},
@@ -73,10 +84,24 @@ async def seed_default_roles():
             }
             await db.roles.insert_one({
                 "role_name": "Data Operator",
-                "description": "Data entry and management operator with full access to Space Explorer.",
+                "description": "Data entry and management operator with full access to Explorer submodules.",
                 "permissions": default_perms
             })
             print("[INFO] Seeded default Data Operator role.")
+
+        # 2. Update any existing roles in db.roles that have Space Explorer or Explorer permission
+        cursor = db.roles.find()
+        all_roles = await cursor.to_list(length=100)
+        for r in all_roles:
+            p = r.get("permissions", {})
+            has_space = p.get("Space Explorer") or p.get("space explorer") or p.get("Explorer") or p.get("explorer")
+            if has_space:
+                p["Space Explorer"] = has_space
+                p["Ocean Explorer"] = has_space
+                p["Plant Explorer"] = has_space
+                p["Explorer"] = has_space
+                await db.roles.update_one({"_id": r["_id"]}, {"$set": {"permissions": p}})
+
     except Exception as e:
         print(f"[WARN] Failed to seed default roles: {e}")
 
@@ -161,6 +186,9 @@ app.include_router(user_exam_routes.router,prefix="/user", tags=["User_Exam Modu
 app.include_router(exam_evaluation_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(user_todo_routes.router, prefix="/user", tags=["User To-Do Module"])
 app.include_router(user_space_explorer_routes.router, prefix="/user", tags=["Space Explorer - User"])
+app.include_router(user_ocean_explorer_routes.router, prefix="/user", tags=["Ocean Explorer - User"])
+app.include_router(user_plant_explorer_routes.router, prefix="/user", tags=["Plant Explorer - User"])
+app.include_router(user_explorer_routes.router, prefix="/user", tags=["Explorer - Unified User API"])
 app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Futurestudy Module"])
 app.include_router(companion_routes.router, tags=["AI Student Companion"])
 app.include_router(chat_routes.router, prefix="/user")
@@ -221,6 +249,8 @@ app.include_router(admin_social_routes.router, prefix="/admin-panel/social", tag
 app.include_router(contributor_routes.router, prefix="/contributor", tags=["Contributor Social"])
 app.include_router(user_social_routes.router, prefix="/user/social", tags=["User Social"])
 
-# Space Explorer Module
+# Explorer Modules
 app.include_router(admin_space_explorer_routes.router, prefix="/admin-panel", tags=["Space Explorer - Admin"])
+app.include_router(admin_ocean_explorer_routes.router, prefix="/admin-panel", tags=["Ocean Explorer - Admin"])
+app.include_router(admin_plant_explorer_routes.router, prefix="/admin-panel", tags=["Plant Explorer - Admin"])
 

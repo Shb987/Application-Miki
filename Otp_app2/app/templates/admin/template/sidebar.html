@@ -132,14 +132,21 @@
           </ul>
         </li>
 
-        <!-- Space Explorer -->
-        <li class="sidebar-list" id="menu-space-explorer">
+        <!-- Explorer -->
+        <li class="sidebar-list" id="menu-explorer">
           <a class="sidebar-link sidebar-title" href="#">
-            <img src="/assets/svg/space-icon.svg" class="sidebar-icon" style="width:20px; height:20px; vertical-align: middle; margin-right: 8px;"/>
-            <span>Space Explorer</span>
+            <svg class="stroke-icon">
+              <use href="/assets/svg/icon-sprite.svg#stroke-search"></use>
+            </svg>
+            <svg class="fill-icon">
+              <use href="/assets/svg/icon-sprite.svg#fill-search"></use>
+            </svg>
+            <span>Explorer</span>
           </a>
           <ul class="sidebar-submenu">
-            <li><a href="/admin-panel/space-explorer-page">Manage Space Data</a></li>
+            <li><a href="/admin-panel/space-explorer-page">Space Explorer</a></li>
+            <li><a href="/admin-panel/ocean-explorer-page">Ocean Explorer</a></li>
+            <li><a href="/admin-panel/plant-explorer-page">Plant Explorer</a></li>
           </ul>
         </li>
 

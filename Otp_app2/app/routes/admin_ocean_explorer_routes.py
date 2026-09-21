@@ -81,52 +81,7 @@ async def create_ocean_entity(data: OceanExplorerCreate, current_admin: dict = D
     created = await db.ocean_explorer.find_one({"_id": result.inserted_id})
     return serialize_doc(created)
 
-@router.get("/{item_id}", response_model=OceanExplorerResponse)
-async def get_ocean_entity(item_id: str, current_admin: dict = Depends(require_permission("Ocean Explorer", "read"))):
-    """Get single Ocean Explorer entity by ID (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    doc = await db.ocean_explorer.find_one({"_id": ObjectId(item_id)})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Ocean entity not found")
-
-    return serialize_doc(doc)
-
-@router.put("/{item_id}", response_model=OceanExplorerResponse)
-async def update_ocean_entity(item_id: str, update_data: OceanExplorerUpdate, current_admin: dict = Depends(require_permission("Ocean Explorer", "update"))):
-    """Update an existing Ocean Explorer entity (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
-    if not fields:
-        raise HTTPException(status_code=400, detail="No fields provided for update")
-
-    fields["updated_at"] = datetime.now(timezone.utc)
-
-    result = await db.ocean_explorer.update_one(
-        {"_id": ObjectId(item_id)},
-        {"$set": fields}
-    )
-
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Ocean entity not found")
-
-    updated = await db.ocean_explorer.find_one({"_id": ObjectId(item_id)})
-    return serialize_doc(updated)
-
-@router.delete("/{item_id}")
-async def delete_ocean_entity(item_id: str, current_admin: dict = Depends(require_permission("Ocean Explorer", "delete"))):
-    """Delete an Ocean Explorer entity (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    result = await db.ocean_explorer.delete_one({"_id": ObjectId(item_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Ocean entity not found")
-
-    return {"message": "Ocean entity deleted successfully", "id": item_id}
+# --- STATIC SPECIFIC ROUTES (MUST be defined before dynamic /{item_id} routes) ---
 
 @router.get("/uploaded-images")
 async def get_uploaded_ocean_images(current_admin: dict = Depends(require_permission("Ocean Explorer", "read"))):
@@ -200,3 +155,52 @@ async def upload_multiple_ocean_images(files: List[UploadFile] = File(...), curr
             uploaded_urls.append(f"/uploads/ocean/{filename}")
 
     return {"message": f"{len(uploaded_urls)} images uploaded successfully", "urls": uploaded_urls}
+
+# --- DYNAMIC PARAMETER ROUTES (defined after specific static routes) ---
+
+@router.get("/{item_id}", response_model=OceanExplorerResponse)
+async def get_ocean_entity(item_id: str, current_admin: dict = Depends(require_permission("Ocean Explorer", "read"))):
+    """Get single Ocean Explorer entity by ID (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    doc = await db.ocean_explorer.find_one({"_id": ObjectId(item_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Ocean entity not found")
+
+    return serialize_doc(doc)
+
+@router.put("/{item_id}", response_model=OceanExplorerResponse)
+async def update_ocean_entity(item_id: str, update_data: OceanExplorerUpdate, current_admin: dict = Depends(require_permission("Ocean Explorer", "update"))):
+    """Update an existing Ocean Explorer entity (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields provided for update")
+
+    fields["updated_at"] = datetime.now(timezone.utc)
+
+    result = await db.ocean_explorer.update_one(
+        {"_id": ObjectId(item_id)},
+        {"$set": fields}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Ocean entity not found")
+
+    updated = await db.ocean_explorer.find_one({"_id": ObjectId(item_id)})
+    return serialize_doc(updated)
+
+@router.delete("/{item_id}")
+async def delete_ocean_entity(item_id: str, current_admin: dict = Depends(require_permission("Ocean Explorer", "delete"))):
+    """Delete an Ocean Explorer entity (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    result = await db.ocean_explorer.delete_one({"_id": ObjectId(item_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Ocean entity not found")
+
+    return {"message": "Ocean entity deleted successfully", "id": item_id}

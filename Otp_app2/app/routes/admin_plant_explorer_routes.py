@@ -81,52 +81,7 @@ async def create_plant_entity(data: PlantExplorerCreate, current_admin: dict = D
     created = await db.plant_explorer.find_one({"_id": result.inserted_id})
     return serialize_doc(created)
 
-@router.get("/{item_id}", response_model=PlantExplorerResponse)
-async def get_plant_entity(item_id: str, current_admin: dict = Depends(require_permission("Plant Explorer", "read"))):
-    """Get single Plant Explorer entity by ID (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    doc = await db.plant_explorer.find_one({"_id": ObjectId(item_id)})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Plant entity not found")
-
-    return serialize_doc(doc)
-
-@router.put("/{item_id}", response_model=PlantExplorerResponse)
-async def update_plant_entity(item_id: str, update_data: PlantExplorerUpdate, current_admin: dict = Depends(require_permission("Plant Explorer", "update"))):
-    """Update an existing Plant Explorer entity (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
-    if not fields:
-        raise HTTPException(status_code=400, detail="No fields provided for update")
-
-    fields["updated_at"] = datetime.now(timezone.utc)
-
-    result = await db.plant_explorer.update_one(
-        {"_id": ObjectId(item_id)},
-        {"$set": fields}
-    )
-
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Plant entity not found")
-
-    updated = await db.plant_explorer.find_one({"_id": ObjectId(item_id)})
-    return serialize_doc(updated)
-
-@router.delete("/{item_id}")
-async def delete_plant_entity(item_id: str, current_admin: dict = Depends(require_permission("Plant Explorer", "delete"))):
-    """Delete a Plant Explorer entity (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    result = await db.plant_explorer.delete_one({"_id": ObjectId(item_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Plant entity not found")
-
-    return {"message": "Plant entity deleted successfully", "id": item_id}
+# --- STATIC SPECIFIC ROUTES (MUST be defined before dynamic /{item_id} routes) ---
 
 @router.get("/uploaded-images")
 async def get_uploaded_plant_images(current_admin: dict = Depends(require_permission("Plant Explorer", "read"))):
@@ -200,3 +155,52 @@ async def upload_multiple_plant_images(files: List[UploadFile] = File(...), curr
             uploaded_urls.append(f"/uploads/plant/{filename}")
 
     return {"message": f"{len(uploaded_urls)} images uploaded successfully", "urls": uploaded_urls}
+
+# --- DYNAMIC PARAMETER ROUTES (defined after specific static routes) ---
+
+@router.get("/{item_id}", response_model=PlantExplorerResponse)
+async def get_plant_entity(item_id: str, current_admin: dict = Depends(require_permission("Plant Explorer", "read"))):
+    """Get single Plant Explorer entity by ID (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    doc = await db.plant_explorer.find_one({"_id": ObjectId(item_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plant entity not found")
+
+    return serialize_doc(doc)
+
+@router.put("/{item_id}", response_model=PlantExplorerResponse)
+async def update_plant_entity(item_id: str, update_data: PlantExplorerUpdate, current_admin: dict = Depends(require_permission("Plant Explorer", "update"))):
+    """Update an existing Plant Explorer entity (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields provided for update")
+
+    fields["updated_at"] = datetime.now(timezone.utc)
+
+    result = await db.plant_explorer.update_one(
+        {"_id": ObjectId(item_id)},
+        {"$set": fields}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Plant entity not found")
+
+    updated = await db.plant_explorer.find_one({"_id": ObjectId(item_id)})
+    return serialize_doc(updated)
+
+@router.delete("/{item_id}")
+async def delete_plant_entity(item_id: str, current_admin: dict = Depends(require_permission("Plant Explorer", "delete"))):
+    """Delete a Plant Explorer entity (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    result = await db.plant_explorer.delete_one({"_id": ObjectId(item_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Plant entity not found")
+
+    return {"message": "Plant entity deleted successfully", "id": item_id}

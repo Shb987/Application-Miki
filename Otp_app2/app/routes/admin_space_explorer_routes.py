@@ -1,9 +1,11 @@
 import os
 import shutil
+import io
 from typing import List
 from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from PIL import Image
 
 from app.core.database import db
 from app.models.space_explorer_models import SpaceExplorerCreate, SpaceExplorerUpdate, SpaceExplorerResponse
@@ -23,78 +25,6 @@ def serialize_doc(doc):
     if "descriptions" not in doc or doc["descriptions"] is None:
         doc["descriptions"] = [doc.get("full_description")] if doc.get("full_description") else []
     return doc
-
-@router.get("", response_model=List[SpaceExplorerResponse])
-async def get_all_space_entities(current_admin: dict = Depends(require_permission("Space Explorer", "read"))):
-    """Retrieve all Space Explorer entities ordered by order number (Requires Admin Authentication)"""
-    cursor = db.space_explorer.find().sort("order", 1)
-    entities = await cursor.to_list(length=None)
-    return [serialize_doc(doc) for doc in entities]
-
-@router.post("", response_model=SpaceExplorerResponse)
-async def create_space_entity(data: SpaceExplorerCreate, current_admin: dict = Depends(require_permission("Space Explorer", "create"))):
-    """Create a new Space Explorer entity (Requires Admin Authentication)"""
-    existing = await db.space_explorer.find_one({"name": {"$regex": f"^{data.name.strip()}$", "$options": "i"}})
-    if existing:
-        raise HTTPException(status_code=400, detail=f"Space entity '{data.name}' already exists.")
-
-    new_doc = data.model_dump()
-    new_doc["created_at"] = datetime.now(timezone.utc)
-    new_doc["updated_at"] = datetime.now(timezone.utc)
-
-    result = await db.space_explorer.insert_one(new_doc)
-    created = await db.space_explorer.find_one({"_id": result.inserted_id})
-    return serialize_doc(created)
-
-@router.get("/{item_id}", response_model=SpaceExplorerResponse)
-async def get_space_entity(item_id: str, current_admin: dict = Depends(require_permission("Space Explorer", "read"))):
-    """Get single Space Explorer entity by ID (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    doc = await db.space_explorer.find_one({"_id": ObjectId(item_id)})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Space entity not found")
-
-    return serialize_doc(doc)
-
-@router.put("/{item_id}", response_model=SpaceExplorerResponse)
-async def update_space_entity(item_id: str, update_data: SpaceExplorerUpdate, current_admin: dict = Depends(require_permission("Space Explorer", "update"))):
-    """Update an existing Space Explorer entity (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
-    if not fields:
-        raise HTTPException(status_code=400, detail="No fields provided for update")
-
-    fields["updated_at"] = datetime.now(timezone.utc)
-
-    result = await db.space_explorer.update_one(
-        {"_id": ObjectId(item_id)},
-        {"$set": fields}
-    )
-
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Space entity not found")
-
-    updated = await db.space_explorer.find_one({"_id": ObjectId(item_id)})
-    return serialize_doc(updated)
-
-@router.delete("/{item_id}")
-async def delete_space_entity(item_id: str, current_admin: dict = Depends(require_permission("Space Explorer", "delete"))):
-    """Delete a Space Explorer entity (Requires Admin Authentication)"""
-    if not ObjectId.is_valid(item_id):
-        raise HTTPException(status_code=400, detail="Invalid ID format")
-
-    result = await db.space_explorer.delete_one({"_id": ObjectId(item_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Space entity not found")
-
-    return {"message": "Space entity deleted successfully", "id": item_id}
-
-import io
-from PIL import Image
 
 def save_and_optimize_image(file_obj, filepath: str, max_dim: int = 1920):
     """Saves uploaded image, automatically resizing & compressing to optimize load times."""
@@ -129,6 +59,30 @@ def save_and_optimize_image(file_obj, filepath: str, max_dim: int = 1920):
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file_obj.file, buffer)
 
+@router.get("", response_model=List[SpaceExplorerResponse])
+async def get_all_space_entities(current_admin: dict = Depends(require_permission("Space Explorer", "read"))):
+    """Retrieve all Space Explorer entities ordered by order number (Requires Admin Authentication)"""
+    cursor = db.space_explorer.find().sort("order", 1)
+    entities = await cursor.to_list(length=None)
+    return [serialize_doc(doc) for doc in entities]
+
+@router.post("", response_model=SpaceExplorerResponse)
+async def create_space_entity(data: SpaceExplorerCreate, current_admin: dict = Depends(require_permission("Space Explorer", "create"))):
+    """Create a new Space Explorer entity (Requires Admin Authentication)"""
+    existing = await db.space_explorer.find_one({"name": {"$regex": f"^{data.name.strip()}$", "$options": "i"}})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Space entity '{data.name}' already exists.")
+
+    new_doc = data.model_dump()
+    new_doc["created_at"] = datetime.now(timezone.utc)
+    new_doc["updated_at"] = datetime.now(timezone.utc)
+
+    result = await db.space_explorer.insert_one(new_doc)
+    created = await db.space_explorer.find_one({"_id": result.inserted_id})
+    return serialize_doc(created)
+
+# --- STATIC SPECIFIC ROUTES (MUST be defined before dynamic /{item_id} routes) ---
+
 @router.get("/uploaded-images")
 async def get_uploaded_images(current_admin: dict = Depends(require_permission("Space Explorer", "read"))):
     """List all uploaded images stored in space uploads directory with size metadata."""
@@ -154,7 +108,6 @@ async def get_uploaded_images(current_admin: dict = Depends(require_permission("
                 "mtime": stat.st_mtime
             })
 
-    # Sort newest first
     items.sort(key=lambda x: x["mtime"], reverse=True)
     return items
 
@@ -202,3 +155,52 @@ async def upload_multiple_space_images(files: List[UploadFile] = File(...), curr
             uploaded_urls.append(f"/uploads/space/{filename}")
 
     return {"message": f"{len(uploaded_urls)} images uploaded successfully", "urls": uploaded_urls}
+
+# --- DYNAMIC PARAMETER ROUTES (defined after specific static routes) ---
+
+@router.get("/{item_id}", response_model=SpaceExplorerResponse)
+async def get_space_entity(item_id: str, current_admin: dict = Depends(require_permission("Space Explorer", "read"))):
+    """Get single Space Explorer entity by ID (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    doc = await db.space_explorer.find_one({"_id": ObjectId(item_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Space entity not found")
+
+    return serialize_doc(doc)
+
+@router.put("/{item_id}", response_model=SpaceExplorerResponse)
+async def update_space_entity(item_id: str, update_data: SpaceExplorerUpdate, current_admin: dict = Depends(require_permission("Space Explorer", "update"))):
+    """Update an existing Space Explorer entity (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields provided for update")
+
+    fields["updated_at"] = datetime.now(timezone.utc)
+
+    result = await db.space_explorer.update_one(
+        {"_id": ObjectId(item_id)},
+        {"$set": fields}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Space entity not found")
+
+    updated = await db.space_explorer.find_one({"_id": ObjectId(item_id)})
+    return serialize_doc(updated)
+
+@router.delete("/{item_id}")
+async def delete_space_entity(item_id: str, current_admin: dict = Depends(require_permission("Space Explorer", "delete"))):
+    """Delete a Space Explorer entity (Requires Admin Authentication)"""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    result = await db.space_explorer.delete_one({"_id": ObjectId(item_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Space entity not found")
+
+    return {"message": "Space entity deleted successfully", "id": item_id}

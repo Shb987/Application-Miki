@@ -222,59 +222,12 @@ async def get_edusoft_credentials(
 
     credential = await db.edusoft_credentials.find_one({"$or": cred_query})
 
-    # ── 2b. Auto-provision fallback if student exists in db.students ──────────
-    if not credential:
-        student_query = [{"_id": student_id}]
-        if student_oid:
-            student_query.append({"_id": student_oid})
-
-        student_doc = await db.students.find_one({"$or": student_query})
-        if not student_doc:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No credentials or student record found for student_id '{student_id}'"
-            )
-
-        # Auto-provision credentials for valid registered student
-        auto_username, auto_password = generate_default_edusoft_credentials(student_doc, student_id)
-
-        # Ensure username uniqueness if needed
-        existing_user = await db.edusoft_credentials.find_one({"username": auto_username})
-        if existing_user and existing_user.get("student_id") != student_id:
-            auto_username = f"{auto_username}_{student_id[-3:]}"
-
-        encrypted_pwd = encrypt_password(auto_password)
-
-        credential_doc = {
-            "student_id": student_id,
-            "username": auto_username,
-            "password_enc": encrypted_pwd,
-            "created_at": datetime.now(timezone.utc),
-            "registered_via": "auto_provisioned"
-        }
-        await db.edusoft_credentials.insert_one(credential_doc)
-        credential = credential_doc
-
-    # ── 2c. Migrate legacy username formats (e.g. rahulvarma_050251) to 3-digit numeric username ──
-    if credential and ("_" in str(credential.get("username", "")) or not str(credential.get("username", "")).isdigit()):
-        student_query = [{"_id": student_id}]
-        if student_oid:
-            student_query.append({"_id": student_oid})
-        student_doc = await db.students.find_one({"$or": student_query}) or {}
-
-        auto_username, auto_password = generate_default_edusoft_credentials(student_doc, student_id)
-        encrypted_pwd = encrypt_password(auto_password)
-
-        await db.edusoft_credentials.update_one(
-            {"_id": credential["_id"]},
-            {"$set": {
-                "username": auto_username,
-                "password_enc": encrypted_pwd,
-                "updated_at": datetime.now(timezone.utc)
-            }}
+    # ── 2b. Check if student has valid registered EduSoft credentials ──────────
+    if not credential or credential.get("registered_via") == "auto_provisioned":
+        raise HTTPException(
+            status_code=404,
+            detail=f"EduSoft credentials not found for student_id '{student_id}'. Student is not registered in EduSoft."
         )
-        credential["username"] = auto_username
-        credential["password_enc"] = encrypted_pwd
 
     # ── 3. Decrypt the stored password ───────────────────────────────────────
     plain_password = decrypt_password(credential["password_enc"])

@@ -62,7 +62,7 @@ class SpaceExplorerResponse(SpaceExplorerBase):
 class OceanExplorerBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Title / Ocean Feature or Creature Name")
     order: int = Field(1, ge=1, description="Order/display position")
-    category: str = Field("Deep Sea", description="Category: Deep Sea, Coral Reef, Trench, Marine Life, Ocean Zone, Abyss")
+    category: str = Field("Ocean", description="Category: Ocean")
     short_description: Optional[str] = Field("", description="Short summary description")
     full_description: Optional[str] = Field("", description="Primary ocean feature description")
     descriptions: Optional[List[str]] = Field(default_factory=list, description="Multiple description blocks list")

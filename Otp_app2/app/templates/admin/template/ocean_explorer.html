@@ -279,12 +279,7 @@
       <!-- Category Filter Pills -->
       <div class="d-flex align-items-center gap-2 flex-wrap" id="category-filter-buttons">
         <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 filter-btn active" data-cat="all" onclick="filterCategory('all', this)">All Entities</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Deep Sea" onclick="filterCategory('Deep Sea', this)">Deep Sea</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Coral Reef" onclick="filterCategory('Coral Reef', this)">Coral Reefs</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Trench" onclick="filterCategory('Trench', this)">Trenches</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Marine Life" onclick="filterCategory('Marine Life', this)">Marine Life</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Ocean Zone" onclick="filterCategory('Ocean Zone', this)">Ocean Zones</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Abyss" onclick="filterCategory('Abyss', this)">Abyss</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Ocean" onclick="filterCategory('Ocean', this)">Ocean</button>
       </div>
 
       <!-- Prominent Search Bar -->
@@ -346,12 +341,7 @@
             <div class="col-md-6 form-group-custom">
               <label>Category <span class="text-danger">*</span></label>
               <select class="form-select form-select-custom" id="ocean_category">
-                <option value="Deep Sea">Deep Sea</option>
-                <option value="Coral Reef">Coral Reef</option>
-                <option value="Trench">Trench</option>
-                <option value="Marine Life">Marine Life</option>
-                <option value="Ocean Zone">Ocean Zone</option>
-                <option value="Abyss">Abyss</option>
+                <option value="Ocean" selected>Ocean</option>
               </select>
             </div>
 
@@ -572,7 +562,7 @@
             <div class="fw-bold text-dark d-flex align-items-center gap-2">
               ${escapeHtml(item.name)}
               <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                ${escapeHtml(item.category || 'Deep Sea')}
+                ${escapeHtml(item.category || 'Ocean')}
               </span>
             </div>
           </td>
@@ -622,7 +612,7 @@
     document.getElementById('ocean_id').value = item.id;
     document.getElementById('ocean_name').value = item.name || '';
     document.getElementById('ocean_order').value = item.order || 1;
-    document.getElementById('ocean_category').value = item.category || 'Deep Sea';
+    document.getElementById('ocean_category').value = item.category || 'Ocean';
     document.getElementById('ocean_depth').value = item.depth || '';
     document.getElementById('ocean_location').value = item.location || '';
     document.getElementById('ocean_temperature').value = item.temperature || '';

@@ -279,13 +279,16 @@
       <!-- Category Filter Pills -->
       <div class="d-flex align-items-center gap-2 flex-wrap" id="category-filter-buttons">
         <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 filter-btn active" data-cat="all" onclick="filterCategory('all', this)">All Entities</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Rainforest" onclick="filterCategory('Rainforest', this)">Rainforest</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Carnivorous" onclick="filterCategory('Carnivorous', this)">Carnivorous</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Medicinal" onclick="filterCategory('Medicinal', this)">Medicinal</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Flowering" onclick="filterCategory('Flowering', this)">Flowering</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Tree" onclick="filterCategory('Tree', this)">Trees</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Succulent" onclick="filterCategory('Succulent', this)">Succulents</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Aquatic" onclick="filterCategory('Aquatic', this)">Aquatic</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Trees" onclick="filterCategory('Trees', this)">🌳 Trees</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Shrubs" onclick="filterCategory('Shrubs', this)">🌿 Shrubs</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Herbs" onclick="filterCategory('Herbs', this)">🌱 Herbs</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Grasses" onclick="filterCategory('Grasses', this)">🌾 Grasses</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Cacti &amp; Succulents" onclick="filterCategory('Cacti &amp; Succulents', this)">🌵 Cacti &amp; Succulents</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Flowering Plants" onclick="filterCategory('Flowering Plants', this)">🌸 Flowering Plants</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Aquatic Plants" onclick="filterCategory('Aquatic Plants', this)">🌊 Aquatic Plants</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Climbers &amp; Creepers" onclick="filterCategory('Climbers &amp; Creepers', this)">🌿 Climbers &amp; Creepers</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Conifers" onclick="filterCategory('Conifers', this)">🌲 Conifers</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Ferns, Mosses &amp; Other Spore Plants" onclick="filterCategory('Ferns, Mosses &amp; Other Spore Plants', this)">🍃 Ferns, Mosses &amp; Spore Plants</button>
       </div>
 
       <!-- Prominent Search Bar -->
@@ -347,13 +350,16 @@
             <div class="col-md-6 form-group-custom">
               <label>Category <span class="text-danger">*</span></label>
               <select class="form-select form-select-custom" id="plant_category">
-                <option value="Rainforest">Rainforest</option>
-                <option value="Carnivorous">Carnivorous</option>
-                <option value="Medicinal">Medicinal</option>
-                <option value="Flowering">Flowering</option>
-                <option value="Tree">Tree</option>
-                <option value="Succulent">Succulent</option>
-                <option value="Aquatic">Aquatic</option>
+                <option value="Trees">🌳 Trees</option>
+                <option value="Shrubs">🌿 Shrubs</option>
+                <option value="Herbs">🌱 Herbs</option>
+                <option value="Grasses">🌾 Grasses</option>
+                <option value="Cacti &amp; Succulents">🌵 Cacti &amp; Succulents</option>
+                <option value="Flowering Plants">🌸 Flowering Plants</option>
+                <option value="Aquatic Plants">🌊 Aquatic Plants</option>
+                <option value="Climbers &amp; Creepers">🌿 Climbers &amp; Creepers</option>
+                <option value="Conifers">🌲 Conifers</option>
+                <option value="Ferns, Mosses &amp; Other Spore Plants">🍃 Ferns, Mosses &amp; Other Spore Plants</option>
               </select>
             </div>
 
@@ -574,7 +580,7 @@
             <div class="fw-bold text-dark d-flex align-items-center gap-2">
               ${escapeHtml(item.name)}
               <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                ${escapeHtml(item.category || 'Rainforest')}
+                ${escapeHtml(item.category || 'Trees')}
               </span>
             </div>
           </td>
@@ -624,7 +630,7 @@
     document.getElementById('plant_id').value = item.id;
     document.getElementById('plant_name').value = item.name || '';
     document.getElementById('plant_order').value = item.order || 1;
-    document.getElementById('plant_category').value = item.category || 'Rainforest';
+    document.getElementById('plant_category').value = item.category || 'Trees';
     document.getElementById('plant_scientific_name').value = item.scientific_name || '';
     document.getElementById('plant_family').value = item.family || '';
     document.getElementById('plant_habitat').value = item.habitat || '';

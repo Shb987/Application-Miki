@@ -115,7 +115,7 @@ class OceanExplorerResponse(OceanExplorerBase):
 class PlantExplorerBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Title / Plant Name")
     order: int = Field(1, ge=1, description="Order/display position")
-    category: str = Field("Rainforest", description="Category: Rainforest, Carnivorous, Medicinal, Flowering, Tree, Succulent, Aquatic")
+    category: str = Field("Trees", description="Category: Trees, Shrubs, Herbs, Grasses, Cacti & Succulents, Flowering Plants, Aquatic Plants, Climbers & Creepers, Conifers, Ferns, Mosses & Other Spore Plants")
     short_description: Optional[str] = Field("", description="Short summary description")
     full_description: Optional[str] = Field("", description="Primary plant description")
     descriptions: Optional[List[str]] = Field(default_factory=list, description="Multiple description blocks list")

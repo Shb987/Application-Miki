@@ -279,8 +279,7 @@
       <!-- Category Filter Pills -->
       <div class="d-flex align-items-center gap-2 flex-wrap" id="category-filter-buttons">
         <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 filter-btn active" data-cat="all" onclick="filterCategory('all', this)">All Entities</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="State" onclick="filterCategory('State', this)">States</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Union Territory" onclick="filterCategory('Union Territory', this)">Union Territories</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="State" onclick="filterCategory('State', this)">State</button>
       </div>
 
       <!-- Prominent Search Bar -->
@@ -335,8 +334,7 @@
               <div class="col-md-8 form-group-custom mb-0">
                 <label class="font-weight-bold" style="font-size: 0.85rem; color: #c2410c;"><i class="fa fa-folder-open me-1"></i> 1. SELECT CATEGORY <span class="text-danger">*</span></label>
                 <select class="form-select form-select-custom fw-bold text-dark border-warning" id="indian_category">
-                  <option value="State">🏛️ State</option>
-                  <option value="Union Territory">🏰 Union Territory</option>
+                  <option value="State" selected>🏛️ State</option>
                 </select>
               </div>
               <div class="col-md-4 form-group-custom mb-0">
@@ -669,11 +667,10 @@
   }
 
   const indianCategoryIcons = {
-    'State': '🏛️',
-    'Union Territory': '🏰'
+    'State': '🏛️'
   };
 
-  const indianCategoryOrder = ['State', 'Union Territory'];
+  const indianCategoryOrder = ['State'];
 
   function renderIndianTable() {
     const tbody = document.getElementById('indianTableBody');

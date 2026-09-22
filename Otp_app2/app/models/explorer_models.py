@@ -168,7 +168,7 @@ class PlantExplorerResponse(PlantExplorerBase):
 class IndianExplorerBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="State / Union Territory Name (e.g. Kerala)")
     order: int = Field(1, ge=1, description="Order/display position")
-    category: str = Field("State", description="Category: State, Union Territory")
+    category: str = Field("State", description="Category: State")
     short_description: Optional[str] = Field("", description="Short summary description")
     full_description: Optional[str] = Field("", description="Primary state description")
     descriptions: Optional[List[str]] = Field(default_factory=list, description="Multiple description blocks list")

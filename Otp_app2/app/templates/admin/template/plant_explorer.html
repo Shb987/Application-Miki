@@ -337,30 +337,35 @@
         <form id="plantEntityForm">
           <input type="hidden" id="plant_id" />
 
-          <div class="row g-3">
-            <div class="col-md-8 form-group-custom">
-              <label>Plant / Species Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-custom" id="plant_name" required placeholder="e.g. Venus Flytrap, Redwood Tree" />
+          <!-- Category Selection Box (Step 1) -->
+          <div class="p-3 mb-3 rounded-3" style="background-color: #f0fdf4; border: 1.5px solid #a7f3d0;">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-8 form-group-custom mb-0">
+                <label class="text-success font-weight-bold" style="font-size: 0.85rem;"><i class="fa fa-folder-open me-1"></i> 1. SELECT PLANT CATEGORY <span class="text-danger">*</span></label>
+                <select class="form-select form-select-custom fw-bold text-dark border-success" id="plant_category">
+                  <option value="Trees">🌳 Trees</option>
+                  <option value="Shrubs">🌿 Shrubs</option>
+                  <option value="Herbs">🌱 Herbs</option>
+                  <option value="Grasses">🌾 Grasses</option>
+                  <option value="Cacti &amp; Succulents">🌵 Cacti &amp; Succulents</option>
+                  <option value="Flowering Plants">🌸 Flowering Plants</option>
+                  <option value="Aquatic Plants">🌊 Aquatic Plants</option>
+                  <option value="Climbers &amp; Creepers">🌿 Climbers &amp; Creepers</option>
+                  <option value="Conifers">🌲 Conifers</option>
+                  <option value="Ferns, Mosses &amp; Other Spore Plants">🍃 Ferns, Mosses &amp; Other Spore Plants</option>
+                </select>
+              </div>
+              <div class="col-md-4 form-group-custom mb-0">
+                <label style="font-size: 0.8rem;">Display Order <span class="text-danger">*</span></label>
+                <input type="number" class="form-control form-control-custom" id="plant_order" required min="1" value="1" />
+              </div>
             </div>
-            <div class="col-md-4 form-group-custom">
-              <label>Order Number <span class="text-danger">*</span></label>
-              <input type="number" class="form-control form-control-custom" id="plant_order" required min="1" value="1" />
-            </div>
+          </div>
 
-            <div class="col-md-6 form-group-custom">
-              <label>Category <span class="text-danger">*</span></label>
-              <select class="form-select form-select-custom" id="plant_category">
-                <option value="Trees">🌳 Trees</option>
-                <option value="Shrubs">🌿 Shrubs</option>
-                <option value="Herbs">🌱 Herbs</option>
-                <option value="Grasses">🌾 Grasses</option>
-                <option value="Cacti &amp; Succulents">🌵 Cacti &amp; Succulents</option>
-                <option value="Flowering Plants">🌸 Flowering Plants</option>
-                <option value="Aquatic Plants">🌊 Aquatic Plants</option>
-                <option value="Climbers &amp; Creepers">🌿 Climbers &amp; Creepers</option>
-                <option value="Conifers">🌲 Conifers</option>
-                <option value="Ferns, Mosses &amp; Other Spore Plants">🍃 Ferns, Mosses &amp; Other Spore Plants</option>
-              </select>
+          <div class="row g-3">
+            <div class="col-12 form-group-custom">
+              <label>2. Plant / Species Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-custom" id="plant_name" required placeholder="e.g. Venus Flytrap, Redwood Tree" />
             </div>
 
             <div class="col-md-6 form-group-custom">
@@ -525,6 +530,32 @@
     renderPlantTable();
   }
 
+  const categoryIcons = {
+    'Trees': '🌳',
+    'Shrubs': '🌿',
+    'Herbs': '🌱',
+    'Grasses': '🌾',
+    'Cacti & Succulents': '🌵',
+    'Flowering Plants': '🌸',
+    'Aquatic Plants': '🌊',
+    'Climbers & Creepers': '🌿',
+    'Conifers': '🌲',
+    'Ferns, Mosses & Other Spore Plants': '🍃'
+  };
+
+  const plantCategoryOrder = [
+    'Trees',
+    'Shrubs',
+    'Herbs',
+    'Grasses',
+    'Cacti & Succulents',
+    'Flowering Plants',
+    'Aquatic Plants',
+    'Climbers & Creepers',
+    'Conifers',
+    'Ferns, Mosses & Other Spore Plants'
+  ];
+
   function renderPlantTable() {
     const tbody = document.getElementById('plantTableBody');
     const q = document.getElementById('plantSearchInput').value.toLowerCase().trim();
@@ -558,60 +589,111 @@
       return;
     }
 
-    tbody.innerHTML = list.map(item => {
-      const defaultImg = 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=200&q=80';
-      const imgUrl = item.image_url || defaultImg;
-      const statusBadge = item.is_active 
-        ? `<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill"><i class="fa fa-check-circle me-1"></i> Active</span>`
-        : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill">Inactive</span>`;
+    let html = '';
 
-      const metrics = [
-        item.scientific_name ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-italic me-1 text-success"></i> ${escapeHtml(item.scientific_name)}</span>` : '',
-        item.habitat ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-tree me-1 text-primary"></i> ${escapeHtml(item.habitat)}</span>` : ''
-      ].join('');
+    if (currentFilter === 'all' && !q) {
+      const grouped = {};
+      list.forEach(item => {
+        const cat = item.category || 'Trees';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(item);
+      });
 
-      return `
-        <tr>
-          <td class="ps-3"><span class="order-badge">${item.order || 1}</span></td>
-          <td>
-            <img src="${imgUrl}" class="plant-img-thumb" onerror="this.src='${defaultImg}';" />
-          </td>
-          <td>
-            <div class="fw-bold text-dark d-flex align-items-center gap-2">
-              ${escapeHtml(item.name)}
-              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                ${escapeHtml(item.category || 'Trees')}
-              </span>
-            </div>
-          </td>
-          <td>
-            <div class="text-truncate text-muted" style="max-width: 240px; font-size: 0.88rem;" title="${escapeHtml(item.short_description || '')}">
-              ${escapeHtml(item.short_description || 'No summary set')}
-            </div>
-          </td>
-          <td>
-            <div>${metrics || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
-          </td>
-          <td>${statusBadge}</td>
-          <td class="text-center pe-3">
-            <div class="d-flex align-items-center justify-content-center gap-1">
-              <button type="button" class="table-action-btn table-action-edit" onclick="editPlantEntity('${item.id}')" title="Edit Entity">
-                <i class="fa fa-pencil"></i>
-              </button>
-              <button type="button" class="table-action-btn table-action-delete" onclick="deletePlantEntity('${item.id}', '${escapeHtml(item.name)}')" title="Delete Entity">
-                <i class="fa fa-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+      const presentCats = Object.keys(grouped).sort((a, b) => {
+        let idxA = plantCategoryOrder.indexOf(a);
+        let idxB = plantCategoryOrder.indexOf(b);
+        if (idxA === -1) idxA = 999;
+        if (idxB === -1) idxB = 999;
+        return idxA - idxB;
+      });
+
+      presentCats.forEach(cat => {
+        const items = grouped[cat];
+        const icon = categoryIcons[cat] || '🌿';
+
+        html += `
+          <tr style="background-color: #f0fdf4; border-bottom: 2px solid #a7f3d0;">
+            <td colspan="7" class="py-2 px-3">
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="fw-bold text-success" style="font-size: 0.88rem; letter-spacing: 0.02em;">
+                  <span class="me-2 fs-6">${icon}</span> ${escapeHtml(cat)}
+                  <span class="badge bg-success text-white rounded-pill ms-2" style="font-size: 0.72rem;">${items.length} ${items.length === 1 ? 'plant' : 'plants'}</span>
+                </span>
+                <button type="button" class="btn btn-sm btn-outline-success rounded-pill py-0 px-2" style="font-size: 0.75rem;" onclick="openAddPlantModal('${escapeHtml(cat)}')">
+                  <i class="fa fa-plus me-1"></i> Add ${escapeHtml(cat)} Plant
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        html += items.map(item => renderRowHtml(item)).join('');
+      });
+    } else {
+      html = list.map(item => renderRowHtml(item)).join('');
+    }
+
+    tbody.innerHTML = html;
   }
 
-  function openAddPlantModal() {
+  function renderRowHtml(item) {
+    const defaultImg = 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=200&q=80';
+    const imgUrl = item.image_url || defaultImg;
+    const statusBadge = item.is_active 
+      ? `<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill"><i class="fa fa-check-circle me-1"></i> Active</span>`
+      : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill">Inactive</span>`;
+
+    const metrics = [
+      item.scientific_name ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-italic me-1 text-success"></i> ${escapeHtml(item.scientific_name)}</span>` : '',
+      item.habitat ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-tree me-1 text-primary"></i> ${escapeHtml(item.habitat)}</span>` : ''
+    ].join('');
+
+    return `
+      <tr>
+        <td class="ps-3"><span class="order-badge">${item.order || 1}</span></td>
+        <td>
+          <img src="${imgUrl}" class="plant-img-thumb" onerror="this.src='${defaultImg}';" />
+        </td>
+        <td>
+          <div class="fw-bold text-dark d-flex align-items-center gap-2">
+            ${escapeHtml(item.name)}
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+              ${escapeHtml(item.category || 'Trees')}
+            </span>
+          </div>
+        </td>
+        <td>
+          <div class="text-truncate text-muted" style="max-width: 240px; font-size: 0.88rem;" title="${escapeHtml(item.short_description || '')}">
+            ${escapeHtml(item.short_description || 'No summary set')}
+          </div>
+        </td>
+        <td>
+          <div>${metrics || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
+        </td>
+        <td>${statusBadge}</td>
+        <td class="text-center pe-3">
+          <div class="d-flex align-items-center justify-content-center gap-1">
+            <button type="button" class="table-action-btn table-action-edit" onclick="editPlantEntity('${item.id}')" title="Edit Entity">
+              <i class="fa fa-pencil"></i>
+            </button>
+            <button type="button" class="table-action-btn table-action-delete" onclick="deletePlantEntity('${item.id}', '${escapeHtml(item.name)}')" title="Delete Entity">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  function openAddPlantModal(defaultCategory) {
     document.getElementById('plantModalTitle').innerText = 'Add Plant Entity';
     document.getElementById('plantEntityForm').reset();
     document.getElementById('plant_id').value = '';
+    if (defaultCategory) {
+      document.getElementById('plant_category').value = defaultCategory;
+    } else if (currentFilter !== 'all') {
+      document.getElementById('plant_category').value = currentFilter;
+    }
     galleryImageUrls = [];
     currentDescriptionsList = [''];
     renderGalleryPreviews();

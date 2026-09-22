@@ -4,13 +4,13 @@
 
 {% block head %}
 <style>
-  /* Indian Explorer Header Card - Saffron, Emerald & Navy Theme */
+  /* Indian Explorer Header Card - Saffron & Royal Heritage Theme */
   .indian-header-card {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 40%, #ff9933 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #7c2d12 100%);
     border-radius: 20px;
     color: white;
     padding: 26px 30px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
     margin-bottom: 24px;
     position: relative;
     overflow: hidden;
@@ -19,31 +19,31 @@
   .indian-header-card::before {
     content: '';
     position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 240px;
-    height: 240px;
-    background: radial-gradient(circle, rgba(255, 153, 51, 0.25) 0%, rgba(19, 136, 8, 0.15) 50%, rgba(255, 255, 255, 0) 70%);
+    top: -60px;
+    right: -60px;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(234, 88, 12, 0.25) 0%, rgba(30, 27, 75, 0) 70%);
     border-radius: 50%;
     pointer-events: none;
   }
 
   /* High contrast top action buttons */
   .btn-add-entity {
-    background: linear-gradient(135deg, #ff9933 0%, #e65100 100%) !important;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
     color: #ffffff !important;
     font-weight: 700 !important;
     border: none !important;
     border-radius: 30px !important;
     padding: 10px 24px !important;
     font-size: 0.92rem !important;
-    box-shadow: 0 4px 15px rgba(255, 153, 51, 0.4) !important;
+    box-shadow: 0 4px 15px rgba(234, 88, 12, 0.4) !important;
     transition: all 0.2s ease !important;
     cursor: pointer !important;
   }
   .btn-add-entity:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(255, 153, 51, 0.5) !important;
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.5) !important;
     color: #ffffff !important;
   }
 
@@ -259,13 +259,13 @@
       <div class="stat-pill">
         <i class="fa fa-map-marker text-warning fs-5"></i>
         <div>
-          <div style="font-size: 0.75rem; opacity: 0.85;">Total States / UTs</div>
+          <div style="font-size: 0.75rem; opacity: 0.85;">Total States</div>
           <div id="stat-total-count" style="font-size: 1.15rem; font-weight: 800; color: #fff;">0</div>
         </div>
       </div>
 
       <button type="button" class="btn btn-add-entity d-inline-flex align-items-center gap-2" onclick="openAddIndianModal()">
-        <i class="fa fa-plus-circle fs-6"></i> Add State / UT
+        <i class="fa fa-plus-circle fs-6"></i> Add State
       </button>
     </div>
   </div>
@@ -296,8 +296,8 @@
         <thead class="table-light">
           <tr style="font-size: 0.82rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">
             <th class="ps-3" style="width: 70px;">Order</th>
-            <th style="width: 80px;">Emblem / Image</th>
-            <th>State / UT &amp; Category</th>
+            <th style="width: 80px;">Image</th>
+            <th>State</th>
             <th>Capital &amp; Language</th>
             <th>Quick Fact</th>
             <th>Status</th>
@@ -321,36 +321,42 @@
 <div class="modal fade" id="indianEntityModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-      <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e293b 0%, #ff9933 100%);">
-        <h5 class="modal-title font-weight-bold" id="indianModalTitle">Add Indian State / UT</h5>
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #0f172a 0%, #7c2d12 100%);">
+        <h5 class="modal-title font-weight-bold" id="indianModalTitle">Add Indian State</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4 bg-light">
         <form id="indianEntityForm">
           <input type="hidden" id="indian_id" />
 
+          <!-- Category Selection Box (Step 1) -->
+          <div class="p-3 mb-3 rounded-3" style="background-color: #fff7ed; border: 1.5px solid #ffedd5;">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-8 form-group-custom mb-0">
+                <label class="font-weight-bold" style="font-size: 0.85rem; color: #c2410c;"><i class="fa fa-folder-open me-1"></i> 1. SELECT CATEGORY <span class="text-danger">*</span></label>
+                <select class="form-select form-select-custom fw-bold text-dark border-warning" id="indian_category">
+                  <option value="State">🏛️ State</option>
+                  <option value="Union Territory">🏰 Union Territory</option>
+                </select>
+              </div>
+              <div class="col-md-4 form-group-custom mb-0">
+                <label style="font-size: 0.8rem;">Display Order <span class="text-danger">*</span></label>
+                <input type="number" class="form-control form-control-custom" id="indian_order" required min="1" value="1" />
+              </div>
+            </div>
+          </div>
+
           <div class="row g-3">
             <!-- 📌 SECTION 1: BASIC INFORMATION & MEDIA -->
             <div class="col-12">
               <h6 class="fw-bold text-dark border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1rem; color: #1e293b;">
-                <i class="fa fa-info-circle text-warning"></i> Basic Information &amp; Media
+                <i class="fa fa-info-circle text-warning"></i> 2. Basic Information &amp; Media
               </h6>
             </div>
 
-            <div class="col-md-6 form-group-custom">
+            <div class="col-12 form-group-custom">
               <label>State / UT Name <span class="text-danger">*</span></label>
               <input type="text" class="form-control form-control-custom" id="indian_name" required placeholder="e.g. Kerala, Tamil Nadu, Delhi" />
-            </div>
-            <div class="col-md-3 form-group-custom">
-              <label>Order Number <span class="text-danger">*</span></label>
-              <input type="number" class="form-control form-control-custom" id="indian_order" required min="1" value="1" />
-            </div>
-            <div class="col-md-3 form-group-custom">
-              <label>Category <span class="text-danger">*</span></label>
-              <select class="form-select form-select-custom" id="indian_category">
-                <option value="State">State</option>
-                <option value="Union Territory">Union Territory</option>
-              </select>
             </div>
 
             <div class="col-12 form-group-custom">
@@ -594,7 +600,7 @@
 
       <div class="modal-footer border-0 pt-0">
         <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-warning text-dark font-weight-bold rounded-pill px-4" onclick="saveIndianEntity()">Save State / UT</button>
+        <button type="button" class="btn btn-warning text-dark font-weight-bold rounded-pill px-4" onclick="saveIndianEntity()">Save State</button>
       </div>
     </div>
   </div>
@@ -662,6 +668,13 @@
     renderIndianTable();
   }
 
+  const indianCategoryIcons = {
+    'State': '🏛️',
+    'Union Territory': '🏰'
+  };
+
+  const indianCategoryOrder = ['State', 'Union Territory'];
+
   function renderIndianTable() {
     const tbody = document.getElementById('indianTableBody');
     const q = document.getElementById('indianSearchInput').value.toLowerCase().trim();
@@ -683,10 +696,10 @@
               <i class="fa fa-map-marker text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
               <h5 class="font-weight-bold text-dark mb-1">No Indian Explorer Entities Found</h5>
               <p class="text-muted mb-3" style="font-size: 0.9rem;">
-                ${indianEntities.length === 0 ? 'No state or UT data added yet. Click below to add an Indian entity.' : 'No entities match your search criteria.'}
+                ${indianEntities.length === 0 ? 'No state data added yet. Click below to add an Indian entity.' : 'No entities match your search criteria.'}
               </p>
               <button class="btn btn-add-entity shadow-sm" onclick="openAddIndianModal()">
-                <i class="fa fa-plus-circle me-1"></i> Add State / UT
+                <i class="fa fa-plus-circle me-1"></i> Add State
               </button>
             </div>
           </td>
@@ -695,60 +708,111 @@
       return;
     }
 
-    tbody.innerHTML = list.map(item => {
-      const defaultImg = 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=200&q=80';
-      const imgUrl = item.image_url || defaultImg;
-      const statusBadge = item.is_active 
-        ? `<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill"><i class="fa fa-check-circle me-1"></i> Active</span>`
-        : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill">Inactive</span>`;
+    let html = '';
 
-      const facts = [
-        item.capital ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-university me-1 text-warning"></i> ${escapeHtml(item.capital)}</span>` : '',
-        item.official_languages ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-language me-1 text-info"></i> ${escapeHtml(item.official_languages)}</span>` : ''
-      ].join('');
+    if (currentFilter === 'all' && !q) {
+      const grouped = {};
+      list.forEach(item => {
+        const cat = item.category || 'State';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(item);
+      });
 
-      return `
-        <tr>
-          <td class="ps-3"><span class="order-badge">${item.order || 1}</span></td>
-          <td>
-            <img src="${imgUrl}" class="indian-img-thumb" onerror="this.src='${defaultImg}';" />
-          </td>
-          <td>
-            <div class="fw-bold text-dark d-flex align-items-center gap-2">
-              ${escapeHtml(item.name)}
-              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                ${escapeHtml(item.category || 'State')}
-              </span>
-            </div>
-          </td>
-          <td>
-            <div>${facts || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
-          </td>
-          <td>
-            <div class="text-truncate text-muted" style="max-width: 220px; font-size: 0.88rem;" title="${escapeHtml(item.fun_fact || item.short_description || '')}">
-              ${escapeHtml(item.fun_fact || item.short_description || '-')}
-            </div>
-          </td>
-          <td>${statusBadge}</td>
-          <td class="text-center pe-3">
-            <div class="d-flex align-items-center justify-content-center gap-1">
-              <button type="button" class="table-action-btn table-action-edit" onclick="editIndianEntity('${item.id}')" title="Edit Entity">
-                <i class="fa fa-pencil"></i>
-              </button>
-              <button type="button" class="table-action-btn table-action-delete" onclick="deleteIndianEntity('${item.id}', '${escapeHtml(item.name)}')" title="Delete Entity">
-                <i class="fa fa-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+      const presentCats = Object.keys(grouped).sort((a, b) => {
+        let idxA = indianCategoryOrder.indexOf(a);
+        let idxB = indianCategoryOrder.indexOf(b);
+        if (idxA === -1) idxA = 999;
+        if (idxB === -1) idxB = 999;
+        return idxA - idxB;
+      });
+
+      presentCats.forEach(cat => {
+        const items = grouped[cat];
+        const icon = indianCategoryIcons[cat] || '🏛️';
+
+        html += `
+          <tr style="background-color: #fff7ed; border-bottom: 2px solid #ffedd5;">
+            <td colspan="7" class="py-2 px-3">
+              <div class="d-flex align-items-center justify-content-between">
+                <span class="fw-bold" style="font-size: 0.88rem; color: #c2410c; letter-spacing: 0.02em;">
+                  <span class="me-2 fs-6">${icon}</span> ${escapeHtml(cat)}s
+                  <span class="badge bg-warning text-dark rounded-pill ms-2" style="font-size: 0.72rem;">${items.length} ${items.length === 1 ? 'entity' : 'entities'}</span>
+                </span>
+                <button type="button" class="btn btn-sm btn-outline-warning rounded-pill py-0 px-2" style="font-size: 0.75rem;" onclick="openAddIndianModal('${escapeHtml(cat)}')">
+                  <i class="fa fa-plus me-1"></i> Add ${escapeHtml(cat)}
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        html += items.map(item => renderIndianRowHtml(item)).join('');
+      });
+    } else {
+      html = list.map(item => renderIndianRowHtml(item)).join('');
+    }
+
+    tbody.innerHTML = html;
   }
 
-  function openAddIndianModal() {
-    document.getElementById('indianModalTitle').innerText = 'Add Indian State / UT';
+  function renderIndianRowHtml(item) {
+    const defaultImg = 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=200&q=80';
+    const imgUrl = item.image_url || defaultImg;
+    const statusBadge = item.is_active 
+      ? `<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill"><i class="fa fa-check-circle me-1"></i> Active</span>`
+      : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill">Inactive</span>`;
+
+    const facts = [
+      item.capital ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-university me-1 text-warning"></i> ${escapeHtml(item.capital)}</span>` : '',
+      item.official_languages ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-language me-1 text-info"></i> ${escapeHtml(item.official_languages)}</span>` : ''
+    ].join('');
+
+    return `
+      <tr>
+        <td class="ps-3"><span class="order-badge">${item.order || 1}</span></td>
+        <td>
+          <img src="${imgUrl}" class="indian-img-thumb" onerror="this.src='${defaultImg}';" />
+        </td>
+        <td>
+          <div class="fw-bold text-dark d-flex align-items-center gap-2">
+            ${escapeHtml(item.name)}
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+              ${escapeHtml(item.category || 'State')}
+            </span>
+          </div>
+        </td>
+        <td>
+          <div>${facts || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
+        </td>
+        <td>
+          <div class="text-truncate text-muted" style="max-width: 220px; font-size: 0.88rem;" title="${escapeHtml(item.fun_fact || item.short_description || '')}">
+            ${escapeHtml(item.fun_fact || item.short_description || '-')}
+          </div>
+        </td>
+        <td>${statusBadge}</td>
+        <td class="text-center pe-3">
+          <div class="d-flex align-items-center justify-content-center gap-1">
+            <button type="button" class="table-action-btn table-action-edit" onclick="editIndianEntity('${item.id}')" title="Edit Entity">
+              <i class="fa fa-pencil"></i>
+            </button>
+            <button type="button" class="table-action-btn table-action-delete" onclick="deleteIndianEntity('${item.id}', '${escapeHtml(item.name)}')" title="Delete Entity">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  function openAddIndianModal(defaultCategory) {
+    document.getElementById('indianModalTitle').innerText = defaultCategory ? `Add Indian ${defaultCategory}` : 'Add Indian State';
     document.getElementById('indianEntityForm').reset();
     document.getElementById('indian_id').value = '';
+    if (defaultCategory) {
+      document.getElementById('indian_category').value = defaultCategory;
+    } else if (currentFilter !== 'all') {
+      document.getElementById('indian_category').value = currentFilter;
+    }
     galleryImageUrls = [];
     currentDescriptionsList = [''];
     renderGalleryPreviews();
@@ -764,7 +828,7 @@
     const item = indianEntities.find(i => i.id === id);
     if (!item) return;
 
-    document.getElementById('indianModalTitle').innerText = 'Edit Indian State / UT';
+    document.getElementById('indianModalTitle').innerText = item.name ? `Edit ${item.name}` : 'Edit Indian State';
     document.getElementById('indian_id').value = item.id;
     document.getElementById('indian_name').value = item.name || '';
     document.getElementById('indian_order').value = item.order || 1;

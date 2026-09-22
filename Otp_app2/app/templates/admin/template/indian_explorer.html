@@ -1458,16 +1458,45 @@
   function updateSinglePreview(inputId, previewImgId) {
     const el = document.getElementById(inputId);
     if (!el) return;
+    const wrap = document.getElementById(previewImgId + '_wrap') || document.getElementById(previewImgId);
+    if (!wrap) return;
+
     const val = el.value.trim();
-    const previewImg = document.getElementById(previewImgId);
-    const wrap = document.getElementById(previewImgId + '_wrap');
-    if (val) {
-      const firstUrl = val.includes(',') ? val.split(',')[0].trim() : val;
-      if (previewImg) previewImg.src = firstUrl;
-      if (wrap) wrap.classList.remove('d-none');
-    } else {
-      if (wrap) wrap.classList.add('d-none');
+    if (!val) {
+      wrap.innerHTML = '';
+      wrap.classList.add('d-none');
+      return;
     }
+
+    const urls = val.split(',').map(s => s.trim()).filter(v => v.length > 0);
+    if (urls.length === 0) {
+      wrap.innerHTML = '';
+      wrap.classList.add('d-none');
+      return;
+    }
+
+    wrap.innerHTML = urls.map((url, idx) => `
+      <div class="position-relative d-inline-block me-2 mb-2">
+        <img src="${escapeHtml(url)}" class="img-preview-box" style="height: 55px; width: 55px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0;" onerror="this.src='https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=100&q=80';" />
+        <button type="button" class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center shadow-sm" 
+                style="width: 18px; height: 18px; font-size: 10px; transform: translate(30%, -30%); z-index: 2;" 
+                onclick="removeSubFieldImage('${inputId}', '${previewImgId}', ${idx})" title="Remove image">&times;</button>
+      </div>
+    `).join('');
+
+    wrap.classList.remove('d-none');
+    if (!wrap.classList.contains('d-flex')) {
+      wrap.classList.add('d-flex', 'flex-wrap', 'align-items-center');
+    }
+  }
+
+  function removeSubFieldImage(inputId, previewImgId, imgIdx) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    let urls = el.value.trim().split(',').map(s => s.trim()).filter(v => v.length > 0);
+    urls.splice(imgIdx, 1);
+    el.value = urls.join(', ');
+    updateSinglePreview(inputId, previewImgId);
   }
 
   async function saveIndianEntity() {
@@ -1575,6 +1604,9 @@
     if (token) headers['Authorization'] = 'Bearer ' + token;
 
     try {
+      const el = currentTargetInputId ? document.getElementById(currentTargetInputId) : null;
+      let existingUrls = el && el.value.trim() ? el.value.trim().split(',').map(s => s.trim()).filter(v => v) : [];
+
       if (input.files.length === 1) {
         const file = input.files[0];
         const formData = new FormData();
@@ -1586,15 +1618,8 @@
         });
         if (!resp.ok) throw new Error('Failed to upload image');
         const data = await resp.json();
-        if (currentTargetInputId) {
-          const el = document.getElementById(currentTargetInputId);
-          if (el) {
-            const existing = el.value.trim();
-            el.value = existing ? `${existing}, ${data.url}` : data.url;
-            if (currentTargetPreviewId) {
-              updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
-            }
-          }
+        if (data.url && !existingUrls.includes(data.url)) {
+          existingUrls.push(data.url);
         }
       } else {
         const formData = new FormData();
@@ -1608,16 +1633,19 @@
         });
         if (!resp.ok) throw new Error('Failed to upload multiple images');
         const data = await resp.json();
-        if (data.urls && currentTargetInputId) {
-          const el = document.getElementById(currentTargetInputId);
-          if (el) {
-            const existing = el.value.trim();
-            const newUrls = data.urls.join(', ');
-            el.value = existing ? `${existing}, ${newUrls}` : newUrls;
-            if (currentTargetPreviewId) {
-              updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
+        if (data.urls && Array.isArray(data.urls)) {
+          data.urls.forEach(u => {
+            if (u && !existingUrls.includes(u)) {
+              existingUrls.push(u);
             }
-          }
+          });
+        }
+      }
+
+      if (el) {
+        el.value = existingUrls.join(', ');
+        if (currentTargetPreviewId) {
+          updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
         }
       }
     } catch (err) {

@@ -4,6 +4,14 @@
 
 {% block head %}
 <style>
+  /* Modal Title Styling for High Contrast */
+  #indianModalTitle, .modal-header .modal-title {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: -0.01em !important;
+  }
+
   /* Indian Explorer Header Card - Saffron & Royal Heritage Theme */
   .indian-header-card {
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #7c2d12 100%);
@@ -330,7 +338,7 @@
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
       <div class="modal-header text-white" style="background: linear-gradient(135deg, #0f172a 0%, #7c2d12 100%);">
-        <h5 class="modal-title font-weight-bold" id="indianModalTitle">Add Indian State</h5>
+        <h5 class="modal-title font-weight-bold text-white" id="indianModalTitle" style="color: #ffffff !important; font-weight: 800; font-size: 1.25rem;">Add Indian State</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4 bg-light">

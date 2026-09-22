@@ -983,8 +983,9 @@
   </div>
 </div>
 
-<!-- Hidden File Input for Single Image Upload -->
-<input type="file" id="single_image_input" accept="image/*" class="d-none" onchange="handleSingleUpload(this)" />
+<!-- Hidden File Inputs for Single/Multiple Image Uploads -->
+<input type="file" id="single_image_input" accept="image/*" multiple class="d-none" onchange="handleSingleUpload(this)" />
+<input type="file" id="desc_block_multi_file_input" accept="image/*" multiple class="d-none" onchange="handleBlockMultiFileUpload(this)" />
 
 <script>
   let indianEntities = [];
@@ -1281,16 +1282,24 @@
     renderGalleryPreviews();
 
     currentDescriptionsList = (item.descriptions && item.descriptions.length > 0) ? item.descriptions : [item.full_description || ''];
-    currentDescriptionImagesList = (item.description_images && item.description_images.length > 0) 
-      ? item.description_images 
-      : Array(currentDescriptionsList.length).fill('');
+    if (item.description_images && item.description_images.length > 0) {
+      currentDescriptionImagesList = item.description_images.map(img => {
+        if (Array.isArray(img)) return img;
+        if (typeof img === 'string' && img.trim()) return img.split(',').map(s => s.trim());
+        return [];
+      });
+    } else {
+      currentDescriptionImagesList = currentDescriptionsList.map(() => []);
+    }
     renderDescriptionsContainer();
 
     const modal = new bootstrap.Modal(document.getElementById('indianEntityModal'));
     modal.show();
   }
 
-  /* Multiple Descriptions & Description Images Support (+ Add Description Button) */
+  /* Multiple Descriptions & Multi-Image Support (+ Add Description Button) */
+  let activeBlockUploadIdx = -1;
+
   function collectDescriptionsState() {
     const descFields = document.querySelectorAll('.desc-input-field');
     const imgFields = document.querySelectorAll('.desc-img-input-field');
@@ -1298,7 +1307,10 @@
       currentDescriptionsList = Array.from(descFields).map(f => f.value);
     }
     if (imgFields.length > 0) {
-      currentDescriptionImagesList = Array.from(imgFields).map(f => f.value);
+      imgFields.forEach((f, idx) => {
+        const val = f.value.trim();
+        currentDescriptionImagesList[idx] = val ? val.split(',').map(s => s.trim()).filter(v => v) : [];
+      });
     }
   }
 
@@ -1307,34 +1319,53 @@
     if (!container) return;
     if (!currentDescriptionsList || currentDescriptionsList.length === 0) {
       currentDescriptionsList = [''];
-      currentDescriptionImagesList = [''];
+      currentDescriptionImagesList = [[]];
     }
 
     container.innerHTML = currentDescriptionsList.map((desc, idx) => {
-      const imgUrl = currentDescriptionImagesList[idx] || '';
+      let rawImgs = currentDescriptionImagesList[idx] || [];
+      let imgUrls = Array.isArray(rawImgs) 
+        ? rawImgs 
+        : (typeof rawImgs === 'string' && rawImgs.trim() ? rawImgs.split(',').map(s => s.trim()) : []);
+
+      const thumbsHtml = imgUrls.map((url, imgIdx) => `
+        <div class="position-relative d-inline-block me-2 mb-2">
+          <img src="${escapeHtml(url)}" class="img-preview-box" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px;" />
+          <button type="button" class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center" 
+                  style="width: 20px; height: 20px; font-size: 10px; transform: translate(30%, -30%);" 
+                  onclick="removeBlockImage(${idx}, ${imgIdx})" title="Remove image">&times;</button>
+        </div>
+      `).join('');
+
       return `
-        <div class="card p-3 bg-white border border-light-subtle shadow-sm rounded-3">
+        <div class="card p-3 bg-white border border-light-subtle shadow-sm rounded-3 w-100 mb-3">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <span class="fw-bold text-dark" style="font-size: 0.82rem;"><i class="fa fa-align-left text-warning me-1"></i> Description Block #${idx + 1}</span>
+            <span class="fw-bold text-dark" style="font-size: 0.85rem;">
+              <i class="fa fa-align-left text-warning me-1"></i> Description Block #${idx + 1} 
+              <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span>
+            </span>
             ${currentDescriptionsList.length > 1 ? `
               <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;" onclick="removeDescriptionField(${idx})" title="Remove Block">
-                <i class="fa fa-trash me-1"></i> Remove
+                <i class="fa fa-trash me-1"></i> Remove Block
               </button>
             ` : ''}
           </div>
           <div class="mb-2">
-            <textarea class="form-control form-control-custom desc-input-field" rows="2" placeholder="Enter Description text #${idx + 1}...">${escapeHtml(desc || '')}</textarea>
+            <textarea class="form-control form-control-custom desc-input-field" rows="2" placeholder="Enter Description text #${idx + 1} (optional)...">${escapeHtml(desc || '')}</textarea>
           </div>
           <div>
-            <label style="font-size: 0.78rem;" class="text-muted fw-bold mb-1"><i class="fa fa-image me-1"></i> Description Image URL #${idx + 1}</label>
-            <div class="input-group input-group-sm">
-              <input type="text" class="form-control form-control-custom desc-img-input-field" id="indian_desc_img_${idx}" value="${escapeHtml(imgUrl)}" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_desc_img_${idx}', 'indian_desc_img_preview_${idx}')" />
-              <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_desc_img_${idx}', 'indian_desc_img_preview_${idx}')">
-                <i class="fa fa-upload"></i> Upload
+            <label style="font-size: 0.78rem;" class="text-muted fw-bold mb-1">
+              <i class="fa fa-image text-info me-1"></i> Description Images #${idx + 1} 
+              <span class="text-muted font-weight-normal">(Optional, Multiple Images Supported)</span>
+            </label>
+            <div class="input-group input-group-sm mb-2">
+              <input type="text" class="form-control form-control-custom desc-img-input-field" id="indian_desc_img_${idx}" value="${escapeHtml(imgUrls.join(', '))}" placeholder="Paste image URL(s) separated by comma or click Upload" onchange="updateBlockImagesFromInput(${idx})" />
+              <button type="button" class="btn btn-outline-secondary" onclick="triggerBlockMultiUpload(${idx})">
+                <i class="fa fa-upload me-1"></i> Upload Images
               </button>
             </div>
-            <div id="indian_desc_img_preview_${idx}_wrap" class="mt-2 ${imgUrl ? '' : 'd-none'}">
-              <img id="indian_desc_img_preview_${idx}" src="${escapeHtml(imgUrl)}" class="img-preview-box" style="height: 60px;" />
+            <div id="desc_block_img_preview_${idx}" class="d-flex flex-wrap align-items-center mt-2">
+              ${thumbsHtml}
             </div>
           </div>
         </div>
@@ -1342,10 +1373,70 @@
     }).join('');
   }
 
+  function triggerBlockMultiUpload(idx) {
+    collectDescriptionsState();
+    activeBlockUploadIdx = idx;
+    document.getElementById('desc_block_multi_file_input').click();
+  }
+
+  async function handleBlockMultiFileUpload(input) {
+    if (!input.files || input.files.length === 0 || activeBlockUploadIdx < 0) return;
+    const formData = new FormData();
+    for (let i = 0; i < input.files.length; i++) {
+      formData.append('files', input.files[i]);
+    }
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/indian-explorer/upload-multiple-images', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Failed to upload images');
+      const data = await resp.json();
+      if (data.urls && data.urls.length > 0) {
+        let currentImgs = currentDescriptionImagesList[activeBlockUploadIdx];
+        if (!Array.isArray(currentImgs)) {
+          currentImgs = (typeof currentImgs === 'string' && currentImgs.trim()) ? currentImgs.split(',').map(s => s.trim()) : [];
+        }
+        currentImgs.push(...data.urls);
+        currentDescriptionImagesList[activeBlockUploadIdx] = currentImgs;
+        renderDescriptionsContainer();
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+    input.value = '';
+  }
+
+  function removeBlockImage(blockIdx, imgIdx) {
+    collectDescriptionsState();
+    let imgs = currentDescriptionImagesList[blockIdx];
+    if (!Array.isArray(imgs)) {
+      imgs = (typeof imgs === 'string' && imgs.trim()) ? imgs.split(',').map(s => s.trim()) : [];
+    }
+    imgs.splice(imgIdx, 1);
+    currentDescriptionImagesList[blockIdx] = imgs;
+    renderDescriptionsContainer();
+  }
+
+  function updateBlockImagesFromInput(idx) {
+    const input = document.getElementById(`indian_desc_img_${idx}`);
+    if (input) {
+      const val = input.value.trim();
+      currentDescriptionImagesList[idx] = val ? val.split(',').map(s => s.trim()).filter(v => v) : [];
+      renderDescriptionsContainer();
+    }
+  }
+
   function addDescriptionField() {
     collectDescriptionsState();
     currentDescriptionsList.push('');
-    currentDescriptionImagesList.push('');
+    currentDescriptionImagesList.push([]);
     renderDescriptionsContainer();
   }
 
@@ -1360,7 +1451,7 @@
     collectDescriptionsState();
     return {
       descriptions: currentDescriptionsList.map(v => v.trim()),
-      description_images: currentDescriptionImagesList.map(v => v.trim())
+      description_images: currentDescriptionImagesList
     };
   }
 
@@ -1371,7 +1462,8 @@
     const previewImg = document.getElementById(previewImgId);
     const wrap = document.getElementById(previewImgId + '_wrap');
     if (val) {
-      if (previewImg) previewImg.src = val;
+      const firstUrl = val.includes(',') ? val.split(',')[0].trim() : val;
+      if (previewImg) previewImg.src = firstUrl;
       if (wrap) wrap.classList.remove('d-none');
     } else {
       if (wrap) wrap.classList.add('d-none');
@@ -1468,7 +1560,7 @@
     }
   }
 
-  /* Single Image Upload Helper */
+  /* Single/Multiple Image Upload Helper for Subfields */
   function triggerSingleUpload(targetId, previewId) {
     currentTargetInputId = targetId;
     currentTargetPreviewId = previewId;
@@ -1477,26 +1569,55 @@
 
   async function handleSingleUpload(input) {
     if (!input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-
+    
     const headers = {};
     const token = getAuthToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
 
     try {
-      const resp = await fetch('/admin-panel/indian-explorer/upload-image', {
-        method: 'POST',
-        headers: headers,
-        body: formData
-      });
-      if (!resp.ok) throw new Error('Failed to upload image');
-      const data = await resp.json();
-      if (currentTargetInputId) {
-        document.getElementById(currentTargetInputId).value = data.url;
-        if (currentTargetPreviewId) {
-          updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
+      if (input.files.length === 1) {
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        const resp = await fetch('/admin-panel/indian-explorer/upload-image', {
+          method: 'POST',
+          headers: headers,
+          body: formData
+        });
+        if (!resp.ok) throw new Error('Failed to upload image');
+        const data = await resp.json();
+        if (currentTargetInputId) {
+          const el = document.getElementById(currentTargetInputId);
+          if (el) {
+            const existing = el.value.trim();
+            el.value = existing ? `${existing}, ${data.url}` : data.url;
+            if (currentTargetPreviewId) {
+              updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
+            }
+          }
+        }
+      } else {
+        const formData = new FormData();
+        for (let i = 0; i < input.files.length; i++) {
+          formData.append('files', input.files[i]);
+        }
+        const resp = await fetch('/admin-panel/indian-explorer/upload-multiple-images', {
+          method: 'POST',
+          headers: headers,
+          body: formData
+        });
+        if (!resp.ok) throw new Error('Failed to upload multiple images');
+        const data = await resp.json();
+        if (data.urls && currentTargetInputId) {
+          const el = document.getElementById(currentTargetInputId);
+          if (el) {
+            const existing = el.value.trim();
+            const newUrls = data.urls.join(', ');
+            el.value = existing ? `${existing}, ${newUrls}` : newUrls;
+            if (currentTargetPreviewId) {
+              updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
+            }
+          }
         }
       }
     } catch (err) {

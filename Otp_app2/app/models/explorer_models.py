@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any, Union
 from datetime import datetime
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -175,7 +175,7 @@ class IndianExplorerBase(BaseModel):
     image_url: Optional[str] = Field("", description="Primary State Emblem/Feature Image URL")
     banner_image_url: Optional[str] = Field("", description="Cover/Banner Image URL")
     description_image_url: Optional[str] = Field("", description="Description Image URL")
-    description_images: Optional[List[str]] = Field(default_factory=list, description="List of description block image URLs")
+    description_images: Optional[List[Any]] = Field(default_factory=list, description="List of description block image URLs or image URL arrays")
     gallery_images: Optional[List[str]] = Field(default_factory=list, description="List of gallery image URLs")
 
     # 📸 Section Specific Images
@@ -280,7 +280,7 @@ class IndianExplorerUpdate(BaseModel):
     image_url: Optional[str] = None
     banner_image_url: Optional[str] = None
     description_image_url: Optional[str] = None
-    description_images: Optional[List[str]] = None
+    description_images: Optional[List[Any]] = None
     gallery_images: Optional[List[str]] = None
 
     culture_image_url: Optional[str] = None

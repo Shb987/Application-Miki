@@ -159,3 +159,148 @@ class PlantExplorerResponse(PlantExplorerBase):
     class Config:
         populate_by_name = True
         json_encoders = {datetime: lambda v: v.isoformat()}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🇮🇳 4. Indian Explorer Models
+# ─────────────────────────────────────────────────────────────────────────────
+
+class IndianExplorerBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100, description="State / Union Territory Name (e.g. Kerala)")
+    order: int = Field(1, ge=1, description="Order/display position")
+    category: str = Field("State", description="Category: State, Union Territory")
+    short_description: Optional[str] = Field("", description="Short summary description")
+    full_description: Optional[str] = Field("", description="Primary state description")
+    descriptions: Optional[List[str]] = Field(default_factory=list, description="Multiple description blocks list")
+    image_url: Optional[str] = Field("", description="Primary State Emblem/Feature Image URL")
+    banner_image_url: Optional[str] = Field("", description="Cover/Banner Image URL")
+    description_image_url: Optional[str] = Field("", description="Description Image URL")
+    gallery_images: Optional[List[str]] = Field(default_factory=list, description="List of gallery image URLs")
+
+    # 📍 Quick Facts
+    capital: Optional[str] = Field(None, description="Capital city")
+    area: Optional[str] = Field(None, description="Total area")
+    population: Optional[str] = Field(None, description="Population")
+    official_languages: Optional[str] = Field(None, description="Official Language(s)")
+    formation: Optional[str] = Field(None, description="Formation Date / Year")
+
+    # 🎭 Culture
+    traditional_dances: Optional[str] = Field(None, description="Traditional Dances")
+    traditional_music: Optional[str] = Field(None, description="Traditional Music")
+    festivals: Optional[str] = Field(None, description="Major Festivals")
+    traditional_clothing: Optional[str] = Field(None, description="Traditional Clothing")
+    culture_arts_crafts: Optional[str] = Field(None, description="Cultural Arts & Crafts")
+    culture_food: Optional[str] = Field(None, description="Cultural Food")
+    traditions_customs: Optional[str] = Field(None, description="Traditions & Customs")
+
+    # 🏛️ Heritage
+    historical_monuments: Optional[str] = Field(None, description="Historical Monuments")
+    temples_churches_mosques: Optional[str] = Field(None, description="Temples / Churches / Mosques")
+    forts: Optional[str] = Field(None, description="Forts & Palaces")
+    unesco_heritage: Optional[str] = Field(None, description="UNESCO Heritage Sites")
+
+    # 🗺️ Geography
+    major_rivers: Optional[str] = Field(None, description="Major Rivers")
+    mountains: Optional[str] = Field(None, description="Mountains & Peaks")
+    beaches: Optional[str] = Field(None, description="Beaches & Coastal regions")
+    forests: Optional[str] = Field(None, description="Forests & Vegetation")
+    climate: Optional[str] = Field(None, description="Climate & Weather")
+
+    # 🐘 Wildlife
+    state_animal: Optional[str] = Field(None, description="State Animal")
+    state_bird: Optional[str] = Field(None, description="State Bird")
+    state_tree: Optional[str] = Field(None, description="State Tree")
+    state_flower: Optional[str] = Field(None, description="State Flower")
+    national_parks_sanctuaries: Optional[str] = Field(None, description="National Parks / Sanctuaries")
+
+    # 🍛 Food
+    famous_dishes: Optional[str] = Field(None, description="Famous Dishes")
+    traditional_cuisine: Optional[str] = Field(None, description="Traditional Cuisine")
+    famous_ingredients: Optional[str] = Field(None, description="Famous Spices / Ingredients")
+
+    # 👕 Traditional Lifestyle
+    traditional_dress: Optional[str] = Field(None, description="Traditional Dress")
+    occupations: Optional[str] = Field(None, description="Main Occupations")
+    local_communities: Optional[str] = Field(None, description="Local Communities & Tribes")
+
+    # 🎨 🏆 📍 Highlights
+    famous_arts_crafts: Optional[str] = Field(None, description="Famous Arts & Crafts")
+    famous_personalities: Optional[str] = Field(None, description="Famous Personalities")
+    famous_places: Optional[str] = Field(None, description="Famous Tourist Places")
+
+    fun_fact: Optional[str] = Field(None, description="Interesting fun fact")
+    is_active: bool = Field(True, description="Active status")
+
+
+class IndianExplorerCreate(IndianExplorerBase):
+    pass
+
+
+class IndianExplorerUpdate(BaseModel):
+    name: Optional[str] = None
+    order: Optional[int] = None
+    category: Optional[str] = None
+    short_description: Optional[str] = None
+    full_description: Optional[str] = None
+    descriptions: Optional[List[str]] = None
+    image_url: Optional[str] = None
+    banner_image_url: Optional[str] = None
+    description_image_url: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
+
+    capital: Optional[str] = None
+    area: Optional[str] = None
+    population: Optional[str] = None
+    official_languages: Optional[str] = None
+    formation: Optional[str] = None
+
+    traditional_dances: Optional[str] = None
+    traditional_music: Optional[str] = None
+    festivals: Optional[str] = None
+    traditional_clothing: Optional[str] = None
+    culture_arts_crafts: Optional[str] = None
+    culture_food: Optional[str] = None
+    traditions_customs: Optional[str] = None
+
+    historical_monuments: Optional[str] = None
+    temples_churches_mosques: Optional[str] = None
+    forts: Optional[str] = None
+    unesco_heritage: Optional[str] = None
+
+    major_rivers: Optional[str] = None
+    mountains: Optional[str] = None
+    beaches: Optional[str] = None
+    forests: Optional[str] = None
+    climate: Optional[str] = None
+
+    state_animal: Optional[str] = None
+    state_bird: Optional[str] = None
+    state_tree: Optional[str] = None
+    state_flower: Optional[str] = None
+    national_parks_sanctuaries: Optional[str] = None
+
+    famous_dishes: Optional[str] = None
+    traditional_cuisine: Optional[str] = None
+    famous_ingredients: Optional[str] = None
+
+    traditional_dress: Optional[str] = None
+    occupations: Optional[str] = None
+    local_communities: Optional[str] = None
+
+    famous_arts_crafts: Optional[str] = None
+    famous_personalities: Optional[str] = None
+    famous_places: Optional[str] = None
+
+    fun_fact: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class IndianExplorerResponse(IndianExplorerBase):
+    id: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {datetime: lambda v: v.isoformat()}
+

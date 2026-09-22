@@ -23,6 +23,7 @@ from app.routes import (
     admin_space_explorer_routes, user_space_explorer_routes,
     admin_ocean_explorer_routes, user_ocean_explorer_routes,
     admin_plant_explorer_routes, user_plant_explorer_routes,
+    admin_indian_explorer_routes, user_indian_explorer_routes,
     user_explorer_routes
 ) 
 
@@ -55,6 +56,7 @@ async def seed_default_roles():
             perms["Space Explorer"] = full_explorer_perms
             perms["Ocean Explorer"] = full_explorer_perms
             perms["Plant Explorer"] = full_explorer_perms
+            perms["Indian Explorer"] = full_explorer_perms
             perms["Explorer"] = full_explorer_perms
             await db.roles.update_one(
                 {"_id": data_operator_role["_id"]},
@@ -72,6 +74,7 @@ async def seed_default_roles():
                 "Space Explorer": full_explorer_perms,
                 "Ocean Explorer": full_explorer_perms,
                 "Plant Explorer": full_explorer_perms,
+                "Indian Explorer": full_explorer_perms,
                 "Explorer": full_explorer_perms,
                 "Notifications": {"read": True, "create": False, "update": False, "delete": False},
                 "Analytics": {"read": True, "create": False, "update": False, "delete": False},
@@ -99,6 +102,7 @@ async def seed_default_roles():
                 p["Space Explorer"] = has_space
                 p["Ocean Explorer"] = has_space
                 p["Plant Explorer"] = has_space
+                p["Indian Explorer"] = has_space
                 p["Explorer"] = has_space
                 await db.roles.update_one({"_id": r["_id"]}, {"$set": {"permissions": p}})
 
@@ -188,6 +192,7 @@ app.include_router(user_todo_routes.router, prefix="/user", tags=["User To-Do Mo
 app.include_router(user_space_explorer_routes.router, prefix="/user", tags=["Space Explorer - User"])
 app.include_router(user_ocean_explorer_routes.router, prefix="/user", tags=["Ocean Explorer - User"])
 app.include_router(user_plant_explorer_routes.router, prefix="/user", tags=["Plant Explorer - User"])
+app.include_router(user_indian_explorer_routes.router, prefix="/user", tags=["Indian Explorer - User"])
 app.include_router(user_explorer_routes.router, prefix="/user", tags=["Explorer - Unified User API"])
 app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Futurestudy Module"])
 app.include_router(companion_routes.router, tags=["AI Student Companion"])
@@ -253,4 +258,6 @@ app.include_router(user_social_routes.router, prefix="/user/social", tags=["User
 app.include_router(admin_space_explorer_routes.router, prefix="/admin-panel", tags=["Space Explorer - Admin"])
 app.include_router(admin_ocean_explorer_routes.router, prefix="/admin-panel", tags=["Ocean Explorer - Admin"])
 app.include_router(admin_plant_explorer_routes.router, prefix="/admin-panel", tags=["Plant Explorer - Admin"])
+app.include_router(admin_indian_explorer_routes.router, prefix="/admin-panel", tags=["Indian Explorer - Admin"])
+
 

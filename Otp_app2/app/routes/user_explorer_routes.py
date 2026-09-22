@@ -17,11 +17,11 @@ def serialize_doc(doc, explorer_type: str):
 
 @router.get("", response_model=Dict[str, Any])
 async def get_explorer_data(
-    type: Optional[str] = Query("all", description="Explorer type filter: 'space', 'ocean', 'plant', or 'all'")
+    type: Optional[str] = Query("all", description="Explorer type filter: 'space', 'ocean', 'plant', 'indian', or 'all'")
 ):
     """
     Unified User Explorer API.
-    Returns explorer items grouped by category or filtered by specified type ('space', 'ocean', 'plant', 'all').
+    Returns explorer items grouped by category or filtered by specified type ('space', 'ocean', 'plant', 'indian', 'all').
     """
     selected_type = (type or "all").lower().strip()
     result = {
@@ -45,4 +45,10 @@ async def get_explorer_data(
         plant_docs = await cursor.to_list(length=None)
         result["data"]["plant"] = [serialize_doc(doc, "plant") for doc in plant_docs]
 
+    if selected_type in ["indian", "all"]:
+        cursor = db.indian_explorer.find({"is_active": True}).sort("order", 1)
+        indian_docs = await cursor.to_list(length=None)
+        result["data"]["indian"] = [serialize_doc(doc, "indian") for doc in indian_docs]
+
     return result
+

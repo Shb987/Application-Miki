@@ -1,0 +1,1077 @@
+{% extends "base.html" %}
+
+{% block title %}Indian Explorer Management - Miki Admin{% endblock %}
+
+{% block head %}
+<style>
+  /* Indian Explorer Header Card - Saffron, Emerald & Navy Theme */
+  .indian-header-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 40%, #ff9933 100%);
+    border-radius: 20px;
+    color: white;
+    padding: 26px 30px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.3);
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .indian-header-card::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 240px;
+    height: 240px;
+    background: radial-gradient(circle, rgba(255, 153, 51, 0.25) 0%, rgba(19, 136, 8, 0.15) 50%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* High contrast top action buttons */
+  .btn-add-entity {
+    background: linear-gradient(135deg, #ff9933 0%, #e65100 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: none !important;
+    border-radius: 30px !important;
+    padding: 10px 24px !important;
+    font-size: 0.92rem !important;
+    box-shadow: 0 4px 15px rgba(255, 153, 51, 0.4) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+  }
+  .btn-add-entity:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(255, 153, 51, 0.5) !important;
+    color: #ffffff !important;
+  }
+
+  .stat-pill {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 14px;
+    padding: 8px 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #e0e1dd;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .glass-table-card {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+  }
+
+  .indian-img-thumb {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    background: #1e293b;
+  }
+
+  .order-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff9933 0%, #138808 100%);
+    color: white;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(255, 153, 51, 0.4);
+  }
+
+  /* Sleek Table Action Buttons */
+  .table-action-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid transparent !important;
+    padding: 0 !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+  }
+
+  .table-action-edit {
+    background-color: #ecfdf5 !important;
+    color: #059669 !important;
+    border-color: #a7f3d0 !important;
+  }
+  .table-action-edit:hover {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+    border-color: #10b981 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+  }
+
+  .table-action-delete {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+  }
+  .table-action-delete:hover {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+  }
+
+  /* Search Input Custom Styling */
+  .search-input-wrapper {
+    position: relative;
+    min-width: 280px;
+  }
+
+  .search-input-wrapper input {
+    width: 100% !important;
+    padding: 10px 16px 10px 42px !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 30px !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease !important;
+    background-color: #f8fafc !important;
+  }
+
+  .search-input-wrapper input:focus {
+    border-color: #ff9933 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(255, 153, 51, 0.15) !important;
+  }
+
+  .search-input-wrapper i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.95rem;
+  }
+
+  /* Gallery Grid & Multiple Upload Preview */
+  .gallery-preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .gallery-thumb-item {
+    position: relative;
+    width: 75px;
+    height: 75px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #ff9933;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  .gallery-thumb-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .gallery-thumb-item .btn-remove-gal {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(220, 38, 38, 0.85);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .form-group-custom label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #475569;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .form-control-custom, .form-select-custom {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
+  .form-control-custom:focus, .form-select-custom:focus {
+    border-color: #ff9933;
+    box-shadow: 0 0 0 3px rgba(255, 153, 51, 0.15);
+  }
+
+  .img-preview-box {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 2px solid #ff9933;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header Banner Card -->
+  <div class="indian-header-card d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill font-weight-bold">
+          🇮🇳 INDIA EXPLORER
+        </span>
+        <span class="badge bg-info text-white px-3 py-2 rounded-pill font-weight-bold">Swagger API Ready</span>
+      </div>
+      <h2 class="font-weight-bold text-white mb-1" style="letter-spacing: -0.02em;">Indian Explorer Dashboard</h2>
+      <p class="text-white-50 mb-0" style="font-size: 0.95rem;">
+        Add, view, update, and manage Indian States &amp; Union Territories for student learning and mobile app preview.
+      </p>
+    </div>
+
+    <!-- Top Action Buttons -->
+    <div class="d-flex align-items-center gap-3">
+      <div class="stat-pill">
+        <i class="fa fa-map-marker text-warning fs-5"></i>
+        <div>
+          <div style="font-size: 0.75rem; opacity: 0.85;">Total States / UTs</div>
+          <div id="stat-total-count" style="font-size: 1.15rem; font-weight: 800; color: #fff;">0</div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-add-entity d-inline-flex align-items-center gap-2" onclick="openAddIndianModal()">
+        <i class="fa fa-plus-circle fs-6"></i> Add State / UT
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Data Card -->
+  <div class="glass-table-card">
+    
+    <!-- Filter and Search Bar -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+      
+      <!-- Category Filter Pills -->
+      <div class="d-flex align-items-center gap-2 flex-wrap" id="category-filter-buttons">
+        <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 filter-btn active" data-cat="all" onclick="filterCategory('all', this)">All Entities</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="State" onclick="filterCategory('State', this)">States</button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Union Territory" onclick="filterCategory('Union Territory', this)">Union Territories</button>
+      </div>
+
+      <!-- Prominent Search Bar -->
+      <div class="search-input-wrapper">
+        <i class="fa fa-search"></i>
+        <input type="text" id="indianSearchInput" placeholder="Search state by name, capital, culture..." onkeyup="filterIndianTable()">
+      </div>
+    </div>
+
+    <!-- Data Table Container -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="indianTable">
+        <thead class="table-light">
+          <tr style="font-size: 0.82rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">
+            <th class="ps-3" style="width: 70px;">Order</th>
+            <th style="width: 80px;">Emblem / Image</th>
+            <th>State / UT &amp; Category</th>
+            <th>Capital &amp; Language</th>
+            <th>Quick Fact</th>
+            <th>Status</th>
+            <th class="text-center pe-3" style="width: 110px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="indianTableBody">
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <div class="spinner-border text-warning me-2" role="status"></div> Loading Indian Explorer data...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: Add / Edit Indian Explorer Entity -->
+<div class="modal fade" id="indianEntityModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #1e293b 0%, #ff9933 100%);">
+        <h5 class="modal-title font-weight-bold" id="indianModalTitle">Add Indian State / UT</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 bg-light">
+        <form id="indianEntityForm">
+          <input type="hidden" id="indian_id" />
+
+          <div class="row g-3">
+            <!-- 📌 SECTION 1: BASIC INFORMATION & MEDIA -->
+            <div class="col-12">
+              <h6 class="fw-bold text-dark border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1rem; color: #1e293b;">
+                <i class="fa fa-info-circle text-warning"></i> Basic Information &amp; Media
+              </h6>
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>State / UT Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_name" required placeholder="e.g. Kerala, Tamil Nadu, Delhi" />
+            </div>
+            <div class="col-md-3 form-group-custom">
+              <label>Order Number <span class="text-danger">*</span></label>
+              <input type="number" class="form-control form-control-custom" id="indian_order" required min="1" value="1" />
+            </div>
+            <div class="col-md-3 form-group-custom">
+              <label>Category <span class="text-danger">*</span></label>
+              <select class="form-select form-select-custom" id="indian_category">
+                <option value="State">State</option>
+                <option value="Union Territory">Union Territory</option>
+              </select>
+            </div>
+
+            <div class="col-12 form-group-custom">
+              <label>Short Summary</label>
+              <input type="text" class="form-control form-control-custom" id="indian_short_desc" placeholder="Brief summary (e.g. God's Own Country located in South India...)" />
+            </div>
+
+            <div class="col-12 form-group-custom">
+              <label>Full Overview / Primary Description</label>
+              <textarea class="form-control form-control-custom" id="indian_full_desc" rows="3" placeholder="Detailed state description for mobile app view..."></textarea>
+            </div>
+
+            <!-- Multiple Descriptions Support (+ Add Description Button) -->
+            <div class="col-12 form-group-custom">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="mb-0">Multiple Description Blocks</label>
+                <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" onclick="addDescriptionField()">
+                  <i class="fa fa-plus me-1"></i> Add Description
+                </button>
+              </div>
+              <div id="descriptions-container" class="d-flex flex-column gap-2">
+                <!-- Dynamic description input fields -->
+              </div>
+            </div>
+
+            <!-- Main Feature / Emblem Image -->
+            <div class="col-md-6 form-group-custom">
+              <label>Main / Emblem Image URL</label>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="indian_image_url" placeholder="Paste URL or click upload" oninput="updateSinglePreview('indian_image_url', 'indian_image_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_image_url', 'indian_image_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="indian_image_preview_wrap" class="mt-2 d-none">
+                <img id="indian_image_preview" src="" class="img-preview-box" />
+              </div>
+            </div>
+
+            <!-- Cover Banner Image -->
+            <div class="col-md-6 form-group-custom">
+              <label>Banner Cover Image URL</label>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="indian_banner_url" placeholder="Paste banner URL or click upload" oninput="updateSinglePreview('indian_banner_url', 'indian_banner_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_banner_url', 'indian_banner_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="indian_banner_preview_wrap" class="mt-2 d-none">
+                <img id="indian_banner_preview" src="" class="img-preview-box" style="width: 120px;" />
+              </div>
+            </div>
+
+            <!-- Multiple Gallery Images Upload -->
+            <div class="col-12 form-group-custom">
+              <label>Gallery Images (Multiple Upload Support)</label>
+              <input type="file" class="form-control form-control-custom" id="indian_gallery_files" multiple accept="image/*" onchange="handleMultipleUpload(this)" />
+              <small class="text-muted d-block mt-1">Select multiple photos for state photo gallery carousel</small>
+              <div id="gallery_preview_container" class="gallery-preview-grid mt-2"></div>
+            </div>
+
+            <div class="col-12 form-group-custom">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="indian_is_active" checked />
+                <label class="form-check-label fw-bold" for="indian_is_active">Active / Published</label>
+              </div>
+            </div>
+
+            <!-- 📍 SECTION 2: QUICK FACTS -->
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-dark border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1rem; color: #1e293b;">
+                <i class="fa fa-compass text-warning"></i> 📍 Quick Facts
+              </h6>
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>Capital <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Thiruvananthapuram)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_capital" placeholder="e.g. Thiruvananthapuram" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Area <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. 38,863 sq km)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_area" placeholder="e.g. 38,863 sq km" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Population <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. 35.3 Million)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_population" placeholder="e.g. 35.3 Million" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Official Language(s) <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Malayalam, English)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_official_languages" placeholder="e.g. Malayalam, English" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Formation Date / Year <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. 1 November 1956)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_formation" placeholder="e.g. 1 November 1956" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Fun Fact <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_fun_fact" placeholder="e.g. Highest literacy rate in India!" />
+            </div>
+
+            <!-- 🎭 SECTION 3: CULTURE & HERITAGE -->
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-dark border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1rem; color: #1e293b;">
+                <i class="fa fa-music text-warning"></i> 🎭 Culture &amp; Heritage
+              </h6>
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>Traditional Dances <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Kathakali, Mohiniyattam)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_traditional_dances" placeholder="e.g. Kathakali, Mohiniyattam" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Traditional Music <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Sopana Sangeetham, Carnatic)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_traditional_music" placeholder="e.g. Sopana Sangeetham, Carnatic" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Festivals <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Onam, Vishu)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_festivals" placeholder="e.g. Onam, Vishu, Thrissur Pooram" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Traditional Clothing <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Kasavu Saree, Mundu)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_traditional_clothing" placeholder="e.g. Kasavu Saree, Set Mundu" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Arts &amp; Crafts <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Aranmula Kannadi, Wooden Carvings)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_culture_arts_crafts" placeholder="e.g. Coir Craft, Aranmula Kannadi" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Culture Food / Specialties <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Sadya, Appam)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_culture_food" placeholder="e.g. Onam Sadya, Payasam" />
+            </div>
+            <div class="col-12 form-group-custom">
+              <label>Traditions &amp; Customs</label>
+              <textarea class="form-control form-control-custom" id="indian_traditions_customs" rows="2" placeholder="e.g. Boat races, Kalaripayattu martial arts..."></textarea>
+            </div>
+
+            <!-- Heritage Sub-section -->
+            <div class="col-12 mt-3"><h6 class="fw-bold text-muted border-bottom pb-2" style="font-size: 0.88rem;">🏛️ Heritage &amp; Monuments</h6></div>
+            <div class="col-md-6 form-group-custom">
+              <label>Historical Monuments</label>
+              <input type="text" class="form-control form-control-custom" id="indian_historical_monuments" placeholder="e.g. Padmanabhapuram Palace, Bekal Fort" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Temples / Churches / Mosques</label>
+              <input type="text" class="form-control form-control-custom" id="indian_temples_churches_mosques" placeholder="e.g. Sree Padmanabhaswamy Temple, Cheraman Juma Mosque" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Forts &amp; Palaces</label>
+              <input type="text" class="form-control form-control-custom" id="indian_forts" placeholder="e.g. Palakkad Fort, St. Angelo Fort" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>UNESCO Heritage Sites</label>
+              <input type="text" class="form-control form-control-custom" id="indian_unesco_heritage" placeholder="e.g. Western Ghats" />
+            </div>
+
+            <!-- 🗺️ SECTION 4: GEOGRAPHY -->
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-dark border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1rem; color: #1e293b;">
+                <i class="fa fa-tree text-warning"></i> 🗺️ Geography
+              </h6>
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>Major Rivers</label>
+              <input type="text" class="form-control form-control-custom" id="indian_major_rivers" placeholder="e.g. Periyar, Bharathappuzha, Pamba" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Mountains &amp; Peaks</label>
+              <input type="text" class="form-control form-control-custom" id="indian_mountains" placeholder="e.g. Anamudi, Agasthyarkoodam, Western Ghats" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Beaches &amp; Coasts</label>
+              <input type="text" class="form-control form-control-custom" id="indian_beaches" placeholder="e.g. Kovalam, Varkala, Cherai Beach" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Forests &amp; Vegetation</label>
+              <input type="text" class="form-control form-control-custom" id="indian_forests" placeholder="e.g. Tropical Evergreen, Shola Forests" />
+            </div>
+            <div class="col-12 form-group-custom">
+              <label>Climate</label>
+              <input type="text" class="form-control form-control-custom" id="indian_climate" placeholder="e.g. Tropical monsoon, warm & humid year-round" />
+            </div>
+
+            <!-- 🍛 SECTION 5: FOOD & TRADITIONAL LIFESTYLE -->
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-dark border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1rem; color: #1e293b;">
+                <i class="fa fa-cutlery text-warning"></i> 🍛 Food &amp; Traditional Lifestyle
+              </h6>
+            </div>
+
+            <div class="col-md-6 form-group-custom">
+              <label>Famous Dishes</label>
+              <input type="text" class="form-control form-control-custom" id="indian_famous_dishes" placeholder="e.g. Puttu & Kadala, Karimeen Pollichathu, Idiyappam" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Traditional Cuisine</label>
+              <input type="text" class="form-control form-control-custom" id="indian_traditional_cuisine" placeholder="e.g. Malabar Cuisine, Kuttanad Fish Curry" />
+            </div>
+            <div class="col-12 form-group-custom">
+              <label>Famous Spices / Ingredients</label>
+              <input type="text" class="form-control form-control-custom" id="indian_famous_ingredients" placeholder="e.g. Black Pepper, Cardamom, Coconut, Coconut Oil" />
+            </div>
+
+            <!-- Lifestyle Sub-section -->
+            <div class="col-12 mt-3"><h6 class="fw-bold text-muted border-bottom pb-2" style="font-size: 0.88rem;">👕 Traditional Lifestyle &amp; Culture</h6></div>
+            <div class="col-md-6 form-group-custom">
+              <label>Traditional Dress</label>
+              <input type="text" class="form-control form-control-custom" id="indian_traditional_dress" placeholder="e.g. Kasavu Saree, Kasavu Mundu" />
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Occupations</label>
+              <input type="text" class="form-control form-control-custom" id="indian_occupations" placeholder="e.g. Agriculture, Fishing, Tourism, IT" />
+            </div>
+            <div class="col-12 form-group-custom">
+              <label>Local Communities &amp; Tribes</label>
+              <input type="text" class="form-control form-control-custom" id="indian_local_communities" placeholder="e.g. Malayali, Kurichiya, Paniyan tribes" />
+            </div>
+
+            <!-- 🎨 SECTION 6: HIGHLIGHTS, PERSONALITIES & PLACES -->
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-dark border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1rem; color: #1e293b;">
+                <i class="fa fa-star text-warning"></i> 🎨 Highlights, Personalities &amp; Places
+              </h6>
+            </div>
+
+            <div class="col-12 form-group-custom">
+              <label>🎨 Famous Arts &amp; Crafts</label>
+              <textarea class="form-control form-control-custom" id="indian_famous_arts_crafts" rows="2" placeholder="e.g. Mural Paintings, Coir Products, Nettipattam..."></textarea>
+            </div>
+            <div class="col-12 form-group-custom">
+              <label>🏆 Famous Personalities</label>
+              <textarea class="form-control form-control-custom" id="indian_famous_personalities" rows="2" placeholder="e.g. Raja Ravi Varma, Adi Shankara, K. R. Narayanan..."></textarea>
+            </div>
+            <div class="col-12 form-group-custom">
+              <label>📍 Famous Tourist Places</label>
+              <textarea class="form-control form-control-custom" id="indian_famous_places" rows="3" placeholder="e.g. Alleppey Backwaters, Munnar Hill Station, Wayanad..."></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning text-dark font-weight-bold rounded-pill px-4" onclick="saveIndianEntity()">Save State / UT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden File Input for Single Image Upload -->
+<input type="file" id="single_image_input" accept="image/*" class="d-none" onchange="handleSingleUpload(this)" />
+
+<script>
+  let indianEntities = [];
+  let currentFilter = 'all';
+  let currentTargetInputId = '';
+  let currentTargetPreviewId = '';
+  let galleryImageUrls = [];
+  let currentDescriptionsList = [''];
+
+  function getAuthToken() {
+    return window.token || localStorage.getItem('admin_token') || '';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadIndianEntities();
+  });
+
+  async function loadIndianEntities() {
+    const tbody = document.getElementById('indianTableBody');
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-5 text-muted">
+          <div class="spinner-border text-warning me-2" role="status"></div> Loading Indian Explorer data...
+        </td>
+      </tr>
+    `;
+
+    try {
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const resp = await fetch('/admin-panel/indian-explorer', { headers });
+      if (!resp.ok) throw new Error('Failed to fetch Indian entities');
+      indianEntities = await resp.json();
+      document.getElementById('stat-total-count').innerText = indianEntities.length;
+      renderIndianTable();
+    } catch (err) {
+      console.error(err);
+      indianEntities = [];
+      document.getElementById('stat-total-count').innerText = "0";
+      renderIndianTable();
+    }
+  }
+
+  function filterCategory(cat, btn) {
+    currentFilter = cat;
+    document.querySelectorAll('#category-filter-buttons .filter-btn').forEach(b => {
+      b.classList.remove('btn-primary', 'active');
+      b.classList.add('btn-outline-secondary');
+    });
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-primary', 'active');
+    filterIndianTable();
+  }
+
+  function filterIndianTable() {
+    renderIndianTable();
+  }
+
+  function renderIndianTable() {
+    const tbody = document.getElementById('indianTableBody');
+    const q = document.getElementById('indianSearchInput').value.toLowerCase().trim();
+    
+    let list = indianEntities.filter(item => {
+      const matchCat = (currentFilter === 'all') || (item.category === currentFilter);
+      const nameStr = (item.name || '').toLowerCase();
+      const capStr = (item.capital || '').toLowerCase();
+      const descStr = (item.full_description || item.short_description || '').toLowerCase();
+      const matchSearch = nameStr.includes(q) || capStr.includes(q) || descStr.includes(q) || String(item.order).includes(q);
+      return matchCat && matchSearch;
+    });
+
+    if (list.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-5">
+            <div class="my-3">
+              <i class="fa fa-map-marker text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
+              <h5 class="font-weight-bold text-dark mb-1">No Indian Explorer Entities Found</h5>
+              <p class="text-muted mb-3" style="font-size: 0.9rem;">
+                ${indianEntities.length === 0 ? 'No state or UT data added yet. Click below to add an Indian entity.' : 'No entities match your search criteria.'}
+              </p>
+              <button class="btn btn-add-entity shadow-sm" onclick="openAddIndianModal()">
+                <i class="fa fa-plus-circle me-1"></i> Add State / UT
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = list.map(item => {
+      const defaultImg = 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=200&q=80';
+      const imgUrl = item.image_url || defaultImg;
+      const statusBadge = item.is_active 
+        ? `<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill"><i class="fa fa-check-circle me-1"></i> Active</span>`
+        : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill">Inactive</span>`;
+
+      const facts = [
+        item.capital ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-university me-1 text-warning"></i> ${escapeHtml(item.capital)}</span>` : '',
+        item.official_languages ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-language me-1 text-info"></i> ${escapeHtml(item.official_languages)}</span>` : ''
+      ].join('');
+
+      return `
+        <tr>
+          <td class="ps-3"><span class="order-badge">${item.order || 1}</span></td>
+          <td>
+            <img src="${imgUrl}" class="indian-img-thumb" onerror="this.src='${defaultImg}';" />
+          </td>
+          <td>
+            <div class="fw-bold text-dark d-flex align-items-center gap-2">
+              ${escapeHtml(item.name)}
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                ${escapeHtml(item.category || 'State')}
+              </span>
+            </div>
+          </td>
+          <td>
+            <div>${facts || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
+          </td>
+          <td>
+            <div class="text-truncate text-muted" style="max-width: 220px; font-size: 0.88rem;" title="${escapeHtml(item.fun_fact || item.short_description || '')}">
+              ${escapeHtml(item.fun_fact || item.short_description || '-')}
+            </div>
+          </td>
+          <td>${statusBadge}</td>
+          <td class="text-center pe-3">
+            <div class="d-flex align-items-center justify-content-center gap-1">
+              <button type="button" class="table-action-btn table-action-edit" onclick="editIndianEntity('${item.id}')" title="Edit Entity">
+                <i class="fa fa-pencil"></i>
+              </button>
+              <button type="button" class="table-action-btn table-action-delete" onclick="deleteIndianEntity('${item.id}', '${escapeHtml(item.name)}')" title="Delete Entity">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function openAddIndianModal() {
+    document.getElementById('indianModalTitle').innerText = 'Add Indian State / UT';
+    document.getElementById('indianEntityForm').reset();
+    document.getElementById('indian_id').value = '';
+    galleryImageUrls = [];
+    currentDescriptionsList = [''];
+    renderGalleryPreviews();
+    renderDescriptionsContainer();
+    document.getElementById('indian_image_preview_wrap').classList.add('d-none');
+    document.getElementById('indian_banner_preview_wrap').classList.add('d-none');
+
+    const modal = new bootstrap.Modal(document.getElementById('indianEntityModal'));
+    modal.show();
+  }
+
+  function editIndianEntity(id) {
+    const item = indianEntities.find(i => i.id === id);
+    if (!item) return;
+
+    document.getElementById('indianModalTitle').innerText = 'Edit Indian State / UT';
+    document.getElementById('indian_id').value = item.id;
+    document.getElementById('indian_name').value = item.name || '';
+    document.getElementById('indian_order').value = item.order || 1;
+    document.getElementById('indian_category').value = item.category || 'State';
+    document.getElementById('indian_short_desc').value = item.short_description || '';
+    document.getElementById('indian_full_desc').value = item.full_description || '';
+    document.getElementById('indian_image_url').value = item.image_url || '';
+    document.getElementById('indian_banner_url').value = item.banner_image_url || '';
+    document.getElementById('indian_is_active').checked = item.is_active !== false;
+
+    // Quick Facts
+    document.getElementById('indian_capital').value = item.capital || '';
+    document.getElementById('indian_area').value = item.area || '';
+    document.getElementById('indian_population').value = item.population || '';
+    document.getElementById('indian_official_languages').value = item.official_languages || '';
+    document.getElementById('indian_formation').value = item.formation || '';
+    document.getElementById('indian_fun_fact').value = item.fun_fact || '';
+
+    // Culture & Heritage
+    document.getElementById('indian_traditional_dances').value = item.traditional_dances || '';
+    document.getElementById('indian_traditional_music').value = item.traditional_music || '';
+    document.getElementById('indian_festivals').value = item.festivals || '';
+    document.getElementById('indian_traditional_clothing').value = item.traditional_clothing || '';
+    document.getElementById('indian_culture_arts_crafts').value = item.culture_arts_crafts || '';
+    document.getElementById('indian_culture_food').value = item.culture_food || '';
+    document.getElementById('indian_traditions_customs').value = item.traditions_customs || '';
+    document.getElementById('indian_historical_monuments').value = item.historical_monuments || '';
+    document.getElementById('indian_temples_churches_mosques').value = item.temples_churches_mosques || '';
+    document.getElementById('indian_forts').value = item.forts || '';
+    document.getElementById('indian_unesco_heritage').value = item.unesco_heritage || '';
+
+    // Geography
+    document.getElementById('indian_major_rivers').value = item.major_rivers || '';
+    document.getElementById('indian_mountains').value = item.mountains || '';
+    document.getElementById('indian_beaches').value = item.beaches || '';
+    document.getElementById('indian_forests').value = item.forests || '';
+    document.getElementById('indian_climate').value = item.climate || '';
+
+    // Food & Lifestyle
+    document.getElementById('indian_famous_dishes').value = item.famous_dishes || '';
+    document.getElementById('indian_traditional_cuisine').value = item.traditional_cuisine || '';
+    document.getElementById('indian_famous_ingredients').value = item.famous_ingredients || '';
+    document.getElementById('indian_traditional_dress').value = item.traditional_dress || '';
+    document.getElementById('indian_occupations').value = item.occupations || '';
+    document.getElementById('indian_local_communities').value = item.local_communities || '';
+
+    // Highlights
+    document.getElementById('indian_famous_arts_crafts').value = item.famous_arts_crafts || '';
+    document.getElementById('indian_famous_personalities').value = item.famous_personalities || '';
+    document.getElementById('indian_famous_places').value = item.famous_places || '';
+
+    updateSinglePreview('indian_image_url', 'indian_image_preview');
+    updateSinglePreview('indian_banner_url', 'indian_banner_preview');
+
+    galleryImageUrls = item.gallery_images || [];
+    renderGalleryPreviews();
+
+    currentDescriptionsList = (item.descriptions && item.descriptions.length > 0) ? item.descriptions : [item.full_description || ''];
+    renderDescriptionsContainer();
+
+    const modal = new bootstrap.Modal(document.getElementById('indianEntityModal'));
+    modal.show();
+  }
+
+  /* Multiple Descriptions Support (+ Add Description Button) */
+  function renderDescriptionsContainer() {
+    const container = document.getElementById('descriptions-container');
+    if (!container) return;
+    if (!currentDescriptionsList || currentDescriptionsList.length === 0) {
+      currentDescriptionsList = [''];
+    }
+
+    container.innerHTML = currentDescriptionsList.map((desc, idx) => `
+      <div class="input-group">
+        <span class="input-group-text bg-white text-muted fw-bold" style="font-size: 0.8rem;">Desc ${idx + 1}</span>
+        <textarea class="form-control form-control-custom desc-input-field" rows="2" placeholder="Enter Description ${idx + 1}...">${escapeHtml(desc || '')}</textarea>
+        ${currentDescriptionsList.length > 1 ? `
+          <button type="button" class="btn btn-outline-danger" onclick="removeDescriptionField(${idx})" title="Remove Description"><i class="fa fa-trash"></i></button>
+        ` : ''}
+      </div>
+    `).join('');
+  }
+
+  function addDescriptionField() {
+    const inputs = document.querySelectorAll('.desc-input-field');
+    if (inputs.length > 0) {
+      currentDescriptionsList = Array.from(inputs).map(i => i.value);
+    }
+    currentDescriptionsList.push('');
+    renderDescriptionsContainer();
+  }
+
+  function removeDescriptionField(index) {
+    const inputs = document.querySelectorAll('.desc-input-field');
+    if (inputs.length > 0) {
+      currentDescriptionsList = Array.from(inputs).map(i => i.value);
+    }
+    currentDescriptionsList.splice(index, 1);
+    renderDescriptionsContainer();
+  }
+
+  function getCollectedDescriptions() {
+    const inputs = document.querySelectorAll('.desc-input-field');
+    return Array.from(inputs).map(i => i.value.trim()).filter(v => v.length > 0);
+  }
+
+  function updateSinglePreview(inputId, previewImgId) {
+    const val = document.getElementById(inputId).value.trim();
+    const previewImg = document.getElementById(previewImgId);
+    const wrap = document.getElementById(previewImgId + '_wrap');
+    if (val) {
+      previewImg.src = val;
+      wrap.classList.remove('d-none');
+    } else {
+      wrap.classList.add('d-none');
+    }
+  }
+
+  async function saveIndianEntity() {
+    const id = document.getElementById('indian_id').value;
+    const name = document.getElementById('indian_name').value.trim();
+    if (!name) {
+      alert('Please enter State or Union Territory name');
+      return;
+    }
+
+    const descriptionsList = getCollectedDescriptions();
+
+    const payload = {
+      name: name,
+      order: parseInt(document.getElementById('indian_order').value) || 1,
+      category: document.getElementById('indian_category').value,
+      short_description: document.getElementById('indian_short_desc').value.trim(),
+      full_description: document.getElementById('indian_full_desc').value.trim(),
+      descriptions: descriptionsList,
+      image_url: document.getElementById('indian_image_url').value.trim(),
+      banner_image_url: document.getElementById('indian_banner_url').value.trim(),
+      gallery_images: galleryImageUrls,
+      is_active: document.getElementById('indian_is_active').checked,
+
+      capital: document.getElementById('indian_capital').value.trim(),
+      area: document.getElementById('indian_area').value.trim(),
+      population: document.getElementById('indian_population').value.trim(),
+      official_languages: document.getElementById('indian_official_languages').value.trim(),
+      formation: document.getElementById('indian_formation').value.trim(),
+      fun_fact: document.getElementById('indian_fun_fact').value.trim(),
+
+      traditional_dances: document.getElementById('indian_traditional_dances').value.trim(),
+      traditional_music: document.getElementById('indian_traditional_music').value.trim(),
+      festivals: document.getElementById('indian_festivals').value.trim(),
+      traditional_clothing: document.getElementById('indian_traditional_clothing').value.trim(),
+      culture_arts_crafts: document.getElementById('indian_culture_arts_crafts').value.trim(),
+      culture_food: document.getElementById('indian_culture_food').value.trim(),
+      traditions_customs: document.getElementById('indian_traditions_customs').value.trim(),
+      historical_monuments: document.getElementById('indian_historical_monuments').value.trim(),
+      temples_churches_mosques: document.getElementById('indian_temples_churches_mosques').value.trim(),
+      forts: document.getElementById('indian_forts').value.trim(),
+      unesco_heritage: document.getElementById('indian_unesco_heritage').value.trim(),
+
+      major_rivers: document.getElementById('indian_major_rivers').value.trim(),
+      mountains: document.getElementById('indian_mountains').value.trim(),
+      beaches: document.getElementById('indian_beaches').value.trim(),
+      forests: document.getElementById('indian_forests').value.trim(),
+      climate: document.getElementById('indian_climate').value.trim(),
+
+      famous_dishes: document.getElementById('indian_famous_dishes').value.trim(),
+      traditional_cuisine: document.getElementById('indian_traditional_cuisine').value.trim(),
+      famous_ingredients: document.getElementById('indian_famous_ingredients').value.trim(),
+      traditional_dress: document.getElementById('indian_traditional_dress').value.trim(),
+      occupations: document.getElementById('indian_occupations').value.trim(),
+      local_communities: document.getElementById('indian_local_communities').value.trim(),
+
+      famous_arts_crafts: document.getElementById('indian_famous_arts_crafts').value.trim(),
+      famous_personalities: document.getElementById('indian_famous_personalities').value.trim(),
+      famous_places: document.getElementById('indian_famous_places').value.trim()
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const url = id ? `/admin-panel/indian-explorer/${id}` : '/admin-panel/indian-explorer';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      const resp = await fetch(url, {
+        method: method,
+        headers: headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.detail || 'Failed to save Indian entity');
+      }
+
+      bootstrap.Modal.getInstance(document.getElementById('indianEntityModal')).hide();
+      loadIndianEntities();
+    } catch (err) {
+      alert(`Error saving Indian entity: ${err.message}`);
+    }
+  }
+
+  async function deleteIndianEntity(id, name) {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch(`/admin-panel/indian-explorer/${id}`, {
+        method: 'DELETE',
+        headers: headers
+      });
+      if (!resp.ok) throw new Error('Failed to delete Indian entity');
+      loadIndianEntities();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  /* Single Image Upload Helper */
+  function triggerSingleUpload(targetId, previewId) {
+    currentTargetInputId = targetId;
+    currentTargetPreviewId = previewId;
+    document.getElementById('single_image_input').click();
+  }
+
+  async function handleSingleUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/indian-explorer/upload-image', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Failed to upload image');
+      const data = await resp.json();
+      if (currentTargetInputId) {
+        document.getElementById(currentTargetInputId).value = data.url;
+        if (currentTargetPreviewId) {
+          updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
+        }
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+    input.value = '';
+  }
+
+  /* Multiple Image Upload Support for Gallery */
+  async function handleMultipleUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const formData = new FormData();
+    for (let i = 0; i < input.files.length; i++) {
+      formData.append('files', input.files[i]);
+    }
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/indian-explorer/upload-multiple-images', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Failed to upload multiple images');
+      const data = await resp.json();
+      if (data.urls) {
+        galleryImageUrls.push(...data.urls);
+        renderGalleryPreviews();
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+    input.value = '';
+  }
+
+  function renderGalleryPreviews() {
+    const container = document.getElementById('gallery_preview_container');
+    container.innerHTML = galleryImageUrls.map((url, idx) => `
+      <div class="gallery-thumb-item">
+        <img src="${url}" />
+        <button type="button" class="btn-remove-gal" onclick="removeGalleryImg(${idx})">&times;</button>
+      </div>
+    `).join('');
+  }
+
+  function removeGalleryImg(idx) {
+    galleryImageUrls.splice(idx, 1);
+    renderGalleryPreviews();
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+</script>
+{% endblock %}

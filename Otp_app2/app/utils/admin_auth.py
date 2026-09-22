@@ -106,8 +106,9 @@ def require_permission(module: str, action: str):
 
         # Map fallbacks for explorer modules if role has Explorer or Space Explorer permission
         fallback_modules = [module_normalized]
-        if module_normalized in ["ocean_explorer", "plant_explorer", "ocean explorer", "plant explorer", "space explorer", "space_explorer"]:
-            fallback_modules.extend(["explorer", "space explorer", "space_explorer", "ocean explorer", "ocean_explorer", "plant explorer", "plant_explorer"])
+        if module_normalized in ["ocean_explorer", "plant_explorer", "ocean explorer", "plant explorer", "space explorer", "space_explorer", "indian_explorer", "indian explorer"]:
+            fallback_modules.extend(["explorer", "space explorer", "space_explorer", "ocean explorer", "ocean_explorer", "plant explorer", "plant_explorer", "indian explorer", "indian_explorer"])
+
 
         for db_key, db_val in permissions.items():
             norm_key = db_key.strip().lower()

@@ -250,5 +250,11 @@ async def plant_explorer_page(request: Request):
     """Render the Plant Explorer Management admin page."""
     return templates.TemplateResponse("plant_explorer.html", {"request": request})
 
+@router.get("/indian-explorer-page", response_class=HTMLResponse)
+async def indian_explorer_page(request: Request):
+    """Render the Indian Explorer Management admin page."""
+    return templates.TemplateResponse("indian_explorer.html", {"request": request})
+
+
 
 

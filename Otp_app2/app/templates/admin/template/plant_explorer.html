@@ -390,6 +390,19 @@
               <textarea class="form-control form-control-custom" id="plant_full_desc" rows="4" placeholder="Detailed botanical information for mobile detail screen..."></textarea>
             </div>
 
+            <!-- Multiple Descriptions Support (+ Add Description Button) -->
+            <div class="col-12 form-group-custom">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="mb-0">Multiple Description Blocks</label>
+                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="addDescriptionField()">
+                  <i class="fa fa-plus me-1"></i> Add Description
+                </button>
+              </div>
+              <div id="descriptions-container" class="d-flex flex-column gap-2">
+                <!-- Dynamic description input fields -->
+              </div>
+            </div>
+
             <!-- Main Feature Image -->
             <div class="col-md-6 form-group-custom">
               <label>Main Image URL</label>
@@ -453,6 +466,7 @@
   let currentTargetInputId = '';
   let currentTargetPreviewId = '';
   let galleryImageUrls = [];
+  let currentDescriptionsList = [''];
 
   function getAuthToken() {
     return window.token || localStorage.getItem('admin_token') || '';
@@ -593,7 +607,9 @@
     document.getElementById('plantEntityForm').reset();
     document.getElementById('plant_id').value = '';
     galleryImageUrls = [];
+    currentDescriptionsList = [''];
     renderGalleryPreviews();
+    renderDescriptionsContainer();
     document.getElementById('plant_image_preview_wrap').classList.add('d-none');
     document.getElementById('plant_banner_preview_wrap').classList.add('d-none');
     const modal = new bootstrap.Modal(document.getElementById('plantEntityModal'));
@@ -626,6 +642,9 @@
     galleryImageUrls = item.gallery_images || [];
     renderGalleryPreviews();
 
+    currentDescriptionsList = (item.descriptions && item.descriptions.length > 0) ? item.descriptions : [item.full_description || ''];
+    renderDescriptionsContainer();
+
     const modal = new bootstrap.Modal(document.getElementById('plantEntityModal'));
     modal.show();
   }
@@ -650,6 +669,8 @@
       return;
     }
 
+    const descriptionsList = getCollectedDescriptions();
+
     const payload = {
       name: name,
       order: parseInt(document.getElementById('plant_order').value) || 1,
@@ -661,6 +682,7 @@
       fun_fact: document.getElementById('plant_fun_fact').value.trim(),
       short_description: document.getElementById('plant_short_desc').value.trim(),
       full_description: document.getElementById('plant_full_desc').value.trim(),
+      descriptions: descriptionsList,
       image_url: document.getElementById('plant_image_url').value.trim(),
       banner_image_url: document.getElementById('plant_banner_url').value.trim(),
       gallery_images: galleryImageUrls,
@@ -792,6 +814,48 @@
   function removeGalleryImg(idx) {
     galleryImageUrls.splice(idx, 1);
     renderGalleryPreviews();
+  }
+
+  /* Multiple Descriptions Support (+ Add Description Button) */
+  function renderDescriptionsContainer() {
+    const container = document.getElementById('descriptions-container');
+    if (!container) return;
+    if (!currentDescriptionsList || currentDescriptionsList.length === 0) {
+      currentDescriptionsList = [''];
+    }
+
+    container.innerHTML = currentDescriptionsList.map((desc, idx) => `
+      <div class="input-group">
+        <span class="input-group-text bg-white text-muted fw-bold" style="font-size: 0.8rem;">Desc ${idx + 1}</span>
+        <textarea class="form-control form-control-custom desc-input-field" rows="2" placeholder="Enter Description ${idx + 1}...">${escapeHtml(desc || '')}</textarea>
+        ${currentDescriptionsList.length > 1 ? `
+          <button type="button" class="btn btn-outline-danger" onclick="removeDescriptionField(${idx})" title="Remove Description"><i class="fa fa-trash"></i></button>
+        ` : ''}
+      </div>
+    `).join('');
+  }
+
+  function addDescriptionField() {
+    const inputs = document.querySelectorAll('.desc-input-field');
+    if (inputs.length > 0) {
+      currentDescriptionsList = Array.from(inputs).map(i => i.value);
+    }
+    currentDescriptionsList.push('');
+    renderDescriptionsContainer();
+  }
+
+  function removeDescriptionField(index) {
+    const inputs = document.querySelectorAll('.desc-input-field');
+    if (inputs.length > 0) {
+      currentDescriptionsList = Array.from(inputs).map(i => i.value);
+    }
+    currentDescriptionsList.splice(index, 1);
+    renderDescriptionsContainer();
+  }
+
+  function getCollectedDescriptions() {
+    const inputs = document.querySelectorAll('.desc-input-field');
+    return Array.from(inputs).map(i => i.value.trim()).filter(v => v.length > 0);
   }
 
   function escapeHtml(str) {

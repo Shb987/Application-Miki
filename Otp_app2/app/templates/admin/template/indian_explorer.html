@@ -495,22 +495,6 @@
               </div>
             </div>
 
-            <!-- Traditional Music -->
-            <div class="col-md-6 form-group-custom">
-              <label>Traditional Music <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Sopana Sangeetham, Carnatic)</span></label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_traditional_music" placeholder="e.g. Sopana Sangeetham, Carnatic" />
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Music Image</span>
-                <input type="text" class="form-control form-control-custom" id="indian_traditional_music_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_traditional_music_image_url', 'indian_traditional_music_image_preview')" />
-                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_traditional_music_image_url', 'indian_traditional_music_image_preview')">
-                  <i class="fa fa-upload"></i> Upload
-                </button>
-              </div>
-              <div id="indian_traditional_music_image_preview_wrap" class="mt-1 d-none">
-                <img id="indian_traditional_music_image_preview" src="" class="img-preview-box" style="height: 50px;" />
-              </div>
-            </div>
-
             <!-- Festivals -->
             <div class="col-md-6 form-group-custom">
               <label>Festivals <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Onam, Vishu)</span></label>
@@ -560,7 +544,7 @@
             </div>
 
             <!-- Culture Food / Specialties -->
-            <div class="col-md-6 form-group-custom">
+            <div class="col-12 form-group-custom">
               <label>Culture Food / Specialties <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Sadya, Appam)</span></label>
               <input type="text" class="form-control form-control-custom mb-1" id="indian_culture_food" placeholder="e.g. Onam Sadya, Payasam" />
               <div class="input-group input-group-sm">
@@ -572,22 +556,6 @@
               </div>
               <div id="indian_culture_food_image_preview_wrap" class="mt-1 d-none">
                 <img id="indian_culture_food_image_preview" src="" class="img-preview-box" style="height: 50px;" />
-              </div>
-            </div>
-
-            <!-- Traditions & Customs -->
-            <div class="col-12 form-group-custom">
-              <label>Traditions &amp; Customs</label>
-              <textarea class="form-control form-control-custom mb-1" id="indian_traditions_customs" rows="2" placeholder="e.g. Boat races, Kalaripayattu martial arts..."></textarea>
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Traditions Image</span>
-                <input type="text" class="form-control form-control-custom" id="indian_traditions_customs_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_traditions_customs_image_url', 'indian_traditions_customs_image_preview')" />
-                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_traditions_customs_image_url', 'indian_traditions_customs_image_preview')">
-                  <i class="fa fa-upload"></i> Upload
-                </button>
-              </div>
-              <div id="indian_traditions_customs_image_preview_wrap" class="mt-1 d-none">
-                <img id="indian_traditions_customs_image_preview" src="" class="img-preview-box" style="height: 50px;" />
               </div>
             </div>
 
@@ -785,7 +753,7 @@
               </h6>
             </div>
 
-            <div class="col-md-6 form-group-custom">
+            <div class="col-12 form-group-custom">
               <label>Famous Dishes</label>
               <input type="text" class="form-control form-control-custom mb-1" id="indian_famous_dishes" placeholder="e.g. Puttu & Kadala, Karimeen Pollichathu, Idiyappam" />
               <div class="input-group input-group-sm">
@@ -797,36 +765,6 @@
               </div>
               <div id="indian_famous_dishes_image_preview_wrap" class="mt-1 d-none">
                 <img id="indian_famous_dishes_image_preview" src="" class="img-preview-box" style="height: 50px;" />
-              </div>
-            </div>
-
-            <div class="col-md-6 form-group-custom">
-              <label>Traditional Cuisine</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_traditional_cuisine" placeholder="e.g. Malabar Cuisine, Kuttanad Fish Curry" />
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Cuisine Image</span>
-                <input type="text" class="form-control form-control-custom" id="indian_traditional_cuisine_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_traditional_cuisine_image_url', 'indian_traditional_cuisine_image_preview')" />
-                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_traditional_cuisine_image_url', 'indian_traditional_cuisine_image_preview')">
-                  <i class="fa fa-upload"></i> Upload
-                </button>
-              </div>
-              <div id="indian_traditional_cuisine_image_preview_wrap" class="mt-1 d-none">
-                <img id="indian_traditional_cuisine_image_preview" src="" class="img-preview-box" style="height: 50px;" />
-              </div>
-            </div>
-
-            <div class="col-12 form-group-custom">
-              <label>Famous Spices / Ingredients</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_famous_ingredients" placeholder="e.g. Black Pepper, Cardamom, Coconut, Coconut Oil" />
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Spices Image</span>
-                <input type="text" class="form-control form-control-custom" id="indian_famous_ingredients_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_famous_ingredients_image_url', 'indian_famous_ingredients_image_preview')" />
-                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_famous_ingredients_image_url', 'indian_famous_ingredients_image_preview')">
-                  <i class="fa fa-upload"></i> Upload
-                </button>
-              </div>
-              <div id="indian_famous_ingredients_image_preview_wrap" class="mt-1 d-none">
-                <img id="indian_famous_ingredients_image_preview" src="" class="img-preview-box" style="height: 50px;" />
               </div>
             </div>
 
@@ -847,7 +785,7 @@
             <!-- Lifestyle Sub-section -->
             <div class="col-12 mt-3"><h6 class="fw-bold text-muted border-bottom pb-2" style="font-size: 0.88rem;">👕 Traditional Lifestyle &amp; Culture</h6></div>
             
-            <div class="col-md-6 form-group-custom">
+            <div class="col-12 form-group-custom">
               <label>Traditional Dress</label>
               <input type="text" class="form-control form-control-custom mb-1" id="indian_traditional_dress" placeholder="e.g. Kasavu Saree, Kasavu Mundu" />
               <div class="input-group input-group-sm">
@@ -859,36 +797,6 @@
               </div>
               <div id="indian_traditional_dress_image_preview_wrap" class="mt-1 d-none">
                 <img id="indian_traditional_dress_image_preview" src="" class="img-preview-box" style="height: 50px;" />
-              </div>
-            </div>
-
-            <div class="col-md-6 form-group-custom">
-              <label>Occupations</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_occupations" placeholder="e.g. Agriculture, Fishing, Tourism, IT" />
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Occupations Image</span>
-                <input type="text" class="form-control form-control-custom" id="indian_occupations_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_occupations_image_url', 'indian_occupations_image_preview')" />
-                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_occupations_image_url', 'indian_occupations_image_preview')">
-                  <i class="fa fa-upload"></i> Upload
-                </button>
-              </div>
-              <div id="indian_occupations_image_preview_wrap" class="mt-1 d-none">
-                <img id="indian_occupations_image_preview" src="" class="img-preview-box" style="height: 50px;" />
-              </div>
-            </div>
-
-            <div class="col-12 form-group-custom">
-              <label>Local Communities &amp; Tribes</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_local_communities" placeholder="e.g. Malayali, Kurichiya, Paniyan tribes" />
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Communities Image</span>
-                <input type="text" class="form-control form-control-custom" id="indian_local_communities_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_local_communities_image_url', 'indian_local_communities_image_preview')" />
-                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_local_communities_image_url', 'indian_local_communities_image_preview')">
-                  <i class="fa fa-upload"></i> Upload
-                </button>
-              </div>
-              <div id="indian_local_communities_image_preview_wrap" class="mt-1 d-none">
-                <img id="indian_local_communities_image_preview" src="" class="img-preview-box" style="height: 50px;" />
               </div>
             </div>
 
@@ -909,7 +817,7 @@
             <!-- 🎨 SECTION 6: HIGHLIGHTS, PERSONALITIES & PLACES -->
             <div class="col-12 mt-4">
               <h6 class="fw-bold border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1.05rem; color: #0f172a; font-weight: 800;">
-                <i class="fa fa-star text-warning fs-5"></i> 🎨 Highlights, Personalities &amp; Places
+                <i class="fa fa-star text-warning fs-5"></i> 🎨 Highlights &amp; Places
               </h6>
             </div>
 
@@ -925,21 +833,6 @@
               </div>
               <div id="indian_famous_arts_crafts_image_preview_wrap" class="mt-1 d-none">
                 <img id="indian_famous_arts_crafts_image_preview" src="" class="img-preview-box" style="height: 50px;" />
-              </div>
-            </div>
-
-            <div class="col-12 form-group-custom">
-              <label>🏆 Famous Personalities</label>
-              <textarea class="form-control form-control-custom mb-1" id="indian_famous_personalities" rows="2" placeholder="e.g. Raja Ravi Varma, Adi Shankara, K. R. Narayanan..."></textarea>
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Personalities Image</span>
-                <input type="text" class="form-control form-control-custom" id="indian_famous_personalities_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_famous_personalities_image_url', 'indian_famous_personalities_image_preview')" />
-                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('indian_famous_personalities_image_url', 'indian_famous_personalities_image_preview')">
-                  <i class="fa fa-upload"></i> Upload
-                </button>
-              </div>
-              <div id="indian_famous_personalities_image_preview_wrap" class="mt-1 d-none">
-                <img id="indian_famous_personalities_image_preview" src="" class="img-preview-box" style="height: 50px;" />
               </div>
             </div>
 
@@ -1183,13 +1076,13 @@
   }
 
   const allSubFields = [
-    'traditional_dances', 'traditional_music', 'festivals', 'traditional_clothing',
-    'culture_arts_crafts', 'culture_food', 'traditions_customs',
+    'traditional_dances', 'festivals', 'traditional_clothing',
+    'culture_arts_crafts', 'culture_food',
     'historical_monuments', 'temples_churches_mosques', 'forts', 'unesco_heritage',
     'major_rivers', 'mountains', 'beaches', 'forests', 'climate',
-    'famous_dishes', 'traditional_cuisine', 'famous_ingredients',
-    'traditional_dress', 'occupations', 'local_communities',
-    'famous_arts_crafts', 'famous_personalities', 'famous_places'
+    'famous_dishes',
+    'traditional_dress',
+    'famous_arts_crafts', 'famous_places'
   ];
 
   const allSectionBannerFields = [

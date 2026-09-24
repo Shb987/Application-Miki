@@ -371,7 +371,50 @@
 
             <div class="col-12 form-group-custom">
               <label>State / UT Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-custom" id="indian_name" required placeholder="e.g. Kerala, Tamil Nadu, Delhi" />
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="indian_name" list="indian_states_list" required placeholder="e.g. Kerala, Tamil Nadu, Maharashtra, Rajasthan" />
+                <button type="button" class="btn btn-warning fw-bold text-dark px-3" id="btn_generate_state" onclick="generateIndianStateContent()">
+                  <i class="fa fa-bolt me-1"></i> Generate
+                </button>
+              </div>
+              <datalist id="indian_states_list">
+                <option value="Kerala">
+                <option value="Tamil Nadu">
+                <option value="Rajasthan">
+                <option value="Maharashtra">
+                <option value="Goa">
+                <option value="Karnataka">
+                <option value="Gujarat">
+                <option value="Punjab">
+                <option value="Uttar Pradesh">
+                <option value="West Bengal">
+                <option value="Himachal Pradesh">
+                <option value="Uttarakhand">
+                <option value="Assam">
+                <option value="Jammu & Kashmir">
+                <option value="Ladakh">
+                <option value="Delhi">
+                <option value="Odisha">
+                <option value="Telangana">
+                <option value="Andhra Pradesh">
+                <option value="Madhya Pradesh">
+                <option value="Bihar">
+                <option value="Sikkim">
+                <option value="Meghalaya">
+                <option value="Nagaland">
+                <option value="Manipur">
+                <option value="Mizoram">
+                <option value="Tripura">
+                <option value="Arunachal Pradesh">
+                <option value="Chhattisgarh">
+                <option value="Jharkhand">
+                <option value="Haryana">
+                <option value="Puducherry">
+                <option value="Andaman and Nicobar Islands">
+                <option value="Chandigarh">
+                <option value="Dadra and Nagar Haveli and Daman and Diu">
+                <option value="Lakshadweep">
+              </datalist>
             </div>
 
             <div class="col-12 form-group-custom">
@@ -1470,6 +1513,127 @@
       loadIndianEntities();
     } catch (err) {
       alert(`Error saving Indian entity: ${err.message}`);
+    }
+  }
+
+  async function generateIndianStateContent() {
+    const nameInput = document.getElementById('indian_name');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+      alert('Please enter or select a State or Union Territory name first (e.g., Kerala, Rajasthan, Maharashtra).');
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    const btn = document.getElementById('btn_generate_state');
+    const origBtnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Generating...';
+    }
+
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const category = document.getElementById('indian_category') ? document.getElementById('indian_category').value : 'State';
+
+      const resp = await fetch('/admin-panel/indian-explorer/generate-content', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ name: name, category: category })
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.detail || 'Failed to generate state content');
+      }
+
+      const data = await resp.json();
+
+      // Basic Information
+      if (data.name && nameInput) nameInput.value = data.name;
+      if (data.short_description) document.getElementById('indian_short_desc').value = data.short_description;
+      if (data.full_description) document.getElementById('indian_full_desc').value = data.full_description;
+
+      // Quick Facts
+      if (data.capital) document.getElementById('indian_capital').value = data.capital;
+      if (data.area) document.getElementById('indian_area').value = data.area;
+      if (data.population) document.getElementById('indian_population').value = data.population;
+      if (data.official_languages) document.getElementById('indian_official_languages').value = data.official_languages;
+      if (data.formation) document.getElementById('indian_formation').value = data.formation;
+      if (data.fun_fact) document.getElementById('indian_fun_fact').value = data.fun_fact;
+
+      // Main Media
+      if (data.image_url) {
+        document.getElementById('indian_image_url').value = data.image_url;
+        updateSinglePreview('indian_image_url', 'indian_image_preview');
+      }
+      if (data.banner_image_url) {
+        document.getElementById('indian_banner_url').value = data.banner_image_url;
+        updateSinglePreview('indian_banner_url', 'indian_banner_preview');
+      }
+
+      // Descriptions & Multiple Images
+      if (data.descriptions && Array.isArray(data.descriptions) && data.descriptions.length > 0) {
+        currentDescriptionsList = data.descriptions;
+        if (data.description_images && Array.isArray(data.description_images)) {
+          currentDescriptionImagesList = data.description_images;
+        } else {
+          currentDescriptionImagesList = currentDescriptionsList.map(() => []);
+        }
+        renderDescriptionsContainer();
+      }
+
+      // Gallery Images
+      if (data.gallery_images && Array.isArray(data.gallery_images) && data.gallery_images.length > 0) {
+        galleryImageUrls = data.gallery_images;
+        renderGalleryPreviews();
+      }
+
+      // Helper function to extract field value regardless of flat or nested structure
+      const getGeneratedVal = (key) => {
+        if (data[key] !== undefined && data[key] !== null) return data[key];
+        for (const secKey of Object.keys(data)) {
+          if (data[secKey] && typeof data[secKey] === 'object' && !Array.isArray(data[secKey]) && data[secKey][key] !== undefined) {
+            return data[secKey][key];
+          }
+        }
+        return '';
+      };
+
+      // Populate Sub Fields Text and Images
+      allSubFields.forEach(f => {
+        const val = getGeneratedVal(f);
+        const textInput = document.getElementById(`indian_${f}`);
+        if (textInput && val) textInput.value = val;
+
+        const imgVal = getGeneratedVal(`${f}_image_url`);
+        const imgInput = document.getElementById(`indian_${f}_image_url`);
+        if (imgInput && imgVal) {
+          imgInput.value = imgVal;
+          updateSinglePreview(`indian_${f}_image_url`, `indian_${f}_image_preview`);
+        }
+      });
+
+      // Populate Section Banner Images
+      allSectionBannerFields.forEach(sec => {
+        const imgVal = getGeneratedVal(`${sec}_image_url`);
+        const imgInput = document.getElementById(`indian_${sec}_image_url`);
+        if (imgInput && imgVal) {
+          imgInput.value = imgVal;
+          updateSinglePreview(`indian_${sec}_image_url`, `indian_${sec}_image_preview`);
+        }
+      });
+
+    } catch (err) {
+      alert(`Generation error: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origBtnHtml;
+      }
     }
   }
 

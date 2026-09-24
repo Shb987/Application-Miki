@@ -1,17 +1,21 @@
 import os
 import shutil
 import io
-from typing import List
 from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from PIL import Image
-
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
 from app.core.database import db
 from app.models.explorer_models import IndianExplorerCreate, IndianExplorerUpdate, IndianExplorerResponse
 from app.utils.admin_auth import require_permission
 
 router = APIRouter(prefix="/indian-explorer", tags=["Indian Explorer - Admin"])
+
+class IndianExplorerGenerateRequest(BaseModel):
+    name: str
+    category: Optional[str] = "State"
 
 UPLOAD_DIR = os.path.join("app", "static", "uploads", "indian")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -237,6 +241,438 @@ async def delete_uploaded_indian_image(filename: str, current_admin: dict = Depe
         return {"message": f"Deleted {safe_name} successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+
+def get_state_specific_images(state_name: str):
+    name = state_name.lower().strip()
+    images = {
+        "image_url": "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80",
+        "banner_image_url": "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=1200&q=80",
+        "culture_image_url": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80",
+        "heritage_image_url": "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80",
+        "geography_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+        "food_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+        "lifestyle_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+        "highlights_image_url": "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80",
+        "traditional_dances_image_url": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80",
+        "traditional_music_image_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80",
+        "festivals_image_url": "https://images.unsplash.com/photo-1514222709107-a180c68d72b4?auto=format&fit=crop&w=800&q=80",
+        "traditional_clothing_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+        "culture_arts_crafts_image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+        "culture_food_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+        "traditions_customs_image_url": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80",
+        "historical_monuments_image_url": "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80",
+        "temples_churches_mosques_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+        "forts_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+        "unesco_heritage_image_url": "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80",
+        "major_rivers_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+        "mountains_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+        "beaches_image_url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+        "forests_image_url": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80",
+        "climate_image_url": "https://images.unsplash.com/photo-1514632595-4944383f2737?auto=format&fit=crop&w=800&q=80",
+        "famous_dishes_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+        "traditional_cuisine_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+        "famous_ingredients_image_url": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80",
+        "traditional_dress_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+        "occupations_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+        "local_communities_image_url": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80",
+        "famous_arts_crafts_image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+        "famous_personalities_image_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
+        "famous_places_image_url": "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80",
+        "gallery_images": [
+            "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80"
+        ]
+    }
+
+    if "kerala" in name:
+        images["image_url"] = "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80"
+        images["banner_image_url"] = "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=1200&q=80"
+        images["culture_image_url"] = "https://images.unsplash.com/photo-1627894006066-b45c22501a1d?auto=format&fit=crop&w=800&q=80"
+        images["traditional_dances_image_url"] = "https://images.unsplash.com/photo-1627894006066-b45c22501a1d?auto=format&fit=crop&w=800&q=80"
+        images["festivals_image_url"] = "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80"
+    elif "tamil" in name:
+        images["image_url"] = "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80"
+        images["banner_image_url"] = "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80"
+        images["traditional_dances_image_url"] = "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80"
+        images["festivals_image_url"] = "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80"
+    elif "rajasthan" in name:
+        images["image_url"] = "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80"
+        images["banner_image_url"] = "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80"
+        images["traditional_dances_image_url"] = "https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=800&q=80"
+        images["festivals_image_url"] = "https://images.unsplash.com/photo-1514222709107-a180c68d72b4?auto=format&fit=crop&w=800&q=80"
+    elif "maharashtra" in name or "mumbai" in name:
+        images["image_url"] = "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=800&q=80"
+        images["banner_image_url"] = "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1200&q=80"
+        images["traditional_dances_image_url"] = "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80"
+        images["festivals_image_url"] = "https://images.unsplash.com/photo-1600180758890-6b94519a8ba6?auto=format&fit=crop&w=800&q=80"
+    elif "punjab" in name:
+        images["image_url"] = "https://images.unsplash.com/photo-1588096344316-f71c2314630f?auto=format&fit=crop&w=800&q=80"
+        images["banner_image_url"] = "https://images.unsplash.com/photo-1588096344316-f71c2314630f?auto=format&fit=crop&w=1200&q=80"
+        images["traditional_dances_image_url"] = "https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=800&q=80"
+        images["festivals_image_url"] = "https://images.unsplash.com/photo-1588096344316-f71c2314630f?auto=format&fit=crop&w=800&q=80"
+    elif "bengal" in name or "kolkata" in name:
+        images["image_url"] = "https://images.unsplash.com/photo-1558431382-27e303142255?auto=format&fit=crop&w=800&q=80"
+        images["banner_image_url"] = "https://images.unsplash.com/photo-1558431382-27e303142255?auto=format&fit=crop&w=1200&q=80"
+        images["traditional_dances_image_url"] = "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80"
+        images["festivals_image_url"] = "https://images.unsplash.com/photo-1600180758890-6b94519a8ba6?auto=format&fit=crop&w=800&q=80"
+    elif "goa" in name:
+        images["image_url"] = "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80"
+        images["banner_image_url"] = "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80"
+        images["traditional_dances_image_url"] = "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80"
+        images["festivals_image_url"] = "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80"
+    elif "pradesh" in name or "delhi" in name or "agra" in name:
+        images["image_url"] = "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80"
+        images["banner_image_url"] = "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80"
+        images["traditional_dances_image_url"] = "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80"
+        images["festivals_image_url"] = "https://images.unsplash.com/photo-1514222709107-a180c68d72b4?auto=format&fit=crop&w=800&q=80"
+
+    return images
+
+def get_indian_state_knowledge_base():
+    return {
+        "kerala": {
+            "name": "Kerala",
+            "category": "State",
+            "short_description": "God's Own Country located on the Malabar Coast of India, known for backwaters, palm-fringed beaches, and rich cultural heritage.",
+            "full_description": "Kerala is a tropical paradise located on India's southwestern Malabar Coast. Renowned for its palm-lined beaches, tranquil backwaters, tea plantations in Munnar, and rich traditional art forms like Kathakali and Mohiniyattam.",
+            "descriptions": [
+                "Kerala boasts a unique cultural identity influenced by its maritime trading history with Arabs, Chinese, and Europeans.",
+                "The state is famous for its holistic Ayurveda traditions, lush Western Ghats biodiversity, and vibrant festivals like Onam and Thrissur Pooram."
+            ],
+            "capital": "Thiruvananthapuram",
+            "area": "38,863 sq km",
+            "population": "35.3 Million",
+            "official_languages": "Malayalam, English",
+            "formation": "1 November 1956",
+            "fun_fact": "Kerala has the highest literacy rate and human development index in India!",
+            "image_url": "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80",
+            "banner_image_url": "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=1200&q=80",
+            "culture_image_url": "https://images.unsplash.com/photo-1627894006066-b45c22501a1d?auto=format&fit=crop&w=800&q=80",
+            "heritage_image_url": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80",
+            "geography_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "food_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "lifestyle_image_url": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80",
+            "highlights_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "traditional_dances": "Kathakali and Mohiniyattam are classical dance-dramas of Kerala renowned for elaborate facial makeup, expressive mudras, colorful costumes, and captivating storytelling.",
+            "traditional_dances_image_url": "https://images.unsplash.com/photo-1627894006066-b45c22501a1d?auto=format&fit=crop&w=800&q=80",
+            "traditional_music": "Sopana Sangeetham, Panchavadyam, Chenda Melam traditional percussion ensemble",
+            "traditional_music_image_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80",
+            "festivals": "Onam is the grand harvest festival of Kerala celebrated with traditional Sadya feasts served on banana leaves, pookkalam floral carpets, and thrilling Vallam Kali snake boat races.",
+            "festivals_image_url": "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80",
+            "traditional_clothing": "Kasavu Saree, Set Mundu, Kasavu Mundu",
+            "traditional_clothing_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+            "culture_arts_crafts": "Aranmula Kannadi (Metal Mirror), Coir Products, Wooden Carvings",
+            "culture_arts_crafts_image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+            "culture_food": "Onam Sadya served on banana leaf, Appam with Stew",
+            "culture_food_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "traditions_customs": "Kalaripayattu Martial Art, Snake Boat Races (Vallam Kali)",
+            "traditions_customs_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "historical_monuments": "Padmanabhapuram Palace, Bekal Fort, Hill Palace Museum",
+            "historical_monuments_image_url": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80",
+            "temples_churches_mosques": "Sree Padmanabhaswamy Temple, Sabarimala, Cheraman Juma Mosque",
+            "temples_churches_mosques_image_url": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80",
+            "forts": "Bekal Fort, Palakkad Fort, St. Angelo Fort Kannur",
+            "forts_image_url": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80",
+            "unesco_heritage": "Western Ghats Mountain Ranges & Biodiversity Network",
+            "unesco_heritage_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "major_rivers": "Periyar River, Bharathappuzha, Pamba River, Chaliyar",
+            "major_rivers_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "mountains": "Anamudi Peak (2,695m), Agasthyarkoodam, Chembra Peak",
+            "mountains_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "beaches": "Kovalam Beach, Varkala Cliff Beach, Cherai Beach, Marari",
+            "beaches_image_url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+            "forests": "Silent Valley National Park, Tropical Evergreen Rainforests",
+            "forests_image_url": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80",
+            "climate": "Tropical monsoon climate with heavy rains during June-September",
+            "climate_image_url": "https://images.unsplash.com/photo-1514632595-4944383f2737?auto=format&fit=crop&w=800&q=80",
+            "famous_dishes": "Karimeen Pollichathu, Puttu & Kadala Curry, Malabar Biryani",
+            "famous_dishes_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "traditional_cuisine": "Coconut-based gravies, Cardamom, Black Pepper, Curry Leaves",
+            "traditional_cuisine_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "famous_ingredients": "Black Pepper, Cardamom, Cloves, Coconut Oil, Curry Leaves",
+            "famous_ingredients_image_url": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80",
+            "traditional_dress": "Kasavu Saree for Women, White Mundu with Gold Zari Border for Men",
+            "traditional_dress_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+            "occupations": "Agriculture (Spices, Coconut, Rubber), Fishing, Tourism, IT",
+            "occupations_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "local_communities": "Malayali community, Indigenous Adivasi tribes (Mullu Kurumba, Kadar)",
+            "local_communities_image_url": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80",
+            "famous_arts_crafts": "Mural Paintings, Nettoor Petti (Jewelry Box), Kathakali Masks",
+            "famous_arts_crafts_image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+            "famous_personalities": "Raja Ravi Varma, Adi Shankara, K. R. Narayanan, Vaikom Muhammad Basheer",
+            "famous_personalities_image_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
+            "famous_places": "Alleppey Backwaters, Munnar Hill Station, Wayanad Wildlife Sanctuary, Fort Kochi",
+            "famous_places_image_url": "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80"
+        },
+        "tamil nadu": {
+            "name": "Tamil Nadu",
+            "category": "State",
+            "short_description": "Land of Dravidian Temples, ancient Sangam heritage, classical Bharatanatyam dance, and vibrant festivals.",
+            "full_description": "Tamil Nadu, located in southernmost India, is celebrated for its majestic Dravidian-style Hindu temples, classical music and dance, pristine beaches, and rich cultural traditions dating back over two millennia.",
+            "descriptions": [
+                "Home to towering Gopuram temple architecture, Carnatic music, and the world's second longest urban beach.",
+                "Renowned for Kanchipuram silk weaving, Tanjore paintings, and rich Tamil literary traditions."
+            ],
+            "capital": "Chennai",
+            "area": "130,058 sq km",
+            "population": "72.1 Million",
+            "official_languages": "Tamil, English",
+            "formation": "1 November 1956",
+            "fun_fact": "Tamil is recognized as one of the oldest classical languages in the world still in continuous use!",
+            "image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "banner_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80",
+            "culture_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "heritage_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "geography_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "food_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "lifestyle_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+            "highlights_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "traditional_dances": "Bharatanatyam is the celebrated ancient classical dance of Tamil Nadu, featuring precise footwork, rhythmic poses, and expressive hand gestures.",
+            "traditional_dances_image_url": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80",
+            "traditional_music": "Carnatic Classical Music, Nadaswaram & Thavil",
+            "traditional_music_image_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80",
+            "festivals": "Pongal is the major multi-day harvest festival of Tamil Nadu celebrated with fresh rice boiling rituals, intricate kolam floor art, and traditional festivities.",
+            "festivals_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "traditional_clothing": "Kanchipuram Silk Saree, Veshti (Dhoti) with Angavastram",
+            "traditional_clothing_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+            "culture_arts_crafts": "Tanjore Paintings, Bronze Statues, Kanchipuram Weaving",
+            "culture_arts_crafts_image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+            "culture_food": "Traditional South Indian Breakfast: Idli, Dosa, Sambar, Filter Coffee",
+            "culture_food_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "traditions_customs": "Jallikattu traditional bull-taming, Kolam floor art",
+            "traditions_customs_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "historical_monuments": "Brihadeeswarar Temple Thanjavur, Meenakshi Temple Madurai, Shore Temple Mamallapuram",
+            "historical_monuments_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "temples_churches_mosques": "Meenakshi Amman Temple, Ranganathaswamy Temple Srirangam, Velankanni Church",
+            "temples_churches_mosques_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "forts": "Vellore Fort, Rockfort Trichy, Fort St. George Chennai",
+            "forts_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "unesco_heritage": "Great Living Chola Temples & Group of Monuments at Mahabalipuram",
+            "unesco_heritage_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "major_rivers": "Kaveri (Cauvery), Thamirabarani, Vaigai, Palar",
+            "major_rivers_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "mountains": "Nilgiri Mountains (Doddabetta 2,637m), Anaimalai Hills, Kodaikanal Hills",
+            "mountains_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "beaches": "Marina Beach Chennai, Dhanushkodi Beach Rameshwaram",
+            "beaches_image_url": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
+            "forests": "Mudumalai National Park, Anamalai Tiger Reserve",
+            "forests_image_url": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80",
+            "climate": "Tropical climate with northeast monsoon rainfall during October-December",
+            "climate_image_url": "https://images.unsplash.com/photo-1514632595-4944383f2737?auto=format&fit=crop&w=800&q=80",
+            "famous_dishes": "Chettinad Chicken, Dosa, Idli, Pongal, Filter Coffee",
+            "famous_dishes_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "traditional_cuisine": "Spicy Chettinad gravies, Rice-based delicacies, Filter Coffee",
+            "traditional_cuisine_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "famous_ingredients": "Tamarind, Sesame Oil, Curry Leaves, Red Chillies, Mustard Seeds",
+            "famous_ingredients_image_url": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80",
+            "traditional_dress": "Silk Sarees for Women, Veshti and Shirt for Men",
+            "traditional_dress_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+            "occupations": "Automobile Manufacturing, IT, Textile & Garment Industry, Agriculture",
+            "occupations_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
+            "local_communities": "Tamil people, Badagas, Toda tribe of Nilgiris",
+            "local_communities_image_url": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+            "famous_arts_crafts": "Tanjore Art, Pattamadai Mats, Swamimalai Bronze Icons",
+            "famous_arts_crafts_image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+            "famous_personalities": "C. V. Raman, A. P. J. Abdul Kalam, S. Ramanujan, M. S. Subbulakshmi",
+            "famous_personalities_image_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
+            "famous_places": "Mahabalipuram, Ooty, Kodaikanal, Rameshwaram, Madurai Meenakshi Temple, Kanyakumari",
+            "famous_places_image_url": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80"
+        },
+        "rajasthan": {
+            "name": "Rajasthan",
+            "category": "State",
+            "short_description": "The Land of Kings, majestic desert forts, grand palaces, colorful turbans, and vibrant folk heritage.",
+            "full_description": "Rajasthan, India's largest state by area, is famous for the Great Indian Thar Desert, grand royal palaces, massive hilltop forts, desert safaris, and rich Rajputana bravery and royal heritage.",
+            "descriptions": [
+                "Famous for desert safaris, Jaipur's Pink City, Udaipur's Lake Palaces, and Jaisalmer's Golden Fort.",
+                "Rich in traditional folk dances like Ghoomar, puppet crafts, and royal Rajasthani cuisine."
+            ],
+            "capital": "Jaipur",
+            "area": "342,239 sq km",
+            "population": "68.5 Million",
+            "official_languages": "Hindi, Rajasthani",
+            "formation": "30 March 1949",
+            "fun_fact": "Jaipur is known worldwide as the 'Pink City' because its buildings were painted pink to welcome the Prince of Wales in 1876!",
+            "image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "banner_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+            "culture_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "heritage_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "geography_image_url": "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80",
+            "food_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "lifestyle_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "highlights_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "traditional_dances": "Ghoomar and Kalbelia are iconic folk dances of Rajasthan performed by women in twirling ghagras accompanied by traditional dholak music.",
+            "traditional_dances_image_url": "https://images.unsplash.com/photo-1609137144813-7d9921338f24?auto=format&fit=crop&w=800&q=80",
+            "traditional_music": "Maand Folk Music, Langa & Manganiyar Musical Performances",
+            "traditional_music_image_url": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80",
+            "festivals": "The Pushkar Camel Fair and Desert Festival of Jaisalmer showcase grand camel parades, folk music performances, Kathputli puppet shows, and desert festivities.",
+            "festivals_image_url": "https://images.unsplash.com/photo-1514222709107-a180c68d72b4?auto=format&fit=crop&w=800&q=80",
+            "traditional_clothing": "Ghagra Choli with Odhni for Women, Dhoti-Kurta with Safa (Turban) for Men",
+            "traditional_clothing_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "culture_arts_crafts": "Block Printing (Sanganeri, Bagru), Blue Pottery, Mojari Leather Footwear",
+            "culture_arts_crafts_image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+            "culture_food": "Dal Baati Churma, Gatte ki Sabzi, Ghevar sweet",
+            "culture_food_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "traditions_customs": "Royal hospitality 'Padharo Mhare Des', Puppet shows (Kathputli)",
+            "traditions_customs_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "historical_monuments": "Hawa Mahal, City Palace Jaipur, Amber Fort, Umaid Bhawan Palace",
+            "historical_monuments_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "temples_churches_mosques": "Brahma Temple Pushkar, Dilwara Jain Temples Mount Abu, Karni Mata Temple",
+            "temples_churches_mosques_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "forts": "Mehrangarh Fort Jodhpur, Chittorgarh Fort, Jaisalmer Fort, Kumbhalgarh Fort",
+            "forts_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "unesco_heritage": "Hill Forts of Rajasthan & Keoladeo Ghana National Park",
+            "unesco_heritage_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "major_rivers": "Luni River, Chambal River, Banas River, Sabarmati",
+            "major_rivers_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "mountains": "Aravalli Range (Guru Shikhar 1,722m in Mount Abu)",
+            "mountains_image_url": "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&w=800&q=80",
+            "beaches": "Sambhar Salt Lake Shores, Nakki Lake Mount Abu",
+            "beaches_image_url": "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80",
+            "forests": "Desert Scrub Vegetation, Ranthambore & Sariska Tiger Reserves",
+            "forests_image_url": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80",
+            "climate": "Arid to semi-arid desert climate with hot summers and cold winters",
+            "climate_image_url": "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80",
+            "famous_dishes": "Dal Baati Churma, Laal Maas, Ker Sangri, Pyaaz Kachori",
+            "famous_dishes_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "traditional_cuisine": "Desert cuisine using milk, ghee, gram flour, dried lentils & spices",
+            "traditional_cuisine_image_url": "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?auto=format&fit=crop&w=800&q=80",
+            "famous_ingredients": "Mathania Red Chillies, Desi Ghee, Gram Flour (Besan), Bajra",
+            "famous_ingredients_image_url": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80",
+            "traditional_dress": "Colorful Bandhani Sarees, Royal Safa (Turban) & Sherwani",
+            "traditional_dress_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "occupations": "Tourism & Heritage Hospitality, Handicrafts, Agriculture, Gemstone Polishing",
+            "occupations_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "local_communities": "Rajputs, Marwaris, Gujjars, Meenas, Kalbelia nomads",
+            "local_communities_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
+            "famous_arts_crafts": "Blue Pottery Jaipur, Bandhani Tie-Dye, Meenakari Jewelry",
+            "famous_arts_crafts_image_url": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80",
+            "famous_personalities": "Maharana Pratap, Mirabai, Prithviraj Chauhan, Maharani Gayatri Devi",
+            "famous_personalities_image_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
+            "famous_places": "Jaipur Pink City, Udaipur Lake Palace, Jaisalmer Golden Fort, Jodhpur Blue City, Pushkar",
+            "famous_places_image_url": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80"
+        }
+    }
+
+async def generate_indian_state_data_ai(name: str, category: str = "State"):
+    key_name = name.lower().strip()
+    kb = get_indian_state_knowledge_base()
+
+    match_key = None
+    for k in kb.keys():
+        if k in key_name or key_name in k:
+            match_key = k
+            break
+
+    if match_key:
+        state_data = dict(kb[match_key])
+        state_data["category"] = category
+        return serialize_doc(state_data)
+
+    # Dynamic image lookup based on state name
+    st_imgs = get_state_specific_images(name)
+
+    # Try OpenAI generation if configured
+    try:
+        from app.core.openai_client import get_async_openai_client, get_openai_api_key
+        api_key = get_openai_api_key()
+        if api_key and api_key != "sk-placeholder":
+            client = get_async_openai_client()
+            prompt = f"""Generate a detailed JSON object for Indian Explorer for the Indian State/UT: '{name}'.
+            Category: {category}.
+            Make sure 'traditional_dances' and 'festivals' are complete informative sentences about the state's traditional dances and major festivals!
+            Include fields: name, category, capital, area, population, official_languages, formation, fun_fact, short_description, full_description, descriptions (array of 2 strings),
+            traditional_dances, traditional_music, festivals, traditional_clothing, culture_arts_crafts, culture_food, traditions_customs,
+            historical_monuments, temples_churches_mosques, forts, unesco_heritage,
+            major_rivers, mountains, beaches, forests, climate,
+            famous_dishes, traditional_cuisine, famous_ingredients,
+            traditional_dress, occupations, local_communities,
+            famous_arts_crafts, famous_personalities, famous_places.
+            Return ONLY raw valid JSON."""
+
+            resp = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are an expert historian and geographer of India."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                response_format={"type": "json_object"}
+            )
+            content = resp.choices[0].message.content
+            import json
+            ai_json = json.loads(content)
+            ai_json["name"] = name
+            ai_json["category"] = category
+            
+            for field_k, img_u in st_imgs.items():
+                if isinstance(img_u, str):
+                    ai_json.setdefault(field_k, img_u)
+            return serialize_doc(ai_json)
+    except Exception as e:
+        print(f"[WARN] OpenAI generation fallback: {e}")
+
+    fallback_doc = {
+        "name": name.title(),
+        "category": category,
+        "short_description": f"{name.title()} is a vibrant and culturally rich {category.lower()} of India.",
+        "full_description": f"{name.title()} features a diverse heritage, historical landmarks, traditional art forms, and unique natural geography.",
+        "descriptions": [
+            f"{name.title()} boasts a distinct regional culture, traditional art forms, and warm local hospitality.",
+            f"Visitors to {name.title()} experience famous historical landmarks, rich local cuisine, and colorful cultural festivals."
+        ],
+        "capital": f"Capital of {name.title()}",
+        "area": "N/A",
+        "population": "N/A",
+        "official_languages": "Hindi, English, Regional Language",
+        "formation": "1956",
+        "fun_fact": f"{name.title()} is celebrated across India for its unique regional heritage and vibrant festive celebrations!",
+        "traditional_dances": f"Traditional folk and classical dances of {name.title()} are celebrated for expressive rhythms, elaborate attire, and rich storytelling traditions.",
+        "traditional_music": f"Traditional folk and classical musical melodies of {name.title()}",
+        "festivals": f"Major regional harvest and cultural festivals of {name.title()} are celebrated with grand community feasts, traditional music, and colorful rituals.",
+        "traditional_clothing": f"Traditional ethnic attire and cultural dress of {name.title()}",
+        "culture_arts_crafts": f"Handicrafts, pottery, and artisan metalwork of {name.title()}",
+        "culture_food": f"Authentic regional cuisine and traditional recipes of {name.title()}",
+        "traditions_customs": f"Ancient customs and festive rituals of {name.title()}",
+        "historical_monuments": f"Historic monuments and ancient architectural landmarks of {name.title()}",
+        "temples_churches_mosques": f"Renowned temples, churches, and heritage places of worship in {name.title()}",
+        "forts": f"Historic forts and royal palaces of {name.title()}",
+        "unesco_heritage": f"Cultural and natural heritage sites of {name.title()}",
+        "major_rivers": f"Major rivers and water bodies flowing through {name.title()}",
+        "mountains": f"Hills, valleys, and mountain ranges of {name.title()}",
+        "beaches": f"Scenic coastal beaches and river banks of {name.title()}",
+        "forests": f"National parks, forests, and wildlife sanctuaries of {name.title()}",
+        "climate": f"Seasonal weather and monsoon climate of {name.title()}",
+        "famous_dishes": f"Famous local dishes and delicacies of {name.title()}",
+        "traditional_cuisine": f"Specialty regional recipes and food culture of {name.title()}",
+        "famous_ingredients": f"Local spices, grains, and produce of {name.title()}",
+        "traditional_dress": f"Ethic wear and festive dress of {name.title()}",
+        "occupations": f"Agriculture, handicrafts, tourism, and industries in {name.title()}",
+        "local_communities": f"Local indigenous communities and tribes of {name.title()}",
+        "famous_arts_crafts": f"Famous regional arts, crafts, and handlooms of {name.title()}",
+        "famous_personalities": f"Notable historical figures and icons from {name.title()}",
+        "famous_places": f"Top tourist destinations and landmarks in {name.title()}"
+    }
+
+    # Merge state-specific image URLs into fallback_doc
+    for field_k, img_u in st_imgs.items():
+        fallback_doc[field_k] = img_u
+
+    return serialize_doc(fallback_doc)
+
+@router.post("/generate-content")
+async def generate_indian_state_content(
+    req: IndianExplorerGenerateRequest,
+    current_admin: dict = Depends(require_permission("Indian Explorer", "create"))
+):
+    """Auto-generate comprehensive content & image URLs for a specified Indian State or Union Territory using AI."""
+    name_clean = req.name.strip()
+    if not name_clean:
+        raise HTTPException(status_code=400, detail="State name is required")
+
+    data = await generate_indian_state_data_ai(name_clean, req.category)
+    return data
 
 @router.post("/upload-image")
 async def upload_indian_image(file: UploadFile = File(...), current_admin: dict = Depends(require_permission("Indian Explorer", "create"))):

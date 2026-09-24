@@ -45,12 +45,6 @@ def serialize_doc(doc):
         "traditional_music_image_url": get_val("traditional_music_image_url", ["Culture & Heritage", "culture_and_heritage"], ""),
         "festivals": get_val("festivals", ["Culture & Heritage", "culture_and_heritage"], ""),
         "festivals_image_url": get_val("festivals_image_url", ["Culture & Heritage", "culture_and_heritage"], ""),
-        "traditional_clothing": get_val("traditional_clothing", ["Culture & Heritage", "culture_and_heritage"], ""),
-        "traditional_clothing_image_url": get_val("traditional_clothing_image_url", ["Culture & Heritage", "culture_and_heritage"], ""),
-        "culture_arts_crafts": get_val("culture_arts_crafts", ["Culture & Heritage", "culture_and_heritage"], ""),
-        "culture_arts_crafts_image_url": get_val("culture_arts_crafts_image_url", ["Culture & Heritage", "culture_and_heritage"], ""),
-        "culture_food": get_val("culture_food", ["Culture & Heritage", "culture_and_heritage"], ""),
-        "culture_food_image_url": get_val("culture_food_image_url", ["Culture & Heritage", "culture_and_heritage"], ""),
         "traditions_customs": get_val("traditions_customs", ["Culture & Heritage", "culture_and_heritage"], ""),
         "traditions_customs_image_url": get_val("traditions_customs_image_url", ["Culture & Heritage", "culture_and_heritage"], "")
     }
@@ -81,30 +75,39 @@ def serialize_doc(doc):
         "climate_image_url": get_val("climate_image_url", ["Geography", "geography"], "")
     }
 
+    famous_dishes_val = get_val("famous_dishes", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], "") or get_val("culture_food", ["Culture & Heritage", "culture_and_heritage"], "")
+    famous_dishes_img = get_val("famous_dishes_image_url", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], "") or get_val("culture_food_image_url", ["Culture & Heritage", "culture_and_heritage"], "")
+
     food_and_lifestyle = {
         "food_image_url": get_val("food_image_url", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], ""),
-        "famous_dishes": get_val("famous_dishes", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], ""),
-        "famous_dishes_image_url": get_val("famous_dishes_image_url", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], ""),
+        "famous_dishes": famous_dishes_val,
+        "famous_dishes_image_url": famous_dishes_img,
         "traditional_cuisine": get_val("traditional_cuisine", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], ""),
         "traditional_cuisine_image_url": get_val("traditional_cuisine_image_url", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], ""),
         "famous_ingredients": get_val("famous_ingredients", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], ""),
         "famous_ingredients_image_url": get_val("famous_ingredients_image_url", ["Food & Traditional Lifestyle", "food_and_traditional_lifestyle"], "")
     }
 
+    traditional_dress_val = get_val("traditional_dress", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], "") or get_val("traditional_clothing", ["Culture & Heritage", "culture_and_heritage"], "")
+    traditional_dress_img = get_val("traditional_dress_image_url", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], "") or get_val("traditional_clothing_image_url", ["Culture & Heritage", "culture_and_heritage"], "")
+
     traditional_lifestyle = {
         "lifestyle_image_url": get_val("lifestyle_image_url", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], ""),
-        "traditional_dress": get_val("traditional_dress", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], ""),
-        "traditional_dress_image_url": get_val("traditional_dress_image_url", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], ""),
+        "traditional_dress": traditional_dress_val,
+        "traditional_dress_image_url": traditional_dress_img,
         "occupations": get_val("occupations", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], ""),
         "occupations_image_url": get_val("occupations_image_url", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], ""),
         "local_communities": get_val("local_communities", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], ""),
         "local_communities_image_url": get_val("local_communities_image_url", ["Traditional Lifestyle & Culture", "traditional_lifestyle_and_culture"], "")
     }
 
+    famous_arts_val = get_val("famous_arts_crafts", ["Highlights & Places", "highlights_and_places"], "") or get_val("culture_arts_crafts", ["Culture & Heritage", "culture_and_heritage"], "")
+    famous_arts_img = get_val("famous_arts_crafts_image_url", ["Highlights & Places", "highlights_and_places"], "") or get_val("culture_arts_crafts_image_url", ["Culture & Heritage", "culture_and_heritage"], "")
+
     highlights_and_places = {
         "highlights_image_url": get_val("highlights_image_url", ["Highlights & Places", "highlights_and_places"], ""),
-        "famous_arts_crafts": get_val("famous_arts_crafts", ["Highlights & Places", "highlights_and_places"], ""),
-        "famous_arts_crafts_image_url": get_val("famous_arts_crafts_image_url", ["Highlights & Places", "highlights_and_places"], ""),
+        "famous_arts_crafts": famous_arts_val,
+        "famous_arts_crafts_image_url": famous_arts_img,
         "famous_personalities": get_val("famous_personalities", ["Highlights & Places", "highlights_and_places"], ""),
         "famous_personalities_image_url": get_val("famous_personalities_image_url", ["Highlights & Places", "highlights_and_places"], ""),
         "famous_places": get_val("famous_places", ["Highlights & Places", "highlights_and_places"], ""),
@@ -354,7 +357,7 @@ async def generate_indian_state_data_ai(name: str, category: str = "State"):
 Category: {category}.
 Make sure 'traditional_dances' and 'festivals' are complete informative sentences about the state's traditional dances and major festivals!
 Include fields: name, category, capital, area, population, official_languages, formation, fun_fact, short_description, full_description, descriptions (array of 2 strings),
-traditional_dances, traditional_music, festivals, traditional_clothing, culture_arts_crafts, culture_food, traditions_customs,
+traditional_dances, traditional_music, festivals, traditions_customs,
 historical_monuments, temples_churches_mosques, forts, unesco_heritage,
 major_rivers, mountains, beaches, forests, climate,
 famous_dishes, traditional_cuisine, famous_ingredients,
@@ -409,9 +412,6 @@ Return ONLY raw valid JSON."""
         "traditional_dances": f"Traditional folk and classical dances of {name_clean.title()} are celebrated for expressive rhythms, elaborate attire, and rich storytelling traditions.",
         "traditional_music": f"Traditional folk and classical musical melodies of {name_clean.title()}",
         "festivals": f"Major regional harvest and cultural festivals of {name_clean.title()} are celebrated with grand community feasts, traditional music, and colorful rituals.",
-        "traditional_clothing": f"Traditional ethnic attire and cultural dress of {name_clean.title()}",
-        "culture_arts_crafts": f"Handicrafts, pottery, and artisan work of {name_clean.title()}",
-        "culture_food": f"Authentic regional cuisine and traditional recipes of {name_clean.title()}",
         "traditions_customs": f"Ancient customs and festive rituals of {name_clean.title()}",
         "historical_monuments": f"Historic monuments and ancient architectural landmarks of {name_clean.title()}",
         "temples_churches_mosques": f"Renowned temples, churches, and heritage places of worship in {name_clean.title()}",

@@ -173,12 +173,6 @@ class CultureAndHeritage(BaseModel):
     traditional_music_image_url: Optional[str] = ""
     festivals: Optional[str] = ""
     festivals_image_url: Optional[str] = ""
-    traditional_clothing: Optional[str] = ""
-    traditional_clothing_image_url: Optional[str] = ""
-    culture_arts_crafts: Optional[str] = ""
-    culture_arts_crafts_image_url: Optional[str] = ""
-    culture_food: Optional[str] = ""
-    culture_food_image_url: Optional[str] = ""
     traditions_customs: Optional[str] = ""
     traditions_customs_image_url: Optional[str] = ""
 

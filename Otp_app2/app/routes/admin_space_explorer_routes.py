@@ -27,7 +27,7 @@ def serialize_doc(doc):
     return doc
 
 def save_and_optimize_image(file_obj, filepath: str, max_dim: int = 1920):
-    """Saves uploaded image, automatically resizing & compressing to optimize load times."""
+    """Saves uploaded image, automatically resizing & compressing to optimize load times while preserving PNG transparency."""
     try:
         file_bytes = file_obj.file.read()
         file_obj.file.seek(0)
@@ -38,23 +38,38 @@ def save_and_optimize_image(file_obj, filepath: str, max_dim: int = 1920):
             img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
         ext = os.path.splitext(filepath)[1].lower()
-        if ext in [".jpg", ".jpeg"]:
-            if img.mode != "RGB":
+
+        # Check for transparency (RGBA, LA, or Palette with transparency)
+        has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
+
+        if ext == ".png":
+            if has_alpha:
+                if img.mode != "RGBA":
+                    img = img.convert("RGBA")
+            else:
+                if img.mode not in ("RGB", "RGBA"):
+                    img = img.convert("RGB")
+            img.save(filepath, format="PNG", optimize=True)
+        elif ext == ".webp":
+            if has_alpha and img.mode != "RGBA":
+                img = img.convert("RGBA")
+            img.save(filepath, format="WEBP", quality=85, optimize=True)
+        elif ext in [".jpg", ".jpeg"]:
+            if has_alpha:
+                # Composite transparent background over clean WHITE instead of default BLACK
+                if img.mode != "RGBA":
+                    img = img.convert("RGBA")
+                background = Image.new("RGB", img.size, (255, 255, 255))
+                background.paste(img, mask=img.split()[3])
+                img = background
+            elif img.mode != "RGB":
                 img = img.convert("RGB")
             img.save(filepath, format="JPEG", quality=85, optimize=True)
-        elif ext == ".webp":
-            img.save(filepath, format="WEBP", quality=85, optimize=True)
-        elif ext == ".png":
-            if img.mode == "RGBA":
-                img.save(filepath, format="PNG", optimize=True)
-            else:
-                if img.mode != "RGB":
-                    img = img.convert("RGB")
-                img.save(filepath, format="JPEG", quality=85, optimize=True)
         else:
             with open(filepath, "wb") as buffer:
                 shutil.copyfileobj(file_obj.file, buffer)
-    except Exception:
+    except Exception as e:
+        print(f"[WARN] Error in save_and_optimize_image: {e}")
         file_obj.file.seek(0)
         with open(filepath, "wb") as buffer:
             shutil.copyfileobj(file_obj.file, buffer)

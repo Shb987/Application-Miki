@@ -23,8 +23,7 @@ from app.routes import (
     admin_space_explorer_routes, user_space_explorer_routes,
     admin_ocean_explorer_routes, user_ocean_explorer_routes,
     admin_plant_explorer_routes, user_plant_explorer_routes,
-    admin_indian_explorer_routes, user_indian_explorer_routes,
-    user_explorer_routes
+    admin_indian_explorer_routes, user_indian_explorer_routes
 ) 
 
 from fastapi.responses import JSONResponse, Response
@@ -193,7 +192,6 @@ app.include_router(user_space_explorer_routes.router, prefix="/user", tags=["Spa
 app.include_router(user_ocean_explorer_routes.router, prefix="/user", tags=["Ocean Explorer - User"])
 app.include_router(user_plant_explorer_routes.router, prefix="/user", tags=["Plant Explorer - User"])
 app.include_router(user_indian_explorer_routes.router, prefix="/user", tags=["Indian Explorer - User"])
-app.include_router(user_explorer_routes.router, prefix="/user", tags=["Explorer - Unified User API"])
 app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Futurestudy Module"])
 app.include_router(companion_routes.router, tags=["AI Student Companion"])
 app.include_router(chat_routes.router, prefix="/user")

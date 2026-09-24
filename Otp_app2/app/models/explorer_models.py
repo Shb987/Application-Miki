@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Any, Union
+from typing import Optional, List, Any, Union, Dict
 from datetime import datetime
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -165,6 +165,74 @@ class PlantExplorerResponse(PlantExplorerBase):
 # 🇮🇳 4. Indian Explorer Models
 # ─────────────────────────────────────────────────────────────────────────────
 
+class CultureAndHeritage(BaseModel):
+    culture_image_url: Optional[str] = ""
+    traditional_dances: Optional[str] = ""
+    traditional_dances_image_url: Optional[str] = ""
+    traditional_music: Optional[str] = ""
+    traditional_music_image_url: Optional[str] = ""
+    festivals: Optional[str] = ""
+    festivals_image_url: Optional[str] = ""
+    traditional_clothing: Optional[str] = ""
+    traditional_clothing_image_url: Optional[str] = ""
+    culture_arts_crafts: Optional[str] = ""
+    culture_arts_crafts_image_url: Optional[str] = ""
+    culture_food: Optional[str] = ""
+    culture_food_image_url: Optional[str] = ""
+    traditions_customs: Optional[str] = ""
+    traditions_customs_image_url: Optional[str] = ""
+
+class HeritageAndMonuments(BaseModel):
+    heritage_image_url: Optional[str] = ""
+    historical_monuments: Optional[str] = ""
+    historical_monuments_image_url: Optional[str] = ""
+    temples_churches_mosques: Optional[str] = ""
+    temples_churches_mosques_image_url: Optional[str] = ""
+    forts: Optional[str] = ""
+    forts_image_url: Optional[str] = ""
+    unesco_heritage: Optional[str] = ""
+    unesco_heritage_image_url: Optional[str] = ""
+
+class GeographySection(BaseModel):
+    geography_image_url: Optional[str] = ""
+    major_rivers: Optional[str] = ""
+    major_rivers_image_url: Optional[str] = ""
+    mountains: Optional[str] = ""
+    mountains_image_url: Optional[str] = ""
+    beaches: Optional[str] = ""
+    beaches_image_url: Optional[str] = ""
+    forests: Optional[str] = ""
+    forests_image_url: Optional[str] = ""
+    climate: Optional[str] = ""
+    climate_image_url: Optional[str] = ""
+
+class FoodAndTraditionalLifestyle(BaseModel):
+    food_image_url: Optional[str] = ""
+    famous_dishes: Optional[str] = ""
+    famous_dishes_image_url: Optional[str] = ""
+    traditional_cuisine: Optional[str] = ""
+    traditional_cuisine_image_url: Optional[str] = ""
+    famous_ingredients: Optional[str] = ""
+    famous_ingredients_image_url: Optional[str] = ""
+
+class TraditionalLifestyleAndCulture(BaseModel):
+    lifestyle_image_url: Optional[str] = ""
+    traditional_dress: Optional[str] = ""
+    traditional_dress_image_url: Optional[str] = ""
+    occupations: Optional[str] = ""
+    occupations_image_url: Optional[str] = ""
+    local_communities: Optional[str] = ""
+    local_communities_image_url: Optional[str] = ""
+
+class HighlightsAndPlaces(BaseModel):
+    highlights_image_url: Optional[str] = ""
+    famous_arts_crafts: Optional[str] = ""
+    famous_arts_crafts_image_url: Optional[str] = ""
+    famous_personalities: Optional[str] = ""
+    famous_personalities_image_url: Optional[str] = ""
+    famous_places: Optional[str] = ""
+    famous_places_image_url: Optional[str] = ""
+
 class IndianExplorerBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="State / Union Territory Name (e.g. Kerala)")
     order: int = Field(1, ge=1, description="Order/display position")
@@ -178,14 +246,6 @@ class IndianExplorerBase(BaseModel):
     description_images: Optional[List[Any]] = Field(default_factory=list, description="List of description block image URLs or image URL arrays")
     gallery_images: Optional[List[str]] = Field(default_factory=list, description="List of gallery image URLs")
 
-    # 📸 Section Specific Images
-    culture_image_url: Optional[str] = Field("", description="Culture & Heritage section image URL")
-    heritage_image_url: Optional[str] = Field("", description="Heritage section image URL")
-    geography_image_url: Optional[str] = Field("", description="Geography section image URL")
-    food_image_url: Optional[str] = Field("", description="Food & Cuisine section image URL")
-    lifestyle_image_url: Optional[str] = Field("", description="Lifestyle section image URL")
-    highlights_image_url: Optional[str] = Field("", description="Highlights & Personalities section image URL")
-
     # 📍 Quick Facts
     capital: Optional[str] = Field(None, description="Capital city")
     area: Optional[str] = Field(None, description="Total area")
@@ -193,43 +253,13 @@ class IndianExplorerBase(BaseModel):
     official_languages: Optional[str] = Field(None, description="Official Language(s)")
     formation: Optional[str] = Field(None, description="Formation Date / Year")
 
-    # 🎭 Culture
-    traditional_dances: Optional[str] = Field(None, description="Traditional Dances")
-    traditional_dances_image_url: Optional[str] = Field("", description="Traditional Dances image URL")
-    traditional_music: Optional[str] = Field(None, description="Traditional Music")
-    traditional_music_image_url: Optional[str] = Field("", description="Traditional Music image URL")
-    festivals: Optional[str] = Field(None, description="Major Festivals")
-    festivals_image_url: Optional[str] = Field("", description="Major Festivals image URL")
-    traditional_clothing: Optional[str] = Field(None, description="Traditional Clothing")
-    traditional_clothing_image_url: Optional[str] = Field("", description="Traditional Clothing image URL")
-    culture_arts_crafts: Optional[str] = Field(None, description="Cultural Arts & Crafts")
-    culture_arts_crafts_image_url: Optional[str] = Field("", description="Cultural Arts & Crafts image URL")
-    culture_food: Optional[str] = Field(None, description="Cultural Food")
-    culture_food_image_url: Optional[str] = Field("", description="Cultural Food image URL")
-    traditions_customs: Optional[str] = Field(None, description="Traditions & Customs")
-    traditions_customs_image_url: Optional[str] = Field("", description="Traditions & Customs image URL")
-
-    # 🏛️ Heritage
-    historical_monuments: Optional[str] = Field(None, description="Historical Monuments")
-    historical_monuments_image_url: Optional[str] = Field("", description="Historical Monuments image URL")
-    temples_churches_mosques: Optional[str] = Field(None, description="Temples / Churches / Mosques")
-    temples_churches_mosques_image_url: Optional[str] = Field("", description="Temples / Churches / Mosques image URL")
-    forts: Optional[str] = Field(None, description="Forts & Palaces")
-    forts_image_url: Optional[str] = Field("", description="Forts & Palaces image URL")
-    unesco_heritage: Optional[str] = Field(None, description="UNESCO Heritage Sites")
-    unesco_heritage_image_url: Optional[str] = Field("", description="UNESCO Heritage Sites image URL")
-
-    # 🗺️ Geography
-    major_rivers: Optional[str] = Field(None, description="Major Rivers")
-    major_rivers_image_url: Optional[str] = Field("", description="Major Rivers image URL")
-    mountains: Optional[str] = Field(None, description="Mountains & Peaks")
-    mountains_image_url: Optional[str] = Field("", description="Mountains & Peaks image URL")
-    beaches: Optional[str] = Field(None, description="Beaches & Coastal regions")
-    beaches_image_url: Optional[str] = Field("", description="Beaches & Coastal regions image URL")
-    forests: Optional[str] = Field(None, description="Forests & Vegetation")
-    forests_image_url: Optional[str] = Field("", description="Forests & Vegetation image URL")
-    climate: Optional[str] = Field(None, description="Climate & Weather")
-    climate_image_url: Optional[str] = Field("", description="Climate & Weather image URL")
+    # 📦 Grouped Section Objects
+    culture_and_heritage: Optional[Union[CultureAndHeritage, Dict[str, Any]]] = Field(default_factory=CultureAndHeritage, alias="Culture & Heritage")
+    heritage_and_monuments: Optional[Union[HeritageAndMonuments, Dict[str, Any]]] = Field(default_factory=HeritageAndMonuments, alias="Heritage & Monuments")
+    geography: Optional[Union[GeographySection, Dict[str, Any]]] = Field(default_factory=GeographySection, alias="Geography")
+    food_and_traditional_lifestyle: Optional[Union[FoodAndTraditionalLifestyle, Dict[str, Any]]] = Field(default_factory=FoodAndTraditionalLifestyle, alias="Food & Traditional Lifestyle")
+    traditional_lifestyle_and_culture: Optional[Union[TraditionalLifestyleAndCulture, Dict[str, Any]]] = Field(default_factory=TraditionalLifestyleAndCulture, alias="Traditional Lifestyle & Culture")
+    highlights_and_places: Optional[Union[HighlightsAndPlaces, Dict[str, Any]]] = Field(default_factory=HighlightsAndPlaces, alias="Highlights & Places")
 
     # 🐘 Wildlife
     state_animal: Optional[str] = Field(None, description="State Animal")
@@ -238,32 +268,12 @@ class IndianExplorerBase(BaseModel):
     state_flower: Optional[str] = Field(None, description="State Flower")
     national_parks_sanctuaries: Optional[str] = Field(None, description="National Parks / Sanctuaries")
 
-    # 🍛 Food
-    famous_dishes: Optional[str] = Field(None, description="Famous Dishes")
-    famous_dishes_image_url: Optional[str] = Field("", description="Famous Dishes image URL")
-    traditional_cuisine: Optional[str] = Field(None, description="Traditional Cuisine")
-    traditional_cuisine_image_url: Optional[str] = Field("", description="Traditional Cuisine image URL")
-    famous_ingredients: Optional[str] = Field(None, description="Famous Spices / Ingredients")
-    famous_ingredients_image_url: Optional[str] = Field("", description="Famous Spices / Ingredients image URL")
-
-    # 👕 Traditional Lifestyle
-    traditional_dress: Optional[str] = Field(None, description="Traditional Dress")
-    traditional_dress_image_url: Optional[str] = Field("", description="Traditional Dress image URL")
-    occupations: Optional[str] = Field(None, description="Main Occupations")
-    occupations_image_url: Optional[str] = Field("", description="Main Occupations image URL")
-    local_communities: Optional[str] = Field(None, description="Local Communities & Tribes")
-    local_communities_image_url: Optional[str] = Field("", description="Local Communities & Tribes image URL")
-
-    # 🎨 🏆 📍 Highlights
-    famous_arts_crafts: Optional[str] = Field(None, description="Famous Arts & Crafts")
-    famous_arts_crafts_image_url: Optional[str] = Field("", description="Famous Arts & Crafts image URL")
-    famous_personalities: Optional[str] = Field(None, description="Famous Personalities")
-    famous_personalities_image_url: Optional[str] = Field("", description="Famous Personalities image URL")
-    famous_places: Optional[str] = Field(None, description="Famous Tourist Places")
-    famous_places_image_url: Optional[str] = Field("", description="Famous Tourist Places image URL")
-
     fun_fact: Optional[str] = Field(None, description="Interesting fun fact")
     is_active: bool = Field(True, description="Active status")
+
+    class Config:
+        populate_by_name = True
+        by_alias = True
 
 
 class IndianExplorerCreate(IndianExplorerBase):
@@ -358,8 +368,20 @@ class IndianExplorerUpdate(BaseModel):
     famous_places: Optional[str] = None
     famous_places_image_url: Optional[str] = None
 
+    culture_and_heritage: Optional[Union[CultureAndHeritage, Dict[str, Any]]] = Field(None, alias="Culture & Heritage")
+    heritage_and_monuments: Optional[Union[HeritageAndMonuments, Dict[str, Any]]] = Field(None, alias="Heritage & Monuments")
+    geography: Optional[Union[GeographySection, Dict[str, Any]]] = Field(None, alias="Geography")
+    food_and_traditional_lifestyle: Optional[Union[FoodAndTraditionalLifestyle, Dict[str, Any]]] = Field(None, alias="Food & Traditional Lifestyle")
+    traditional_lifestyle_and_culture: Optional[Union[TraditionalLifestyleAndCulture, Dict[str, Any]]] = Field(None, alias="Traditional Lifestyle & Culture")
+    highlights_and_places: Optional[Union[HighlightsAndPlaces, Dict[str, Any]]] = Field(None, alias="Highlights & Places")
+
     fun_fact: Optional[str] = None
     is_active: Optional[bool] = None
+
+    class Config:
+        populate_by_name = True
+        by_alias = True
+        extra = "allow"
 
 
 class IndianExplorerResponse(IndianExplorerBase):
@@ -369,5 +391,6 @@ class IndianExplorerResponse(IndianExplorerBase):
 
     class Config:
         populate_by_name = True
+        by_alias = True
         json_encoders = {datetime: lambda v: v.isoformat()}
 

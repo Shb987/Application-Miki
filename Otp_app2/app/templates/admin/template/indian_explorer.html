@@ -1128,6 +1128,16 @@
     modal.show();
   }
 
+  function getValFromItem(itemObj, fieldKey) {
+    if (itemObj[fieldKey] !== undefined && itemObj[fieldKey] !== null) return itemObj[fieldKey];
+    for (const k of Object.keys(itemObj)) {
+      if (itemObj[k] && typeof itemObj[k] === 'object' && !Array.isArray(itemObj[k]) && itemObj[k][fieldKey] !== undefined) {
+        return itemObj[k][fieldKey];
+      }
+    }
+    return '';
+  }
+
   function editIndianEntity(id) {
     const item = indianEntities.find(i => i.id === id);
     if (!item) return;
@@ -1154,16 +1164,16 @@
     // Populate sub-fields text and image URLs
     allSubFields.forEach(f => {
       const textInput = document.getElementById(`indian_${f}`);
-      if (textInput) textInput.value = item[f] || '';
+      if (textInput) textInput.value = getValFromItem(item, f);
       const imgInput = document.getElementById(`indian_${f}_image_url`);
-      if (imgInput) imgInput.value = item[`${f}_image_url`] || '';
+      if (imgInput) imgInput.value = getValFromItem(item, `${f}_image_url`);
       updateSinglePreview(`indian_${f}_image_url`, `indian_${f}_image_preview`);
     });
 
     // Populate section banner image URLs
     allSectionBannerFields.forEach(sec => {
       const imgInput = document.getElementById(`indian_${sec}_image_url`);
-      if (imgInput) imgInput.value = item[`${sec}_image_url`] || '';
+      if (imgInput) imgInput.value = getValFromItem(item, `${sec}_image_url`);
       updateSinglePreview(`indian_${sec}_image_url`, `indian_${sec}_image_preview`);
     });
 

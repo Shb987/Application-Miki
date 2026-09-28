@@ -1239,13 +1239,18 @@
   }
 
   function getValFromItem(itemObj, fieldKey) {
-    if (itemObj[fieldKey] !== undefined && itemObj[fieldKey] !== null) return itemObj[fieldKey];
+    if (!itemObj) return '';
+    if (itemObj[fieldKey] !== undefined && itemObj[fieldKey] !== null && String(itemObj[fieldKey]).trim() !== '') {
+      return itemObj[fieldKey];
+    }
     for (const k of Object.keys(itemObj)) {
-      if (itemObj[k] && typeof itemObj[k] === 'object' && !Array.isArray(itemObj[k]) && itemObj[k][fieldKey] !== undefined) {
-        return itemObj[k][fieldKey];
+      if (itemObj[k] && typeof itemObj[k] === 'object' && !Array.isArray(itemObj[k])) {
+        if (itemObj[k][fieldKey] !== undefined && itemObj[k][fieldKey] !== null && String(itemObj[k][fieldKey]).trim() !== '') {
+          return itemObj[k][fieldKey];
+        }
       }
     }
-    return '';
+    return itemObj[fieldKey] || '';
   }
 
   function editIndianEntity(id) {
@@ -1562,6 +1567,80 @@
       if (imgInput) payload[`${sec}_image_url`] = imgInput.value.trim();
     });
 
+    // Append grouped section dicts for maximum compatibility
+    const getValById = (elId) => {
+      const el = document.getElementById(elId);
+      return el ? el.value.trim() : '';
+    };
+
+    payload["Culture & Heritage"] = {
+      culture_image_url: getValById('indian_culture_image_url'),
+      traditional_dances: getValById('indian_traditional_dances'),
+      traditional_dances_image_url: getValById('indian_traditional_dances_image_url'),
+      traditional_music: getValById('indian_traditional_music'),
+      traditional_music_image_url: getValById('indian_traditional_music_image_url'),
+      festivals: getValById('indian_festivals'),
+      festivals_image_url: getValById('indian_festivals_image_url'),
+      traditions_customs: getValById('indian_traditions_customs'),
+      traditions_customs_image_url: getValById('indian_traditions_customs_image_url')
+    };
+
+    payload["Heritage & Monuments"] = {
+      heritage_image_url: getValById('indian_heritage_image_url'),
+      historical_monuments: getValById('indian_historical_monuments'),
+      historical_monuments_image_url: getValById('indian_historical_monuments_image_url'),
+      temples_churches_mosques: getValById('indian_temples_churches_mosques'),
+      temples_churches_mosques_image_url: getValById('indian_temples_churches_mosques_image_url'),
+      forts: getValById('indian_forts'),
+      forts_image_url: getValById('indian_forts_image_url'),
+      unesco_heritage: getValById('indian_unesco_heritage'),
+      unesco_heritage_image_url: getValById('indian_unesco_heritage_image_url')
+    };
+
+    payload["Geography"] = {
+      geography_image_url: getValById('indian_geography_image_url'),
+      major_rivers: getValById('indian_major_rivers'),
+      major_rivers_image_url: getValById('indian_major_rivers_image_url'),
+      mountains: getValById('indian_mountains'),
+      mountains_image_url: getValById('indian_mountains_image_url'),
+      beaches: getValById('indian_beaches'),
+      beaches_image_url: getValById('indian_beaches_image_url'),
+      forests: getValById('indian_forests'),
+      forests_image_url: getValById('indian_forests_image_url'),
+      climate: getValById('indian_climate'),
+      climate_image_url: getValById('indian_climate_image_url')
+    };
+
+    payload["Food & Traditional Lifestyle"] = {
+      food_image_url: getValById('indian_food_image_url'),
+      famous_dishes: getValById('indian_famous_dishes'),
+      famous_dishes_image_url: getValById('indian_famous_dishes_image_url'),
+      traditional_cuisine: getValById('indian_traditional_cuisine'),
+      traditional_cuisine_image_url: getValById('indian_traditional_cuisine_image_url'),
+      famous_ingredients: getValById('indian_famous_ingredients'),
+      famous_ingredients_image_url: getValById('indian_famous_ingredients_image_url')
+    };
+
+    payload["Traditional Lifestyle & Culture"] = {
+      lifestyle_image_url: getValById('indian_lifestyle_image_url'),
+      traditional_dress: getValById('indian_traditional_dress'),
+      traditional_dress_image_url: getValById('indian_traditional_dress_image_url'),
+      occupations: getValById('indian_occupations'),
+      occupations_image_url: getValById('indian_occupations_image_url'),
+      local_communities: getValById('indian_local_communities'),
+      local_communities_image_url: getValById('indian_local_communities_image_url')
+    };
+
+    payload["Highlights & Places"] = {
+      highlights_image_url: getValById('indian_highlights_image_url'),
+      famous_arts_crafts: getValById('indian_famous_arts_crafts'),
+      famous_arts_crafts_image_url: getValById('indian_famous_arts_crafts_image_url'),
+      famous_personalities: getValById('indian_famous_personalities'),
+      famous_personalities_image_url: getValById('indian_famous_personalities_image_url'),
+      famous_places: getValById('indian_famous_places'),
+      famous_places_image_url: getValById('indian_famous_places_image_url')
+    };
+
     const headers = { 'Content-Type': 'application/json' };
     const token = getAuthToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -1581,8 +1660,18 @@
         throw new Error(errData.detail || 'Failed to save Indian entity');
       }
 
+      const savedItem = await resp.json();
+      if (savedItem && savedItem.id) {
+        const existingIdx = indianEntities.findIndex(i => String(i.id) === String(savedItem.id));
+        if (existingIdx !== -1) {
+          indianEntities[existingIdx] = savedItem;
+        } else {
+          indianEntities.push(savedItem);
+        }
+      }
+
       bootstrap.Modal.getInstance(document.getElementById('indianEntityModal')).hide();
-      loadIndianEntities();
+      await loadIndianEntities();
     } catch (err) {
       alert(`Error saving Indian entity: ${err.message}`);
     }

@@ -17,10 +17,13 @@ def serialize_doc(doc):
         doc["descriptions"] = [doc.get("full_description")] if doc.get("full_description") else []
 
     def get_val(key, section_names, default=""):
+        top_val = doc.get(key)
+        if top_val is not None and str(top_val).strip() != "":
+            return top_val
         for sec in section_names:
-            if sec in doc and isinstance(doc[sec], dict) and key in doc[sec]:
+            if sec in doc and isinstance(doc[sec], dict) and doc[sec].get(key) is not None and str(doc[sec].get(key)).strip() != "":
                 return doc[sec][key]
-        return doc.get(key, default)
+        return top_val or default
 
     culture_and_heritage = {
         "culture_image_url": get_val("culture_image_url", ["Culture & Heritage", "culture_and_heritage"], ""),

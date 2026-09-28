@@ -32,10 +32,13 @@ def serialize_doc(doc):
         doc["descriptions"] = [doc.get("full_description")] if doc.get("full_description") else []
 
     def get_val(key, section_names, default=""):
+        top_val = doc.get(key)
+        if top_val is not None and str(top_val).strip() != "":
+            return top_val
         for sec in section_names:
-            if sec in doc and isinstance(doc[sec], dict) and key in doc[sec]:
+            if sec in doc and isinstance(doc[sec], dict) and doc[sec].get(key) is not None and str(doc[sec].get(key)).strip() != "":
                 return doc[sec][key]
-        return doc.get(key, default)
+        return top_val or default
 
     culture_and_heritage = {
         "culture_image_url": get_val("culture_image_url", ["Culture & Heritage", "culture_and_heritage"], ""),
@@ -190,7 +193,7 @@ async def create_indian_entity(data: IndianExplorerCreate, current_admin: dict =
     if existing:
         raise HTTPException(status_code=400, detail=f"Indian entity '{data.name}' already exists.")
 
-    new_doc = data.model_dump()
+    new_doc = data.model_dump(by_alias=True)
     new_doc["created_at"] = datetime.now(timezone.utc)
     new_doc["updated_at"] = datetime.now(timezone.utc)
 
@@ -485,7 +488,7 @@ async def update_indian_entity(item_id: str, update_data: IndianExplorerUpdate, 
     if not ObjectId.is_valid(item_id):
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
-    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
+    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True, by_alias=True).items()}
     if not fields:
         raise HTTPException(status_code=400, detail="No fields provided for update")
 

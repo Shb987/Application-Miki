@@ -1274,16 +1274,19 @@
     // Populate sub-fields text and image URLs
     allSubFields.forEach(f => {
       const textInput = document.getElementById(`indian_${f}`);
-      if (textInput) textInput.value = getValFromItem(item, f);
+      const val = getValFromItem(item, f);
+      if (textInput) textInput.value = val || '';
       const imgInput = document.getElementById(`indian_${f}_image_url`);
-      if (imgInput) imgInput.value = getValFromItem(item, `${f}_image_url`);
+      const imgVal = getValFromItem(item, `${f}_image_url`);
+      if (imgInput) imgInput.value = imgVal || '';
       updateSinglePreview(`indian_${f}_image_url`, `indian_${f}_image_preview`);
     });
 
     // Populate section banner image URLs
     allSectionBannerFields.forEach(sec => {
       const imgInput = document.getElementById(`indian_${sec}_image_url`);
-      if (imgInput) imgInput.value = getValFromItem(item, `${sec}_image_url`);
+      const imgVal = getValFromItem(item, `${sec}_image_url`);
+      if (imgInput) imgInput.value = imgVal || '';
       updateSinglePreview(`indian_${sec}_image_url`, `indian_${sec}_image_preview`);
     });
 

@@ -114,35 +114,17 @@ def serialize_doc(doc):
         "famous_places_image_url": get_val("famous_places_image_url", ["Highlights & Places", "highlights_and_places"], "")
     }
 
-    subfield_keys_to_remove = [
-        "culture_image_url", "traditional_dances", "traditional_dances_image_url", "traditional_music",
-        "traditional_music_image_url", "festivals", "festivals_image_url", "traditional_clothing",
-        "traditional_clothing_image_url", "culture_arts_crafts", "culture_arts_crafts_image_url",
-        "culture_food", "culture_food_image_url", "traditions_customs", "traditions_customs_image_url",
-        "heritage_image_url", "historical_monuments", "historical_monuments_image_url",
-        "temples_churches_mosques", "temples_churches_mosques_image_url", "forts", "forts_image_url",
-        "unesco_heritage", "unesco_heritage_image_url",
-        "geography_image_url", "major_rivers", "major_rivers_image_url", "mountains", "mountains_image_url",
-        "beaches", "beaches_image_url", "forests", "forests_image_url", "climate", "climate_image_url",
-        "food_image_url", "famous_dishes", "famous_dishes_image_url", "traditional_cuisine",
-        "traditional_cuisine_image_url", "famous_ingredients", "famous_ingredients_image_url",
-        "lifestyle_image_url", "traditional_dress", "traditional_dress_image_url", "occupations",
-        "occupations_image_url", "local_communities", "local_communities_image_url",
-        "highlights_image_url", "famous_arts_crafts", "famous_arts_crafts_image_url", "famous_personalities",
-        "famous_personalities_image_url", "famous_places", "famous_places_image_url",
-        "traditional_dances_title", "festivals_title",
-        "culture_and_heritage", "heritage_and_monuments", "food_and_traditional_lifestyle",
-        "traditional_lifestyle_and_culture", "highlights_and_places"
-    ]
-    for k in subfield_keys_to_remove:
-        doc.pop(k, None)
-
     doc["Culture & Heritage"] = culture_and_heritage
     doc["Heritage & Monuments"] = heritage_and_monuments
     doc["Geography"] = geography
     doc["Food & Traditional Lifestyle"] = food_and_lifestyle
     doc["Traditional Lifestyle & Culture"] = traditional_lifestyle
     doc["Highlights & Places"] = highlights_and_places
+
+    # Populate top-level flat subfields for direct access
+    for sec_dict in [culture_and_heritage, heritage_and_monuments, geography, food_and_lifestyle, traditional_lifestyle, highlights_and_places]:
+        for k, v in sec_dict.items():
+            doc[k] = v
 
     return doc
 

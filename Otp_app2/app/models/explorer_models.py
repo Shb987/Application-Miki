@@ -247,6 +247,69 @@ class IndianExplorerBase(BaseModel):
     official_languages: Optional[str] = Field(None, description="Official Language(s)")
     formation: Optional[str] = Field(None, description="Formation Date / Year")
 
+    # 🎭 Flat Subfields Support
+    traditional_dances: Optional[str] = None
+    traditional_dances_image_url: Optional[str] = None
+    traditional_music: Optional[str] = None
+    traditional_music_image_url: Optional[str] = None
+    festivals: Optional[str] = None
+    festivals_image_url: Optional[str] = None
+    traditional_clothing: Optional[str] = None
+    traditional_clothing_image_url: Optional[str] = None
+    culture_arts_crafts: Optional[str] = None
+    culture_arts_crafts_image_url: Optional[str] = None
+    culture_food: Optional[str] = None
+    culture_food_image_url: Optional[str] = None
+    traditions_customs: Optional[str] = None
+    traditions_customs_image_url: Optional[str] = None
+    culture_image_url: Optional[str] = None
+
+    historical_monuments: Optional[str] = None
+    historical_monuments_image_url: Optional[str] = None
+    temples_churches_mosques: Optional[str] = None
+    temples_churches_mosques_image_url: Optional[str] = None
+    forts: Optional[str] = None
+    forts_image_url: Optional[str] = None
+    unesco_heritage: Optional[str] = None
+    unesco_heritage_image_url: Optional[str] = None
+    heritage_image_url: Optional[str] = None
+
+    major_rivers: Optional[str] = None
+    major_rivers_image_url: Optional[str] = None
+    mountains: Optional[str] = None
+    mountains_image_url: Optional[str] = None
+    beaches: Optional[str] = None
+    beaches_image_url: Optional[str] = None
+    forests: Optional[str] = None
+    forests_image_url: Optional[str] = None
+    climate: Optional[str] = None
+    climate_image_url: Optional[str] = None
+    geography_image_url: Optional[str] = None
+
+    famous_dishes: Optional[str] = None
+    famous_dishes_image_url: Optional[str] = None
+    traditional_cuisine: Optional[str] = None
+    traditional_cuisine_image_url: Optional[str] = None
+    famous_ingredients: Optional[str] = None
+    famous_ingredients_image_url: Optional[str] = None
+    food_image_url: Optional[str] = None
+
+    traditional_dress: Optional[str] = None
+    traditional_dress_image_url: Optional[str] = None
+    occupations: Optional[str] = None
+    occupations_image_url: Optional[str] = None
+    local_communities: Optional[str] = None
+    local_communities_image_url: Optional[str] = None
+    lifestyle_image_url: Optional[str] = None
+
+    famous_arts_crafts: Optional[str] = None
+    famous_arts_crafts_image_url: Optional[str] = None
+    famous_personalities: Optional[str] = None
+    famous_personalities_image_url: Optional[str] = None
+    famous_places: Optional[str] = None
+    famous_places_image_url: Optional[str] = None
+    highlights_image_url: Optional[str] = None
+
     # 📦 Grouped Section Objects
     culture_and_heritage: Optional[Union[CultureAndHeritage, Dict[str, Any]]] = Field(default_factory=CultureAndHeritage, alias="Culture & Heritage")
     heritage_and_monuments: Optional[Union[HeritageAndMonuments, Dict[str, Any]]] = Field(default_factory=HeritageAndMonuments, alias="Heritage & Monuments")
@@ -268,6 +331,7 @@ class IndianExplorerBase(BaseModel):
     class Config:
         populate_by_name = True
         by_alias = True
+        extra = "allow"
 
 
 class IndianExplorerCreate(IndianExplorerBase):

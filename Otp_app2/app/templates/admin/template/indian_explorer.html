@@ -935,11 +935,13 @@
   function autoExpandTextarea(el) {
     if (!el) return;
     if (document.activeElement === el) {
+      el.style.setProperty('white-space', 'pre-wrap', 'important');
       el.style.setProperty('height', 'auto', 'important');
       const targetHeight = Math.max(el.scrollHeight, 90);
       el.style.setProperty('height', targetHeight + 'px', 'important');
       el.style.setProperty('max-height', '400px', 'important');
     } else {
+      el.style.removeProperty('white-space');
       el.style.removeProperty('height');
       el.style.removeProperty('max-height');
     }
@@ -1199,8 +1201,18 @@
     document.getElementById('indian_image_preview_wrap').classList.add('d-none');
     document.getElementById('indian_banner_preview_wrap').classList.add('d-none');
 
-    // Reset and hide per-field image previews
+    // Clear all main text inputs
+    ['indian_short_desc', 'indian_full_desc', 'indian_fun_fact', 'indian_capital', 
+     'indian_area', 'indian_population', 'indian_official_languages', 'indian_formation',
+     'indian_image_url', 'indian_banner_url'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+
+    // Reset and hide per-field text & image previews
     allSubFields.forEach(f => {
+      const textInput = document.getElementById(`indian_${f}`);
+      if (textInput) textInput.value = '';
       const input = document.getElementById(`indian_${f}_image_url`);
       if (input) input.value = '';
       const wrap = document.getElementById(`indian_${f}_image_preview_wrap`);
@@ -1658,13 +1670,16 @@
       allSubFields.forEach(f => {
         const val = getGeneratedVal(f);
         const textInput = document.getElementById(`indian_${f}`);
-        if (textInput && val) textInput.value = val;
+        if (textInput) textInput.value = val || '';
 
         const imgVal = getGeneratedVal(`${f}_image_url`);
         const imgInput = document.getElementById(`indian_${f}_image_url`);
-        if (imgInput && imgVal) {
-          imgInput.value = imgVal;
+        if (imgInput) {
+          imgInput.value = imgVal || '';
           updateSinglePreview(`indian_${f}_image_url`, `indian_${f}_image_preview`);
+        } else {
+          const wrap = document.getElementById(`indian_${f}_image_preview_wrap`);
+          if (wrap) wrap.classList.add('d-none');
         }
       });
 
@@ -1672,9 +1687,12 @@
       allSectionBannerFields.forEach(sec => {
         const imgVal = getGeneratedVal(`${sec}_image_url`);
         const imgInput = document.getElementById(`indian_${sec}_image_url`);
-        if (imgInput && imgVal) {
-          imgInput.value = imgVal;
+        if (imgInput) {
+          imgInput.value = imgVal || '';
           updateSinglePreview(`indian_${sec}_image_url`, `indian_${sec}_image_preview`);
+        } else {
+          const wrap = document.getElementById(`indian_${sec}_image_preview_wrap`);
+          if (wrap) wrap.classList.add('d-none');
         }
       });
 

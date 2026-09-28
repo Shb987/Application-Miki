@@ -250,6 +250,26 @@
     border-radius: 10px;
     border: 2px solid #ff9933;
   }
+
+  .auto-expand-textarea {
+    height: 42px !important;
+    min-height: 42px;
+    max-height: 42px;
+    resize: none;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+  }
+  .auto-expand-textarea:focus {
+    white-space: pre-wrap !important;
+    overflow-y: auto;
+    resize: vertical;
+    box-shadow: 0 4px 16px rgba(234, 88, 12, 0.25) !important;
+    border-color: #ea580c !important;
+    cursor: text;
+  }
 </style>
 {% endblock %}
 
@@ -411,12 +431,12 @@
 
             <div class="col-12 form-group-custom">
               <label>Short Summary</label>
-              <input type="text" class="form-control form-control-custom" id="indian_short_desc" placeholder="Brief summary (e.g. God's Own Country located in South India...)" />
+              <textarea class="form-control form-control-custom auto-expand-textarea" id="indian_short_desc" rows="2" placeholder="Brief summary (e.g. God's Own Country located in South India...)"></textarea>
             </div>
 
             <div class="col-12 form-group-custom">
               <label>Full Overview / Primary Description</label>
-              <textarea class="form-control form-control-custom" id="indian_full_desc" rows="3" placeholder="Detailed state description for mobile app view..."></textarea>
+              <textarea class="form-control form-control-custom auto-expand-textarea" id="indian_full_desc" rows="3" placeholder="Detailed state description for mobile app view..."></textarea>
             </div>
 
             <!-- Multiple Descriptions Support (+ Add Description Button) -->
@@ -504,7 +524,7 @@
             </div>
             <div class="col-md-6 form-group-custom">
               <label>Fun Fact <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
-              <input type="text" class="form-control form-control-custom" id="indian_fun_fact" placeholder="e.g. Highest literacy rate in India!" />
+              <textarea class="form-control form-control-custom auto-expand-textarea" id="indian_fun_fact" rows="2" placeholder="e.g. Highest literacy rate in India!"></textarea>
             </div>
 
             <!-- 🎭 SECTION 3: CULTURE & HERITAGE -->
@@ -517,7 +537,7 @@
             <!-- Traditional Dances -->
             <div class="col-md-6 form-group-custom">
               <label>Traditional Dances <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Kathakali, Mohiniyattam)</span></label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_traditional_dances" placeholder="e.g. Kathakali, Mohiniyattam" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_traditional_dances" rows="2" placeholder="e.g. Kathakali, Mohiniyattam"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Dance Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_traditional_dances_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_traditional_dances_image_url', 'indian_traditional_dances_image_preview')" />
@@ -533,7 +553,7 @@
             <!-- Festivals -->
             <div class="col-md-6 form-group-custom">
               <label>Festivals <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Onam, Vishu)</span></label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_festivals" placeholder="e.g. Onam, Vishu, Thrissur Pooram" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_festivals" rows="2" placeholder="e.g. Onam, Vishu, Thrissur Pooram"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Festivals Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_festivals_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_festivals_image_url', 'indian_festivals_image_preview')" />
@@ -549,7 +569,7 @@
             <!-- Traditional Music -->
             <div class="col-md-6 form-group-custom">
               <label>Traditional Music <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Sopana Sangeetham, Carnatic)</span></label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_traditional_music" placeholder="e.g. Sopana Sangeetham, Panchavadyam" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_traditional_music" rows="2" placeholder="e.g. Sopana Sangeetham, Panchavadyam"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Music Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_traditional_music_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_traditional_music_image_url', 'indian_traditional_music_image_preview')" />
@@ -565,7 +585,7 @@
             <!-- Traditions & Customs -->
             <div class="col-md-6 form-group-custom">
               <label>Traditions &amp; Customs <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Kalaripayattu, Boat Races)</span></label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_traditions_customs" placeholder="e.g. Kalaripayattu, Snake Boat Races" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_traditions_customs" rows="2" placeholder="e.g. Kalaripayattu, Snake Boat Races"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Traditions Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_traditions_customs_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_traditions_customs_image_url', 'indian_traditions_customs_image_preview')" />
@@ -597,7 +617,7 @@
             
             <div class="col-md-6 form-group-custom">
               <label>Historical Monuments</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_historical_monuments" placeholder="e.g. Padmanabhapuram Palace, Bekal Fort" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_historical_monuments" rows="2" placeholder="e.g. Padmanabhapuram Palace, Bekal Fort"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Monuments Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_historical_monuments_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_historical_monuments_image_url', 'indian_historical_monuments_image_preview')" />
@@ -612,7 +632,7 @@
 
             <div class="col-md-6 form-group-custom">
               <label>Temples / Churches / Mosques</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_temples_churches_mosques" placeholder="e.g. Sree Padmanabhaswamy Temple, Cheraman Juma Mosque" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_temples_churches_mosques" rows="2" placeholder="e.g. Sree Padmanabhaswamy Temple, Cheraman Juma Mosque"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Temples Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_temples_churches_mosques_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_temples_churches_mosques_image_url', 'indian_temples_churches_mosques_image_preview')" />
@@ -627,7 +647,7 @@
 
             <div class="col-md-6 form-group-custom">
               <label>Forts &amp; Palaces</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_forts" placeholder="e.g. Palakkad Fort, St. Angelo Fort" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_forts" rows="2" placeholder="e.g. Palakkad Fort, St. Angelo Fort"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Forts Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_forts_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_forts_image_url', 'indian_forts_image_preview')" />
@@ -642,7 +662,7 @@
 
             <div class="col-md-6 form-group-custom">
               <label>UNESCO Heritage Sites</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_unesco_heritage" placeholder="e.g. Western Ghats" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_unesco_heritage" rows="2" placeholder="e.g. Western Ghats"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> UNESCO Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_unesco_heritage_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_unesco_heritage_image_url', 'indian_unesco_heritage_image_preview')" />
@@ -678,7 +698,7 @@
 
             <div class="col-md-6 form-group-custom">
               <label>Major Rivers</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_major_rivers" placeholder="e.g. Periyar, Bharathappuzha, Pamba" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_major_rivers" rows="2" placeholder="e.g. Periyar, Bharathappuzha, Pamba"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Rivers Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_major_rivers_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_major_rivers_image_url', 'indian_major_rivers_image_preview')" />
@@ -693,7 +713,7 @@
 
             <div class="col-md-6 form-group-custom">
               <label>Mountains &amp; Peaks</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_mountains" placeholder="e.g. Anamudi, Agasthyarkoodam, Western Ghats" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_mountains" rows="2" placeholder="e.g. Anamudi, Agasthyarkoodam, Western Ghats"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Mountains Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_mountains_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_mountains_image_url', 'indian_mountains_image_preview')" />
@@ -708,7 +728,7 @@
 
             <div class="col-md-6 form-group-custom">
               <label>Beaches &amp; Coasts</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_beaches" placeholder="e.g. Kovalam, Varkala, Cherai Beach" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_beaches" rows="2" placeholder="e.g. Kovalam, Varkala, Cherai Beach"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Beaches Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_beaches_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_beaches_image_url', 'indian_beaches_image_preview')" />
@@ -723,7 +743,7 @@
 
             <div class="col-md-6 form-group-custom">
               <label>Forests &amp; Vegetation</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_forests" placeholder="e.g. Tropical Evergreen, Shola Forests" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_forests" rows="2" placeholder="e.g. Tropical Evergreen, Shola Forests"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Forests Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_forests_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_forests_image_url', 'indian_forests_image_preview')" />
@@ -738,7 +758,7 @@
 
             <div class="col-12 form-group-custom">
               <label>Climate</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_climate" placeholder="e.g. Tropical monsoon, warm & humid year-round" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_climate" rows="2" placeholder="e.g. Tropical monsoon, warm & humid year-round"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Climate Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_climate_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_climate_image_url', 'indian_climate_image_preview')" />
@@ -774,7 +794,7 @@
 
             <div class="col-12 form-group-custom">
               <label>Famous Dishes</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_famous_dishes" placeholder="e.g. Puttu & Kadala, Karimeen Pollichathu, Idiyappam" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_famous_dishes" rows="2" placeholder="e.g. Puttu & Kadala, Karimeen Pollichathu, Idiyappam"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Dishes Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_famous_dishes_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_famous_dishes_image_url', 'indian_famous_dishes_image_preview')" />
@@ -806,7 +826,7 @@
             
             <div class="col-12 form-group-custom">
               <label>Traditional Dress</label>
-              <input type="text" class="form-control form-control-custom mb-1" id="indian_traditional_dress" placeholder="e.g. Kasavu Saree, Kasavu Mundu" />
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_traditional_dress" rows="2" placeholder="e.g. Kasavu Saree, Kasavu Mundu"></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Dress Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_traditional_dress_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_traditional_dress_image_url', 'indian_traditional_dress_image_preview')" />
@@ -842,7 +862,7 @@
 
             <div class="col-12 form-group-custom">
               <label>🎨 Famous Arts &amp; Crafts</label>
-              <textarea class="form-control form-control-custom mb-1" id="indian_famous_arts_crafts" rows="2" placeholder="e.g. Mural Paintings, Coir Products, Nettipattam..."></textarea>
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_famous_arts_crafts" rows="2" placeholder="e.g. Mural Paintings, Coir Products, Nettipattam..."></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Arts &amp; Crafts Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_famous_arts_crafts_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_famous_arts_crafts_image_url', 'indian_famous_arts_crafts_image_preview')" />
@@ -857,7 +877,7 @@
 
             <div class="col-12 form-group-custom">
               <label>📍 Famous Tourist Places</label>
-              <textarea class="form-control form-control-custom mb-1" id="indian_famous_places" rows="3" placeholder="e.g. Alleppey Backwaters, Munnar Hill Station, Wayanad..."></textarea>
+              <textarea class="form-control form-control-custom mb-1 auto-expand-textarea" id="indian_famous_places" rows="3" placeholder="e.g. Alleppey Backwaters, Munnar Hill Station, Wayanad..."></textarea>
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white text-muted" style="font-size: 0.75rem;"><i class="fa fa-image me-1"></i> Tourist Places Image</span>
                 <input type="text" class="form-control form-control-custom" id="indian_famous_places_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('indian_famous_places_image_url', 'indian_famous_places_image_preview')" />
@@ -912,8 +932,61 @@
     return window.token || localStorage.getItem('admin_token') || '';
   }
 
+  function autoExpandTextarea(el) {
+    if (!el) return;
+    if (document.activeElement === el) {
+      el.style.setProperty('height', 'auto', 'important');
+      const targetHeight = Math.max(el.scrollHeight, 90);
+      el.style.setProperty('height', targetHeight + 'px', 'important');
+      el.style.setProperty('max-height', '400px', 'important');
+    } else {
+      el.style.removeProperty('height');
+      el.style.removeProperty('max-height');
+    }
+  }
+
+  function updateAllAutoExpandTextareas() {
+    setTimeout(() => {
+      document.querySelectorAll('.auto-expand-textarea').forEach(el => {
+        autoExpandTextarea(el);
+      });
+    }, 50);
+  }
+
+  document.addEventListener('focusin', (e) => {
+    if (e.target && e.target.classList.contains('auto-expand-textarea')) {
+      autoExpandTextarea(e.target);
+    }
+  });
+
+  document.addEventListener('focusout', (e) => {
+    if (e.target && e.target.classList.contains('auto-expand-textarea')) {
+      autoExpandTextarea(e.target);
+    }
+  });
+
+  document.addEventListener('input', (e) => {
+    if (e.target && e.target.classList.contains('auto-expand-textarea')) {
+      autoExpandTextarea(e.target);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target && e.target.classList.contains('auto-expand-textarea') && e.key === 'Enter') {
+      setTimeout(() => {
+        autoExpandTextarea(e.target);
+      }, 0);
+    }
+  });
+
   document.addEventListener('DOMContentLoaded', () => {
     loadIndianEntities();
+    const modalEl = document.getElementById('indianEntityModal');
+    if (modalEl) {
+      modalEl.addEventListener('shown.bs.modal', () => {
+        updateAllAutoExpandTextareas();
+      });
+    }
   });
 
   async function loadIndianEntities() {
@@ -1144,6 +1217,7 @@
 
     const modal = new bootstrap.Modal(document.getElementById('indianEntityModal'));
     modal.show();
+    updateAllAutoExpandTextareas();
   }
 
   function getValFromItem(itemObj, fieldKey) {
@@ -1216,6 +1290,7 @@
 
     const modal = new bootstrap.Modal(document.getElementById('indianEntityModal'));
     modal.show();
+    updateAllAutoExpandTextareas();
   }
 
   /* Multiple Descriptions & Multi-Image Support (+ Add Description Button) */
@@ -1292,6 +1367,7 @@
         </div>
       `;
     }).join('');
+    updateAllAutoExpandTextareas();
   }
 
   function triggerBlockMultiUpload(idx) {
@@ -1601,6 +1677,8 @@
           updateSinglePreview(`indian_${sec}_image_url`, `indian_${sec}_image_preview`);
         }
       });
+
+      updateAllAutoExpandTextareas();
 
     } catch (err) {
       alert(`Generation error: ${err.message}`);

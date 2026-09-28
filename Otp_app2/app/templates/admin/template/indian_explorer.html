@@ -941,9 +941,9 @@
       el.style.setProperty('height', targetHeight + 'px', 'important');
       el.style.setProperty('max-height', '400px', 'important');
     } else {
-      el.style.removeProperty('white-space');
       el.style.removeProperty('height');
       el.style.removeProperty('max-height');
+      el.style.removeProperty('white-space');
     }
   }
 
@@ -1201,8 +1201,8 @@
     document.getElementById('indian_image_preview_wrap').classList.add('d-none');
     document.getElementById('indian_banner_preview_wrap').classList.add('d-none');
 
-    // Clear all main text inputs
-    ['indian_short_desc', 'indian_full_desc', 'indian_fun_fact', 'indian_capital', 
+    // Clear all main text inputs & textareas
+    ['indian_name', 'indian_short_desc', 'indian_full_desc', 'indian_fun_fact', 'indian_capital', 
      'indian_area', 'indian_population', 'indian_official_languages', 'indian_formation',
      'indian_image_url', 'indian_banner_url'].forEach(id => {
       const el = document.getElementById(id);
@@ -1216,7 +1216,10 @@
       const input = document.getElementById(`indian_${f}_image_url`);
       if (input) input.value = '';
       const wrap = document.getElementById(`indian_${f}_image_preview_wrap`);
-      if (wrap) wrap.classList.add('d-none');
+      if (wrap) {
+        wrap.innerHTML = '';
+        wrap.classList.add('d-none');
+      }
     });
 
     // Reset and hide section banner image previews
@@ -1224,7 +1227,10 @@
       const input = document.getElementById(`indian_${sec}_image_url`);
       if (input) input.value = '';
       const wrap = document.getElementById(`indian_${sec}_image_preview_wrap`);
-      if (wrap) wrap.classList.add('d-none');
+      if (wrap) {
+        wrap.innerHTML = '';
+        wrap.classList.add('d-none');
+      }
     });
 
     const modal = new bootstrap.Modal(document.getElementById('indianEntityModal'));

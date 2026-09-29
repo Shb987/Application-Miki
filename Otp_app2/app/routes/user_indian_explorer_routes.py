@@ -16,6 +16,15 @@ def serialize_doc(doc):
     if "descriptions" not in doc or doc["descriptions"] is None:
         doc["descriptions"] = [doc.get("full_description")] if doc.get("full_description") else []
 
+    district_val = doc.get("district")
+    if isinstance(district_val, str) and district_val.strip():
+        cleaned_str = district_val.strip().rstrip(".")
+        doc["district"] = [d.strip() for d in cleaned_str.split(",") if d.strip()]
+    elif isinstance(district_val, list):
+        doc["district"] = [str(d).strip() for d in district_val if str(d).strip()]
+    else:
+        doc["district"] = []
+
     def get_val(key, section_names, default=""):
         top_val = doc.get(key)
         if top_val is not None and str(top_val).strip() != "":

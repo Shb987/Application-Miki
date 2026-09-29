@@ -526,6 +526,10 @@
               <label>Fun Fact <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
               <textarea class="form-control form-control-custom auto-expand-textarea" id="indian_fun_fact" rows="2" placeholder="e.g. Highest literacy rate in India!"></textarea>
             </div>
+            <div class="col-12 form-group-custom">
+              <label>District / Districts <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. 14 Districts: Thiruvananthapuram, Ernakulam, Wayanad...)</span></label>
+              <input type="text" class="form-control form-control-custom" id="indian_district" placeholder="e.g. 14 Districts, Ernakulam, Thiruvananthapuram..." />
+            </div>
 
             <!-- 🎭 SECTION 3: CULTURE & HERITAGE -->
             <div class="col-12 mt-4">
@@ -1203,7 +1207,7 @@
 
     // Clear all main text inputs & textareas
     ['indian_name', 'indian_short_desc', 'indian_full_desc', 'indian_fun_fact', 'indian_capital', 
-     'indian_area', 'indian_population', 'indian_official_languages', 'indian_formation',
+     'indian_area', 'indian_population', 'indian_official_languages', 'indian_formation', 'indian_district',
      'indian_image_url', 'indian_banner_url'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
@@ -1274,6 +1278,7 @@
     document.getElementById('indian_population').value = item.population || '';
     document.getElementById('indian_official_languages').value = item.official_languages || '';
     document.getElementById('indian_formation').value = item.formation || '';
+    document.getElementById('indian_district').value = Array.isArray(item.district) ? item.district.join(', ') : (item.district || '');
     document.getElementById('indian_fun_fact').value = item.fun_fact || '';
 
     // Populate sub-fields text and image URLs
@@ -1550,6 +1555,7 @@
       population: document.getElementById('indian_population').value.trim(),
       official_languages: document.getElementById('indian_official_languages').value.trim(),
       formation: document.getElementById('indian_formation').value.trim(),
+      district: document.getElementById('indian_district').value.trim(),
       fun_fact: document.getElementById('indian_fun_fact').value.trim()
     };
 
@@ -1724,6 +1730,7 @@
       if (data.population) document.getElementById('indian_population').value = data.population;
       if (data.official_languages) document.getElementById('indian_official_languages').value = data.official_languages;
       if (data.formation) document.getElementById('indian_formation').value = data.formation;
+      if (data.district) document.getElementById('indian_district').value = Array.isArray(data.district) ? data.district.join(', ') : data.district;
       if (data.fun_fact) document.getElementById('indian_fun_fact').value = data.fun_fact;
 
       // Main Media

@@ -31,6 +31,15 @@ def serialize_doc(doc):
     if "descriptions" not in doc or doc["descriptions"] is None:
         doc["descriptions"] = [doc.get("full_description")] if doc.get("full_description") else []
 
+    district_val = doc.get("district")
+    if isinstance(district_val, str) and district_val.strip():
+        cleaned_str = district_val.strip().rstrip(".")
+        doc["district"] = [d.strip() for d in cleaned_str.split(",") if d.strip()]
+    elif isinstance(district_val, list):
+        doc["district"] = [str(d).strip() for d in district_val if str(d).strip()]
+    else:
+        doc["district"] = []
+
     def get_val(key, section_names, default=""):
         top_val = doc.get(key)
         if top_val is not None and str(top_val).strip() != "":
@@ -341,7 +350,7 @@ async def generate_indian_state_data_ai(name: str, category: str = "State"):
     prompt = f"""Generate a detailed JSON object for Indian Explorer for the Indian State/UT: '{name_clean}'.
 Category: {category}.
 Make sure 'traditional_dances' and 'festivals' are complete informative sentences about the state's traditional dances and major festivals!
-Include fields: name, category, capital, area, population, official_languages, formation, fun_fact, short_description, full_description, descriptions (array of 2 strings),
+Include fields: name, category, capital, area, population, official_languages, formation, district, fun_fact, short_description, full_description, descriptions (array of 2 strings),
 traditional_dances, traditional_music, festivals, traditions_customs,
 historical_monuments, temples_churches_mosques, forts, unesco_heritage,
 major_rivers, mountains, beaches, forests, climate,
@@ -393,6 +402,7 @@ Return ONLY raw valid JSON."""
         "population": "N/A",
         "official_languages": "Hindi, English, Regional Language",
         "formation": "1956",
+        "district": f"Districts of {name_clean.title()}",
         "fun_fact": f"{name_clean.title()} is celebrated across India for its unique regional heritage and vibrant festive celebrations!",
         "traditional_dances": f"Traditional folk and classical dances of {name_clean.title()} are celebrated for expressive rhythms, elaborate attire, and rich storytelling traditions.",
         "traditional_music": f"Traditional folk and classical musical melodies of {name_clean.title()}",

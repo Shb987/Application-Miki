@@ -246,6 +246,7 @@ class IndianExplorerBase(BaseModel):
     population: Optional[str] = Field(None, description="Population")
     official_languages: Optional[str] = Field(None, description="Official Language(s)")
     formation: Optional[str] = Field(None, description="Formation Date / Year")
+    district: Optional[Union[List[str], str]] = Field(default_factory=list, description="District / Districts list")
 
     # 🎭 Flat Subfields Support
     traditional_dances: Optional[str] = None
@@ -363,6 +364,7 @@ class IndianExplorerUpdate(BaseModel):
     population: Optional[str] = None
     official_languages: Optional[str] = None
     formation: Optional[str] = None
+    district: Optional[Union[List[str], str]] = None
 
     traditional_dances: Optional[str] = None
     traditional_dances_image_url: Optional[str] = None

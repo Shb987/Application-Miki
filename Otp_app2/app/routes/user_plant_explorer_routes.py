@@ -13,6 +13,9 @@ def serialize_doc(doc):
         doc["gallery_images"] = []
     if "descriptions" not in doc or doc["descriptions"] is None:
         doc["descriptions"] = [doc.get("full_description")] if doc.get("full_description") else []
+    for k in ["flower_image_url", "flower_description", "leaf_image_url", "leaf_description", "stem_image_url", "stem_description", "fruit_image_url", "fruit_description"]:
+        if k not in doc or doc[k] is None:
+            doc[k] = ""
     return doc
 
 @router.get("", response_model=List[PlantExplorerResponse])

@@ -128,6 +128,17 @@ class PlantExplorerBase(BaseModel):
     family: Optional[str] = Field(None, description="Plant Family (e.g. Orchidaceae)")
     climate: Optional[str] = Field(None, description="Climate & Growth requirements")
     fun_fact: Optional[str] = Field(None, description="Interesting fun fact")
+    
+    # 🌸 🍃 🪵 🍎 Plant Parts Images & Descriptions
+    flower_image_url: Optional[str] = Field("", description="Flower Image URL")
+    flower_description: Optional[str] = Field("", description="Flower Description")
+    leaf_image_url: Optional[str] = Field("", description="Leaf Image URL")
+    leaf_description: Optional[str] = Field("", description="Leaf Description")
+    stem_image_url: Optional[str] = Field("", description="Stem / Bark Image URL")
+    stem_description: Optional[str] = Field("", description="Stem / Bark Description")
+    fruit_image_url: Optional[str] = Field("", description="Fruit / Seed Image URL")
+    fruit_description: Optional[str] = Field("", description="Fruit / Seed Description")
+
     is_active: bool = Field(True, description="Active status")
 
 class PlantExplorerCreate(PlantExplorerBase):
@@ -149,6 +160,16 @@ class PlantExplorerUpdate(BaseModel):
     family: Optional[str] = None
     climate: Optional[str] = None
     fun_fact: Optional[str] = None
+    
+    flower_image_url: Optional[str] = None
+    flower_description: Optional[str] = None
+    leaf_image_url: Optional[str] = None
+    leaf_description: Optional[str] = None
+    stem_image_url: Optional[str] = None
+    stem_description: Optional[str] = None
+    fruit_image_url: Optional[str] = None
+    fruit_description: Optional[str] = None
+
     is_active: Optional[bool] = None
 
 class PlantExplorerResponse(PlantExplorerBase):

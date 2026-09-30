@@ -276,19 +276,9 @@
     <!-- Filter and Search Bar -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
       
-      <!-- Category Filter Pills -->
+      <!-- Category Filter Pills (Shows All Entities) -->
       <div class="d-flex align-items-center gap-2 flex-wrap" id="category-filter-buttons">
-        <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 filter-btn active" data-cat="all" onclick="filterCategory('all', this)">All Entities</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Trees" onclick="filterCategory('Trees', this)">🌳 Trees</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Shrubs" onclick="filterCategory('Shrubs', this)">🌿 Shrubs</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Herbs" onclick="filterCategory('Herbs', this)">🌱 Herbs</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Grasses" onclick="filterCategory('Grasses', this)">🌾 Grasses</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Cacti &amp; Succulents" onclick="filterCategory('Cacti &amp; Succulents', this)">🌵 Cacti &amp; Succulents</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Flowering Plants" onclick="filterCategory('Flowering Plants', this)">🌸 Flowering Plants</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Aquatic Plants" onclick="filterCategory('Aquatic Plants', this)">🌊 Aquatic Plants</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Climbers &amp; Creepers" onclick="filterCategory('Climbers &amp; Creepers', this)">🌿 Climbers &amp; Creepers</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Conifers" onclick="filterCategory('Conifers', this)">🌲 Conifers</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Ferns, Mosses &amp; Other Spore Plants" onclick="filterCategory('Ferns, Mosses &amp; Other Spore Plants', this)">🍃 Ferns, Mosses &amp; Spore Plants</button>
+        <button type="button" class="btn btn-primary rounded-pill btn-sm px-4 filter-btn active" data-cat="all" onclick="filterCategory('all', this)"><i class="fa fa-leaf me-1"></i> All Entities</button>
       </div>
 
       <!-- Prominent Search Bar -->
@@ -365,7 +355,12 @@
           <div class="row g-3">
             <div class="col-12 form-group-custom">
               <label>2. Plant / Species Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-custom" id="plant_name" required placeholder="e.g. Venus Flytrap, Redwood Tree" />
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="plant_name" required placeholder="e.g. Venus Flytrap, Redwood Tree, Rose, Sunflower" />
+                <button type="button" class="btn btn-success fw-bold text-white px-3" id="btn_generate_plant" onclick="generatePlantContent()">
+                  <i class="fa fa-bolt me-1"></i> Generate
+                </button>
+              </div>
             </div>
 
             <div class="col-md-6 form-group-custom">
@@ -448,6 +443,73 @@
               <input type="file" class="form-control form-control-custom" id="plant_gallery_files" multiple accept="image/*" onchange="handleMultipleUpload(this)" />
               <small class="text-muted d-block mt-1">Upload multiple photos for species photo carousel</small>
               <div id="gallery_preview_container" class="gallery-preview-grid mt-2"></div>
+            </div>
+
+            <!-- 🌸 🍃 🪵 🍎 PLANT PARTS IMAGES & DESCRIPTIONS SECTION -->
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold border-bottom pb-2 d-flex align-items-center gap-2" style="font-size: 1.05rem; color: #064e3b; font-weight: 800;">
+                <i class="fa fa-camera text-success fs-5"></i> 🌿 Plant Parts Images &amp; Descriptions
+              </h6>
+            </div>
+
+            <!-- 1. Flower Image & Description -->
+            <div class="col-md-6 form-group-custom">
+              <label class="text-success"><i class="fa fa-sun-o me-1"></i> Flower Image &amp; Description</label>
+              <textarea class="form-control form-control-custom mb-2" id="plant_flower_desc" rows="2" placeholder="Description of plant flower / blossom structure..."></textarea>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="plant_flower_image_url" placeholder="Flower image URL or upload" oninput="updateSinglePreview('plant_flower_image_url', 'plant_flower_image_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('plant_flower_image_url', 'plant_flower_image_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="plant_flower_image_preview_wrap" class="mt-2 d-none">
+                <img id="plant_flower_image_preview" src="" class="img-preview-box" />
+              </div>
+            </div>
+
+            <!-- 2. Leaf Image & Description -->
+            <div class="col-md-6 form-group-custom">
+              <label class="text-success"><i class="fa fa-leaf me-1"></i> Leaf Image &amp; Description</label>
+              <textarea class="form-control form-control-custom mb-2" id="plant_leaf_desc" rows="2" placeholder="Description of foliage, leaf shape & structure..."></textarea>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="plant_leaf_image_url" placeholder="Leaf image URL or upload" oninput="updateSinglePreview('plant_leaf_image_url', 'plant_leaf_image_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('plant_leaf_image_url', 'plant_leaf_image_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="plant_leaf_image_preview_wrap" class="mt-2 d-none">
+                <img id="plant_leaf_image_preview" src="" class="img-preview-box" />
+              </div>
+            </div>
+
+            <!-- 3. Stem / Bark Image & Description -->
+            <div class="col-md-6 form-group-custom">
+              <label class="text-success"><i class="fa fa-tree me-1"></i> Stem / Bark Image &amp; Description</label>
+              <textarea class="form-control form-control-custom mb-2" id="plant_stem_desc" rows="2" placeholder="Description of stem height, wood & bark texture..."></textarea>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="plant_stem_image_url" placeholder="Stem / Bark image URL or upload" oninput="updateSinglePreview('plant_stem_image_url', 'plant_stem_image_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('plant_stem_image_url', 'plant_stem_image_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="plant_stem_image_preview_wrap" class="mt-2 d-none">
+                <img id="plant_stem_image_preview" src="" class="img-preview-box" />
+              </div>
+            </div>
+
+            <!-- 4. Fruit / Seed Image & Description -->
+            <div class="col-md-6 form-group-custom">
+              <label class="text-success"><i class="fa fa-apple me-1"></i> Fruit / Seed Image &amp; Description</label>
+              <textarea class="form-control form-control-custom mb-2" id="plant_fruit_desc" rows="2" placeholder="Description of fruits, seeds or pod reproduction..."></textarea>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="plant_fruit_image_url" placeholder="Fruit / Seed image URL or upload" oninput="updateSinglePreview('plant_fruit_image_url', 'plant_fruit_image_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('plant_fruit_image_url', 'plant_fruit_image_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="plant_fruit_image_preview_wrap" class="mt-2 d-none">
+                <img id="plant_fruit_image_preview" src="" class="img-preview-box" />
+              </div>
             </div>
 
             <div class="col-12 form-group-custom">
@@ -648,6 +710,13 @@
       item.habitat ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-tree me-1 text-primary"></i> ${escapeHtml(item.habitat)}</span>` : ''
     ].join('');
 
+    const plantParts = [
+      item.flower_image_url ? '<span class="badge bg-danger-subtle text-danger me-1" title="Flower Image"><i class="fa fa-sun-o me-1"></i> Flower</span>' : '',
+      item.leaf_image_url ? '<span class="badge bg-success-subtle text-success me-1" title="Leaf Image"><i class="fa fa-leaf me-1"></i> Leaf</span>' : '',
+      item.stem_image_url ? '<span class="badge bg-warning-subtle text-dark me-1" title="Stem/Bark Image"><i class="fa fa-tree me-1"></i> Stem</span>' : '',
+      item.fruit_image_url ? '<span class="badge bg-primary-subtle text-primary me-1" title="Fruit/Seed Image"><i class="fa fa-apple me-1"></i> Fruit</span>' : ''
+    ].filter(Boolean).join('');
+
     return `
       <tr>
         <td class="ps-3"><span class="order-badge">${item.order || 1}</span></td>
@@ -669,6 +738,7 @@
         </td>
         <td>
           <div>${metrics || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
+          ${plantParts ? '<div class="mt-1 d-flex flex-wrap gap-1">' + plantParts + '</div>' : ''}
         </td>
         <td>${statusBadge}</td>
         <td class="text-center pe-3">
@@ -694,12 +764,25 @@
     } else if (currentFilter !== 'all') {
       document.getElementById('plant_category').value = currentFilter;
     }
+    document.getElementById('plant_flower_desc').value = '';
+    document.getElementById('plant_flower_image_url').value = '';
+    document.getElementById('plant_leaf_desc').value = '';
+    document.getElementById('plant_leaf_image_url').value = '';
+    document.getElementById('plant_stem_desc').value = '';
+    document.getElementById('plant_stem_image_url').value = '';
+    document.getElementById('plant_fruit_desc').value = '';
+    document.getElementById('plant_fruit_image_url').value = '';
+
     galleryImageUrls = [];
     currentDescriptionsList = [''];
     renderGalleryPreviews();
     renderDescriptionsContainer();
-    document.getElementById('plant_image_preview_wrap').classList.add('d-none');
-    document.getElementById('plant_banner_preview_wrap').classList.add('d-none');
+
+    ['plant_image_preview_wrap', 'plant_banner_preview_wrap', 'plant_flower_image_preview_wrap', 'plant_leaf_image_preview_wrap', 'plant_stem_image_preview_wrap', 'plant_fruit_image_preview_wrap'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('d-none');
+    });
+
     const modal = new bootstrap.Modal(document.getElementById('plantEntityModal'));
     modal.show();
   }
@@ -722,10 +805,24 @@
     document.getElementById('plant_full_desc').value = item.full_description || '';
     document.getElementById('plant_image_url').value = item.image_url || '';
     document.getElementById('plant_banner_url').value = item.banner_image_url || '';
+
+    document.getElementById('plant_flower_desc').value = item.flower_description || '';
+    document.getElementById('plant_flower_image_url').value = item.flower_image_url || '';
+    document.getElementById('plant_leaf_desc').value = item.leaf_description || '';
+    document.getElementById('plant_leaf_image_url').value = item.leaf_image_url || '';
+    document.getElementById('plant_stem_desc').value = item.stem_description || '';
+    document.getElementById('plant_stem_image_url').value = item.stem_image_url || '';
+    document.getElementById('plant_fruit_desc').value = item.fruit_description || '';
+    document.getElementById('plant_fruit_image_url').value = item.fruit_image_url || '';
+
     document.getElementById('plant_is_active').checked = item.is_active !== false;
 
     updateSinglePreview('plant_image_url', 'plant_image_preview');
     updateSinglePreview('plant_banner_url', 'plant_banner_preview');
+    updateSinglePreview('plant_flower_image_url', 'plant_flower_image_preview');
+    updateSinglePreview('plant_leaf_image_url', 'plant_leaf_image_preview');
+    updateSinglePreview('plant_stem_image_url', 'plant_stem_image_preview');
+    updateSinglePreview('plant_fruit_image_url', 'plant_fruit_image_preview');
 
     galleryImageUrls = item.gallery_images || [];
     renderGalleryPreviews();
@@ -746,6 +843,108 @@
       wrap.classList.remove('d-none');
     } else {
       wrap.classList.add('d-none');
+    }
+  }
+
+  async function generatePlantContent() {
+    const nameInput = document.getElementById('plant_name');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+      alert('Please enter or select a plant or species name first (e.g. Venus Flytrap, Redwood Tree, Rose, Sunflower).');
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    const btn = document.getElementById('btn_generate_plant');
+    const origBtnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Generating...';
+    }
+
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const category = document.getElementById('plant_category') ? document.getElementById('plant_category').value : 'Trees';
+
+      const resp = await fetch('/admin-panel/plant-explorer/generate-content', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ name: name, category: category })
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.detail || 'Failed to generate plant content');
+      }
+
+      const data = await resp.json();
+
+      // Basic Information
+      if (data.name && nameInput) nameInput.value = data.name;
+      if (data.scientific_name) document.getElementById('plant_scientific_name').value = data.scientific_name;
+      if (data.family) document.getElementById('plant_family').value = data.family;
+      if (data.habitat) document.getElementById('plant_habitat').value = data.habitat;
+      if (data.climate) document.getElementById('plant_climate').value = data.climate;
+      if (data.fun_fact) document.getElementById('plant_fun_fact').value = data.fun_fact;
+      if (data.short_description) document.getElementById('plant_short_desc').value = data.short_description;
+      if (data.full_description) document.getElementById('plant_full_desc').value = data.full_description;
+
+      // Main Media
+      if (data.image_url) {
+        document.getElementById('plant_image_url').value = data.image_url;
+        updateSinglePreview('plant_image_url', 'plant_image_preview');
+      }
+      if (data.banner_image_url) {
+        document.getElementById('plant_banner_url').value = data.banner_image_url;
+        updateSinglePreview('plant_banner_url', 'plant_banner_preview');
+      }
+
+      // Plant Parts Images & Descriptions
+      if (data.flower_description) document.getElementById('plant_flower_desc').value = data.flower_description;
+      if (data.flower_image_url) {
+        document.getElementById('plant_flower_image_url').value = data.flower_image_url;
+        updateSinglePreview('plant_flower_image_url', 'plant_flower_image_preview');
+      }
+
+      if (data.leaf_description) document.getElementById('plant_leaf_desc').value = data.leaf_description;
+      if (data.leaf_image_url) {
+        document.getElementById('plant_leaf_image_url').value = data.leaf_image_url;
+        updateSinglePreview('plant_leaf_image_url', 'plant_leaf_image_preview');
+      }
+
+      if (data.stem_description) document.getElementById('plant_stem_desc').value = data.stem_description;
+      if (data.stem_image_url) {
+        document.getElementById('plant_stem_image_url').value = data.stem_image_url;
+        updateSinglePreview('plant_stem_image_url', 'plant_stem_image_preview');
+      }
+
+      if (data.fruit_description) document.getElementById('plant_fruit_desc').value = data.fruit_description;
+      if (data.fruit_image_url) {
+        document.getElementById('plant_fruit_image_url').value = data.fruit_image_url;
+        updateSinglePreview('plant_fruit_image_url', 'plant_fruit_image_preview');
+      }
+
+      // Descriptions & Gallery
+      if (data.descriptions && Array.isArray(data.descriptions) && data.descriptions.length > 0) {
+        currentDescriptionsList = data.descriptions;
+        renderDescriptionsContainer();
+      }
+
+      if (data.gallery_images && Array.isArray(data.gallery_images) && data.gallery_images.length > 0) {
+        galleryImageUrls = data.gallery_images;
+        renderGalleryPreviews();
+      }
+
+    } catch (err) {
+      alert(`Generation error: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origBtnHtml;
+      }
     }
   }
 
@@ -773,6 +972,14 @@
       descriptions: descriptionsList,
       image_url: document.getElementById('plant_image_url').value.trim(),
       banner_image_url: document.getElementById('plant_banner_url').value.trim(),
+      flower_description: document.getElementById('plant_flower_desc').value.trim(),
+      flower_image_url: document.getElementById('plant_flower_image_url').value.trim(),
+      leaf_description: document.getElementById('plant_leaf_desc').value.trim(),
+      leaf_image_url: document.getElementById('plant_leaf_image_url').value.trim(),
+      stem_description: document.getElementById('plant_stem_desc').value.trim(),
+      stem_image_url: document.getElementById('plant_stem_image_url').value.trim(),
+      fruit_description: document.getElementById('plant_fruit_desc').value.trim(),
+      fruit_image_url: document.getElementById('plant_fruit_image_url').value.trim(),
       gallery_images: galleryImageUrls,
       is_active: document.getElementById('plant_is_active').checked
     };

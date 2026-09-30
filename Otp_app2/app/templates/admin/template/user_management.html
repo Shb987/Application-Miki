@@ -310,15 +310,15 @@
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <div style="background:rgba(255,159,64,0.1);border-radius:10px;padding:10px;">
-                                <i data-feather="file-text" style="color:#ff9f40;width:24px;height:24px;"></i>
+                                <i data-feather="home" style="color:#ff9f40;width:24px;height:24px;"></i>
                             </div>
                             <span class="badge bg-warning text-white rounded-pill px-3"
-                                style="font-size:0.7rem;">EXAMS</span>
+                                style="font-size:0.7rem;">SCHOOLS</span>
                         </div>
-                        <h2 class="mb-0 f-w-700" id="kpi-exams">
+                        <h2 class="mb-0 f-w-700" id="kpi-schools">
                             <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
                         </h2>
-                        <p class="mb-0 text-muted" style="font-size:0.85rem;margin-top:4px;">Generated Today</p>
+                        <p class="mb-0 text-muted" style="font-size:0.85rem;margin-top:4px;">No. of Schools Added</p>
                     </div>
                 </div>
             </div>
@@ -499,7 +499,7 @@
         modal.show();
     }
 
-    function switchTab(tab) {
+    function switchTab(tab, pushState = true) {
         currentTab = tab;
         document.getElementById("panel-overview").style.display = tab === "overview" ? "" : "none";
         document.getElementById("panel-students").style.display = tab === "students" ? "" : "none";
@@ -509,12 +509,24 @@
         document.getElementById("tab-parents").className = "btn um-tab-btn" + (tab === "parents" ? " active" : " btn-outline-secondary");
         if (tab === "overview") loadKPIStats();
         if (tab === "parents" && document.getElementById("parents-list-container").innerHTML.includes("spinner-border")) loadParents();
+
+        if (pushState && history.pushState) {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get("tab") !== tab) {
+                url.searchParams.set("tab", tab);
+                history.pushState({ tab: tab }, "", url.toString());
+            }
+        }
+
+        if (window.highlightActiveSidebar) {
+            window.highlightActiveSidebar();
+        }
         feather.replace();
     }
 
     async function loadKPIStats() {
         // Set a fallback immediately so spinners never get stuck
-        ["kpi-students","kpi-parents","kpi-active","kpi-exams"].forEach(id => {
+        ["kpi-students","kpi-parents","kpi-active","kpi-schools"].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = `<span class="text-muted">—</span>`;
         });
@@ -525,7 +537,7 @@
             if (!res.ok) {
                 // 403 = not enough permissions — keep the dashes, that's fine
                 if (res.status === 403) {
-                    ["kpi-students","kpi-parents","kpi-active","kpi-exams"].forEach(id => {
+                    ["kpi-students","kpi-parents","kpi-active","kpi-schools"].forEach(id => {
                         const el = document.getElementById(id);
                         if (el) el.innerHTML = `<small class="text-muted" title="Insufficient permissions">N/A</small>`;
                     });
@@ -539,17 +551,18 @@
                 if (!el) return;
                 let start = 0;
                 const duration = 800;
-                const step = Math.ceil(target / (duration / 16));
+                const targetVal = typeof target === 'number' ? target : 0;
+                const step = Math.max(1, Math.ceil(targetVal / (duration / 16)));
                 const timer = setInterval(() => {
-                    start = Math.min(start + step, target);
+                    start = Math.min(start + step, targetVal);
                     el.innerHTML = `${prefix}${start.toLocaleString()}${suffix}`;
-                    if (start >= target) clearInterval(timer);
+                    if (start >= targetVal) clearInterval(timer);
                 }, 16);
             }
-            animateCount("kpi-students", d.total_students);
-            animateCount("kpi-parents", d.total_parents);
-            animateCount("kpi-active", d.active_users_30d);
-            animateCount("kpi-exams", d.total_exams_generated);
+            animateCount("kpi-students", d.total_students || 0);
+            animateCount("kpi-parents", d.total_parents || 0);
+            animateCount("kpi-active", d.active_users_30d || 0);
+            animateCount("kpi-schools", d.total_schools !== undefined ? d.total_schools : 0);
         } catch (err) {
             console.error("Error loading KPI stats:", err);
         }
@@ -781,11 +794,17 @@
     document.addEventListener("DOMContentLoaded", () => {
         const params = new URLSearchParams(window.location.search);
         const tab = params.get("tab") || "overview";
-        switchTab(tab);
+        switchTab(tab, false);
         loadClasses();
         loadSchoolsFilter();
         loadStudents();
         document.getElementById("search-name").addEventListener("keydown", e => { if (e.key === "Enter") loadStudents(true); });
+    });
+
+    window.addEventListener("popstate", () => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get("tab") || "overview";
+        switchTab(tab, false);
     });
 </script>
 {% endblock %}

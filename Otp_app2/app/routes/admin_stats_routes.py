@@ -44,6 +44,9 @@ async def get_dashboard_summary(current_admin: dict = Depends(require_permission
                 "created_at": {"$gte": thirty_days_ago}
             })
 
+        async def count_schools():
+            return await db.schools.count_documents({})
+
         async def count_exams_generated():
             return await db.generated_papers.count_documents({})
 
@@ -63,6 +66,7 @@ async def get_dashboard_summary(current_admin: dict = Depends(require_permission
             total_students,
             total_parents,
             active_users_30d,
+            total_schools,
             total_exams_generated,
             total_quiz_questions,
             ai_cost_this_month_usd
@@ -70,6 +74,7 @@ async def get_dashboard_summary(current_admin: dict = Depends(require_permission
             count_students(),
             count_parents(),
             count_active_users(),
+            count_schools(),
             count_exams_generated(),
             count_quiz_questions(),
             get_ai_cost_this_month()
@@ -81,6 +86,7 @@ async def get_dashboard_summary(current_admin: dict = Depends(require_permission
                 "total_students": total_students,
                 "total_parents": total_parents,
                 "active_users_30d": active_users_30d,
+                "total_schools": total_schools,
                 "total_exams_generated": total_exams_generated,
                 "total_quiz_questions": total_quiz_questions,
                 "ai_cost_this_month_usd": ai_cost_this_month_usd

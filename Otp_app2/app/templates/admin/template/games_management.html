@@ -768,7 +768,7 @@
         modal.show();
     }
 
-    function switchTab(tab) {
+    function switchTab(tab, pushState = true) {
         document.getElementById("panel-wordle").style.display = tab === "wordle" ? "" : "none";
         document.getElementById("panel-squares").style.display = tab === "squares" ? "" : "none";
         document.getElementById("panel-puzzle").style.display = tab === "puzzle" ? "" : "none";
@@ -780,6 +780,19 @@
         if (tab === "squares") { loadSquares(); loadSquaresStats(); }
         else if (tab === "puzzle") { loadPuzzle(); loadPuzzleStats(); }
         else { loadWordle(); loadWordleStats(); }
+
+        if (pushState && history.pushState) {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get("tab") !== tab) {
+                url.searchParams.set("tab", tab);
+                history.pushState({ tab: tab }, "", url.toString());
+            }
+        }
+
+        if (window.highlightActiveSidebar) {
+            window.highlightActiveSidebar();
+        }
+        feather.replace();
     }
 
     async function loadWordle() {
@@ -1500,10 +1513,15 @@
         });
     }
 
-    // Initialize based on URL query param
-// Initialize based on URL query param ?tab=puzzle
+    // Initialize based on URL query param ?tab=puzzle
     const urlParams = new URLSearchParams(window.location.search);
     const initialTab = urlParams.get("tab") || "wordle";
-    switchTab(initialTab);
+    switchTab(initialTab, false);
+
+    window.addEventListener("popstate", () => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get("tab") || "wordle";
+        switchTab(tab, false);
+    });
 </script>
 {% endblock %}

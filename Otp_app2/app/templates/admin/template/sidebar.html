@@ -315,31 +315,61 @@
   </nav>
 </div>
 
-<!-- Corrected Active Menu Script -->
+<!-- Corrected Active Menu Script with Query Param & Popstate Support -->
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const currentPath = window.location.pathname;
-    const currentUrl = window.location.origin + window.location.pathname;
+  function highlightActiveSidebar() {
+    const currentUrl = new URL(window.location.href);
+    const currentPath = currentUrl.pathname;
+    const currentSearch = currentUrl.search;
+
+    // Reset existing active states
+    document.querySelectorAll(".sidebar-submenu a").forEach(link => link.classList.remove("active"));
+    document.querySelectorAll(".sidebar-list").forEach(item => item.classList.remove("active"));
+    document.querySelectorAll(".sidebar-submenu").forEach(sub => {
+      sub.classList.remove("menu-open");
+      sub.style.display = "none";
+    });
+
+    let exactMatch = null;
+    let fallbackMatch = null;
 
     document.querySelectorAll(".sidebar-submenu a").forEach(link => {
-      const linkUrl = new URL(link.href);
-      const cleanLink = linkUrl.origin + linkUrl.pathname;
-
-      // Match only by pathname — avoids false matches
-      if (currentUrl === cleanLink) {
-        link.classList.add("active");
-
-        const parentMenu = link.closest(".sidebar-list");
-        if (parentMenu) {
-          parentMenu.classList.add("active");
-
-          const submenu = parentMenu.querySelector(".sidebar-submenu");
-          if (submenu) {
-            submenu.classList.add("menu-open");
-            submenu.style.display = "block";
+      try {
+        const linkUrl = new URL(link.href);
+        if (linkUrl.pathname === currentPath) {
+          if (linkUrl.search && linkUrl.search === currentSearch) {
+            exactMatch = link;
+          } else if (!linkUrl.search && !fallbackMatch) {
+            fallbackMatch = link;
+          } else if (!fallbackMatch) {
+            fallbackMatch = link;
           }
         }
-      }
+      } catch(e) {}
     });
+
+    const targetLink = exactMatch || fallbackMatch;
+    if (targetLink) {
+      targetLink.classList.add("active");
+      const parentMenu = targetLink.closest(".sidebar-list");
+      if (parentMenu) {
+        parentMenu.classList.add("active");
+        const submenu = parentMenu.querySelector(".sidebar-submenu");
+        if (submenu) {
+          submenu.classList.add("menu-open");
+          submenu.style.display = "block";
+        }
+      }
+    }
+  }
+
+  window.highlightActiveSidebar = highlightActiveSidebar;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    highlightActiveSidebar();
+  });
+
+  window.addEventListener("popstate", function () {
+    highlightActiveSidebar();
   });
 </script>

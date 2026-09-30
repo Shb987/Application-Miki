@@ -706,8 +706,8 @@
       : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill">Inactive</span>`;
 
     const metrics = [
-      item.scientific_name ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-italic me-1 text-success"></i> ${escapeHtml(item.scientific_name)}</span>` : '',
-      item.habitat ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-tree me-1 text-primary"></i> ${escapeHtml(item.habitat)}</span>` : ''
+      item.scientific_name ? `<span class="badge bg-light text-dark me-1 text-truncate" style="max-width: 180px; display: inline-block; vertical-align: middle;" title="${escapeHtml(item.scientific_name)}"><i class="fa fa-italic me-1 text-success"></i> ${escapeHtml(item.scientific_name)}</span>` : '',
+      item.habitat ? `<span class="badge bg-light text-dark me-1 text-truncate" style="max-width: 220px; display: inline-block; vertical-align: middle;" title="${escapeHtml(item.habitat)}"><i class="fa fa-tree me-1 text-primary"></i> ${escapeHtml(item.habitat)}</span>` : ''
     ].join('');
 
     const plantParts = [
@@ -736,12 +736,12 @@
             ${escapeHtml(item.short_description || 'No summary set')}
           </div>
         </td>
-        <td>
-          <div>${metrics || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
+        <td style="max-width: 280px;">
+          <div class="d-flex flex-wrap gap-1 align-items-center">${metrics || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
           ${plantParts ? '<div class="mt-1 d-flex flex-wrap gap-1">' + plantParts + '</div>' : ''}
         </td>
         <td>${statusBadge}</td>
-        <td class="text-center pe-3">
+        <td class="text-center pe-3" style="white-space: nowrap; width: 110px;">
           <div class="d-flex align-items-center justify-content-center gap-1">
             <button type="button" class="table-action-btn table-action-edit" onclick="editPlantEntity('${item.id}')" title="Edit Entity">
               <i class="fa fa-pencil"></i>

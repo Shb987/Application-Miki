@@ -90,7 +90,7 @@
         <div class="login-card login-dark">
           <div>
             <div class="login-main">
-              <form class="theme-form" id="login-form">
+              <form class="theme-form" id="login-form" novalidate>
 
                 <div class="miki-brand-container">
                   <a class="miki-logo-wrapper" href="index.html">
@@ -103,43 +103,32 @@
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label class="col-form-label">Username / Email</label>
-                  <input class="form-control" name="username" required placeholder="admin@miki.com">
+                <!-- Inline Error / Validation Feedback Alert Box -->
+                <div id="login-error" class="alert alert-danger font-weight-bold shadow-sm mb-3 d-none" role="alert" style="border-radius: 12px; font-size: 0.88rem; border-left: 4px solid #dc3545;">
+                  <i class="fa fa-exclamation-circle me-2"></i>
+                  <span id="login-error-text">Invalid username or password.</span>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group mb-3">
+                  <label class="col-form-label">Username / Email</label>
+                  <input class="form-control" id="username" name="username" placeholder="admin@miki.com" autocomplete="username">
+                  <div class="invalid-feedback" id="username-feedback">Please enter your username or email.</div>
+                </div>
+
+                <div class="form-group mb-3">
                   <label class="col-form-label">Password</label>
                   <div class="form-input position-relative">
-                    <input class="form-control" type="password" name="password" required placeholder="*********">
+                    <input class="form-control" type="password" id="password" name="password" placeholder="*********" autocomplete="current-password">
                     <div class="show-hide"><span class="show"></span></div>
                   </div>
+                  <div class="invalid-feedback" id="password-feedback">Please enter your password.</div>
                 </div>
 
-                <div class="form-group mb-0">
-                  <button class="btn btn-primary btn-block w-100" type="submit">Sign in</button>
+                <div class="form-group mb-0 mt-4">
+                  <button class="btn btn-primary btn-block w-100 py-2 fw-bold" id="btn-submit-login" type="submit">Sign in</button>
                 </div>
 
               </form>
-    <script>
-      // Show/Hide Password Toggle
-      document.addEventListener('DOMContentLoaded', function() {
-        const toggleBtn = document.querySelector('.show-hide');
-        if (toggleBtn) {
-          toggleBtn.addEventListener('click', function() {
-            const passwordInput = document.querySelector('input[name="password"]');
-            const showSpan = document.querySelector('.show');
-            if (passwordInput.type === "password") {
-              passwordInput.type = "text";
-              showSpan.classList.add('hide');
-            } else {
-              passwordInput.type = "password";
-              showSpan.classList.remove('hide');
-            }
-          });
-        }
-      });
-    </script>
             </div>
           </div>
         </div>
@@ -161,36 +150,136 @@
     <script src="../assets/js/script.js"></script>
 
     <script>
-      document.getElementById("login-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const username = e.target.username.value;
-        const password = e.target.password.value;
-        console.log("API_BASE =", window.API_BASE);
-
-        try {
-          const res = await fetch(`${window.API_BASE}/admin-panel/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
+      document.addEventListener('DOMContentLoaded', function() {
+        // Show/Hide Password Toggle
+        const toggleBtn = document.querySelector('.show-hide');
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', function() {
+            const passwordInput = document.getElementById('password') || document.querySelector('input[name="password"]');
+            const showSpan = document.querySelector('.show');
+            if (passwordInput.type === "password") {
+              passwordInput.type = "text";
+              showSpan.classList.add('hide');
+            } else {
+              passwordInput.type = "password";
+              showSpan.classList.remove('hide');
+            }
           });
+        }
 
-          if (!res.ok) {
-            const error = await res.json();
-            alert("Login failed: " + error.detail);
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const errorAlert = document.getElementById('login-error');
+        const errorText = document.getElementById('login-error-text');
+
+        function showError(msg) {
+          if (errorText) errorText.innerText = msg;
+          if (errorAlert) {
+            errorAlert.classList.remove('d-none');
+            errorAlert.style.display = 'block';
+          }
+        }
+
+        function hideError() {
+          if (errorAlert) {
+            errorAlert.classList.add('d-none');
+            errorAlert.style.display = 'none';
+          }
+          if (usernameInput) usernameInput.classList.remove('is-invalid');
+          if (passwordInput) passwordInput.classList.remove('is-invalid');
+        }
+
+        // Clear error feedback on input typing
+        if (usernameInput) usernameInput.addEventListener('input', hideError);
+        if (passwordInput) passwordInput.addEventListener('input', hideError);
+
+        // Explicitly support pressing Enter key on input fields
+        [usernameInput, passwordInput].forEach(input => {
+          if (input) {
+            input.addEventListener('keydown', function(e) {
+              if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                performLogin();
+              }
+            });
+          }
+        });
+
+        if (loginForm) {
+          loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            performLogin();
+          });
+        }
+
+        async function performLogin() {
+          hideError();
+
+          const username = usernameInput ? usernameInput.value.trim() : '';
+          const password = passwordInput ? passwordInput.value : '';
+
+          // 1. Validation check for empty credentials
+          if (!username || !password) {
+            if (!username && usernameInput) usernameInput.classList.add('is-invalid');
+            if (!password && passwordInput) passwordInput.classList.add('is-invalid');
+
+            if (!username && !password) {
+              showError("Please enter both username and password.");
+            } else if (!username) {
+              showError("Please enter your username or email.");
+            } else {
+              showError("Please enter your password.");
+            }
             return;
           }
 
-          const data = await res.json();
+          const btn = document.getElementById('btn-submit-login');
+          const origBtnHtml = btn ? btn.innerHTML : '';
+          if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i> Signing in...';
+          }
 
-          // ✅ Save the real returned token key
-          localStorage.setItem("admin_token", data.access_token);
+          try {
+            const apiBase = window.API_BASE || '';
+            const res = await fetch(`${apiBase}/admin-panel/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username, password }),
+            });
 
-          // ✅ Redirect to dashboard
-          window.location.replace("/admin-panel/user-management-page");
-        } catch (err) {
-          console.error("Error:", err);
-          alert("Something went wrong! Check console.");
+            if (!res.ok) {
+              let errorMsg = "Invalid username or password. Please check your credentials and try again.";
+              try {
+                const errData = await res.json();
+                if (errData && errData.detail) {
+                  errorMsg = errData.detail;
+                }
+              } catch (e) {}
+
+              if (usernameInput) usernameInput.classList.add('is-invalid');
+              if (passwordInput) passwordInput.classList.add('is-invalid');
+              showError(errorMsg);
+              return;
+            }
+
+            const data = await res.json();
+            if (data && data.access_token) {
+              localStorage.setItem("admin_token", data.access_token);
+              window.location.replace("/admin-panel/user-management-page");
+            } else {
+              showError("Authentication failed. No access token returned.");
+            }
+          } catch (err) {
+            console.error("Login error:", err);
+            showError("Unable to connect to server. Please try again later.");
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = origBtnHtml;
+            }
+          }
         }
       });
     </script>

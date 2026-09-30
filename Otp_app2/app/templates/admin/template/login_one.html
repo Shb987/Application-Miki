@@ -135,6 +135,27 @@
       </div>
     </div>
 
+    <!-- Custom HTML Pop-up Modal for Login Errors -->
+    <div class="modal fade" id="loginErrorModal" tabindex="-1" aria-labelledby="loginErrorModalTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; background: #ffffff; overflow: hidden;">
+          <div class="modal-header border-0 pb-0 text-center flex-column pt-4 position-relative">
+            <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 64px; height: 64px; background-color: #fee2e2; color: #dc2626;">
+              <i class="fa fa-exclamation-triangle" style="font-size: 1.8rem;"></i>
+            </div>
+            <h5 class="modal-title font-weight-bold text-danger fs-5" id="loginErrorModalTitle">Login Failed</h5>
+          </div>
+          <div class="modal-body text-center px-4 py-3 text-secondary" style="font-size: 0.95rem;">
+            <p id="loginErrorModalBody" class="mb-0 fw-medium text-dark">Invalid credentials. Please check your username and password.</p>
+          </div>
+          <div class="modal-footer border-0 justify-content-center pb-4 pt-2">
+            <button type="button" class="btn btn-danger px-4 rounded-pill font-weight-bold shadow-sm" data-bs-dismiss="modal" style="min-width: 130px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: none;">Try Again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- latest jquery-->
     <script src="/admin-panel/config.js"></script>
 
@@ -178,6 +199,13 @@
           if (errorAlert) {
             errorAlert.classList.remove('d-none');
             errorAlert.style.display = 'block';
+          }
+          const modalBody = document.getElementById('loginErrorModalBody');
+          if (modalBody) modalBody.innerText = msg;
+          const modalEl = document.getElementById('loginErrorModal');
+          if (modalEl && typeof bootstrap !== 'undefined') {
+            const bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsModal.show();
           }
         }
 

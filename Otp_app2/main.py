@@ -108,31 +108,71 @@ async def seed_default_roles():
     except Exception as e:
         print(f"[WARN] Failed to seed default roles: {e}")
 
-async def cleanup_duplicate_guardian_phones():
+async def backfill_missing_student_phones():
     try:
-        cursor = db.students.find({"guardian_phone": {"$exists": True, "$ne": None}})
+        from app.routes.external_registration_routes import calculate_age_from_dob
+        cursor = db.students.find({})
         count = 0
         async for s in cursor:
-            g_p = str(s.get("guardian_phone", "")).strip()
-            if g_p:
-                st_p = str(s.get("student_phone") or s.get("mobile_number") or s.get("phone") or s.get("phone_number") or s.get("mobileno") or "").strip()
-                if st_p and st_p == g_p:
-                    await db.students.update_one(
-                        {"_id": s["_id"]},
-                        {"$unset": {
-                            "student_phone": "",
-                            "mobile_number": "",
-                            "phone": "",
-                            "phone_number": "",
-                            "mobileno": "",
-                            "mobile_no": ""
-                        }}
-                    )
-                    count += 1
+            st_id_str = str(s["_id"])
+            g_p = s.get("guardian_phone") or s.get("parent_mobile")
+            
+            # Find candidate student phone number
+            st_p = (
+                s.get("student_phone") or
+                s.get("phone_number") or
+                s.get("mobileno") or
+                s.get("mobile_no") or
+                s.get("mobile_number") or
+                s.get("phone") or
+                s.get("mobile") or
+                s.get("contact_no") or
+                s.get("mob_no")
+            )
+            
+            # If no student phone explicitly on student doc, check usertable for student entry
+            if not st_p:
+                st_user = await db.usertable.find_one({
+                    "usertype": {"$ne": "parent"},
+                    "$or": [
+                        {"student_ids": s["_id"]},
+                        {"student_ids": st_id_str},
+                        {"student_id": s["_id"]},
+                        {"student_id": st_id_str}
+                    ]
+                })
+                if st_user and st_user.get("mobile_number"):
+                    st_p = st_user.get("mobile_number")
+            
+            # Fallback to guardian phone if still missing
+            final_phone = st_p or g_p
+            
+            # Compute age if missing
+            calculated_age = s.get("age")
+            if not calculated_age and s.get("dob"):
+                calculated_age = calculate_age_from_dob(s.get("dob"))
+            
+            update_fields = {}
+            if final_phone and (not s.get("student_phone") or not s.get("mobile_number")):
+                phone_clean = str(final_phone).strip()
+                update_fields["student_phone"] = phone_clean
+                update_fields["mobile_number"] = phone_clean
+                update_fields["phone_number"] = phone_clean
+                update_fields["mobileno"] = phone_clean
+                update_fields["mobile_no"] = phone_clean
+                update_fields["phone"] = phone_clean
+            
+            if calculated_age is not None and not s.get("age"):
+                update_fields["age"] = calculated_age
+            
+            if update_fields:
+                await db.students.update_one({"_id": s["_id"]}, {"$set": update_fields})
+                count += 1
+
         if count > 0:
-            print(f"[INFO] Cleaned up {count} student records with duplicate guardian phone numbers.")
+            print(f"[INFO] Backfilled student phone numbers and age for {count} records.")
     except Exception as e:
-        print(f"[WARN] Failed to cleanup duplicate guardian phones: {e}")
+        print(f"[WARN] Failed to backfill student phone numbers and age: {e}")
 
 @app.on_event("startup")
 async def startup_event():
@@ -141,8 +181,8 @@ async def startup_event():
         await seed_default_roles()
     except Exception as e:
         print(f"[WARN] Failed to auto-seed default roles: {e}")
-    # Auto-cleanup existing database records where guardian phone was stored as student phone
-    asyncio.create_task(cleanup_duplicate_guardian_phones())
+    # Backfill missing student phone numbers and age in database
+    asyncio.create_task(backfill_missing_student_phones())
     # Start the background scheduler for Special Days
     asyncio.create_task(start_special_day_scheduler(db))
     # Start the background scheduler for Digital Tuition

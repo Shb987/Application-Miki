@@ -126,7 +126,7 @@ async def search_students(
             from app.routes.external_registration_routes import calculate_age_from_dob
             s["age"] = calculate_age_from_dob(s.get("dob"))
 
-        # Resolve student's own phone number (prioritizing explicit fields on student document)
+        # Resolve student's own phone number (prioritizing explicit fields on student document, then usertable, then guardian fallback)
         explicit_st_phone = (
             s.get("student_phone") or
             s.get("phone_number") or
@@ -138,9 +138,7 @@ async def search_students(
             s.get("contact_no") or
             s.get("mob_no")
         )
-        raw_st_phone = explicit_st_phone or mobile_map.get(st_id_str)
-        if not explicit_st_phone and raw_st_phone and g_phone and str(raw_st_phone).strip() == str(g_phone).strip():
-            raw_st_phone = None
+        raw_st_phone = explicit_st_phone or mobile_map.get(st_id_str) or g_phone
 
         resolved_st_num = str(raw_st_phone).strip() if raw_st_phone else None
         s["mobile_number"] = resolved_st_num
@@ -221,9 +219,10 @@ async def get_student_profile(
             ]
         })
         if st_user and st_user.get("mobile_number"):
-            fallback_phone = st_user.get("mobile_number")
-            if not (g_phone and str(fallback_phone).strip() == str(g_phone).strip()):
-                raw_st_phone = fallback_phone
+            raw_st_phone = st_user.get("mobile_number")
+
+    if not raw_st_phone:
+        raw_st_phone = g_phone
 
     resolved_st_num = str(raw_st_phone).strip() if raw_st_phone else None
     student["mobile_number"] = resolved_st_num

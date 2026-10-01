@@ -8,7 +8,8 @@ Endpoints:
 Both endpoints are protected by X-API-Key (EDUSOFT_API_KEY from .env).
 """
 
-from fastapi import APIRouter, HTTPException, Header, Depends, Query
+from typing import Optional, Any
+from fastapi import APIRouter, HTTPException, Header, Depends, Query, Request
 from datetime import datetime, timezone
 from bson import ObjectId
 import re

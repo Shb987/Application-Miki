@@ -115,8 +115,14 @@ async def search_students(
             s["school_name"] = school_map[sid]
         
         st_id_str = str(s["_id"])
-        # Resolve student phone number with fallback to guardian phone so it's always displayed after registration
-        st_phone = (
+
+        # Populate guardian phone cleanly
+        g_phone = s.get("guardian_phone") or s.get("parent_mobile") or guardian_phone_map.get(st_id_str)
+        if g_phone:
+            s["guardian_phone"] = g_phone
+
+        # Resolve student's own phone number (strictly excluding guardian/parent phone numbers)
+        raw_st_phone = (
             s.get("student_phone") or
             s.get("mobile_number") or
             s.get("phone_number") or
@@ -126,17 +132,12 @@ async def search_students(
             s.get("mobile") or
             s.get("contact_no") or
             s.get("mob_no") or
-            mobile_map.get(st_id_str) or
-            s.get("guardian_phone") or
-            s.get("parent_mobile") or
-            guardian_phone_map.get(st_id_str)
+            mobile_map.get(st_id_str)
         )
-        s["mobile_number"] = st_phone if st_phone else "—"
-        
-        # Populate guardian phone cleanly
-        g_phone = s.get("guardian_phone") or s.get("parent_mobile") or guardian_phone_map.get(st_id_str)
-        if g_phone:
-            s["guardian_phone"] = g_phone
+        if raw_st_phone and g_phone and str(raw_st_phone).strip() == str(g_phone).strip():
+            raw_st_phone = None
+
+        s["mobile_number"] = raw_st_phone if raw_st_phone else None
 
     return {
         "status": "success",
@@ -168,7 +169,22 @@ async def get_student_profile(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    st_phone = (
+    g_phone = student.get("guardian_phone")
+    if not g_phone:
+        parent = await db.usertable.find_one({
+            "usertype": "parent",
+            "$or": [
+                {"student_ids": s_oid},
+                {"student_ids": student_id},
+                {"student_id": s_oid},
+                {"student_id": student_id}
+            ]
+        })
+        if parent and parent.get("mobile_number"):
+            g_phone = parent.get("mobile_number")
+            student["guardian_phone"] = g_phone
+
+    raw_st_phone = (
         student.get("student_phone") or
         student.get("mobile_number") or
         student.get("phone_number") or
@@ -177,9 +193,12 @@ async def get_student_profile(
         student.get("phone") or
         student.get("mobile") or
         student.get("contact_no") or
-        student.get("guardian_phone")
+        student.get("mob_no")
     )
-    if not st_phone:
+    if raw_st_phone and g_phone and str(raw_st_phone).strip() == str(g_phone).strip():
+        raw_st_phone = None
+
+    if not raw_st_phone:
         st_user = await db.usertable.find_one({
             "usertype": {"$ne": "parent"},
             "$or": [
@@ -194,7 +213,7 @@ async def get_student_profile(
         else:
             student["mobile_number"] = None
     else:
-        student["mobile_number"] = st_phone
+        student["mobile_number"] = raw_st_phone
 
     if not student.get("guardian_phone"):
         parent = await db.usertable.find_one({

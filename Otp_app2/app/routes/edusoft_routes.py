@@ -383,7 +383,7 @@ async def edusoft_update_student(
         update_doc["category"] = payload.category
 
     resolved_phone = None
-    for candidate in [payload.student_phone, payload.student_mobile, payload.phone, payload.mobile, payload.mobile_number, payload.phone_number, payload.contact_no, payload.mob_no, payload.guardian_phone, payload.father_phone, payload.parent_phone]:
+    for candidate in [payload.student_phone, payload.student_mobile, payload.phone, payload.mobile, payload.mobile_number, payload.phone_number, payload.contact_no, payload.mob_no]:
         if candidate and str(candidate).strip():
             digits = re.sub(r'\D', '', str(candidate).strip())
             if len(digits) >= 10:
@@ -394,6 +394,7 @@ async def edusoft_update_student(
         update_doc["student_phone"] = resolved_phone
         update_doc["mobile_number"] = resolved_phone
         update_doc["phone"] = resolved_phone
+        update_doc["phone_number"] = resolved_phone
 
     await db.students.update_one({"_id": student["_id"]}, {"$set": update_doc})
 

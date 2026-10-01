@@ -38,14 +38,8 @@ class ExternalStudentRegistration(BaseModel):
     category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
 
     def get_resolved_student_phone(self) -> Optional[str]:
-        # Priority 1: Direct student phone candidates
+        # Only resolve dedicated student phone candidates
         for candidate in [self.student_phone, self.student_mobile, self.phone, self.mobile, self.mobile_number, self.phone_number, self.mobileno, self.mobile_no, self.contact_no, self.mob_no]:
-            if candidate and str(candidate).strip():
-                digits = re.sub(r'\D', '', str(candidate).strip())
-                if len(digits) >= 10:
-                    return digits[-10:]
-        # Priority 2: Fallback to guardian/father/parent phone candidates
-        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
@@ -53,7 +47,7 @@ class ExternalStudentRegistration(BaseModel):
         return None
 
     def get_resolved_guardian_phone(self) -> str:
-        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile, self.student_phone, self.phone, self.mobile_number, self.mobileno, self.mobile_no, self.phone_number]:
+        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:

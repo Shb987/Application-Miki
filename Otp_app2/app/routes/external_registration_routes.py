@@ -53,15 +53,12 @@ class ExternalStudentRegistration(BaseModel):
     category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
 
     def get_resolved_student_phone(self) -> Optional[str]:
-        g_phone = self.get_resolved_guardian_phone()
-        # Resolve dedicated student phone candidates (strictly excluding guardian phone number)
+        # Resolve any student phone parameter passed by EduSoft
         for candidate in [self.student_phone, self.student_mobile, self.phone_number, self.mobileno, self.mobile_no, self.phone, self.mobile, self.mobile_number, self.contact_no, self.mob_no]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
-                    st_p = digits[-10:]
-                    if st_p != g_phone:
-                        return st_p
+                    return digits[-10:]
         return None
 
     def get_resolved_guardian_phone(self) -> str:

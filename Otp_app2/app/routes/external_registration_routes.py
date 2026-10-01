@@ -298,19 +298,37 @@ async def external_register_student(
                 print(f"[EduSoft] Auto credential creation warning: {e}")
 
         # Ensure parent is linked in usertable
-        await db.usertable.update_one(
-            {"mobile_number": resolved_g_phone},
-            {
-                "$setOnInsert": {
-                    "usertype": "parent",
-                    "created_at": datetime.now(timezone.utc)
+        if resolved_g_phone and resolved_g_phone != "0000000000":
+            await db.usertable.update_one(
+                {"mobile_number": resolved_g_phone},
+                {
+                    "$setOnInsert": {
+                        "usertype": "parent",
+                        "created_at": datetime.now(timezone.utc)
+                    },
+                    "$addToSet": {
+                        "student_ids": existing_student["_id"]
+                    }
                 },
-                "$addToSet": {
-                    "student_ids": existing_student["_id"]
-                }
-            },
-            upsert=True
-        )
+                upsert=True
+            )
+
+        if resolved_st_phone:
+            await db.usertable.update_one(
+                {"mobile_number": resolved_st_phone},
+                {
+                    "$setOnInsert": {
+                        "usertype": "student",
+                        "created_at": datetime.now(timezone.utc)
+                    },
+                    "$set": {
+                        "student_id": existing_student["_id"],
+                        "student_name": payload.name,
+                        "updated_at": datetime.now(timezone.utc)
+                    }
+                },
+                upsert=True
+            )
 
         return {
             "status": "already_registered",
@@ -415,19 +433,38 @@ async def external_register_student(
         print(f"[EduSoft Sync] Forwarding warning: {e}")
 
     # ── 5. Link parent / guardian in usertable ────────────────────────────
-    await db.usertable.update_one(
-        {"mobile_number": payload.guardian_phone},
-        {
-            "$setOnInsert": {
-                "usertype": "parent",
-                "created_at": datetime.now(timezone.utc)
+    if resolved_g_phone and resolved_g_phone != "0000000000":
+        await db.usertable.update_one(
+            {"mobile_number": resolved_g_phone},
+            {
+                "$setOnInsert": {
+                    "usertype": "parent",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": student_oid
+                }
             },
-            "$addToSet": {
-                "student_ids": student_oid
-            }
-        },
-        upsert=True
-    )
+            upsert=True
+        )
+
+    # ── 5b. Link student mobile number in usertable for student login ─────
+    if resolved_st_phone:
+        await db.usertable.update_one(
+            {"mobile_number": resolved_st_phone},
+            {
+                "$setOnInsert": {
+                    "usertype": "student",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$set": {
+                    "student_id": student_oid,
+                    "student_name": payload.name,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
 
     # ── 6. Update school's student count (optional convenience counter) ───
     await db.schools.update_one(

@@ -126,20 +126,20 @@ async def search_students(
             from app.routes.external_registration_routes import calculate_age_from_dob
             s["age"] = calculate_age_from_dob(s.get("dob"))
 
-        # Resolve student's own phone number (strictly excluding guardian/parent phone numbers)
-        raw_st_phone = (
+        # Resolve student's own phone number (prioritizing explicit fields on student document)
+        explicit_st_phone = (
             s.get("student_phone") or
-            s.get("mobile_number") or
             s.get("phone_number") or
             s.get("mobileno") or
             s.get("mobile_no") or
+            s.get("mobile_number") or
             s.get("phone") or
             s.get("mobile") or
             s.get("contact_no") or
-            s.get("mob_no") or
-            mobile_map.get(st_id_str)
+            s.get("mob_no")
         )
-        if raw_st_phone and g_phone and str(raw_st_phone).strip() == str(g_phone).strip():
+        raw_st_phone = explicit_st_phone or mobile_map.get(st_id_str)
+        if not explicit_st_phone and raw_st_phone and g_phone and str(raw_st_phone).strip() == str(g_phone).strip():
             raw_st_phone = None
 
         resolved_st_num = str(raw_st_phone).strip() if raw_st_phone else None
@@ -198,20 +198,18 @@ async def get_student_profile(
             g_phone = parent.get("mobile_number")
             student["guardian_phone"] = g_phone
 
-    raw_st_phone = (
+    explicit_st_phone = (
         student.get("student_phone") or
-        student.get("mobile_number") or
         student.get("phone_number") or
         student.get("mobileno") or
         student.get("mobile_no") or
+        student.get("mobile_number") or
         student.get("phone") or
         student.get("mobile") or
         student.get("contact_no") or
         student.get("mob_no")
     )
-    if raw_st_phone and g_phone and str(raw_st_phone).strip() == str(g_phone).strip():
-        raw_st_phone = None
-
+    raw_st_phone = explicit_st_phone
     if not raw_st_phone:
         st_user = await db.usertable.find_one({
             "usertype": {"$ne": "parent"},
@@ -223,7 +221,9 @@ async def get_student_profile(
             ]
         })
         if st_user and st_user.get("mobile_number"):
-            raw_st_phone = st_user.get("mobile_number")
+            fallback_phone = st_user.get("mobile_number")
+            if not (g_phone and str(fallback_phone).strip() == str(g_phone).strip()):
+                raw_st_phone = fallback_phone
 
     resolved_st_num = str(raw_st_phone).strip() if raw_st_phone else None
     student["mobile_number"] = resolved_st_num

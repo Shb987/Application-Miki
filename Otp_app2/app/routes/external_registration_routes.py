@@ -20,29 +20,51 @@ class ExternalStudentRegistration(BaseModel):
     address: str = Field(..., description="Student's residential address")
     dob: str = Field(..., description="Date of birth in YYYY-MM-DD format")
     guardian_name: str = Field(..., description="Name of parent / guardian")
-    guardian_phone: str = Field(..., description="Guardian's 10-digit mobile number")
+    guardian_phone: Optional[str] = Field(None, description="Guardian's mobile number")
     student_phone: Optional[str] = Field(None, description="Student's own 10-digit mobile number")
     phone: Optional[str] = Field(None, description="Student's phone number alias")
     mobile: Optional[str] = Field(None, description="Student's mobile number alias")
     mobile_number: Optional[str] = Field(None, description="Student's mobile number alias")
+    phone_number: Optional[str] = Field(None, description="Student's phone number alias")
+    student_mobile: Optional[str] = Field(None, description="Student's mobile number alias")
+    contact_no: Optional[str] = Field(None, description="Contact number alias")
+    mob_no: Optional[str] = Field(None, description="Mobile number alias")
+    father_phone: Optional[str] = Field(None, description="Father phone alias")
+    parent_phone: Optional[str] = Field(None, description="Parent phone alias")
+    parent_mobile: Optional[str] = Field(None, description="Parent mobile alias")
     link: str = Field(..., description="Unique school identifier link (used to look up the school)")
     category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
 
     def get_resolved_student_phone(self) -> Optional[str]:
-        for candidate in [self.student_phone, self.phone, self.mobile, self.mobile_number]:
+        # Priority 1: Direct student phone candidates
+        for candidate in [self.student_phone, self.student_mobile, self.phone, self.mobile, self.mobile_number, self.phone_number, self.contact_no, self.mob_no]:
             if candidate and str(candidate).strip():
-                cleaned = str(candidate).strip()
-                if cleaned.isdigit() and len(cleaned) == 10:
-                    return cleaned
+                digits = re.sub(r'\D', '', str(candidate).strip())
+                if len(digits) >= 10:
+                    return digits[-10:]
+        # Priority 2: Fallback to guardian/father/parent phone candidates
+        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile]:
+            if candidate and str(candidate).strip():
+                digits = re.sub(r'\D', '', str(candidate).strip())
+                if len(digits) >= 10:
+                    return digits[-10:]
         return None
 
-    @field_validator("guardian_phone")
+    def get_resolved_guardian_phone(self) -> str:
+        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile, self.student_phone, self.phone, self.mobile_number]:
+            if candidate and str(candidate).strip():
+                digits = re.sub(r'\D', '', str(candidate).strip())
+                if len(digits) >= 10:
+                    return digits[-10:]
+        return "0000000000"
+
+    @field_validator("guardian_phone", mode="before")
     @classmethod
-    def validate_phone(cls, v: str) -> str:
-        v = v.strip()
-        if not v.isdigit() or len(v) != 10:
-            raise ValueError("guardian_phone must be a 10-digit number")
-        return v
+    def validate_phone(cls, v: Any) -> Optional[str]:
+        if not v:
+            return None
+        cleaned = re.sub(r'\D', '', str(v).strip())
+        return cleaned[-10:] if len(cleaned) >= 10 else str(v).strip()
 
     @field_validator("dob", mode="before")
     @classmethod
@@ -85,7 +107,7 @@ class ExternalStudentUpdate(BaseModel):
     category: Optional[str] = Field(None, description="Curriculum category (SCERT/NCERT)")
 
 
-from typing import Optional
+from typing import Optional, Any
 from fastapi import Request
 from fastapi.security import APIKeyHeader
 
@@ -165,18 +187,26 @@ async def external_register_student(
     _: str = Depends(verify_api_key)
 ):
     resolved_st_phone = payload.get_resolved_student_phone()
+    resolved_g_phone = payload.get_resolved_guardian_phone()
+    raw_class_str = str(payload.student_class).strip()
+    clean_class_str = re.sub(r'^(class|std|grade)\s*', '', raw_class_str, flags=re.I).strip()
 
-    # ── 1. Resolve school by link or Auto-Create ───────────────────────────
+    # ── 1. Resolve school by link or domain matching or Auto-Create ──────────
     school = await db.schools.find_one({"link": payload.link})
     if not school:
         import urllib.parse
-        parsed = urllib.parse.urlparse(payload.link)
-        if parsed.netloc:
-            # Extract subdomain (e.g., from 'school.onedusoft.in', get 'school')
-            raw_name = parsed.netloc.split('.')[0]
-            school_name = raw_name.replace("-", " ").replace("_", " ").title()
-        else:
-            school_name = payload.link.replace("-", " ").replace("_", " ").title()
+        target_link = payload.link if payload.link.startswith("http") else f"http://{payload.link}"
+        parsed = urllib.parse.urlparse(target_link)
+        clean_domain = parsed.netloc or parsed.path
+        domain_part = clean_domain.split(':')[0].replace("www.", "")
+        if domain_part:
+            school = await db.schools.find_one({
+                "link": {"$regex": re.escape(domain_part), "$options": "i"}
+            })
+
+    if not school:
+        raw_name = domain_part.split('.')[0] if 'domain_part' in locals() and domain_part else payload.link
+        school_name = raw_name.replace("-", " ").replace("_", " ").title()
         new_school = {
             "name": school_name,
             "link": payload.link,
@@ -189,22 +219,34 @@ async def external_register_student(
         school_id = str(school["_id"])
         school_name = school.get("name", "")
 
-    # ── 2. Check duplicate registration (same name + dob + school) ───────
+    # ── 2. Check duplicate / existing student matching ──────────────────────
     existing_student = await db.students.find_one({
-        "student_name": payload.name,
+        "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
         "dob": payload.dob,
         "school_id": school_id
     })
+    if not existing_student and resolved_st_phone:
+        existing_student = await db.students.find_one({
+            "school_id": school_id,
+            "$or": [
+                {"student_phone": resolved_st_phone},
+                {"mobile_number": resolved_st_phone},
+                {"phone": resolved_st_phone},
+                {"guardian_phone": resolved_st_phone}
+            ]
+        })
+
     if existing_student:
         student_id_str = str(existing_student["_id"])
         
         # Update existing student's class and profile in Miki DB if updated in EduSoft
         update_data = {
-            "student_class": payload.student_class,
+            "student_class": clean_class_str,
+            "student_class_raw": raw_class_str,
             "division": payload.division,
             "address": payload.address,
             "guardian_name": payload.guardian_name,
-            "guardian_phone": payload.guardian_phone,
+            "guardian_phone": resolved_g_phone,
             "category": payload.category,
             "updated_at": datetime.now(timezone.utc)
         }
@@ -240,7 +282,7 @@ async def external_register_student(
 
         # Ensure parent is linked in usertable
         await db.usertable.update_one(
-            {"mobile_number": payload.guardian_phone},
+            {"mobile_number": resolved_g_phone},
             {
                 "$setOnInsert": {
                     "usertype": "parent",
@@ -255,9 +297,9 @@ async def external_register_student(
 
         return {
             "status": "already_registered",
-            "message": f"Student is already registered. Updated class to '{payload.student_class}'.",
+            "message": f"Student registered/updated successfully. Class set to '{clean_class_str}'.",
             "student_id": student_id_str,
-            "student_class": payload.student_class,
+            "student_class": clean_class_str,
             "school_id": school_id,
             "school_name": school_name,
             "school_link": payload.link
@@ -276,11 +318,12 @@ async def external_register_student(
     student_doc = {
         "student_name": payload.name,
         "dob": payload.dob,
-        "student_class": payload.student_class,
+        "student_class": clean_class_str,
+        "student_class_raw": raw_class_str,
         "division": payload.division,
         "address": payload.address,
         "guardian_name": payload.guardian_name,
-        "guardian_phone": payload.guardian_phone,
+        "guardian_phone": resolved_g_phone,
         "student_phone": resolved_st_phone,
         "mobile_number": resolved_st_phone,
         "phone": resolved_st_phone,

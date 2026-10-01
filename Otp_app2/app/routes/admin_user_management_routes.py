@@ -45,7 +45,19 @@ async def search_students(
     if name:
         query["student_name"] = {"$regex": name, "$options": "i"}
     if student_class:
-        query["student_class"] = student_class
+        import re
+        raw_cls = str(student_class).strip()
+        clean_cls = re.sub(r'^(class|std|grade)\s*', '', raw_cls, flags=re.I).strip()
+        or_cls = [
+            {"student_class": raw_cls},
+            {"student_class": clean_cls},
+            {"student_class": f"Class {clean_cls}"},
+            {"student_class": f"class {clean_cls}"},
+            {"student_class_raw": raw_cls}
+        ]
+        if clean_cls.isdigit():
+            or_cls.append({"student_class": int(clean_cls)})
+        query["$or"] = or_cls
     if school_id:
         query["school_id"] = school_id
 
@@ -103,9 +115,18 @@ async def search_students(
             s["school_name"] = school_map[sid]
         
         st_id_str = str(s["_id"])
-        # Only assign student's own phone to mobile_number (do not leak parent/father phone)
-        st_phone = s.get("student_phone") or s.get("mobile_number") or s.get("phone") or s.get("mobile") or mobile_map.get(st_id_str)
-        s["mobile_number"] = st_phone if st_phone else None
+        # Resolve student phone number with fallback to guardian phone so it's always displayed after registration
+        st_phone = (
+            s.get("student_phone") or
+            s.get("mobile_number") or
+            s.get("phone") or
+            s.get("mobile") or
+            mobile_map.get(st_id_str) or
+            s.get("guardian_phone") or
+            s.get("parent_mobile") or
+            guardian_phone_map.get(st_id_str)
+        )
+        s["mobile_number"] = st_phone if st_phone else "—"
         
         # Populate guardian phone cleanly
         g_phone = s.get("guardian_phone") or s.get("parent_mobile") or guardian_phone_map.get(st_id_str)

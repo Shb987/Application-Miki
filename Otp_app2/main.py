@@ -108,6 +108,32 @@ async def seed_default_roles():
     except Exception as e:
         print(f"[WARN] Failed to seed default roles: {e}")
 
+async def cleanup_duplicate_guardian_phones():
+    try:
+        cursor = db.students.find({"guardian_phone": {"$exists": True, "$ne": None}})
+        count = 0
+        async for s in cursor:
+            g_p = str(s.get("guardian_phone", "")).strip()
+            if g_p:
+                st_p = str(s.get("student_phone") or s.get("mobile_number") or s.get("phone") or s.get("phone_number") or s.get("mobileno") or "").strip()
+                if st_p and st_p == g_p:
+                    await db.students.update_one(
+                        {"_id": s["_id"]},
+                        {"$unset": {
+                            "student_phone": "",
+                            "mobile_number": "",
+                            "phone": "",
+                            "phone_number": "",
+                            "mobileno": "",
+                            "mobile_no": ""
+                        }}
+                    )
+                    count += 1
+        if count > 0:
+            print(f"[INFO] Cleaned up {count} student records with duplicate guardian phone numbers.")
+    except Exception as e:
+        print(f"[WARN] Failed to cleanup duplicate guardian phones: {e}")
+
 @app.on_event("startup")
 async def startup_event():
     # Automatically seed default roles & admin if not existing
@@ -115,6 +141,8 @@ async def startup_event():
         await seed_default_roles()
     except Exception as e:
         print(f"[WARN] Failed to auto-seed default roles: {e}")
+    # Auto-cleanup existing database records where guardian phone was stored as student phone
+    asyncio.create_task(cleanup_duplicate_guardian_phones())
     # Start the background scheduler for Special Days
     asyncio.create_task(start_special_day_scheduler(db))
     # Start the background scheduler for Digital Tuition

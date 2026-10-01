@@ -299,3 +299,88 @@ async def get_edusoft_credentials(
         "login_url":   login_url
     }
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🔄 Endpoint 3: Update Student Details / Class
+# ─────────────────────────────────────────────────────────────────────────────
+
+from pydantic import BaseModel, Field
+
+class EduSoftUpdateStudent(BaseModel):
+    student_id: Optional[str] = Field(None, description="The 24-char hex student ObjectId")
+    username: Optional[str] = Field(None, description="EduSoft username (if student_id not provided)")
+    student_class: Optional[str] = Field(None, description="Updated student class (e.g. '6', '10')")
+    division: Optional[str] = Field(None, description="Updated division")
+    address: Optional[str] = Field(None, description="Updated address")
+    guardian_name: Optional[str] = Field(None, description="Updated guardian name")
+    guardian_phone: Optional[str] = Field(None, description="Updated guardian phone")
+    student_phone: Optional[str] = Field(None, description="Updated student phone")
+    category: Optional[str] = Field(None, description="Updated curriculum category")
+
+
+@router.post(
+    "/update-student",
+    response_model=dict,
+    summary="Update student class & details from EduSoft",
+    description="Called by EduSoft when a student class or details are updated in EduSoft.",
+    tags=["EduSoft External API"]
+)
+@router.put(
+    "/update-student",
+    response_model=dict,
+    include_in_schema=False
+)
+async def edusoft_update_student(
+    payload: EduSoftUpdateStudent,
+    _: str = Depends(verify_edusoft_api_key)
+):
+    student = None
+    target_student_id = payload.student_id
+
+    if not target_student_id and payload.username:
+        cred = await db.edusoft_credentials.find_one({"username": payload.username})
+        if cred:
+            target_student_id = str(cred.get("student_id"))
+
+    if target_student_id:
+        try:
+            s_oid = ObjectId(target_student_id)
+            student = await db.students.find_one({"$or": [{"_id": target_student_id}, {"_id": s_oid}]})
+        except Exception:
+            student = await db.students.find_one({"_id": target_student_id})
+
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found. Please provide valid student_id or EduSoft username."
+        )
+
+    update_doc = {"updated_at": datetime.now(timezone.utc)}
+    if payload.student_class:
+        update_doc["student_class"] = payload.student_class
+    if payload.division:
+        update_doc["division"] = payload.division
+    if payload.address:
+        update_doc["address"] = payload.address
+    if payload.guardian_name:
+        update_doc["guardian_name"] = payload.guardian_name
+    if payload.guardian_phone:
+        update_doc["guardian_phone"] = payload.guardian_phone
+    if payload.category:
+        update_doc["category"] = payload.category
+    if payload.student_phone and str(payload.student_phone).strip():
+        sp = str(payload.student_phone).strip()
+        update_doc["student_phone"] = sp
+        update_doc["mobile_number"] = sp
+        update_doc["phone"] = sp
+
+    await db.students.update_one({"_id": student["_id"]}, {"$set": update_doc})
+
+    return {
+        "status": "success",
+        "message": f"Student '{student.get('student_name')}' updated successfully.",
+        "student_id": str(student["_id"]),
+        "student_class": payload.student_class or student.get("student_class")
+    }
+
+

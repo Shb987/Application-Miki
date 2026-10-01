@@ -67,9 +67,10 @@ async def search_students(
             async for school in s_cursor:
                 school_map[str(school["_id"])] = school.get("name")
 
-    # Batch lookup mobile numbers from usertable if not directly on student doc
-    missing_mobile_sids = [s["_id"] for s in students if not (s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile"))]
+    # Batch lookup student mobile numbers from usertable if not directly on student doc
+    missing_mobile_sids = [s["_id"] for s in students if not (s.get("student_phone") or s.get("mobile_number") or s.get("phone") or s.get("mobile"))]
     mobile_map = {}
+    guardian_phone_map = {}
     if missing_mobile_sids:
         sid_str_list = [str(x) for x in missing_mobile_sids]
         u_cursor = db.usertable.find({
@@ -82,6 +83,7 @@ async def search_students(
         })
         async for u in u_cursor:
             m_num = u.get("mobile_number")
+            u_type = u.get("usertype")
             if m_num:
                 st_ids = u.get("student_ids", [])
                 if not isinstance(st_ids, list):
@@ -89,7 +91,11 @@ async def search_students(
                 if u.get("student_id"):
                     st_ids.append(u.get("student_id"))
                 for st_id in st_ids:
-                    mobile_map[str(st_id)] = m_num
+                    key = str(st_id)
+                    if u_type == "parent":
+                        guardian_phone_map[key] = m_num
+                    else:
+                        mobile_map[key] = m_num
 
     for s in students:
         sid = s.get("school_id")
@@ -97,9 +103,14 @@ async def search_students(
             s["school_name"] = school_map[sid]
         
         st_id_str = str(s["_id"])
-        m_val = s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile") or mobile_map.get(st_id_str)
-        if m_val:
-            s["mobile_number"] = m_val
+        # Only assign student's own phone to mobile_number (do not leak parent/father phone)
+        st_phone = s.get("student_phone") or s.get("mobile_number") or s.get("phone") or s.get("mobile") or mobile_map.get(st_id_str)
+        s["mobile_number"] = st_phone if st_phone else None
+        
+        # Populate guardian phone cleanly
+        g_phone = s.get("guardian_phone") or s.get("parent_mobile") or guardian_phone_map.get(st_id_str)
+        if g_phone:
+            s["guardian_phone"] = g_phone
 
     return {
         "status": "success",
@@ -131,8 +142,27 @@ async def get_student_profile(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    if not (student.get("mobile_number") or student.get("phone") or student.get("mobile") or student.get("parent_mobile")):
+    st_phone = student.get("student_phone") or student.get("mobile_number") or student.get("phone") or student.get("mobile")
+    if not st_phone:
+        st_user = await db.usertable.find_one({
+            "usertype": {"$ne": "parent"},
+            "$or": [
+                {"student_ids": s_oid},
+                {"student_ids": student_id},
+                {"student_id": s_oid},
+                {"student_id": student_id}
+            ]
+        })
+        if st_user and st_user.get("mobile_number"):
+            student["mobile_number"] = st_user.get("mobile_number")
+        else:
+            student["mobile_number"] = None
+    else:
+        student["mobile_number"] = st_phone
+
+    if not student.get("guardian_phone"):
         parent = await db.usertable.find_one({
+            "usertype": "parent",
             "$or": [
                 {"student_ids": s_oid},
                 {"student_ids": student_id},
@@ -141,7 +171,7 @@ async def get_student_profile(
             ]
         })
         if parent and parent.get("mobile_number"):
-            student["mobile_number"] = parent.get("mobile_number")
+            student["guardian_phone"] = parent.get("mobile_number")
 
     # Career analysis (latest)
     career = await db.career_analyzer.find_one(

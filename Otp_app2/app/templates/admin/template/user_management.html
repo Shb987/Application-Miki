@@ -633,7 +633,7 @@
     <thead class="table-dark"><tr><th>#</th><th>Name</th><th>Phone / Mobile</th><th>Class</th><th>School</th><th>DOB</th><th>Guardian</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
         json.data.forEach((s, i) => {
             const isActive = s.is_active !== false;
-            const mobileNum = s.mobile_number || s.phone || s.mobile || "—";
+            const mobileNum = s.student_phone || s.mobile_number || s.phone || s.mobile || "—";
             const rawCls = s.student_class ? String(s.student_class).replace(/^class\s+/gi, '').trim() : '';
             const stdBadgeText = rawCls ? (rawCls.toLowerCase() === 'string' ? 'Unassigned' : `Class ${rawCls}`) : '—';
             html += `<tr>
@@ -643,7 +643,7 @@
         <td><span class="class-badge">${stdBadgeText}</span></td>
         <td>${s.school_name || "—"}</td>
         <td>${s.dob || "—"}</td>
-        <td>${s.guardian_name || "—"}</td>
+        <td>${s.guardian_name || "—"}${s.guardian_phone ? '<br><small class="text-muted" title="Guardian Mobile"><i class="fa fa-phone me-1"></i>' + s.guardian_phone + '</small>' : ''}</td>
         <td><span class="badge ${isActive ? "bg-success" : "bg-secondary"}">${isActive ? "Active" : "Inactive"}</span></td>
         <td>
             <div class="d-flex align-items-center gap-2">

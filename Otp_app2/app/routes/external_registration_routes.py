@@ -21,8 +21,20 @@ class ExternalStudentRegistration(BaseModel):
     dob: str = Field(..., description="Date of birth in YYYY-MM-DD format")
     guardian_name: str = Field(..., description="Name of parent / guardian")
     guardian_phone: str = Field(..., description="Guardian's 10-digit mobile number")
+    student_phone: Optional[str] = Field(None, description="Student's own 10-digit mobile number")
+    phone: Optional[str] = Field(None, description="Student's phone number alias")
+    mobile: Optional[str] = Field(None, description="Student's mobile number alias")
+    mobile_number: Optional[str] = Field(None, description="Student's mobile number alias")
     link: str = Field(..., description="Unique school identifier link (used to look up the school)")
     category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
+
+    def get_resolved_student_phone(self) -> Optional[str]:
+        for candidate in [self.student_phone, self.phone, self.mobile, self.mobile_number]:
+            if candidate and str(candidate).strip():
+                cleaned = str(candidate).strip()
+                if cleaned.isdigit() and len(cleaned) == 10:
+                    return cleaned
+        return None
 
     @field_validator("guardian_phone")
     @classmethod
@@ -55,6 +67,22 @@ class ExternalStudentRegistration(BaseModel):
         if v_upper not in ["NCERT", "SCERT"]:
             return "SCERT"
         return v_upper
+
+
+class ExternalStudentUpdate(BaseModel):
+    student_id: Optional[str] = Field(None, description="Miki Student ObjectId (if available)")
+    name: Optional[str] = Field(None, description="Student's full name")
+    dob: Optional[str] = Field(None, description="Student DOB YYYY-MM-DD")
+    link: Optional[str] = Field(None, description="School identifier link")
+    student_class: str = Field(..., description="Updated class / grade (e.g. '6', '10')")
+    division: Optional[str] = Field(None, description="Division / Section")
+    address: Optional[str] = Field(None, description="Updated address")
+    guardian_name: Optional[str] = Field(None, description="Guardian name")
+    guardian_phone: Optional[str] = Field(None, description="Guardian phone")
+    student_phone: Optional[str] = Field(None, description="Student phone")
+    phone: Optional[str] = Field(None, description="Student phone alias")
+    mobile_number: Optional[str] = Field(None, description="Student mobile number alias")
+    category: Optional[str] = Field(None, description="Curriculum category (SCERT/NCERT)")
 
 
 from typing import Optional
@@ -119,7 +147,7 @@ async def verify_api_key(
 
 
 # ─────────────────────────────────────────────
-# 🚀 Endpoint
+# 🚀 Endpoints
 # ─────────────────────────────────────────────
 
 @router.post(
@@ -128,7 +156,7 @@ async def verify_api_key(
     summary="External student registration",
     description=(
         "Called by partner web applications at registration time. "
-        "Creates a student record and links it to the school identified by `link`."
+        "Creates or updates a student record and links it to the school identified by `link`."
     ),
     tags=["External Registration"]
 )
@@ -136,6 +164,8 @@ async def external_register_student(
     payload: ExternalStudentRegistration,
     _: str = Depends(verify_api_key)
 ):
+    resolved_st_phone = payload.get_resolved_student_phone()
+
     # ── 1. Resolve school by link or Auto-Create ───────────────────────────
     school = await db.schools.find_one({"link": payload.link})
     if not school:
@@ -159,7 +189,7 @@ async def external_register_student(
         school_id = str(school["_id"])
         school_name = school.get("name", "")
 
-    # ── 2. Prevent duplicate registration (same name + dob + school) ───────
+    # ── 2. Check duplicate registration (same name + dob + school) ───────
     existing_student = await db.students.find_one({
         "student_name": payload.name,
         "dob": payload.dob,
@@ -167,6 +197,27 @@ async def external_register_student(
     })
     if existing_student:
         student_id_str = str(existing_student["_id"])
+        
+        # Update existing student's class and profile in Miki DB if updated in EduSoft
+        update_data = {
+            "student_class": payload.student_class,
+            "division": payload.division,
+            "address": payload.address,
+            "guardian_name": payload.guardian_name,
+            "guardian_phone": payload.guardian_phone,
+            "category": payload.category,
+            "updated_at": datetime.now(timezone.utc)
+        }
+        if resolved_st_phone:
+            update_data["student_phone"] = resolved_st_phone
+            update_data["mobile_number"] = resolved_st_phone
+            update_data["phone"] = resolved_st_phone
+
+        await db.students.update_one(
+            {"_id": existing_student["_id"]},
+            {"$set": update_data}
+        )
+
         # Ensure EduSoft credentials exist for already registered student
         existing_cred = await db.edusoft_credentials.find_one({
             "$or": [{"student_id": student_id_str}, {"student_id": existing_student["_id"]}]
@@ -187,10 +238,26 @@ async def external_register_student(
             except Exception as e:
                 print(f"[EduSoft] Auto credential creation warning: {e}")
 
+        # Ensure parent is linked in usertable
+        await db.usertable.update_one(
+            {"mobile_number": payload.guardian_phone},
+            {
+                "$setOnInsert": {
+                    "usertype": "parent",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": existing_student["_id"]
+                }
+            },
+            upsert=True
+        )
+
         return {
             "status": "already_registered",
-            "message": "Student is already registered in this school.",
+            "message": f"Student is already registered. Updated class to '{payload.student_class}'.",
             "student_id": student_id_str,
+            "student_class": payload.student_class,
             "school_id": school_id,
             "school_name": school_name,
             "school_link": payload.link
@@ -213,6 +280,10 @@ async def external_register_student(
         "division": payload.division,
         "address": payload.address,
         "guardian_name": payload.guardian_name,
+        "guardian_phone": payload.guardian_phone,
+        "student_phone": resolved_st_phone,
+        "mobile_number": resolved_st_phone,
+        "phone": resolved_st_phone,
         "school_id": school_id,
         "school_link": payload.link,
         "image_url": None,
@@ -266,6 +337,7 @@ async def external_register_student(
             "dob": payload.dob,
             "guardian_name": payload.guardian_name,
             "guardian_phone": payload.guardian_phone,
+            "student_phone": resolved_st_phone,
             "username": auto_username,
             "password": auto_password,
             "category": payload.category,
@@ -294,7 +366,6 @@ async def external_register_student(
     )
 
     # ── 6. Update school's student count (optional convenience counter) ───
-    from bson import ObjectId
     await db.schools.update_one(
         {"_id": ObjectId(school_id)},
         {
@@ -309,5 +380,80 @@ async def external_register_student(
         "student_id": student_id_str,
         "school_id": school_id,
         "school_name": school_name,
-        "guardian_phone": payload.guardian_phone
+        "student_class": payload.student_class,
+        "guardian_phone": payload.guardian_phone,
+        "student_phone": resolved_st_phone
     }
+
+
+@router.post(
+    "/update-student",
+    response_model=dict,
+    summary="Update student details / class from external partner",
+    description="Updates an existing student's class, division, or details in Miki.",
+    tags=["External Registration"]
+)
+@router.put(
+    "/update-student",
+    response_model=dict,
+    include_in_schema=False
+)
+@router.post(
+    "/update-student-class",
+    response_model=dict,
+    include_in_schema=False
+)
+async def external_update_student(
+    payload: ExternalStudentUpdate,
+    _: str = Depends(verify_api_key)
+):
+    student = None
+    if payload.student_id:
+        try:
+            s_oid = ObjectId(payload.student_id)
+            student = await db.students.find_one({"$or": [{"_id": payload.student_id}, {"_id": s_oid}]})
+        except Exception:
+            student = await db.students.find_one({"_id": payload.student_id})
+
+    if not student and payload.name and payload.dob and payload.link:
+        school = await db.schools.find_one({"link": payload.link})
+        if school:
+            student = await db.students.find_one({
+                "student_name": payload.name,
+                "dob": payload.dob,
+                "school_id": str(school["_id"])
+            })
+
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found for updating")
+
+    update_fields = {"updated_at": datetime.now(timezone.utc)}
+    if payload.student_class:
+        update_fields["student_class"] = payload.student_class
+    if payload.division:
+        update_fields["division"] = payload.division
+    if payload.address:
+        update_fields["address"] = payload.address
+    if payload.guardian_name:
+        update_fields["guardian_name"] = payload.guardian_name
+    if payload.guardian_phone:
+        update_fields["guardian_phone"] = payload.guardian_phone
+    if payload.category:
+        update_fields["category"] = payload.category
+
+    st_p = payload.student_phone or payload.phone or payload.mobile_number
+    if st_p and str(st_p).strip():
+        cleaned_p = str(st_p).strip()
+        update_fields["student_phone"] = cleaned_p
+        update_fields["mobile_number"] = cleaned_p
+        update_fields["phone"] = cleaned_p
+
+    await db.students.update_one({"_id": student["_id"]}, {"$set": update_fields})
+
+    return {
+        "status": "success",
+        "message": f"Student '{student.get('student_name')}' updated successfully.",
+        "student_id": str(student["_id"]),
+        "student_class": payload.student_class
+    }
+

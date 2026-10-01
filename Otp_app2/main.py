@@ -112,44 +112,48 @@ async def cleanup_and_sync_student_data():
     try:
         from app.routes.external_registration_routes import calculate_age_from_dob
         cursor = db.students.find({})
-        count = 0
+        clean_count = 0
         async for s in cursor:
             st_id_str = str(s["_id"])
-            g_p = s.get("guardian_phone") or s.get("parent_mobile")
+            g_p = str(s.get("guardian_phone") or s.get("parent_mobile") or "").strip()
             
-            st_p = (
+            st_p = str(
                 s.get("student_phone") or
                 s.get("phone_number") or
                 s.get("mobileno") or
                 s.get("mobile_no") or
                 s.get("mobile_number") or
                 s.get("phone") or
-                s.get("mobile")
-            )
+                s.get("mobile") or ""
+            ).strip()
             
-            final_phone = st_p or g_p
-            update_fields = {}
-            if final_phone and (not s.get("student_phone") or not s.get("mobile_number")):
-                phone_clean = str(final_phone).strip()
-                update_fields["student_phone"] = phone_clean
-                update_fields["mobile_number"] = phone_clean
-                update_fields["phone_number"] = phone_clean
-                update_fields["mobileno"] = phone_clean
-                update_fields["mobile_no"] = phone_clean
-                update_fields["phone"] = phone_clean
+            # If student phone was set equal to guardian phone, unset duplicate student phone fields
+            if st_p and g_p and st_p == g_p:
+                await db.students.update_one(
+                    {"_id": s["_id"]},
+                    {"$unset": {
+                        "student_phone": "",
+                        "mobile_number": "",
+                        "phone_number": "",
+                        "mobileno": "",
+                        "mobile_no": "",
+                        "phone": "",
+                        "mobile": ""
+                    }}
+                )
+                clean_count += 1
             
             # Compute age if missing from DOB
             if not s.get("age") and s.get("dob"):
                 calculated_age = calculate_age_from_dob(s.get("dob"))
                 if calculated_age is not None:
-                    update_fields["age"] = calculated_age
+                    await db.students.update_one(
+                        {"_id": s["_id"]},
+                        {"$set": {"age": calculated_age}}
+                    )
 
-            if update_fields:
-                await db.students.update_one({"_id": s["_id"]}, {"$set": update_fields})
-                count += 1
-
-        if count > 0:
-            print(f"[INFO] Synced student phone numbers and age for {count} records.")
+        if clean_count > 0:
+            print(f"[INFO] Cleaned up {clean_count} student records with duplicate guardian phone numbers.")
     except Exception as e:
         print(f"[WARN] Failed to sync student phone numbers and age: {e}")
 

@@ -747,24 +747,25 @@ async def get_students(admin=Depends(require_permission("User Management", "read
                     mobile_map[str(st_id)] = m_num
 
     for s in students:
-        m_val = (
+        g_phone = str(s.get("guardian_phone") or s.get("parent_mobile") or "").strip()
+        st_phone = str(
             s.get("student_phone") or
-            s.get("mobile_number") or
             s.get("phone_number") or
             s.get("mobileno") or
             s.get("mobile_no") or
+            s.get("mobile_number") or
             s.get("phone") or
-            s.get("mobile") or
-            s.get("parent_mobile") or
-            s.get("guardian_phone") or
-            mobile_map.get(str(s["_id"]))
-        )
-        if m_val:
-            m_clean = str(m_val).strip()
-            s["mobile_number"] = m_clean
-            s["student_phone"] = m_clean
-            s["phone_number"] = m_clean
-            s["mobileno"] = m_clean
+            s.get("mobile") or ""
+        ).strip()
+        
+        if st_phone and g_phone and st_phone == g_phone:
+            st_phone = ""
+
+        resolved_num = st_phone if st_phone else None
+        s["mobile_number"] = resolved_num
+        s["student_phone"] = resolved_num
+        s["phone_number"] = resolved_num
+        s["mobileno"] = resolved_num
 
     serialized_students = [serialize_mongo_doc(doc) for doc in students]
     return {

@@ -633,7 +633,7 @@
     <thead class="table-dark"><tr><th>#</th><th>Name</th><th>Phone / Mobile</th><th>Class</th><th>School</th><th>DOB</th><th>Guardian</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
         json.data.forEach((s, i) => {
             const isActive = s.is_active !== false;
-            const mobileNum = s.student_phone || s.mobile_number || s.phone || s.mobile || "—";
+            const mobileNum = s.student_phone || s.mobile_number || s.phone_number || s.mobileno || s.mobile_no || s.phone || s.mobile || "—";
             const rawCls = s.student_class ? String(s.student_class).replace(/^class\s+/gi, '').trim() : '';
             const stdBadgeText = rawCls ? (rawCls.toLowerCase() === 'string' ? 'Unassigned' : `Class ${rawCls}`) : '—';
             html += `<tr>

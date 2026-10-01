@@ -29,6 +29,8 @@ class ExternalStudentRegistration(BaseModel):
     student_mobile: Optional[str] = Field(None, description="Student's mobile number alias")
     contact_no: Optional[str] = Field(None, description="Contact number alias")
     mob_no: Optional[str] = Field(None, description="Mobile number alias")
+    mobileno: Optional[str] = Field(None, description="EduSoft mobile number alias")
+    mobile_no: Optional[str] = Field(None, description="EduSoft mobile number alias")
     father_phone: Optional[str] = Field(None, description="Father phone alias")
     parent_phone: Optional[str] = Field(None, description="Parent phone alias")
     parent_mobile: Optional[str] = Field(None, description="Parent mobile alias")
@@ -37,7 +39,7 @@ class ExternalStudentRegistration(BaseModel):
 
     def get_resolved_student_phone(self) -> Optional[str]:
         # Priority 1: Direct student phone candidates
-        for candidate in [self.student_phone, self.student_mobile, self.phone, self.mobile, self.mobile_number, self.phone_number, self.contact_no, self.mob_no]:
+        for candidate in [self.student_phone, self.student_mobile, self.phone, self.mobile, self.mobile_number, self.phone_number, self.mobileno, self.mobile_no, self.contact_no, self.mob_no]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
@@ -51,7 +53,7 @@ class ExternalStudentRegistration(BaseModel):
         return None
 
     def get_resolved_guardian_phone(self) -> str:
-        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile, self.student_phone, self.phone, self.mobile_number]:
+        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile, self.student_phone, self.phone, self.mobile_number, self.mobileno, self.mobile_no, self.phone_number]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
@@ -254,6 +256,9 @@ async def external_register_student(
             update_data["student_phone"] = resolved_st_phone
             update_data["mobile_number"] = resolved_st_phone
             update_data["phone"] = resolved_st_phone
+            update_data["mobileno"] = resolved_st_phone
+            update_data["mobile_no"] = resolved_st_phone
+            update_data["phone_number"] = resolved_st_phone
 
         await db.students.update_one(
             {"_id": existing_student["_id"]},
@@ -327,6 +332,9 @@ async def external_register_student(
         "student_phone": resolved_st_phone,
         "mobile_number": resolved_st_phone,
         "phone": resolved_st_phone,
+        "mobileno": resolved_st_phone,
+        "mobile_no": resolved_st_phone,
+        "phone_number": resolved_st_phone,
         "school_id": school_id,
         "school_link": payload.link,
         "image_url": None,

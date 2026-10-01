@@ -80,7 +80,7 @@ async def search_students(
                 school_map[str(school["_id"])] = school.get("name")
 
     # Batch lookup student mobile numbers from usertable if not directly on student doc
-    missing_mobile_sids = [s["_id"] for s in students if not (s.get("student_phone") or s.get("mobile_number") or s.get("phone") or s.get("mobile"))]
+    missing_mobile_sids = [s["_id"] for s in students if not (s.get("student_phone") or s.get("mobile_number") or s.get("phone_number") or s.get("mobileno") or s.get("mobile_no") or s.get("phone") or s.get("mobile"))]
     mobile_map = {}
     guardian_phone_map = {}
     if missing_mobile_sids:
@@ -119,8 +119,13 @@ async def search_students(
         st_phone = (
             s.get("student_phone") or
             s.get("mobile_number") or
+            s.get("phone_number") or
+            s.get("mobileno") or
+            s.get("mobile_no") or
             s.get("phone") or
             s.get("mobile") or
+            s.get("contact_no") or
+            s.get("mob_no") or
             mobile_map.get(st_id_str) or
             s.get("guardian_phone") or
             s.get("parent_mobile") or
@@ -163,7 +168,17 @@ async def get_student_profile(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    st_phone = student.get("student_phone") or student.get("mobile_number") or student.get("phone") or student.get("mobile")
+    st_phone = (
+        student.get("student_phone") or
+        student.get("mobile_number") or
+        student.get("phone_number") or
+        student.get("mobileno") or
+        student.get("mobile_no") or
+        student.get("phone") or
+        student.get("mobile") or
+        student.get("contact_no") or
+        student.get("guardian_phone")
+    )
     if not st_phone:
         st_user = await db.usertable.find_one({
             "usertype": {"$ne": "parent"},

@@ -13,6 +13,21 @@ router = APIRouter()
 # 📦 Request Schema
 # ─────────────────────────────────────────────
 
+def calculate_age_from_dob(dob_str: Optional[str]) -> Optional[int]:
+    if not dob_str or str(dob_str).strip().lower() in ["string", "null", "none", ""]:
+        return None
+    dob_clean = str(dob_str).strip()
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%Y"):
+        try:
+            dt = datetime.strptime(dob_clean, fmt)
+            today = datetime.now(timezone.utc).date()
+            age = today.year - dt.year - ((today.month, today.day) < (dt.month, dt.day))
+            return max(0, age)
+        except ValueError:
+            pass
+    return None
+
+
 class ExternalStudentRegistration(BaseModel):
     name: str = Field(..., description="Student's full name")
     student_class: str = Field(..., description="Class / Grade (e.g. '5', '10')")
@@ -38,15 +53,12 @@ class ExternalStudentRegistration(BaseModel):
     category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
 
     def get_resolved_student_phone(self) -> Optional[str]:
-        g_phone = self.get_resolved_guardian_phone()
-        # Only resolve dedicated student phone candidates if different from guardian phone
-        for candidate in [self.student_phone, self.student_mobile, self.phone, self.mobile, self.mobile_number, self.phone_number, self.mobileno, self.mobile_no, self.contact_no, self.mob_no]:
+        # Resolve any student phone parameter passed by EduSoft
+        for candidate in [self.student_phone, self.student_mobile, self.phone_number, self.mobileno, self.mobile_no, self.phone, self.mobile, self.mobile_number, self.contact_no, self.mob_no]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
-                    st_p = digits[-10:]
-                    if st_p != g_phone:
-                        return st_p
+                    return digits[-10:]
         return None
 
     def get_resolved_guardian_phone(self) -> str:
@@ -235,10 +247,12 @@ async def external_register_student(
             ]
         })
 
+    calculated_age = calculate_age_from_dob(payload.dob)
+
     if existing_student:
         student_id_str = str(existing_student["_id"])
         
-        # Update existing student's class and profile in Miki DB if updated in EduSoft
+        # Update existing student's class, age, and profile in Miki DB if updated in EduSoft
         update_data = {
             "student_class": clean_class_str,
             "student_class_raw": raw_class_str,
@@ -247,6 +261,7 @@ async def external_register_student(
             "guardian_name": payload.guardian_name,
             "guardian_phone": resolved_g_phone,
             "category": payload.category,
+            "age": calculated_age,
             "updated_at": datetime.now(timezone.utc)
         }
         if resolved_st_phone:
@@ -320,6 +335,7 @@ async def external_register_student(
     student_doc = {
         "student_name": payload.name,
         "dob": payload.dob,
+        "age": calculated_age,
         "student_class": clean_class_str,
         "student_class_raw": raw_class_str,
         "division": payload.division,

@@ -121,6 +121,11 @@ async def search_students(
         if g_phone:
             s["guardian_phone"] = g_phone
 
+        # Ensure student age is calculated from DOB if missing
+        if not s.get("age") and s.get("dob"):
+            from app.routes.external_registration_routes import calculate_age_from_dob
+            s["age"] = calculate_age_from_dob(s.get("dob"))
+
         # Resolve student's own phone number (strictly excluding guardian/parent phone numbers)
         raw_st_phone = (
             s.get("student_phone") or
@@ -137,7 +142,12 @@ async def search_students(
         if raw_st_phone and g_phone and str(raw_st_phone).strip() == str(g_phone).strip():
             raw_st_phone = None
 
-        s["mobile_number"] = raw_st_phone if raw_st_phone else None
+        resolved_st_num = str(raw_st_phone).strip() if raw_st_phone else None
+        s["mobile_number"] = resolved_st_num
+        s["student_phone"] = resolved_st_num
+        s["phone_number"] = resolved_st_num
+        s["mobileno"] = resolved_st_num
+        s["mobile_no"] = resolved_st_num
 
     return {
         "status": "success",
@@ -168,6 +178,10 @@ async def get_student_profile(
     student = await db.students.find_one({"_id": s_oid})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+
+    if not student.get("age") and student.get("dob"):
+        from app.routes.external_registration_routes import calculate_age_from_dob
+        student["age"] = calculate_age_from_dob(student.get("dob"))
 
     g_phone = student.get("guardian_phone")
     if not g_phone:
@@ -209,11 +223,14 @@ async def get_student_profile(
             ]
         })
         if st_user and st_user.get("mobile_number"):
-            student["mobile_number"] = st_user.get("mobile_number")
-        else:
-            student["mobile_number"] = None
-    else:
-        student["mobile_number"] = raw_st_phone
+            raw_st_phone = st_user.get("mobile_number")
+
+    resolved_st_num = str(raw_st_phone).strip() if raw_st_phone else None
+    student["mobile_number"] = resolved_st_num
+    student["student_phone"] = resolved_st_num
+    student["phone_number"] = resolved_st_num
+    student["mobileno"] = resolved_st_num
+    student["mobile_no"] = resolved_st_num
 
     if not student.get("guardian_phone"):
         parent = await db.usertable.find_one({

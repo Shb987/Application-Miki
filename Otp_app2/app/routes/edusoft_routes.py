@@ -313,6 +313,7 @@ class EduSoftUpdateStudent(BaseModel):
     student_class: Optional[str] = Field(None, description="Updated student class (e.g. '6', '10')")
     division: Optional[str] = Field(None, description="Updated division")
     address: Optional[str] = Field(None, description="Updated address")
+    dob: Optional[str] = Field(None, description="Student DOB (YYYY-MM-DD)")
     guardian_name: Optional[str] = Field(None, description="Updated guardian name")
     guardian_phone: Optional[str] = Field(None, description="Updated guardian phone")
     student_phone: Optional[str] = Field(None, description="Updated student phone")
@@ -320,6 +321,8 @@ class EduSoftUpdateStudent(BaseModel):
     mobile: Optional[str] = Field(None, description="Student mobile alias")
     mobile_number: Optional[str] = Field(None, description="Student mobile number alias")
     phone_number: Optional[str] = Field(None, description="Student phone number alias")
+    mobileno: Optional[str] = Field(None, description="EduSoft mobile number alias")
+    mobile_no: Optional[str] = Field(None, description="EduSoft mobile number alias")
     student_mobile: Optional[str] = Field(None, description="Student mobile alias")
     contact_no: Optional[str] = Field(None, description="Contact number alias")
     mob_no: Optional[str] = Field(None, description="Mobile number alias")
@@ -375,6 +378,12 @@ async def edusoft_update_student(
         update_doc["division"] = payload.division
     if payload.address:
         update_doc["address"] = payload.address
+    if payload.dob:
+        from app.routes.external_registration_routes import calculate_age_from_dob
+        update_doc["dob"] = payload.dob
+        age = calculate_age_from_dob(payload.dob)
+        if age is not None:
+            update_doc["age"] = age
     if payload.guardian_name:
         update_doc["guardian_name"] = payload.guardian_name
     if payload.guardian_phone:
@@ -383,7 +392,7 @@ async def edusoft_update_student(
         update_doc["category"] = payload.category
 
     resolved_phone = None
-    for candidate in [payload.student_phone, payload.student_mobile, payload.phone, payload.mobile, payload.mobile_number, payload.phone_number, payload.contact_no, payload.mob_no]:
+    for candidate in [payload.student_phone, payload.student_mobile, payload.phone_number, payload.mobileno, payload.mobile_no, payload.phone, payload.mobile, payload.mobile_number, payload.contact_no, payload.mob_no]:
         if candidate and str(candidate).strip():
             digits = re.sub(r'\D', '', str(candidate).strip())
             if len(digits) >= 10:
@@ -395,6 +404,8 @@ async def edusoft_update_student(
         update_doc["mobile_number"] = resolved_phone
         update_doc["phone"] = resolved_phone
         update_doc["phone_number"] = resolved_phone
+        update_doc["mobileno"] = resolved_phone
+        update_doc["mobile_no"] = resolved_phone
 
     await db.students.update_one({"_id": student["_id"]}, {"$set": update_doc})
 

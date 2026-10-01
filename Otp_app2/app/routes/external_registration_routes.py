@@ -69,10 +69,15 @@ class ExternalStudentRegistration(BaseModel):
                     return digits[-10:]
         return "0000000000"
 
-    @field_validator("guardian_phone", mode="before")
+    @field_validator(
+        "guardian_phone", "student_phone", "phone", "mobile", "mobile_number",
+        "phone_number", "student_mobile", "contact_no", "mob_no", "mobileno",
+        "mobile_no", "father_phone", "parent_phone", "parent_mobile",
+        mode="before"
+    )
     @classmethod
     def validate_phone(cls, v: Any) -> Optional[str]:
-        if not v:
+        if not v or str(v).strip().lower() in ["none", "null", "undefined", "string", "0", ""]:
             return None
         cleaned = re.sub(r'\D', '', str(v).strip())
         return cleaned[-10:] if len(cleaned) >= 10 else str(v).strip()

@@ -71,6 +71,8 @@ async def register_student(
         "class_balance": 0
     }
 
+    st_mobile_number = current.get("sub") if usertype == "student" else None
+
     # 1️⃣ Create student document
     student_doc = {
         "student_name": student_name,
@@ -79,6 +81,12 @@ async def register_student(
         "age": age,
         "address": address,
         "guardian_name": guardian_name,
+        "guardian_phone": parent_mobile,
+        "student_phone": st_mobile_number,
+        "mobile_number": st_mobile_number,
+        "phone_number": st_mobile_number,
+        "mobileno": st_mobile_number,
+        "mobile_no": st_mobile_number,
         "image_url": image_url,
         "created_at": datetime.now(timezone.utc),
         "subscription": {"current_tier": "basic", "last_recharge_date": None},

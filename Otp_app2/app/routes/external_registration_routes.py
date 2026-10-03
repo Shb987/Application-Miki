@@ -28,163 +28,53 @@ def calculate_age_from_dob(dob_str: Optional[str]) -> Optional[int]:
     return None
 
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict
-
 class ExternalStudentRegistration(BaseModel):
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
-
     name: str = Field(..., description="Student's full name")
     student_class: str = Field(..., description="Class / Grade (e.g. '5', '10')")
     division: str = Field(..., description="Division / Section (e.g. 'A', 'B')")
     address: str = Field(..., description="Student's residential address")
     dob: str = Field(..., description="Date of birth in YYYY-MM-DD format")
     guardian_name: str = Field(..., description="Name of parent / guardian")
-    
-    # Guardian phone aliases
     guardian_phone: Optional[str] = Field(None, description="Guardian's mobile number")
-    guardian_phone_no: Optional[str] = Field(None, description="Guardian phone alias")
-    guardian_mobile: Optional[str] = Field(None, description="Guardian mobile alias")
-    guardian_mobile_no: Optional[str] = Field(None, description="Guardian mobile alias")
-    guardian_mobileno: Optional[str] = Field(None, description="Guardian mobile alias")
-    guardian_contact: Optional[str] = Field(None, description="Guardian contact alias")
-    guardian_contact_no: Optional[str] = Field(None, description="Guardian contact alias")
-    guardianPhone: Optional[str] = Field(None, description="Guardian phone camelCase")
-    guardianMobile: Optional[str] = Field(None, description="Guardian mobile camelCase")
-    father_phone: Optional[str] = Field(None, description="Father phone alias")
-    father_mobile: Optional[str] = Field(None, description="Father mobile alias")
-    father_mobileno: Optional[str] = Field(None, description="Father mobile alias")
-    father_mobile_no: Optional[str] = Field(None, description="Father mobile alias")
-    father_phone_no: Optional[str] = Field(None, description="Father phone alias")
-    parent_phone: Optional[str] = Field(None, description="Parent phone alias")
-    parent_mobile: Optional[str] = Field(None, description="Parent mobile alias")
-    parent_phone_no: Optional[str] = Field(None, description="Parent phone alias")
-    parent_mobile_no: Optional[str] = Field(None, description="Parent mobile alias")
-    mother_phone: Optional[str] = Field(None, description="Mother phone alias")
-    mother_mobile: Optional[str] = Field(None, description="Mother mobile alias")
-    mother_mobileno: Optional[str] = Field(None, description="Mother mobile alias")
-    mother_mobile_no: Optional[str] = Field(None, description="Mother mobile alias")
-    mother_phone_no: Optional[str] = Field(None, description="Mother phone alias")
-
-    # Student phone aliases
     student_phone: Optional[str] = Field(None, description="Student's own 10-digit mobile number")
-    student_phone_no: Optional[str] = Field(None, description="Student phone alias")
-    student_mobile: Optional[str] = Field(None, description="Student mobile alias")
-    student_mobile_no: Optional[str] = Field(None, description="Student mobile alias")
-    student_mobileno: Optional[str] = Field(None, description="Student mobile alias")
-    student_contact: Optional[str] = Field(None, description="Student contact alias")
-    student_contact_no: Optional[str] = Field(None, description="Student contact alias")
-    studentPhone: Optional[str] = Field(None, description="Student phone camelCase")
-    studentMobile: Optional[str] = Field(None, description="Student mobile camelCase")
-    studentMobileno: Optional[str] = Field(None, description="Student mobile camelCase")
-    studentMobileNo: Optional[str] = Field(None, description="Student mobile camelCase")
-    studentPhoneNo: Optional[str] = Field(None, description="Student phone camelCase")
-    studentPhoneNumber: Optional[str] = Field(None, description="Student phone camelCase")
-    studentContact: Optional[str] = Field(None, description="Student contact camelCase")
-    studentContactNo: Optional[str] = Field(None, description="Student contact camelCase")
-    st_phone: Optional[str] = Field(None, description="Student phone alias")
-    st_mobile: Optional[str] = Field(None, description="Student mobile alias")
-    st_mobileno: Optional[str] = Field(None, description="Student mobile alias")
-    st_phone_no: Optional[str] = Field(None, description="Student phone alias")
-    st_mobile_no: Optional[str] = Field(None, description="Student mobile alias")
     phone: Optional[str] = Field(None, description="Student's phone number alias")
     mobile: Optional[str] = Field(None, description="Student's mobile number alias")
     mobile_number: Optional[str] = Field(None, description="Student's mobile number alias")
     phone_number: Optional[str] = Field(None, description="Student's phone number alias")
-    mobileNumber: Optional[str] = Field(None, description="Student mobile camelCase")
-    phoneNumber: Optional[str] = Field(None, description="Student phone camelCase")
+    student_mobile: Optional[str] = Field(None, description="Student's mobile number alias")
     contact_no: Optional[str] = Field(None, description="Contact number alias")
-    contact: Optional[str] = Field(None, description="Contact alias")
-    contact_number: Optional[str] = Field(None, description="Contact number alias")
     mob_no: Optional[str] = Field(None, description="Mobile number alias")
     mobileno: Optional[str] = Field(None, description="EduSoft mobile number alias")
     mobile_no: Optional[str] = Field(None, description="EduSoft mobile number alias")
-
+    father_phone: Optional[str] = Field(None, description="Father phone alias")
+    parent_phone: Optional[str] = Field(None, description="Parent phone alias")
+    parent_mobile: Optional[str] = Field(None, description="Parent mobile alias")
     link: str = Field(..., description="Unique school identifier link (used to look up the school)")
     category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
 
     def get_resolved_student_phone(self) -> Optional[str]:
-        # 1. Check explicit primary candidate fields in priority order
-        candidates = [
-            self.student_phone, self.student_phone_no, self.student_mobile,
-            self.student_mobile_no, self.student_mobileno, self.student_contact,
-            self.student_contact_no, self.studentPhone, self.studentMobile,
-            self.studentMobileno, self.studentMobileNo, self.studentPhoneNo,
-            self.studentPhoneNumber, self.studentContact, self.studentContactNo,
-            self.st_phone, self.st_mobile, self.st_mobileno, self.st_phone_no,
-            self.st_mobile_no, self.mobileno, self.mobile_no, self.phone,
-            self.mobile, self.mobile_number, self.phone_number, self.mobileNumber,
-            self.phoneNumber, self.contact_no, self.contact, self.contact_number,
-            self.mob_no
-        ]
-        for candidate in candidates:
+        # Resolve dedicated student phone candidates in priority order
+        for candidate in [
+            self.student_phone, self.student_mobile, self.phone_number,
+            self.mobileno, self.mobile_no, self.phone, self.mobile,
+            self.mobile_number, self.contact_no, self.mob_no
+        ]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
                     return digits[-10:]
                 elif len(digits) > 0:
                     return digits
-
-        # 2. Inspect extra fields (case-insensitive dynamic search)
-        extra = getattr(self, "model_extra", None) or {}
-        guardian_phone_clean = self.get_resolved_guardian_phone()
-        
-        # First look for student-specific keys in extra
-        for k, v in extra.items():
-            k_lower = k.lower()
-            if any(w in k_lower for w in ["student", "st_", "stud"]) and any(w in k_lower for w in ["phone", "mobile", "contact", "cell", "tel", "mob", "no"]):
-                if v and str(v).strip():
-                    digits = re.sub(r'\D', '', str(v).strip())
-                    if len(digits) >= 10:
-                        return digits[-10:]
-                    elif len(digits) > 0:
-                        return digits
-
-        # Next look for general phone/mobile keys in extra that don't refer to guardian/parent
-        for k, v in extra.items():
-            k_lower = k.lower()
-            if not any(w in k_lower for w in ["guardian", "parent", "father", "mother"]):
-                if any(w in k_lower for w in ["phone", "mobile", "contact", "cell", "tel", "mob"]):
-                    if v and str(v).strip():
-                        digits = re.sub(r'\D', '', str(v).strip())
-                        if len(digits) >= 10:
-                            return digits[-10:]
-                        elif len(digits) > 0:
-                            return digits
-
         return None
 
     def get_resolved_guardian_phone(self) -> str:
-        candidates = [
-            self.guardian_phone, self.guardian_phone_no, self.guardian_mobile,
-            self.guardian_mobile_no, self.guardian_mobileno, self.guardian_contact,
-            self.guardian_contact_no, self.guardianPhone, self.guardianMobile,
-            self.father_phone, self.father_mobile, self.father_mobileno,
-            self.father_mobile_no, self.father_phone_no, self.parent_phone,
-            self.parent_mobile, self.parent_phone_no, self.parent_mobile_no,
-            self.mother_phone, self.mother_mobile, self.mother_mobileno,
-            self.mother_mobile_no, self.mother_phone_no
-        ]
-        for candidate in candidates:
+        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
                     return digits[-10:]
                 elif len(digits) > 0:
                     return digits
-
-        # Inspect extra fields
-        extra = getattr(self, "model_extra", None) or {}
-        for k, v in extra.items():
-            k_lower = k.lower()
-            if any(w in k_lower for w in ["guardian", "parent", "father", "mother"]):
-                if any(w in k_lower for w in ["phone", "mobile", "contact", "cell", "tel", "mob", "no"]):
-                    if v and str(v).strip():
-                        digits = re.sub(r'\D', '', str(v).strip())
-                        if len(digits) >= 10:
-                            return digits[-10:]
-                        elif len(digits) > 0:
-                            return digits
-
         return "0000000000"
 
     @field_validator(
@@ -226,8 +116,6 @@ class ExternalStudentRegistration(BaseModel):
 
 
 class ExternalStudentUpdate(BaseModel):
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
-
     student_id: Optional[str] = Field(None, description="Miki Student ObjectId (if available)")
     name: Optional[str] = Field(None, description="Student's full name")
     dob: Optional[str] = Field(None, description="Student DOB YYYY-MM-DD")
@@ -236,116 +124,44 @@ class ExternalStudentUpdate(BaseModel):
     division: Optional[str] = Field(None, description="Division / Section")
     address: Optional[str] = Field(None, description="Updated address")
     guardian_name: Optional[str] = Field(None, description="Guardian name")
-    
-    # Guardian phone aliases
     guardian_phone: Optional[str] = Field(None, description="Guardian phone")
-    guardian_phone_no: Optional[str] = Field(None, description="Guardian phone alias")
-    guardian_mobile: Optional[str] = Field(None, description="Guardian mobile alias")
-    guardian_mobile_no: Optional[str] = Field(None, description="Guardian mobile alias")
-    guardian_mobileno: Optional[str] = Field(None, description="Guardian mobile alias")
-    guardianPhone: Optional[str] = Field(None, description="Guardian phone camelCase")
-    guardianMobile: Optional[str] = Field(None, description="Guardian mobile camelCase")
-    father_phone: Optional[str] = Field(None, description="Father phone alias")
-    father_mobile: Optional[str] = Field(None, description="Father mobile alias")
-    parent_phone: Optional[str] = Field(None, description="Parent phone alias")
-    parent_mobile: Optional[str] = Field(None, description="Parent mobile alias")
-    mother_phone: Optional[str] = Field(None, description="Mother phone alias")
-    mother_mobile: Optional[str] = Field(None, description="Mother mobile alias")
-
-    # Student phone aliases
     student_phone: Optional[str] = Field(None, description="Student phone")
-    student_phone_no: Optional[str] = Field(None, description="Student phone alias")
-    student_mobile: Optional[str] = Field(None, description="Student mobile alias")
-    student_mobile_no: Optional[str] = Field(None, description="Student mobile alias")
-    student_mobileno: Optional[str] = Field(None, description="Student mobile alias")
-    studentPhone: Optional[str] = Field(None, description="Student phone camelCase")
-    studentMobile: Optional[str] = Field(None, description="Student mobile camelCase")
-    studentMobileno: Optional[str] = Field(None, description="Student mobile camelCase")
-    studentPhoneNumber: Optional[str] = Field(None, description="Student phone camelCase")
-    st_phone: Optional[str] = Field(None, description="Student phone alias")
-    st_mobile: Optional[str] = Field(None, description="Student mobile alias")
     phone: Optional[str] = Field(None, description="Student phone alias")
     mobile: Optional[str] = Field(None, description="Student mobile alias")
     mobile_number: Optional[str] = Field(None, description="Student mobile number alias")
     phone_number: Optional[str] = Field(None, description="Student phone number alias")
-    mobileNumber: Optional[str] = Field(None, description="Student mobile camelCase")
-    phoneNumber: Optional[str] = Field(None, description="Student phone camelCase")
+    student_mobile: Optional[str] = Field(None, description="Student mobile alias")
     contact_no: Optional[str] = Field(None, description="Contact number alias")
-    contact: Optional[str] = Field(None, description="Contact alias")
     mob_no: Optional[str] = Field(None, description="Mobile number alias")
     mobileno: Optional[str] = Field(None, description="EduSoft mobile number alias")
     mobile_no: Optional[str] = Field(None, description="EduSoft mobile number alias")
+    father_phone: Optional[str] = Field(None, description="Father phone alias")
+    parent_phone: Optional[str] = Field(None, description="Parent phone alias")
+    parent_mobile: Optional[str] = Field(None, description="Parent mobile alias")
     category: Optional[str] = Field(None, description="Curriculum category (SCERT/NCERT)")
 
     def get_resolved_student_phone(self) -> Optional[str]:
-        candidates = [
-            self.student_phone, self.student_phone_no, self.student_mobile,
-            self.student_mobile_no, self.student_mobileno, self.studentPhone,
-            self.studentMobile, self.studentMobileno, self.studentPhoneNumber,
-            self.st_phone, self.st_mobile, self.mobileno, self.mobile_no,
-            self.phone, self.mobile, self.mobile_number, self.phone_number,
-            self.mobileNumber, self.phoneNumber, self.contact_no, self.contact,
-            self.mob_no
-        ]
-        for candidate in candidates:
+        for candidate in [
+            self.student_phone, self.student_mobile, self.phone_number,
+            self.mobileno, self.mobile_no, self.phone, self.mobile,
+            self.mobile_number, self.contact_no, self.mob_no
+        ]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
                     return digits[-10:]
                 elif len(digits) > 0:
                     return digits
-
-        extra = getattr(self, "model_extra", None) or {}
-        for k, v in extra.items():
-            k_lower = k.lower()
-            if any(w in k_lower for w in ["student", "st_", "stud"]) and any(w in k_lower for w in ["phone", "mobile", "contact", "cell", "tel", "mob", "no"]):
-                if v and str(v).strip():
-                    digits = re.sub(r'\D', '', str(v).strip())
-                    if len(digits) >= 10:
-                        return digits[-10:]
-                    elif len(digits) > 0:
-                        return digits
-
-        for k, v in extra.items():
-            k_lower = k.lower()
-            if not any(w in k_lower for w in ["guardian", "parent", "father", "mother"]):
-                if any(w in k_lower for w in ["phone", "mobile", "contact", "cell", "tel", "mob"]):
-                    if v and str(v).strip():
-                        digits = re.sub(r'\D', '', str(v).strip())
-                        if len(digits) >= 10:
-                            return digits[-10:]
-                        elif len(digits) > 0:
-                            return digits
-
         return None
 
     def get_resolved_guardian_phone(self) -> Optional[str]:
-        candidates = [
-            self.guardian_phone, self.guardian_phone_no, self.guardian_mobile,
-            self.guardian_mobile_no, self.guardian_mobileno, self.guardianPhone,
-            self.guardianMobile, self.father_phone, self.father_mobile,
-            self.parent_phone, self.parent_mobile, self.mother_phone, self.mother_mobile
-        ]
-        for candidate in candidates:
+        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
                     return digits[-10:]
                 elif len(digits) > 0:
                     return digits
-
-        extra = getattr(self, "model_extra", None) or {}
-        for k, v in extra.items():
-            k_lower = k.lower()
-            if any(w in k_lower for w in ["guardian", "parent", "father", "mother"]):
-                if any(w in k_lower for w in ["phone", "mobile", "contact", "cell", "tel", "mob", "no"]):
-                    if v and str(v).strip():
-                        digits = re.sub(r'\D', '', str(v).strip())
-                        if len(digits) >= 10:
-                            return digits[-10:]
-                        elif len(digits) > 0:
-                            return digits
-
         return None
 
 
@@ -435,10 +251,7 @@ async def external_register_student(
 
     # Log incoming registration details with clear warnings if student_phone is absent
     if not resolved_st_phone:
-        raw_info = payload.model_dump(exclude_unset=False)
-        if hasattr(payload, "model_extra") and payload.model_extra:
-            raw_info.update(payload.model_extra)
-        print(f"[REGISTRATION WARN] student_phone was NOT provided in payload for student '{payload.name}'. guardian_phone='{resolved_g_phone}'. Received payload: {raw_info}")
+        print(f"[REGISTRATION WARN] student_phone was NOT provided in payload for student '{payload.name}'. guardian_phone='{resolved_g_phone}'")
     else:
         print(f"[REGISTRATION INFO] Registering student '{payload.name}' with student_phone='{resolved_st_phone}', guardian_phone='{resolved_g_phone}'")
 
@@ -667,7 +480,7 @@ async def external_register_student(
             "school_link": payload.link
         }
 
-        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=4.0) as client:
             resp = await client.post(edusoft_webhook_url, json=sync_payload)
             print(f"[EduSoft Sync] Forwarded registration to {edusoft_webhook_url}: Status {resp.status_code}")
     except Exception as e:

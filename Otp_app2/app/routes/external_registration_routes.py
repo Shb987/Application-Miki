@@ -53,15 +53,18 @@ class ExternalStudentRegistration(BaseModel):
     category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
 
     def get_resolved_student_phone(self) -> Optional[str]:
-        g_phone = self.get_resolved_guardian_phone()
-        # Resolve dedicated student phone candidates (strictly excluding guardian phone number)
-        for candidate in [self.student_phone, self.student_mobile, self.phone_number, self.mobileno, self.mobile_no, self.phone, self.mobile, self.mobile_number, self.contact_no, self.mob_no]:
+        # Resolve dedicated student phone candidates in priority order
+        for candidate in [
+            self.student_phone, self.student_mobile, self.phone_number,
+            self.mobileno, self.mobile_no, self.phone, self.mobile,
+            self.mobile_number, self.contact_no, self.mob_no
+        ]:
             if candidate and str(candidate).strip():
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
-                    st_p = digits[-10:]
-                    if st_p != g_phone:
-                        return st_p
+                    return digits[-10:]
+                elif len(digits) > 0:
+                    return digits
         return None
 
     def get_resolved_guardian_phone(self) -> str:
@@ -70,6 +73,8 @@ class ExternalStudentRegistration(BaseModel):
                 digits = re.sub(r'\D', '', str(candidate).strip())
                 if len(digits) >= 10:
                     return digits[-10:]
+                elif len(digits) > 0:
+                    return digits
         return "0000000000"
 
     @field_validator(
@@ -122,8 +127,42 @@ class ExternalStudentUpdate(BaseModel):
     guardian_phone: Optional[str] = Field(None, description="Guardian phone")
     student_phone: Optional[str] = Field(None, description="Student phone")
     phone: Optional[str] = Field(None, description="Student phone alias")
+    mobile: Optional[str] = Field(None, description="Student mobile alias")
     mobile_number: Optional[str] = Field(None, description="Student mobile number alias")
+    phone_number: Optional[str] = Field(None, description="Student phone number alias")
+    student_mobile: Optional[str] = Field(None, description="Student mobile alias")
+    contact_no: Optional[str] = Field(None, description="Contact number alias")
+    mob_no: Optional[str] = Field(None, description="Mobile number alias")
+    mobileno: Optional[str] = Field(None, description="EduSoft mobile number alias")
+    mobile_no: Optional[str] = Field(None, description="EduSoft mobile number alias")
+    father_phone: Optional[str] = Field(None, description="Father phone alias")
+    parent_phone: Optional[str] = Field(None, description="Parent phone alias")
+    parent_mobile: Optional[str] = Field(None, description="Parent mobile alias")
     category: Optional[str] = Field(None, description="Curriculum category (SCERT/NCERT)")
+
+    def get_resolved_student_phone(self) -> Optional[str]:
+        for candidate in [
+            self.student_phone, self.student_mobile, self.phone_number,
+            self.mobileno, self.mobile_no, self.phone, self.mobile,
+            self.mobile_number, self.contact_no, self.mob_no
+        ]:
+            if candidate and str(candidate).strip():
+                digits = re.sub(r'\D', '', str(candidate).strip())
+                if len(digits) >= 10:
+                    return digits[-10:]
+                elif len(digits) > 0:
+                    return digits
+        return None
+
+    def get_resolved_guardian_phone(self) -> Optional[str]:
+        for candidate in [self.guardian_phone, self.father_phone, self.parent_phone, self.parent_mobile]:
+            if candidate and str(candidate).strip():
+                digits = re.sub(r'\D', '', str(candidate).strip())
+                if len(digits) >= 10:
+                    return digits[-10:]
+                elif len(digits) > 0:
+                    return digits
+        return None
 
 
 from typing import Optional, Any
@@ -210,6 +249,12 @@ async def external_register_student(
     raw_class_str = str(payload.student_class).strip()
     clean_class_str = re.sub(r'^(class|std|grade)\s*', '', raw_class_str, flags=re.I).strip()
 
+    # Log incoming registration details with clear warnings if student_phone is absent
+    if not resolved_st_phone:
+        print(f"[REGISTRATION WARN] student_phone was NOT provided in payload for student '{payload.name}'. guardian_phone='{resolved_g_phone}'")
+    else:
+        print(f"[REGISTRATION INFO] Registering student '{payload.name}' with student_phone='{resolved_st_phone}', guardian_phone='{resolved_g_phone}'")
+
     # ── 1. Resolve school by link or domain matching or Auto-Create ──────────
     school = await db.schools.find_one({"link": payload.link})
     if not school:
@@ -250,8 +295,7 @@ async def external_register_student(
             "$or": [
                 {"student_phone": resolved_st_phone},
                 {"mobile_number": resolved_st_phone},
-                {"phone": resolved_st_phone},
-                {"guardian_phone": resolved_st_phone}
+                {"phone": resolved_st_phone}
             ]
         })
 
@@ -345,7 +389,9 @@ async def external_register_student(
             "student_class": clean_class_str,
             "school_id": school_id,
             "school_name": school_name,
-            "school_link": payload.link
+            "school_link": payload.link,
+            "guardian_phone": resolved_g_phone,
+            "student_phone": resolved_st_phone or existing_student.get("student_phone")
         }
 
     # ── 3. Fetch default subscription plan ────────────────────────────────
@@ -426,7 +472,7 @@ async def external_register_student(
             "address": payload.address,
             "dob": payload.dob,
             "guardian_name": payload.guardian_name,
-            "guardian_phone": payload.guardian_phone,
+            "guardian_phone": resolved_g_phone,
             "student_phone": resolved_st_phone,
             "username": auto_username,
             "password": auto_password,
@@ -490,7 +536,7 @@ async def external_register_student(
         "school_id": school_id,
         "school_name": school_name,
         "student_class": payload.student_class,
-        "guardian_phone": payload.guardian_phone,
+        "guardian_phone": resolved_g_phone,
         "student_phone": resolved_st_phone
     }
 
@@ -538,31 +584,78 @@ async def external_update_student(
 
     update_fields = {"updated_at": datetime.now(timezone.utc)}
     if payload.student_class:
-        update_fields["student_class"] = payload.student_class
+        raw_cls = str(payload.student_class).strip()
+        clean_cls = re.sub(r'^(class|std|grade)\s*', '', raw_cls, flags=re.I).strip()
+        update_fields["student_class"] = clean_cls
+        update_fields["student_class_raw"] = raw_cls
     if payload.division:
         update_fields["division"] = payload.division
     if payload.address:
         update_fields["address"] = payload.address
+    if payload.dob:
+        update_fields["dob"] = payload.dob
+        age = calculate_age_from_dob(payload.dob)
+        if age is not None:
+            update_fields["age"] = age
     if payload.guardian_name:
         update_fields["guardian_name"] = payload.guardian_name
-    if payload.guardian_phone:
-        update_fields["guardian_phone"] = payload.guardian_phone
     if payload.category:
         update_fields["category"] = payload.category
 
-    st_p = payload.student_phone or payload.phone or payload.mobile_number
-    if st_p and str(st_p).strip():
-        cleaned_p = str(st_p).strip()
-        update_fields["student_phone"] = cleaned_p
-        update_fields["mobile_number"] = cleaned_p
-        update_fields["phone"] = cleaned_p
+    resolved_g_phone = payload.get_resolved_guardian_phone()
+    if resolved_g_phone:
+        update_fields["guardian_phone"] = resolved_g_phone
+
+    resolved_st_phone = payload.get_resolved_student_phone()
+    if resolved_st_phone:
+        update_fields["student_phone"] = resolved_st_phone
+        update_fields["mobile_number"] = resolved_st_phone
+        update_fields["phone"] = resolved_st_phone
+        update_fields["mobileno"] = resolved_st_phone
+        update_fields["mobile_no"] = resolved_st_phone
+        update_fields["phone_number"] = resolved_st_phone
 
     await db.students.update_one({"_id": student["_id"]}, {"$set": update_fields})
+
+    # Update usertable if phone numbers changed
+    if resolved_g_phone and resolved_g_phone != "0000000000":
+        await db.usertable.update_one(
+            {"mobile_number": resolved_g_phone},
+            {
+                "$setOnInsert": {
+                    "usertype": "parent",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": student["_id"]
+                }
+            },
+            upsert=True
+        )
+
+    if resolved_st_phone:
+        await db.usertable.update_one(
+            {"mobile_number": resolved_st_phone},
+            {
+                "$setOnInsert": {
+                    "usertype": "student",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$set": {
+                    "student_id": student["_id"],
+                    "student_name": student.get("student_name"),
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
 
     return {
         "status": "success",
         "message": f"Student '{student.get('student_name')}' updated successfully.",
         "student_id": str(student["_id"]),
-        "student_class": payload.student_class
+        "student_class": update_fields.get("student_class") or student.get("student_class"),
+        "guardian_phone": update_fields.get("guardian_phone") or student.get("guardian_phone"),
+        "student_phone": resolved_st_phone or student.get("student_phone")
     }
 

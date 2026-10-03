@@ -114,35 +114,6 @@ async def cleanup_and_sync_student_data():
         cursor = db.students.find({})
         clean_count = 0
         async for s in cursor:
-            st_id_str = str(s["_id"])
-            g_p = str(s.get("guardian_phone") or s.get("parent_mobile") or "").strip()
-            
-            st_p = str(
-                s.get("student_phone") or
-                s.get("phone_number") or
-                s.get("mobileno") or
-                s.get("mobile_no") or
-                s.get("mobile_number") or
-                s.get("phone") or
-                s.get("mobile") or ""
-            ).strip()
-            
-            # If student phone was set equal to guardian phone, unset duplicate student phone fields
-            if st_p and g_p and st_p == g_p:
-                await db.students.update_one(
-                    {"_id": s["_id"]},
-                    {"$unset": {
-                        "student_phone": "",
-                        "mobile_number": "",
-                        "phone_number": "",
-                        "mobileno": "",
-                        "mobile_no": "",
-                        "phone": "",
-                        "mobile": ""
-                    }}
-                )
-                clean_count += 1
-            
             # Compute age if missing from DOB
             if not s.get("age") and s.get("dob"):
                 calculated_age = calculate_age_from_dob(s.get("dob"))
@@ -151,11 +122,12 @@ async def cleanup_and_sync_student_data():
                         {"_id": s["_id"]},
                         {"$set": {"age": calculated_age}}
                     )
+                    clean_count += 1
 
         if clean_count > 0:
-            print(f"[INFO] Cleaned up {clean_count} student records with duplicate guardian phone numbers.")
+            print(f"[INFO] Backfilled age for {clean_count} student records.")
     except Exception as e:
-        print(f"[WARN] Failed to sync student phone numbers and age: {e}")
+        print(f"[WARN] Failed to sync student age: {e}")
 
 @app.on_event("startup")
 async def startup_event():

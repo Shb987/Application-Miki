@@ -386,10 +386,22 @@ async def edusoft_update_student(
             update_doc["age"] = age
     if payload.guardian_name:
         update_doc["guardian_name"] = payload.guardian_name
-    if payload.guardian_phone:
-        update_doc["guardian_phone"] = payload.guardian_phone
     if payload.category:
         update_doc["category"] = payload.category
+
+    resolved_g_phone = None
+    for g_cand in [payload.guardian_phone, payload.father_phone, payload.parent_phone]:
+        if g_cand and str(g_cand).strip():
+            g_digits = re.sub(r'\D', '', str(g_cand).strip())
+            if len(g_digits) >= 10:
+                resolved_g_phone = g_digits[-10:]
+                break
+            elif len(g_digits) > 0:
+                resolved_g_phone = g_digits
+                break
+
+    if resolved_g_phone:
+        update_doc["guardian_phone"] = resolved_g_phone
 
     resolved_phone = None
     for candidate in [payload.student_phone, payload.student_mobile, payload.phone_number, payload.mobileno, payload.mobile_no, payload.phone, payload.mobile, payload.mobile_number, payload.contact_no, payload.mob_no]:
@@ -397,6 +409,9 @@ async def edusoft_update_student(
             digits = re.sub(r'\D', '', str(candidate).strip())
             if len(digits) >= 10:
                 resolved_phone = digits[-10:]
+                break
+            elif len(digits) > 0:
+                resolved_phone = digits
                 break
 
     if resolved_phone:
@@ -409,11 +424,46 @@ async def edusoft_update_student(
 
     await db.students.update_one({"_id": student["_id"]}, {"$set": update_doc})
 
+    # Sync to usertable
+    if resolved_g_phone and resolved_g_phone != "0000000000":
+        await db.usertable.update_one(
+            {"mobile_number": resolved_g_phone},
+            {
+                "$setOnInsert": {
+                    "usertype": "parent",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": student["_id"]
+                }
+            },
+            upsert=True
+        )
+
+    if resolved_phone:
+        await db.usertable.update_one(
+            {"mobile_number": resolved_phone},
+            {
+                "$setOnInsert": {
+                    "usertype": "student",
+                    "created_at": datetime.now(timezone.utc)
+                },
+                "$set": {
+                    "student_id": student["_id"],
+                    "student_name": student.get("student_name"),
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+
     return {
         "status": "success",
         "message": f"Student '{student.get('student_name')}' updated successfully.",
         "student_id": str(student["_id"]),
-        "student_class": update_doc.get("student_class") or student.get("student_class")
+        "student_class": update_doc.get("student_class") or student.get("student_class"),
+        "guardian_phone": update_doc.get("guardian_phone") or student.get("guardian_phone"),
+        "student_phone": resolved_phone or student.get("student_phone")
     }
 
 

@@ -757,9 +757,6 @@ async def get_students(admin=Depends(require_permission("User Management", "read
             s.get("phone") or
             s.get("mobile") or ""
         ).strip()
-        
-        if st_phone and g_phone and st_phone == g_phone:
-            st_phone = ""
 
         resolved_num = st_phone if st_phone else None
         s["mobile_number"] = resolved_num

@@ -449,6 +449,105 @@
 </div>
 
 
+<!-- UPDATE STUDENT PHONE MODAL -->
+<div class="modal fade" id="updateStudentPhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title font-weight-bold text-dark d-flex align-items-center gap-2">
+                    <i data-feather="phone-call" class="text-primary" style="width:22px;height:22px;"></i>
+                    Update Student Phone Numbers
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Updating phone numbers directly updates this existing account. All existing exams, progress, answers, and data remain preserved.
+                </p>
+                <form id="updateStudentPhoneForm" onsubmit="handleSaveStudentPhone(event)">
+                    <input type="hidden" id="edit-student-id">
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold text-muted small">STUDENT NAME</label>
+                        <input type="text" id="edit-student-name" class="form-control" disabled style="background:#f8f9fa; border-radius:8px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold text-dark small">STUDENT PHONE NUMBER</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white" style="border-radius:8px 0 0 8px;"><i data-feather="smartphone" style="width:16px;height:16px;"></i></span>
+                            <input type="tel" id="edit-student-phone" class="form-control" placeholder="10-digit student phone (e.g. 9876543210)" style="border-radius:0 8px 8px 0;" maxlength="15">
+                        </div>
+                        <small class="text-muted">Used by student to log in directly.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold text-dark small">GUARDIAN NAME</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white" style="border-radius:8px 0 0 8px;"><i data-feather="user" style="width:16px;height:16px;"></i></span>
+                            <input type="text" id="edit-guardian-name" class="form-control" placeholder="Parent / Guardian name" style="border-radius:0 8px 8px 0;">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold text-dark small">GUARDIAN / PARENT PHONE NUMBER</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white" style="border-radius:8px 0 0 8px;"><i data-feather="phone" style="width:16px;height:16px;"></i></span>
+                            <input type="tel" id="edit-guardian-phone" class="form-control" placeholder="10-digit guardian phone" style="border-radius:0 8px 8px 0;" maxlength="15">
+                        </div>
+                        <small class="text-muted">Used by parent to log in and monitor the student.</small>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light px-4" style="border-radius:8px;" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" id="edit-student-save-btn" class="btn btn-primary px-4 d-flex align-items-center gap-2" style="border-radius:8px;">
+                            <i data-feather="save" style="width:16px;height:16px;"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UPDATE GUARDIAN PHONE MODAL -->
+<div class="modal fade" id="updateGuardianPhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title font-weight-bold text-dark d-flex align-items-center gap-2">
+                    <i data-feather="user-check" class="text-primary" style="width:22px;height:22px;"></i>
+                    Update Guardian Phone
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Updating the guardian's phone number keeps all connected students linked seamlessly to this guardian account.
+                </p>
+                <form id="updateGuardianPhoneForm" onsubmit="handleSaveGuardianPhone(event)">
+                    <input type="hidden" id="edit-parent-old-mobile">
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold text-dark small">GUARDIAN NAME</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white" style="border-radius:8px 0 0 8px;"><i data-feather="user" style="width:16px;height:16px;"></i></span>
+                            <input type="text" id="edit-parent-name" class="form-control" placeholder="Guardian Name" style="border-radius:0 8px 8px 0;">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label font-weight-bold text-dark small">GUARDIAN MOBILE NUMBER</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white" style="border-radius:8px 0 0 8px;"><i data-feather="phone" style="width:16px;height:16px;"></i></span>
+                            <input type="tel" id="edit-parent-new-mobile" class="form-control" placeholder="New 10-digit mobile number" style="border-radius:0 8px 8px 0;" required maxlength="15">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light px-4" style="border-radius:8px;" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" id="edit-parent-save-btn" class="btn btn-primary px-4 d-flex align-items-center gap-2" style="border-radius:8px;">
+                            <i data-feather="save" style="width:16px;height:16px;"></i> Update Phone
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- CUSTOM CONFIRM MODAL -->
 <div class="modal fade" id="customConfirmModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -467,7 +566,7 @@
 </div>
 
 <!-- Toast -->
-<div id="toast-um" class="toast align-items-center text-white border-0" role="alert" style="display:none;">
+<div id="toast-um" class="toast align-items-center text-white border-0" role="alert" style="display:none; position:fixed; bottom:20px; right:20px; z-index:9999;">
     <div class="d-flex">
         <div class="toast-body" id="toast-um-msg">Done!</div>
     </div>
@@ -525,7 +624,6 @@
     }
 
     async function loadKPIStats() {
-        // Set a fallback immediately so spinners never get stuck
         ["kpi-students","kpi-parents","kpi-active","kpi-schools"].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = `<span class="text-muted">—</span>`;
@@ -535,7 +633,6 @@
                 headers: { "Authorization": "Bearer " + token }
             });
             if (!res.ok) {
-                // 403 = not enough permissions — keep the dashes, that's fine
                 if (res.status === 403) {
                     ["kpi-students","kpi-parents","kpi-active","kpi-schools"].forEach(id => {
                         const el = document.getElementById(id);
@@ -630,28 +727,37 @@
             return;
         }
         let html = `<table class="table table-hover table-bordered">
-    <thead class="table-dark"><tr><th>#</th><th>Name</th><th>Phone / Mobile</th><th>Class</th><th>School</th><th>DOB</th><th>Guardian</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+    <thead class="table-dark"><tr><th>#</th><th>Name</th><th>Student Phone</th><th>Class</th><th>School</th><th>DOB</th><th>Guardian</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
         json.data.forEach((s, i) => {
             const isActive = s.is_active !== false;
             const mobileNum = s.student_phone || s.mobile_number || s.phone_number || s.mobileno || s.mobile_no || s.phone || s.mobile || "—";
             const rawCls = s.student_class ? String(s.student_class).replace(/^class\s+/gi, '').trim() : '';
             const stdBadgeText = rawCls ? (rawCls.toLowerCase() === 'string' ? 'Unassigned' : `Class ${rawCls}`) : '—';
+            
+            const escapedName = (s.student_name || "").replace(/'/g, "\\'");
+            const escapedGName = (s.guardian_name || "").replace(/'/g, "\\'");
+            const stPhoneVal = (mobileNum === "—") ? "" : mobileNum;
+            const gPhoneVal = s.guardian_phone || "";
+
             html += `<tr>
         <td>${studentSkip + i + 1}</td>
         <td><strong>${s.student_name || "—"}</strong></td>
-        <td><span class="text-muted small">${mobileNum}</span></td>
+        <td><span class="text-primary font-weight-bold small">${mobileNum}</span></td>
         <td><span class="class-badge">${stdBadgeText}</span></td>
         <td>${s.school_name || "—"}</td>
         <td>${s.dob || "—"}</td>
         <td>${s.guardian_name || "—"}${s.guardian_phone ? '<br><small class="text-muted" title="Guardian Mobile"><i class="fa fa-phone me-1"></i>' + s.guardian_phone + '</small>' : ''}</td>
         <td><span class="badge ${isActive ? "bg-success" : "bg-secondary"}">${isActive ? "Active" : "Inactive"}</span></td>
         <td>
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" style="border-radius:8px;" onclick="location.href='/admin-panel/student-profile-page?id=${s._id}'">
-                    <i class="fa fa-eye" style="font-size:14px;"></i> View
+            <div class="d-flex align-items-center gap-1">
+                <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" style="border-radius:8px;" onclick="location.href='/admin-panel/student-profile-page?id=${s._id}'" title="View Profile">
+                    <i class="fa fa-eye" style="font-size:13px;"></i> View
                 </button>
-                <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="border-radius:8px; width:30px; height:30px; padding:0;" onclick="promptDelete('${s._id}', '${(s.student_name || "").replace(/'/g, "\\'")}')" title="Delete">
-                    <i class="fa fa-trash" style="font-size:14px;"></i>
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" style="border-radius:8px;" onclick="openEditStudentPhoneModal('${s._id}', '${escapedName}', '${stPhoneVal}', '${escapedGName}', '${gPhoneVal}')" title="Update Phone Number">
+                    <i class="fa fa-edit" style="font-size:13px;"></i> Update
+                </button>
+                <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="border-radius:8px; width:30px; height:30px; padding:0;" onclick="promptDelete('${s._id}', '${escapedName}')" title="Delete">
+                    <i class="fa fa-trash" style="font-size:13px;"></i>
                 </button>
             </div>
         </td>
@@ -684,6 +790,121 @@
             if (res.ok) { showToast(`${name} deleted`, "success"); loadStudents(); }
             else { showToast("Delete failed", "danger"); }
         });
+    }
+
+    // Modal Handlers for Student Phone Update
+    let studentPhoneModalInstance = null;
+    function openEditStudentPhoneModal(id, name, stPhone, gName, gPhone) {
+        document.getElementById("edit-student-id").value = id;
+        document.getElementById("edit-student-name").value = name;
+        document.getElementById("edit-student-phone").value = stPhone || "";
+        document.getElementById("edit-guardian-name").value = gName || "";
+        document.getElementById("edit-guardian-phone").value = gPhone || "";
+        
+        const modalEl = document.getElementById("updateStudentPhoneModal");
+        studentPhoneModalInstance = new bootstrap.Modal(modalEl);
+        studentPhoneModalInstance.show();
+        feather.replace();
+    }
+
+    async function handleSaveStudentPhone(e) {
+        e.preventDefault();
+        const saveBtn = document.getElementById("edit-student-save-btn");
+        const id = document.getElementById("edit-student-id").value;
+        const studentPhone = document.getElementById("edit-student-phone").value.trim();
+        const guardianName = document.getElementById("edit-guardian-name").value.trim();
+        const guardianPhone = document.getElementById("edit-guardian-phone").value.trim();
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Saving...`;
+
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/users/student/${id}/phone`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    student_phone: studentPhone,
+                    guardian_name: guardianName,
+                    guardian_phone: guardianPhone
+                })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                showToast("Phone details updated successfully!", "success");
+                if (studentPhoneModalInstance) studentPhoneModalInstance.hide();
+                loadStudents();
+                if (currentTab === "parents") loadParents();
+            } else {
+                showToast(json.detail || "Update failed", "danger");
+            }
+        } catch (err) {
+            showToast("Network error updating phone", "danger");
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i data-feather="save" style="width:16px;height:16px;"></i> Save Changes`;
+            feather.replace();
+        }
+    }
+
+    // Modal Handlers for Guardian Phone Update
+    let guardianPhoneModalInstance = null;
+    function openEditParentPhoneModal(mobile, name) {
+        document.getElementById("edit-parent-old-mobile").value = mobile;
+        document.getElementById("edit-parent-name").value = name || "";
+        document.getElementById("edit-parent-new-mobile").value = mobile || "";
+
+        const modalEl = document.getElementById("updateGuardianPhoneModal");
+        guardianPhoneModalInstance = new bootstrap.Modal(modalEl);
+        guardianPhoneModalInstance.show();
+        feather.replace();
+    }
+
+    async function handleSaveGuardianPhone(e) {
+        e.preventDefault();
+        const saveBtn = document.getElementById("edit-parent-save-btn");
+        const oldMobile = document.getElementById("edit-parent-old-mobile").value;
+        const guardianName = document.getElementById("edit-parent-name").value.trim();
+        const newMobile = document.getElementById("edit-parent-new-mobile").value.trim();
+
+        if (!newMobile) {
+            showToast("Please provide a valid mobile number", "warning");
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Updating...`;
+
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/users/parent/${encodeURIComponent(oldMobile)}/phone`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    new_mobile: newMobile,
+                    guardian_name: guardianName
+                })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                showToast("Guardian phone updated successfully!", "success");
+                if (guardianPhoneModalInstance) guardianPhoneModalInstance.hide();
+                loadParents();
+                loadStudents();
+            } else {
+                showToast(json.detail || "Update failed", "danger");
+            }
+        } catch (err) {
+            showToast("Network error updating guardian phone", "danger");
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i data-feather="save" style="width:16px;height:16px;"></i> Update Phone`;
+            feather.replace();
+        }
     }
 
     async function loadParents(reset = false) {
@@ -721,6 +942,9 @@
                     year: 'numeric', month: 'long', day: 'numeric'
                 }) : "Legacy Account";
 
+                const escapedGName = (p.guardian_name || "").replace(/'/g, "\\'");
+                const parentMobile = p.mobile_number || "";
+
                 html += `
                 <div class="parent-row">
                     <div class="parent-id-circle">${i + 1}</div>
@@ -734,8 +958,12 @@
                     <div class="parent-students-area">
                         ${students || '<span class="text-muted" style="font-size:0.75rem;">No students linked</span>'}
                     </div>
-                    <div class="parent-actions">
-                        <button class="btn btn-sm btn-outline-danger" style="border-radius:8px; width:36px; height:36px; padding:0;" 
+                    <div class="parent-actions d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="border-radius:8px; width:36px; height:36px; padding:0;" 
+                                onclick="openEditParentPhoneModal('${parentMobile}', '${escapedGName}')" title="Update Guardian Phone">
+                            <i class="fa fa-edit" style="font-size:16px;"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="border-radius:8px; width:36px; height:36px; padding:0;" 
                                 onclick="deleteParent('${p.mobile_number}')" title="Remove Guardian">
                             <i class="fa fa-trash" style="font-size:16px;"></i>
                         </button>

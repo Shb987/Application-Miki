@@ -280,6 +280,56 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Student Phone & Guardian Modal -->
+<div class="modal fade" id="editStudentProfilePhoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #7366ff, #13c9ca); color: #fff; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title text-white"><i data-feather="phone" style="width:18px;height:18px;margin-right:6px;"></i> Update Phone Numbers</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="edit-profile-phone-form" onsubmit="handleSaveProfilePhone(event)">
+                <div class="modal-body p-4">
+                    <div class="alert alert-light border d-flex align-items-center gap-2 mb-3" style="font-size:0.85rem; border-radius:10px;">
+                        <i data-feather="info" style="width:18px;height:18px;color:#7366ff;flex-shrink:0;"></i>
+                        <span>Updates the phone number on this existing account without creating a new record.</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold" style="font-size:0.85rem;">Student Name</label>
+                        <input type="text" class="form-control" id="prof-modal-student-name" readonly style="background:#f8f9fa;">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold" style="font-size:0.85rem;">Student Phone Number</label>
+                        <input type="text" class="form-control" id="prof-modal-student-phone" placeholder="e.g. 7306724078">
+                        <small class="text-muted">Primary phone used for student login and OTP verification.</small>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold" style="font-size:0.85rem;">Guardian / Parent Name</label>
+                        <input type="text" class="form-control" id="prof-modal-guardian-name" placeholder="Guardian Name">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold" style="font-size:0.85rem;">Guardian / Parent Phone Number</label>
+                        <input type="text" class="form-control" id="prof-modal-guardian-phone" placeholder="e.g. 8942414012">
+                        <small class="text-muted">Phone used for parent login; links to this existing student.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light" style="border-radius: 0 0 16px 16px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:8px;">Cancel</button>
+                    <button type="submit" id="prof-modal-save-btn" class="btn btn-primary d-flex align-items-center gap-2" style="border-radius:8px; background:#7366ff; border-color:#7366ff;">
+                        <i data-feather="save" style="width:16px;height:16px;"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -333,19 +383,29 @@
             avatarHtml = `<img src="${imgPath}" alt="${s.student_name}" class="profile-avatar" style="object-fit: cover;">`;
         }
         
+        window.currentStudentData = s;
+        const currentStudentPhone = s.student_phone || s.mobile_number || s.phone_number || s.mobileno || s.mobile_no || s.phone || s.mobile || "";
+
         let html = `
         <!-- Hero Header -->
         <div class="profile-header-card">
-            <div class="profile-header-overlay">
-                ${avatarHtml}
-                <div>
-                    <h1 class="profile-name">${s.student_name || "Unknown Student"}</h1>
-                    <div class="d-flex align-items-center gap-3 mt-2">
-                        <span class="profile-badge ${badgeClass}"><i data-feather="shield" style="width:14px;height:14px;margin-right:4px;"></i> ${tier} Plan</span>
-                        <span><i data-feather="phone" style="width:14px;height:14px;margin-right:4px;"></i> ${s.student_phone || s.mobile_number || s.phone_number || s.mobileno || s.mobile_no || s.phone || s.mobile || "N/A"}</span>
-                        <span><i data-feather="book-open" style="width:14px;height:14px;margin-right:4px;"></i> Class ${s.student_class || "N/A"}</span>
-                        <span><i data-feather="calendar" style="width:14px;height:14px;margin-right:4px;"></i> Joined: ${new Date(s.created_at).toLocaleDateString()}</span>
+            <div class="profile-header-overlay d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    ${avatarHtml}
+                    <div>
+                        <h1 class="profile-name">${s.student_name || "Unknown Student"}</h1>
+                        <div class="d-flex align-items-center flex-wrap gap-3 mt-2">
+                            <span class="profile-badge ${badgeClass}"><i data-feather="shield" style="width:14px;height:14px;margin-right:4px;"></i> ${tier} Plan</span>
+                            <span><i data-feather="phone" style="width:14px;height:14px;margin-right:4px;"></i> ${currentStudentPhone || "N/A"}</span>
+                            <span><i data-feather="book-open" style="width:14px;height:14px;margin-right:4px;"></i> Class ${s.student_class || "N/A"}</span>
+                            <span><i data-feather="calendar" style="width:14px;height:14px;margin-right:4px;"></i> Joined: ${new Date(s.created_at).toLocaleDateString()}</span>
+                        </div>
                     </div>
+                </div>
+                <div>
+                    <button class="btn btn-light text-primary font-weight-bold d-flex align-items-center gap-2" style="border-radius: 12px; padding: 10px 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);" onclick="openProfilePhoneModal()">
+                        <i data-feather="edit-2" style="width:16px;height:16px;"></i> Update Phone Numbers
+                    </button>
                 </div>
             </div>
         </div>
@@ -427,15 +487,22 @@
                 </div>
                 
                 <div class="content-card">
-                    <div class="content-header">
-                        <div style="background:rgba(247,49,100,0.1); color:#f73164; padding:8px; border-radius:10px;"><i data-feather="info" style="width:18px;height:18px;"></i></div>
-                        <h5>Demographics</h5>
+                    <div class="content-header d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="background:rgba(247,49,100,0.1); color:#f73164; padding:8px; border-radius:10px;"><i data-feather="info" style="width:18px;height:18px;"></i></div>
+                            <h5 class="mb-0">Demographics</h5>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" style="border-radius:6px; font-size:0.75rem;" onclick="openProfilePhoneModal()">
+                            <i data-feather="edit" style="width:12px;height:12px;"></i> Edit Phone
+                        </button>
                     </div>
                     <div class="content-body" style="padding: 15px 25px;">
                         <ul class="info-list">
+                            <li><span class="info-label">Student Phone</span><span class="info-value">${currentStudentPhone || "—"}</span></li>
+                            <li><span class="info-label">Guardian Name</span><span class="info-value">${s.guardian_name || "—"}</span></li>
+                            <li><span class="info-label">Guardian Phone</span><span class="info-value">${s.guardian_phone || s.parent_mobile || "—"}</span></li>
                             <li><span class="info-label">Date of Birth</span><span class="info-value">${s.dob || "—"}</span></li>
                             <li><span class="info-label">Age</span><span class="info-value">${s.age || "—"}</span></li>
-                            <li><span class="info-label">Guardian</span><span class="info-value">${s.guardian_name || "—"}${s.guardian_phone ? ` (${s.guardian_phone})` : ''}</span></li>
                             <li><span class="info-label">Address</span><span class="info-value" style="text-align:right; max-width: 60%;">${s.address || "—"}</span></li>
                         </ul>
                     </div>
@@ -615,6 +682,63 @@
         } catch (e) {
             console.error(e);
             alert("Error updating quota");
+        }
+    }
+
+    let profilePhoneModalInstance = null;
+    function openProfilePhoneModal() {
+        const s = window.currentStudentData || {};
+        const currentStudentPhone = s.student_phone || s.mobile_number || s.phone_number || s.mobileno || s.mobile_no || s.phone || s.mobile || "";
+        const guardianPhone = s.guardian_phone || s.parent_mobile || "";
+        const guardianName = s.guardian_name || "";
+
+        document.getElementById("prof-modal-student-name").value = s.student_name || "";
+        document.getElementById("prof-modal-student-phone").value = currentStudentPhone;
+        document.getElementById("prof-modal-guardian-name").value = guardianName;
+        document.getElementById("prof-modal-guardian-phone").value = guardianPhone;
+
+        const modalEl = document.getElementById("editStudentProfilePhoneModal");
+        profilePhoneModalInstance = new bootstrap.Modal(modalEl);
+        profilePhoneModalInstance.show();
+        feather.replace();
+    }
+
+    async function handleSaveProfilePhone(e) {
+        e.preventDefault();
+        const saveBtn = document.getElementById("prof-modal-save-btn");
+        const studentPhone = document.getElementById("prof-modal-student-phone").value.trim();
+        const guardianName = document.getElementById("prof-modal-guardian-name").value.trim();
+        const guardianPhone = document.getElementById("prof-modal-guardian-phone").value.trim();
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Saving...`;
+
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/users/student/${studentId}/phone`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    student_phone: studentPhone,
+                    guardian_name: guardianName,
+                    guardian_phone: guardianPhone
+                })
+            });
+            const json = await res.json();
+            if (res.ok) {
+                if (profilePhoneModalInstance) profilePhoneModalInstance.hide();
+                loadStudentProfile();
+            } else {
+                alert("Failed to update phone: " + (json.detail || "Unknown error"));
+            }
+        } catch (err) {
+            alert("Error updating phone details");
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i data-feather="save" style="width:16px;height:16px;"></i> Save Changes`;
+            feather.replace();
         }
     }
     

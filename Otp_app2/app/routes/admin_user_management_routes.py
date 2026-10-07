@@ -385,6 +385,161 @@ async def update_student_quotas(
     return {"status": "success", "message": f"Updated {payload.bucket} to {payload.new_value}"}
 
 
+class StudentPhoneUpdate(BaseModel):
+    student_phone: Optional[str] = None
+    guardian_phone: Optional[str] = None
+    guardian_name: Optional[str] = None
+
+
+@router.patch("/admin-panel/users/student/{student_id}/phone")
+@router.put("/admin-panel/users/student/{student_id}/phone")
+async def update_student_phone(
+    student_id: str,
+    payload: StudentPhoneUpdate,
+    current_admin: dict = Depends(require_permission("User Management", "update"))
+):
+    """
+    Update student and/or guardian phone number on an existing student record.
+    Preserves all existing IDs, answers, quizzes, and subscriptions.
+    NEVER creates duplicate user/student records.
+    """
+    import re
+    try:
+        s_oid = ObjectId(student_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    student = await db.students.find_one({"_id": s_oid})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    student_update = {"updated_at": datetime.now(timezone.utc)}
+
+    # 1. Update Student Phone
+    if payload.student_phone is not None:
+        raw_st = str(payload.student_phone).strip()
+        clean_st = re.sub(r'\D', '', raw_st)
+        new_st_phone = clean_st[-10:] if len(clean_st) >= 10 else (clean_st if clean_st else None)
+
+        old_st_phone = (
+            student.get("student_phone") or
+            student.get("mobile_number") or
+            student.get("phone_number") or
+            student.get("phone") or
+            student.get("mobile")
+        )
+
+        student_update["student_phone"] = new_st_phone
+        student_update["mobile_number"] = new_st_phone
+        student_update["phone_number"] = new_st_phone
+        student_update["phone"] = new_st_phone
+        student_update["mobile"] = new_st_phone
+        student_update["mobileno"] = new_st_phone
+        student_update["mobile_no"] = new_st_phone
+
+        if new_st_phone:
+            # Update existing student record in usertable
+            old_user = await db.usertable.find_one({
+                "$or": [
+                    {"student_id": s_oid},
+                    {"student_id": student_id},
+                    {"mobile_number": old_st_phone}
+                ],
+                "usertype": {"$ne": "parent"}
+            })
+            if old_user:
+                await db.usertable.update_one(
+                    {"_id": old_user["_id"]},
+                    {
+                        "$set": {
+                            "mobile_number": new_st_phone,
+                            "student_id": s_oid,
+                            "student_name": student.get("student_name"),
+                            "usertype": "student",
+                            "updated_at": datetime.now(timezone.utc)
+                        }
+                    }
+                )
+            else:
+                await db.usertable.update_one(
+                    {"mobile_number": new_st_phone},
+                    {
+                        "$set": {
+                            "usertype": "student",
+                            "student_id": s_oid,
+                            "student_name": student.get("student_name"),
+                            "updated_at": datetime.now(timezone.utc)
+                        },
+                        "$setOnInsert": {
+                            "created_at": datetime.now(timezone.utc)
+                        }
+                    },
+                    upsert=True
+                )
+
+            # Update OTP record if needed
+            if old_st_phone and old_st_phone != new_st_phone:
+                await db.otps.update_many(
+                    {"mobile_number": old_st_phone},
+                    {"$set": {"mobile_number": new_st_phone, "usertype": "student"}}
+                )
+
+    # 2. Update Guardian Phone / Name
+    if payload.guardian_phone is not None:
+        raw_g = str(payload.guardian_phone).strip()
+        clean_g = re.sub(r'\D', '', raw_g)
+        new_g_phone = clean_g[-10:] if len(clean_g) >= 10 else (clean_g if clean_g else None)
+
+        old_g_phone = student.get("guardian_phone") or student.get("parent_mobile")
+
+        student_update["guardian_phone"] = new_g_phone
+        student_update["parent_mobile"] = new_g_phone
+        student_update["father_phone"] = new_g_phone
+        student_update["parent_phone"] = new_g_phone
+
+        if new_g_phone:
+            # If old guardian exists and is different, remove student from old parent
+            if old_g_phone and old_g_phone != new_g_phone:
+                await db.usertable.update_one(
+                    {"mobile_number": old_g_phone, "usertype": "parent"},
+                    {"$pull": {"student_ids": s_oid}}
+                )
+
+            # Add student to new guardian account
+            await db.usertable.update_one(
+                {"mobile_number": new_g_phone},
+                {
+                    "$set": {
+                        "usertype": "parent",
+                        "updated_at": datetime.now(timezone.utc)
+                    },
+                    "$addToSet": {
+                        "student_ids": s_oid
+                    },
+                    "$setOnInsert": {
+                        "created_at": datetime.now(timezone.utc)
+                    }
+                },
+                upsert=True
+            )
+
+    if payload.guardian_name is not None:
+        student_update["guardian_name"] = payload.guardian_name
+
+    # Apply update to student doc
+    await db.students.update_one({"_id": s_oid}, {"$set": student_update})
+
+    # Fetch updated student doc
+    updated_student = await db.students.find_one({"_id": s_oid})
+
+    return {
+        "status": "success",
+        "message": "Student phone details updated successfully",
+        "student_id": student_id,
+        "data": serialize(updated_student)
+    }
+
+
 # ──────────────────────────────────────────────────────────────
 # PARENTS
 # ──────────────────────────────────────────────────────────────
@@ -466,6 +621,111 @@ async def list_parents(
         "status": "success",
         "total": total,
         "data": result
+    }
+
+
+class ParentPhoneUpdate(BaseModel):
+    new_mobile: str
+    guardian_name: Optional[str] = None
+
+
+@router.patch("/admin-panel/users/parent/{mobile}/phone")
+@router.put("/admin-panel/users/parent/{mobile}/phone")
+async def update_parent_phone(
+    mobile: str,
+    payload: ParentPhoneUpdate,
+    current_admin: dict = Depends(require_permission("User Management", "update"))
+):
+    """
+    Update a parent/guardian mobile number and sync all connected students.
+    Preserves all existing student links and IDs.
+    """
+    import re
+    clean_old = re.sub(r'\D', '', str(mobile).strip())
+    old_cands = list(filter(None, {mobile, clean_old, clean_old[-10:] if len(clean_old) >= 10 else None}))
+
+    clean_new = re.sub(r'\D', '', str(payload.new_mobile).strip())
+    new_mobile = clean_new[-10:] if len(clean_new) >= 10 else clean_new
+    if not new_mobile:
+        raise HTTPException(status_code=400, detail="Invalid new mobile number")
+
+    # 1. Find existing parent record
+    parent = await db.usertable.find_one({"mobile_number": {"$in": old_cands}, "usertype": "parent"})
+
+    # 2. Find all students linked to this guardian phone
+    linked_students = await db.students.find({
+        "$or": [
+            {"guardian_phone": {"$in": old_cands}},
+            {"parent_mobile": {"$in": old_cands}},
+            {"father_phone": {"$in": old_cands}},
+            {"parent_phone": {"$in": old_cands}},
+            {"_id": {"$in": parent.get("student_ids", []) if parent else []}}
+        ]
+    }).to_list(length=None)
+
+    s_oids = [s["_id"] for s in linked_students]
+
+    # 3. Update parent record in usertable
+    if parent:
+        await db.usertable.update_one(
+            {"_id": parent["_id"]},
+            {
+                "$set": {
+                    "mobile_number": new_mobile,
+                    "updated_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": {"$each": s_oids}
+                }
+            }
+        )
+    else:
+        await db.usertable.update_one(
+            {"mobile_number": new_mobile},
+            {
+                "$set": {
+                    "usertype": "parent",
+                    "updated_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": {"$each": s_oids}
+                },
+                "$setOnInsert": {
+                    "created_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+
+    # 4. Update all linked students in db.students
+    st_update = {
+        "guardian_phone": new_mobile,
+        "parent_mobile": new_mobile,
+        "father_phone": new_mobile,
+        "parent_phone": new_mobile,
+        "updated_at": datetime.now(timezone.utc)
+    }
+    if payload.guardian_name:
+        st_update["guardian_name"] = payload.guardian_name
+
+    if s_oids:
+        await db.students.update_many(
+            {"_id": {"$in": s_oids}},
+            {"$set": st_update}
+        )
+
+    # 5. Update OTP record
+    await db.otps.update_many(
+        {"mobile_number": {"$in": old_cands}},
+        {"$set": {"mobile_number": new_mobile}}
+    )
+
+    return {
+        "status": "success",
+        "message": f"Guardian phone updated to {new_mobile}",
+        "old_mobile": mobile,
+        "new_mobile": new_mobile,
+        "affected_students": len(s_oids)
     }
 
 

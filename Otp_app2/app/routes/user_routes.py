@@ -49,7 +49,6 @@ async def register_student(
         raise HTTPException(status_code=400, detail="Syllabus must be either NCERT or SCERT")
         
     usertype = current.get("usertype")
-    # 🔑 Decide is_user
     is_user = usertype == "student"
 
     image_url = None
@@ -72,37 +71,93 @@ async def register_student(
     }
 
     st_mobile_number = current.get("sub") if usertype == "student" else None
+    
+    # ── Check if student already exists to prevent duplicate accounts ──
+    existing_student = None
+    if st_mobile_number:
+        clean_st = re.sub(r'\D', '', str(st_mobile_number).strip())
+        cands = list(filter(None, {st_mobile_number, clean_st, clean_st[-10:] if len(clean_st) >= 10 else None}))
+        existing_student = await db.students.find_one({
+            "$or": [
+                {"student_phone": {"$in": cands}},
+                {"mobile_number": {"$in": cands}},
+                {"phone": {"$in": cands}},
+                {"phone_number": {"$in": cands}},
+                {"mobileno": {"$in": cands}},
+                {"mobile_no": {"$in": cands}}
+            ]
+        })
 
-    # 1️⃣ Create student document
-    student_doc = {
-        "student_name": student_name,
-        "dob": dob,
-        "student_class": student_class,
-        "age": age,
-        "address": address,
-        "guardian_name": guardian_name,
-        "guardian_phone": parent_mobile,
-        "student_phone": st_mobile_number,
-        "mobile_number": st_mobile_number,
-        "phone_number": st_mobile_number,
-        "mobileno": st_mobile_number,
-        "mobile_no": st_mobile_number,
-        "image_url": image_url,
-        "created_at": datetime.now(timezone.utc),
-        "subscription": {"current_tier": "basic", "last_recharge_date": None},
-        "usage_buckets": initial_buckets,
-        "is_user": is_user,
-        "is_new_user": True,
-        "school_id": school_id,
-        "syllabus": actual_syllabus.upper()
-    }
+    if not existing_student and student_name and dob:
+        clean_p = re.sub(r'\D', '', str(parent_mobile).strip())
+        p_cands = list(filter(None, {parent_mobile, clean_p, clean_p[-10:] if len(clean_p) >= 10 else None}))
+        query_list = [
+            {"student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"}, "dob": dob}
+        ]
+        if school_id:
+            query_list.append({
+                "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
+                "school_id": school_id
+            })
+        if p_cands:
+            query_list.append({
+                "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
+                "$or": [
+                    {"guardian_phone": {"$in": p_cands}},
+                    {"parent_mobile": {"$in": p_cands}}
+                ]
+            })
+        existing_student = await db.students.find_one({"$or": query_list})
 
-    # ✅ INSERT STUDENT ONCE
-    result = await db.students.insert_one(student_doc)
-    student_oid = result.inserted_id
+    if existing_student:
+        student_oid = existing_student["_id"]
+        update_fields = {
+            "student_class": student_class,
+            "syllabus": actual_syllabus.upper(),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        if address: update_fields["address"] = address
+        if age: update_fields["age"] = age
+        if guardian_name: update_fields["guardian_name"] = guardian_name
+        if parent_mobile: update_fields["guardian_phone"] = parent_mobile
+        if image_url: update_fields["image_url"] = image_url
+        if school_id: update_fields["school_id"] = school_id
+        if st_mobile_number:
+            update_fields["student_phone"] = st_mobile_number
+            update_fields["mobile_number"] = st_mobile_number
+            update_fields["phone_number"] = st_mobile_number
+            update_fields["is_user"] = True
+
+        await db.students.update_one({"_id": student_oid}, {"$set": update_fields})
+    else:
+        # 1️⃣ Create student document
+        student_doc = {
+            "student_name": student_name,
+            "dob": dob,
+            "student_class": student_class,
+            "age": age,
+            "address": address,
+            "guardian_name": guardian_name,
+            "guardian_phone": parent_mobile,
+            "student_phone": st_mobile_number,
+            "mobile_number": st_mobile_number,
+            "phone_number": st_mobile_number,
+            "mobileno": st_mobile_number,
+            "mobile_no": st_mobile_number,
+            "image_url": image_url,
+            "created_at": datetime.now(timezone.utc),
+            "subscription": {"current_tier": "basic", "last_recharge_date": None},
+            "usage_buckets": initial_buckets,
+            "is_user": is_user,
+            "is_new_user": True,
+            "school_id": school_id,
+            "syllabus": actual_syllabus.upper()
+        }
+        result = await db.students.insert_one(student_doc)
+        student_oid = result.inserted_id
 
     # 2️⃣ Parent registers student
-    if usertype == "parent":
+    if usertype == "parent" and parent_mobile:
         await db.usertable.update_one(
             {"mobile_number": parent_mobile},
             {
@@ -124,6 +179,7 @@ async def register_student(
             {
                 "$set": {
                     "student_id": student_oid,
+                    "student_name": student_name,
                     "updated_at": datetime.now(timezone.utc)
                 },
                 "$setOnInsert": {
@@ -133,10 +189,6 @@ async def register_student(
             },
             upsert=True
         )
-
-    # 4️⃣ Admin case (optional)
-    elif usertype == "admin":
-        pass
 
     return {
         "status_code": 200,
@@ -164,7 +216,6 @@ async def register_student_public(
     """
     Public endpoint for parents to register students without logging in first.
     """
-    
     actual_syllabus = syllabus or syllabus_spaced
     if not actual_syllabus:
         raise HTTPException(status_code=400, detail="Syllabus is required")
@@ -192,30 +243,65 @@ async def register_student_public(
         "class_balance": 0
     }
 
-    # 2️⃣ Create Student Document
-    student_doc = {
-        "student_name": student_name,
-        "dob": dob,
-        "student_class": student_class,
-        "age": age,
-        "address": address,
-        "guardian_name": guardian_name,
-        "image_url": image_url,
-        "created_at": datetime.now(timezone.utc),
-        "subscription": {"current_tier": "basic", "last_recharge_date": None},
-        "usage_buckets": initial_buckets,
-        "is_user": False,  # Child is not the user
-        "is_new_user": True,
-        "school_id": school_id,
-        "syllabus": actual_syllabus.upper()
-    }
+    # ── Check if student already exists ──
+    clean_p = re.sub(r'\D', '', str(parent_mobile).strip())
+    p_cands = list(filter(None, {parent_mobile, clean_p, clean_p[-10:] if len(clean_p) >= 10 else None}))
+    query_list = [
+        {"student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"}, "dob": dob}
+    ]
+    if school_id:
+        query_list.append({
+            "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
+            "school_id": school_id
+        })
+    if p_cands:
+        query_list.append({
+            "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
+            "$or": [
+                {"guardian_phone": {"$in": p_cands}},
+                {"parent_mobile": {"$in": p_cands}}
+            ]
+        })
+    existing_student = await db.students.find_one({"$or": query_list})
 
-    # Insert into DB
-    result = await db.students.insert_one(student_doc)
-    student_oid = result.inserted_id
+    if existing_student:
+        student_oid = existing_student["_id"]
+        update_fields = {
+            "student_class": student_class,
+            "syllabus": actual_syllabus.upper(),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        if address: update_fields["address"] = address
+        if age: update_fields["age"] = age
+        if guardian_name: update_fields["guardian_name"] = guardian_name
+        if parent_mobile: update_fields["guardian_phone"] = parent_mobile
+        if image_url: update_fields["image_url"] = image_url
+        if school_id: update_fields["school_id"] = school_id
+
+        await db.students.update_one({"_id": student_oid}, {"$set": update_fields})
+    else:
+        # 2️⃣ Create Student Document
+        student_doc = {
+            "student_name": student_name,
+            "dob": dob,
+            "student_class": student_class,
+            "age": age,
+            "address": address,
+            "guardian_name": guardian_name,
+            "guardian_phone": parent_mobile,
+            "image_url": image_url,
+            "created_at": datetime.now(timezone.utc),
+            "subscription": {"current_tier": "basic", "last_recharge_date": None},
+            "usage_buckets": initial_buckets,
+            "is_user": False,
+            "is_new_user": True,
+            "school_id": school_id,
+            "syllabus": actual_syllabus.upper()
+        }
+        result = await db.students.insert_one(student_doc)
+        student_oid = result.inserted_id
 
     # 3️⃣ Create or Link Parent Account
-    # Upsert parent record based on mobile number
     await db.usertable.update_one(
         {"mobile_number": parent_mobile},
         {
@@ -335,21 +421,108 @@ async def get_parent_details(
     """
     Fetch details for the currently logged-in parent.
     Mobile number is extracted from the JWT token.
+    Automatically links and returns all students connected to this parent/guardian number.
     """
     mobile_number = current_user.get("sub")
+    clean_p = re.sub(r'\D', '', str(mobile_number).strip())
+    p_candidates = list(filter(None, {mobile_number, clean_p, clean_p[-10:] if len(clean_p) >= 10 else None}))
     
-    user_record = await db.usertable.find_one({"mobile_number": mobile_number})
-    if not user_record:
-        return {"status_code": 404, "message": "Parent not found"}
+    user_record = await db.usertable.find_one({"mobile_number": {"$in": p_candidates}})
+    existing_sids = user_record.get("student_ids", []) if user_record else []
 
-    student_ids = user_record.get("student_ids", [])
-    students = []
-    if student_ids:
-        # student_ids is now a list of ObjectIds
-        cursor = db.students.find({"_id": {"$in": student_ids}})
-        students = [serialize_mongo_doc(doc) for doc in await cursor.to_list(length=None)]
+    query_list = [
+        {"guardian_phone": {"$in": p_candidates}},
+        {"parent_mobile": {"$in": p_candidates}},
+        {"father_phone": {"$in": p_candidates}},
+        {"parent_phone": {"$in": p_candidates}}
+    ]
+    if existing_sids:
+        query_list.append({"_id": {"$in": existing_sids}})
 
+    cursor = db.students.find({"$or": query_list})
+    raw_students = await cursor.to_list(length=None)
+
+    # If students were found, ensure usertable is synced with all student_ids
+    if raw_students:
+        found_oids = [s["_id"] for s in raw_students]
+        await db.usertable.update_one(
+            {"mobile_number": mobile_number},
+            {
+                "$set": {
+                    "usertype": "parent",
+                    "updated_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": {"$each": found_oids}
+                },
+                "$setOnInsert": {
+                    "created_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+
+    students = [serialize_mongo_doc(doc) for doc in raw_students]
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
+
+
+# --------------------- Fetch Student Profile (Logged-in Student) -------------------------
+@router.get("/student/profile")
+@router.get("/student/me")
+@router.get("/student")
+async def get_current_student_profile(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Fetch complete student details for the currently logged-in student.
+    Identifies the student either from token student_id or from student phone number.
+    """
+    student_id = current_user.get("student_id")
+    student = None
+    if student_id:
+        try:
+            student = await db.students.find_one({"_id": ObjectId(student_id)})
+        except Exception:
+            pass
+        if not student:
+            student = await db.students.find_one({"_id": student_id})
+
+    if not student:
+        mobile_number = current_user.get("sub")
+        clean_st = re.sub(r'\D', '', str(mobile_number).strip())
+        st_cands = list(filter(None, {mobile_number, clean_st, clean_st[-10:] if len(clean_st) >= 10 else None}))
+        student = await db.students.find_one({
+            "$or": [
+                {"student_phone": {"$in": st_cands}},
+                {"mobile_number": {"$in": st_cands}},
+                {"phone": {"$in": st_cands}},
+                {"phone_number": {"$in": st_cands}},
+                {"mobileno": {"$in": st_cands}},
+                {"mobile_no": {"$in": st_cands}}
+            ]
+        })
+
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    # Resolve school name if school_id exists
+    if student.get("school_id") and not student.get("school_name"):
+        try:
+            school = await db.schools.find_one({"_id": ObjectId(student["school_id"])})
+            if not school:
+                school = await db.schools.find_one({"_id": str(student["school_id"])})
+            if school:
+                student["school_name"] = school.get("name")
+        except Exception:
+            pass
+
+    serialized = serialize_mongo_doc(student)
+    return {
+        "status_code": 200,
+        "student": serialized,
+        "subscription": serialized.get("subscription"),
+        "usage_buckets": serialized.get("usage_buckets")
+    }
 
 
 @router.post("/change-mobile")
@@ -434,12 +607,56 @@ async def set_usertype(
         {"$set": {"usertype": data.usertype}}
     )
 
+    clean_m = re.sub(r'\D', '', str(data.mobile_number).strip())
+    candidates = list(filter(None, {data.mobile_number, clean_m, clean_m[-10:] if len(clean_m) >= 10 else None}))
+    student_id = None
+
+    usertable_update = {
+        "usertype": data.usertype,
+        "updated_at": datetime.now(timezone.utc)
+    }
+
+    # If student, link student record
+    if data.usertype == "student":
+        student_match = await db.students.find_one({
+            "$or": [
+                {"student_phone": {"$in": candidates}},
+                {"mobile_number": {"$in": candidates}},
+                {"phone": {"$in": candidates}},
+                {"phone_number": {"$in": candidates}},
+                {"mobileno": {"$in": candidates}},
+                {"mobile_no": {"$in": candidates}}
+            ]
+        })
+        if student_match:
+            student_id = str(student_match["_id"])
+            usertable_update["student_id"] = student_match["_id"]
+            usertable_update["student_name"] = student_match.get("student_name")
+
+    # If parent, link all guardian students
+    elif data.usertype == "parent":
+        g_students = await db.students.find({
+            "$or": [
+                {"guardian_phone": {"$in": candidates}},
+                {"parent_mobile": {"$in": candidates}},
+                {"father_phone": {"$in": candidates}},
+                {"parent_phone": {"$in": candidates}}
+            ]
+        }).to_list(length=None)
+        if g_students:
+            s_oids = [s["_id"] for s in g_students]
+            await db.usertable.update_one(
+                {"mobile_number": data.mobile_number},
+                {"$addToSet": {"student_ids": {"$each": s_oids}}},
+                upsert=True
+            )
+
     # 3️⃣ Update usertable
     await db.usertable.update_one(
         {"mobile_number": data.mobile_number},
         {
-            "$set": {
-                "usertype": data.usertype,
+            "$set": usertable_update,
+            "$setOnInsert": {
                 "created_at": datetime.now(timezone.utc)
             }
         },
@@ -449,15 +666,15 @@ async def set_usertype(
     # 4️⃣ 🔑 CREATE NEW ACCESS TOKEN
     access_token = create_user_token(
         mobile_number=data.mobile_number,
-        usertype=data.usertype
+        usertype=data.usertype,
+        student_id=student_id
     )
-
-
 
     return {
         "status_code": 200,
         "message": f"Usertype set to {data.usertype}",
         "usertype": data.usertype,
+        "student_id": student_id,
         "access_token": access_token,
         "token_type": "bearer"
     }
@@ -785,14 +1002,29 @@ async def get_student_usage_analytics_direct(
 
 @router.get("/student-detail/{student_id}")
 async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
+    student = None
     try:
         s_oid = ObjectId(student_id)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid student_id format")
+        student = await db.students.find_one({"_id": s_oid})
+    except Exception:
+        pass
 
-    student = await db.students.find_one({"_id": s_oid})
+    if not student:
+        student = await db.students.find_one({"_id": student_id})
+
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+
+    # Resolve school name if missing
+    if student.get("school_id") and not student.get("school_name"):
+        try:
+            school = await db.schools.find_one({"_id": ObjectId(student["school_id"])})
+            if not school:
+                school = await db.schools.find_one({"_id": str(student["school_id"])})
+            if school:
+                student["school_name"] = school.get("name")
+        except Exception:
+            pass
 
     serialized_student = serialize_mongo_doc(student)
     return {

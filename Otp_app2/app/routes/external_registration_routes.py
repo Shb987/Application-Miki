@@ -284,18 +284,31 @@ async def external_register_student(
         school_name = school.get("name", "")
 
     # ── 2. Check duplicate / existing student matching ──────────────────────
-    existing_student = await db.students.find_one({
-        "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
-        "dob": payload.dob,
-        "school_id": school_id
-    })
-    if not existing_student and resolved_st_phone:
+    existing_student = None
+    if resolved_st_phone:
         existing_student = await db.students.find_one({
-            "school_id": school_id,
             "$or": [
                 {"student_phone": resolved_st_phone},
                 {"mobile_number": resolved_st_phone},
-                {"phone": resolved_st_phone}
+                {"phone": resolved_st_phone},
+                {"phone_number": resolved_st_phone},
+                {"mobileno": resolved_st_phone},
+                {"mobile_no": resolved_st_phone}
+            ]
+        })
+
+    if not existing_student and payload.name and payload.dob:
+        existing_student = await db.students.find_one({
+            "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
+            "dob": payload.dob
+        })
+
+    if not existing_student and payload.name and resolved_g_phone and resolved_g_phone != "0000000000":
+        existing_student = await db.students.find_one({
+            "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
+            "$or": [
+                {"guardian_phone": resolved_g_phone},
+                {"parent_mobile": resolved_g_phone}
             ]
         })
 
@@ -304,8 +317,10 @@ async def external_register_student(
     if existing_student:
         student_id_str = str(existing_student["_id"])
         
-        # Update existing student's class, age, and profile in Miki DB if updated in EduSoft
+        # Update existing student's class, age, school and profile in Miki DB
         update_data = {
+            "student_name": payload.name,
+            "dob": payload.dob,
             "student_class": clean_class_str,
             "student_class_raw": raw_class_str,
             "division": payload.division,
@@ -314,6 +329,8 @@ async def external_register_student(
             "guardian_phone": resolved_g_phone,
             "category": payload.category,
             "age": calculated_age,
+            "school_id": school_id,
+            "school_link": payload.link,
             "updated_at": datetime.now(timezone.utc)
         }
         if resolved_st_phone:

@@ -397,6 +397,31 @@ async def list_parents(
     current_admin: dict = Depends(require_permission("User Management", "read"))
 ):
     """List all parents with their linked student names and join dates."""
+    # Ensure all guardians in db.students are synced to usertable
+    students_with_guardians = await db.students.find({
+        "$or": [
+            {"guardian_phone": {"$exists": True, "$ne": None, "$nin": ["", "0000000000"]}},
+            {"parent_mobile": {"$exists": True, "$ne": None, "$nin": ["", "0000000000"]}}
+        ]
+    }).to_list(length=None)
+
+    for st in students_with_guardians:
+        g_phone = st.get("guardian_phone") or st.get("parent_mobile")
+        if g_phone and str(g_phone).strip() and str(g_phone).strip() != "0000000000":
+            await db.usertable.update_one(
+                {"mobile_number": str(g_phone).strip()},
+                {
+                    "$setOnInsert": {
+                        "usertype": "parent",
+                        "created_at": st.get("created_at", datetime.now(timezone.utc))
+                    },
+                    "$addToSet": {
+                        "student_ids": st["_id"]
+                    }
+                },
+                upsert=True
+            )
+
     query = {"usertype": "parent"}
     if search:
         query["mobile_number"] = {"$regex": search, "$options": "i"}

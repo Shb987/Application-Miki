@@ -24,18 +24,26 @@ async def get_visual_core_dashboard(
     Returns Careers, Exams, and Quizzes with charting data in one call.
     """
     try:
-        target_id = student_id if student_id else str(current_user["_id"])
+        target_id = student_id if student_id else (current_user.get("student_id") or current_user.get("_id"))
         
         # Get student details safely
         student = None
-        if ObjectId.is_valid(target_id):
+        if target_id and ObjectId.is_valid(target_id):
             student = await db.students.find_one({"_id": ObjectId(target_id)})
+        if not student and target_id:
+            student = await db.students.find_one({"_id": target_id})
         if not student:
-            student = await db.students.find_one({"student_id": target_id})
+            mobile_number = current_user.get("sub")
+            if mobile_number:
+                from app.routes.otp_routes import get_phone_candidates, get_student_phone_query
+                cands = get_phone_candidates(mobile_number)
+                student = await db.students.find_one(get_student_phone_query(cands))
+                if student:
+                    target_id = str(student["_id"])
             
         student_name = student.get("student_name", "Learner") if student else "Learner"
 
-        return await AnalysisService.get_visual_dashboard(target_id, student_name)
+        return await AnalysisService.get_visual_dashboard(str(target_id) if target_id else "", student_name)
     except HTTPException:
         raise
     except Exception as e:

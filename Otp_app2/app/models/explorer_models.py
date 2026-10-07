@@ -60,20 +60,40 @@ class SpaceExplorerResponse(SpaceExplorerBase):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class OceanExplorerBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100, description="Title / Ocean Feature or Creature Name")
+    name: str = Field(..., min_length=1, max_length=100, description="Title / Ocean Feature or Name")
     order: int = Field(1, ge=1, description="Order/display position")
     category: str = Field("Ocean", description="Category: Ocean")
-    short_description: Optional[str] = Field("", description="Short summary description")
-    full_description: Optional[str] = Field("", description="Primary ocean feature description")
-    descriptions: Optional[List[str]] = Field(default_factory=list, description="Multiple description blocks list")
-    image_url: Optional[str] = Field("", description="Primary Feature Image URL")
-    banner_image_url: Optional[str] = Field("", description="Cover/Banner Image URL")
+    
+    # 🖼️ Images & Titles
+    image_url: Optional[str] = Field("", description="Title / Primary Feature Image URL")
+    title_image_url: Optional[str] = Field("", description="Title Image URL (Alias for image_url)")
+    banner_image_url: Optional[str] = Field("", description="Cover / Banner Image URL")
+    cover_image_url: Optional[str] = Field("", description="Cover Image URL (Alias for banner_image_url)")
+    cover_image_title: Optional[str] = Field("", description="Cover Image Title")
     description_image_url: Optional[str] = Field("", description="Description Image URL")
+    description_images: Optional[List[Any]] = Field(default_factory=list, description="List of description block image URLs or image URL arrays (multi-image support)")
     gallery_images: Optional[List[str]] = Field(default_factory=list, description="List of gallery image URLs")
-    depth: Optional[str] = Field(None, description="Depth measurement (e.g. 11,000m / 36,000ft)")
+
+    # 📝 Descriptions & Overview
+    short_description: Optional[str] = Field("", description="Short summary description")
+    overview: Optional[str] = Field("", description="Overview description")
+    full_description: Optional[str] = Field("", description="Primary ocean overview / full description")
+    descriptions: Optional[List[str]] = Field(default_factory=list, description="Multiple detailed description blocks list")
+
+    # 🌊 Metrics & Ocean Geography
+    area: Optional[str] = Field(None, description="Total surface area (e.g. 165.25 million km²)")
+    average_depth: Optional[str] = Field(None, description="Average depth (e.g. 4,280 m / 14,040 ft)")
+    deepest_point: Optional[str] = Field(None, description="Deepest point (e.g. Challenger Deep, 10,928 m)")
+    depth: Optional[str] = Field(None, description="Depth measurement")
     location: Optional[str] = Field(None, description="Ocean / Region (e.g. Pacific Ocean, Mariana Trench)")
     temperature: Optional[str] = Field(None, description="Water temperature range (e.g. 1°C - 4°C)")
-    species: Optional[str] = Field(None, description="Marine species / Key organisms")
+
+    # 🐋 Key Species
+    species: Optional[str] = Field(None, description="Marine species / Key organisms description")
+    key_species: Optional[str] = Field(None, description="Key Species description (Alias for species)")
+    species_image_url: Optional[str] = Field("", description="Key Species Image URL")
+    key_species_image_url: Optional[str] = Field("", description="Key Species Image URL (Alias for species_image_url)")
+
     fun_fact: Optional[str] = Field(None, description="Interesting fun fact")
     is_active: bool = Field(True, description="Active status")
 
@@ -84,17 +104,33 @@ class OceanExplorerUpdate(BaseModel):
     name: Optional[str] = None
     order: Optional[int] = None
     category: Optional[str] = None
+    
+    image_url: Optional[str] = None
+    title_image_url: Optional[str] = None
+    banner_image_url: Optional[str] = None
+    cover_image_url: Optional[str] = None
+    cover_image_title: Optional[str] = None
+    description_image_url: Optional[str] = None
+    description_images: Optional[List[Any]] = None
+    gallery_images: Optional[List[str]] = None
+
     short_description: Optional[str] = None
+    overview: Optional[str] = None
     full_description: Optional[str] = None
     descriptions: Optional[List[str]] = None
-    image_url: Optional[str] = None
-    banner_image_url: Optional[str] = None
-    description_image_url: Optional[str] = None
-    gallery_images: Optional[List[str]] = None
+
+    area: Optional[str] = None
+    average_depth: Optional[str] = None
+    deepest_point: Optional[str] = None
     depth: Optional[str] = None
     location: Optional[str] = None
     temperature: Optional[str] = None
+
     species: Optional[str] = None
+    key_species: Optional[str] = None
+    species_image_url: Optional[str] = None
+    key_species_image_url: Optional[str] = None
+
     fun_fact: Optional[str] = None
     is_active: Optional[bool] = None
 

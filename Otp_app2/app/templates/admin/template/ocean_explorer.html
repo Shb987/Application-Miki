@@ -110,6 +110,19 @@
     text-decoration: none !important;
   }
 
+  .table-action-view {
+    background-color: #eff6ff !important;
+    color: #0284c7 !important;
+    border-color: #bae6fd !important;
+  }
+  .table-action-view:hover {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #0284c7 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
+  }
+
   .table-action-edit {
     background-color: #ecfdf5 !important;
     color: #059669 !important;
@@ -205,6 +218,19 @@
     cursor: pointer;
   }
 
+  .form-section-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #003566;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 6px;
+    margin-top: 15px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .form-group-custom label {
     font-size: 0.8rem;
     font-weight: 700;
@@ -246,11 +272,11 @@
         <span class="badge bg-warning text-dark px-3 py-2 rounded-pill font-weight-bold">
           <i class="fa fa-tint me-1"></i> ADMIN MODULE
         </span>
-        <span class="badge bg-info text-white px-3 py-2 rounded-pill font-weight-bold">Swagger API Ready</span>
+        <span class="badge bg-info text-white px-3 py-2 rounded-pill font-weight-bold">Deep Sea &amp; Marine Learning</span>
       </div>
       <h2 class="font-weight-bold text-white mb-1" style="letter-spacing: -0.02em;">Ocean Explorer Dashboard</h2>
       <p class="text-white-50 mb-0" style="font-size: 0.95rem;">
-        Add, view, update, and manage marine features for student learning and mobile app preview.
+        Manage oceans, marine entities, depth metrics, key species, cover headers, and multi-image detailed descriptions.
       </p>
     </div>
 
@@ -285,7 +311,7 @@
       <!-- Prominent Search Bar -->
       <div class="search-input-wrapper">
         <i class="fa fa-search"></i>
-        <input type="text" id="oceanSearchInput" placeholder="Search feature by title, description..." onkeyup="filterOceanTable()">
+        <input type="text" id="oceanSearchInput" placeholder="Search by name, species, area, deepest point..." onkeyup="filterOceanTable()">
       </div>
     </div>
 
@@ -295,17 +321,18 @@
         <thead class="table-light">
           <tr style="font-size: 0.82rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">
             <th class="ps-3" style="width: 70px;">Order</th>
-            <th style="width: 80px;">Image</th>
-            <th>Feature Title &amp; Category</th>
-            <th>Short Description</th>
-            <th>Metrics</th>
+            <th style="width: 80px;">Title Image</th>
+            <th>Ocean Name &amp; Category</th>
+            <th>Cover Title &amp; Banner</th>
+            <th>Geography &amp; Metrics</th>
+            <th>Key Species</th>
             <th>Status</th>
-            <th class="text-center pe-3" style="width: 110px;">Actions</th>
+            <th class="text-center pe-3" style="width: 140px;">Actions</th>
           </tr>
         </thead>
         <tbody id="oceanTableBody">
           <tr>
-            <td colspan="7" class="text-center py-5 text-muted">
+            <td colspan="8" class="text-center py-5 text-muted">
               <div class="spinner-border text-primary me-2" role="status"></div> Loading Ocean Explorer data...
             </td>
           </tr>
@@ -318,82 +345,97 @@
 
 <!-- Modal: Add / Edit Ocean Entity -->
 <div class="modal fade" id="oceanEntityModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
       <div class="modal-header text-white" style="background: linear-gradient(135deg, #001e3d 0%, #003566 100%);">
-        <h5 class="modal-title font-weight-bold" id="oceanModalTitle">Add Ocean Entity</h5>
+        <h5 class="modal-title font-weight-bold" id="oceanModalTitle">
+          <i class="fa fa-tint me-2"></i> Add Ocean Entity
+        </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4 bg-light">
         <form id="oceanEntityForm">
           <input type="hidden" id="ocean_id" />
 
+          <!-- SECTION 1: BASIC INFO -->
+          <div class="form-section-title mt-0">
+            <i class="fa fa-info-circle text-primary"></i> Basic Information
+          </div>
           <div class="row g-3">
-            <div class="col-md-8 form-group-custom">
-              <label>Feature / Entity Title <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-custom" id="ocean_name" required placeholder="e.g. Mariana Trench, Great Barrier Reef" />
+            <div class="col-md-6 form-group-custom">
+              <label>Ocean / Feature Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-custom" id="ocean_name" required placeholder="e.g. Pacific Ocean, Mariana Trench" />
             </div>
-            <div class="col-md-4 form-group-custom">
+            <div class="col-md-3 form-group-custom">
               <label>Order Number <span class="text-danger">*</span></label>
               <input type="number" class="form-control form-control-custom" id="ocean_order" required min="1" value="1" />
             </div>
-
-            <div class="col-md-6 form-group-custom">
+            <div class="col-md-3 form-group-custom">
               <label>Category <span class="text-danger">*</span></label>
               <select class="form-select form-select-custom" id="ocean_category">
                 <option value="Ocean" selected>Ocean</option>
+                <option value="Sea">Sea</option>
+                <option value="Trench">Trench</option>
+                <option value="Reef">Reef</option>
               </select>
             </div>
 
-            <div class="col-md-6 form-group-custom">
-              <label>Depth <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+            <div class="col-12 form-group-custom">
+              <label>Short Description</label>
+              <input type="text" class="form-control form-control-custom" id="ocean_short_desc" placeholder="Brief summary for mobile card view..." />
+            </div>
+
+            <div class="col-12 form-group-custom">
+              <label>Overview</label>
+              <textarea class="form-control form-control-custom" id="ocean_overview" rows="3" placeholder="Comprehensive ocean overview..."></textarea>
+            </div>
+          </div>
+
+          <!-- SECTION 2: GEOGRAPHY & METRICS -->
+          <div class="form-section-title">
+            <i class="fa fa-globe text-info"></i> Ocean Geography &amp; Metrics
+          </div>
+          <div class="row g-3">
+            <div class="col-md-4 form-group-custom">
+              <label>Area <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. 165.25 million km²)</span></label>
+              <input type="text" class="form-control form-control-custom" id="ocean_area" placeholder="e.g. 165.25 million km²" />
+            </div>
+            <div class="col-md-4 form-group-custom">
+              <label>Average Depth <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. 4,280 m / 14,040 ft)</span></label>
+              <input type="text" class="form-control form-control-custom" id="ocean_average_depth" placeholder="e.g. 4,280 m (14,040 ft)" />
+            </div>
+            <div class="col-md-4 form-group-custom">
+              <label>Deepest Point <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(e.g. Challenger Deep, 10,928 m)</span></label>
+              <input type="text" class="form-control form-control-custom" id="ocean_deepest_point" placeholder="e.g. Challenger Deep, Mariana Trench (10,928 m)" />
+            </div>
+
+            <div class="col-md-4 form-group-custom">
+              <label>Location / Region</label>
+              <input type="text" class="form-control form-control-custom" id="ocean_location" placeholder="e.g. Between Asia, Australia, and Americas" />
+            </div>
+            <div class="col-md-4 form-group-custom">
+              <label>Water Temperature</label>
+              <input type="text" class="form-control form-control-custom" id="ocean_temperature" placeholder="e.g. -1.4°C to 30°C" />
+            </div>
+            <div class="col-md-4 form-group-custom">
+              <label>General Depth <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
               <input type="text" class="form-control form-control-custom" id="ocean_depth" placeholder="e.g. 11,000m / 36,000ft" />
             </div>
 
-            <div class="col-md-6 form-group-custom">
-              <label>Location / Ocean <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
-              <input type="text" class="form-control form-control-custom" id="ocean_location" placeholder="e.g. Pacific Ocean" />
-            </div>
-            <div class="col-md-6 form-group-custom">
-              <label>Temperature <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
-              <input type="text" class="form-control form-control-custom" id="ocean_temperature" placeholder="e.g. 1°C - 4°C" />
-            </div>
-
-            <div class="col-md-6 form-group-custom">
-              <label>Key Species <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
-              <input type="text" class="form-control form-control-custom" id="ocean_species" placeholder="e.g. Anglerfish, Blue Whale" />
-            </div>
-            <div class="col-md-6 form-group-custom">
-              <label>Fun Fact <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
-              <input type="text" class="form-control form-control-custom" id="ocean_fun_fact" placeholder="e.g. The pressure is 1,000 times greater than sea level!" />
-            </div>
-
             <div class="col-12 form-group-custom">
-              <label>Short Summary</label>
-              <input type="text" class="form-control form-control-custom" id="ocean_short_desc" placeholder="Brief summary of this oceanic entity..." />
+              <label>Fun Fact</label>
+              <input type="text" class="form-control form-control-custom" id="ocean_fun_fact" placeholder="e.g. The Pacific Ocean contains more than 25,000 islands!" />
             </div>
+          </div>
 
-            <div class="col-12 form-group-custom">
-              <label>Full Description</label>
-              <textarea class="form-control form-control-custom" id="ocean_full_desc" rows="4" placeholder="Detailed ocean information for mobile detail screen..."></textarea>
-            </div>
-
-            <!-- Multiple Descriptions Support (+ Add Description Button) -->
-            <div class="col-12 form-group-custom">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <label class="mb-0">Multiple Description Blocks</label>
-                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="addDescriptionField()">
-                  <i class="fa fa-plus me-1"></i> Add Description
-                </button>
-              </div>
-              <div id="descriptions-container" class="d-flex flex-column gap-2">
-                <!-- Dynamic description input fields -->
-              </div>
-            </div>
-
-            <!-- Main Feature Image -->
+          <!-- SECTION 3: TITLE IMAGE & COVER IMAGE -->
+          <div class="form-section-title">
+            <i class="fa fa-image text-warning"></i> Title Image &amp; Cover Header
+          </div>
+          <div class="row g-3">
+            <!-- Title Image -->
             <div class="col-md-6 form-group-custom">
-              <label>Main Image URL</label>
+              <label>Title Image URL</label>
               <div class="input-group">
                 <input type="text" class="form-control form-control-custom" id="ocean_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('ocean_image_url', 'ocean_image_preview')" />
                 <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('ocean_image_url', 'ocean_image_preview')">
@@ -405,41 +447,108 @@
               </div>
             </div>
 
-            <!-- Banner Cover Image -->
+            <!-- Cover Image Title & Cover Image -->
             <div class="col-md-6 form-group-custom">
-              <label>Banner Cover Image URL</label>
+              <label>Cover Image Title</label>
+              <input type="text" class="form-control form-control-custom mb-2" id="ocean_cover_image_title" placeholder="e.g. Vast Pacific Horizons, Abyssal Plain" />
+              <label>Cover Image / Banner URL</label>
               <div class="input-group">
-                <input type="text" class="form-control form-control-custom" id="ocean_banner_url" placeholder="Paste banner URL or click upload" oninput="updateSinglePreview('ocean_banner_url', 'ocean_banner_preview')" />
+                <input type="text" class="form-control form-control-custom" id="ocean_banner_url" placeholder="Paste cover banner URL or click upload" oninput="updateSinglePreview('ocean_banner_url', 'ocean_banner_preview')" />
                 <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('ocean_banner_url', 'ocean_banner_preview')">
                   <i class="fa fa-upload"></i> Upload
                 </button>
               </div>
               <div id="ocean_banner_preview_wrap" class="mt-2 d-none">
-                <img id="ocean_banner_preview" src="" class="img-preview-box" style="width: 120px;" />
+                <img id="ocean_banner_preview" src="" class="img-preview-box" style="width: 140px; height: 65px;" />
               </div>
             </div>
+          </div>
 
-            <!-- Multiple Image Gallery Upload -->
+          <!-- SECTION 4: KEY SPECIES WITH IMAGE FIELD -->
+          <div class="form-section-title">
+            <i class="fa fa-paw text-success"></i> Key Species &amp; Marine Organisms
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6 form-group-custom">
+              <label>Key Species Information</label>
+              <textarea class="form-control form-control-custom" id="ocean_species" rows="3" placeholder="e.g. Blue Whale, Great White Shark, Giant Squid, Coral Reefs..."></textarea>
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label>Key Species Image URL</label>
+              <div class="input-group">
+                <input type="text" class="form-control form-control-custom" id="ocean_species_image_url" placeholder="Paste species image URL or click upload" oninput="updateSinglePreview('ocean_species_image_url', 'ocean_species_image_preview')" />
+                <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('ocean_species_image_url', 'ocean_species_image_preview')">
+                  <i class="fa fa-upload"></i> Upload
+                </button>
+              </div>
+              <div id="ocean_species_image_preview_wrap" class="mt-2 d-none">
+                <img id="ocean_species_image_preview" src="" class="img-preview-box" />
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 5: DETAILED DESCRIPTIONS WITH MULTI-IMAGE SUPPORT -->
+          <div class="form-section-title">
+            <i class="fa fa-list-alt text-primary"></i> Detailed Descriptions &amp; Multi-Image Gallery Support
+          </div>
+          <div class="row g-3">
             <div class="col-12 form-group-custom">
-              <label>Gallery Images (Multiple Upload Support)</label>
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="mb-0">Detailed Description Blocks (Multiple Images Per Block)</label>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="addDescriptionField()">
+                  <i class="fa fa-plus me-1"></i> Add Description Block
+                </button>
+              </div>
+              <div id="descriptions-container" class="d-flex flex-column gap-3">
+                <!-- Dynamic detailed description block containers -->
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 6: PHOTO GALLERY -->
+          <div class="form-section-title">
+            <i class="fa fa-camera text-secondary"></i> Additional Photo Gallery (Multiple Upload Support)
+          </div>
+          <div class="row g-3">
+            <div class="col-12 form-group-custom">
+              <label>Upload Gallery Photos</label>
               <input type="file" class="form-control form-control-custom" id="ocean_gallery_files" multiple accept="image/*" onchange="handleMultipleUpload(this)" />
-              <small class="text-muted d-block mt-1">Upload multiple photos for entity photo carousel</small>
+              <small class="text-muted d-block mt-1">Upload multiple photos for student visual gallery carousel</small>
               <div id="gallery_preview_container" class="gallery-preview-grid mt-2"></div>
             </div>
 
             <div class="col-12 form-group-custom">
               <div class="form-check form-switch mt-2">
                 <input class="form-check-input" type="checkbox" id="ocean_is_active" checked />
-                <label class="form-check-label fw-bold" for="ocean_is_active">Active / Published</label>
+                <label class="form-check-label fw-bold" for="ocean_is_active">Active / Published in Student App</label>
               </div>
             </div>
           </div>
+
         </form>
       </div>
 
-      <div class="modal-footer border-0 pt-0">
+      <div class="modal-footer border-0 bg-white">
         <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary rounded-pill px-4" onclick="saveOceanEntity()">Save Entity</button>
+        <button type="button" class="btn btn-primary rounded-pill px-5 font-weight-bold" onclick="saveOceanEntity()">Save Entity</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: View Ocean Entity Details -->
+<div class="modal fade" id="oceanViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #001e3d 0%, #0077b6 100%);">
+        <h5 class="modal-title font-weight-bold" id="viewModalTitle">Ocean Entity Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 bg-light" id="viewModalBody">
+        <!-- Content injected dynamically -->
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -448,6 +557,12 @@
 <!-- Hidden File Input for Single Image Upload -->
 <input type="file" id="single_image_input" accept="image/*" class="d-none" onchange="handleSingleUpload(this)" />
 
+<!-- Hidden File Input for Description Block Multi-Image Upload -->
+<input type="file" id="desc_block_multi_file_input" multiple accept="image/*" class="d-none" onchange="handleBlockMultiFileUpload(this)" />
+
+{% endblock %}
+
+{% block scripts %}
 <script>
   let oceanEntities = [];
   let currentFilter = 'all';
@@ -455,6 +570,8 @@
   let currentTargetPreviewId = '';
   let galleryImageUrls = [];
   let currentDescriptionsList = [''];
+  let currentDescriptionImagesList = [[]];
+  let activeBlockUploadIdx = -1;
 
   function getAuthToken() {
     return window.token || localStorage.getItem('admin_token') || '';
@@ -468,7 +585,7 @@
     const tbody = document.getElementById('oceanTableBody');
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="text-center py-5 text-muted">
+        <td colspan="8" class="text-center py-5 text-muted">
           <div class="spinner-border text-primary me-2" role="status"></div> Loading Ocean Explorer data...
         </td>
       </tr>
@@ -514,8 +631,8 @@
     let list = oceanEntities.filter(item => {
       const matchCat = (currentFilter === 'all') || (item.category === currentFilter);
       const nameStr = (item.name || '').toLowerCase();
-      const descStr = (item.full_description || item.short_description || '').toLowerCase();
-      const specStr = (item.species || item.location || '').toLowerCase();
+      const descStr = (item.overview || item.full_description || item.short_description || '').toLowerCase();
+      const specStr = (item.species || item.key_species || item.location || item.deepest_point || item.area || '').toLowerCase();
       const matchSearch = nameStr.includes(q) || descStr.includes(q) || specStr.includes(q) || String(item.order).includes(q);
       return matchCat && matchSearch;
     });
@@ -523,7 +640,7 @@
     if (list.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="text-center py-5">
+          <td colspan="8" class="text-center py-5">
             <div class="my-3">
               <i class="fa fa-tint text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
               <h5 class="font-weight-bold text-dark mb-1">No Ocean Explorer Entities Found</h5>
@@ -542,21 +659,25 @@
 
     tbody.innerHTML = list.map(item => {
       const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80';
-      const imgUrl = item.image_url || defaultImg;
+      const imgUrl = item.title_image_url || item.image_url || defaultImg;
+      const bannerUrl = item.cover_image_url || item.banner_image_url || '';
+      const speciesImg = item.key_species_image_url || item.species_image_url || '';
+      
       const statusBadge = item.is_active 
         ? `<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill"><i class="fa fa-check-circle me-1"></i> Active</span>`
         : `<span class="badge bg-secondary-subtle text-secondary px-2 py-1 rounded-pill">Inactive</span>`;
 
       const metrics = [
-        item.depth ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-arrows-v me-1 text-primary"></i> ${escapeHtml(item.depth)}</span>` : '',
-        item.location ? `<span class="badge bg-light text-dark me-1"><i class="fa fa-map-marker me-1 text-info"></i> ${escapeHtml(item.location)}</span>` : ''
-      ].join('');
+        item.area ? `<div class="text-truncate" style="font-size:0.8rem; max-width:200px;"><i class="fa fa-map text-primary me-1"></i> <strong>Area:</strong> ${escapeHtml(item.area)}</div>` : '',
+        item.average_depth ? `<div class="text-truncate" style="font-size:0.8rem; max-width:200px;"><i class="fa fa-arrows-v text-info me-1"></i> <strong>Avg Depth:</strong> ${escapeHtml(item.average_depth)}</div>` : '',
+        item.deepest_point ? `<div class="text-truncate" style="font-size:0.8rem; max-width:200px;"><i class="fa fa-anchor text-danger me-1"></i> <strong>Deepest:</strong> ${escapeHtml(item.deepest_point)}</div>` : ''
+      ].filter(Boolean).join('');
 
       return `
         <tr>
           <td class="ps-3"><span class="order-badge">${item.order || 1}</span></td>
           <td>
-            <img src="${imgUrl}" class="ocean-img-thumb" onerror="this.src='${defaultImg}';" />
+            <img src="${escapeHtml(imgUrl)}" class="ocean-img-thumb" onerror="this.src='${defaultImg}';" />
           </td>
           <td>
             <div class="fw-bold text-dark d-flex align-items-center gap-2">
@@ -565,18 +686,35 @@
                 ${escapeHtml(item.category || 'Ocean')}
               </span>
             </div>
+            <small class="text-muted d-block text-truncate" style="max-width: 220px;">${escapeHtml(item.short_description || item.overview || '')}</small>
           </td>
           <td>
-            <div class="text-truncate text-muted" style="max-width: 240px; font-size: 0.88rem;" title="${escapeHtml(item.short_description || '')}">
-              ${escapeHtml(item.short_description || 'No summary set')}
+            <div>
+              <span class="fw-semibold text-dark" style="font-size:0.85rem;">${escapeHtml(item.cover_image_title || '—')}</span>
+              ${bannerUrl ? `
+                <div class="mt-1">
+                  <img src="${escapeHtml(bannerUrl)}" style="height:32px; width:70px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1;" onerror="this.style.display='none'" />
+                </div>
+              ` : ''}
             </div>
           </td>
           <td>
             <div>${metrics || '<span class="text-muted" style="font-size: 0.8rem;">-</span>'}</div>
           </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              ${speciesImg ? `<img src="${escapeHtml(speciesImg)}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid #0077b6;" onerror="this.style.display='none'" />` : ''}
+              <div class="text-truncate" style="max-width: 160px; font-size: 0.85rem;" title="${escapeHtml(item.key_species || item.species || '')}">
+                ${escapeHtml(item.key_species || item.species || '—')}
+              </div>
+            </div>
+          </td>
           <td>${statusBadge}</td>
           <td class="text-center pe-3">
             <div class="d-flex align-items-center justify-content-center gap-1">
+              <button type="button" class="table-action-btn table-action-view" onclick="viewOceanEntity('${item.id}')" title="View Full Details">
+                <i class="fa fa-eye"></i>
+              </button>
               <button type="button" class="table-action-btn table-action-edit" onclick="editOceanEntity('${item.id}')" title="Edit Entity">
                 <i class="fa fa-pencil"></i>
               </button>
@@ -591,15 +729,21 @@
   }
 
   function openAddOceanModal() {
-    document.getElementById('oceanModalTitle').innerText = 'Add Ocean Entity';
+    document.getElementById('oceanModalTitle').innerHTML = '<i class="fa fa-plus-circle me-2"></i> Add Ocean Entity';
     document.getElementById('oceanEntityForm').reset();
     document.getElementById('ocean_id').value = '';
+    
     galleryImageUrls = [];
     currentDescriptionsList = [''];
+    currentDescriptionImagesList = [[]];
+    
     renderGalleryPreviews();
     renderDescriptionsContainer();
+
     document.getElementById('ocean_image_preview_wrap').classList.add('d-none');
     document.getElementById('ocean_banner_preview_wrap').classList.add('d-none');
+    document.getElementById('ocean_species_image_preview_wrap').classList.add('d-none');
+
     const modal = new bootstrap.Modal(document.getElementById('oceanEntityModal'));
     modal.show();
   }
@@ -608,32 +752,168 @@
     const item = oceanEntities.find(i => i.id === id);
     if (!item) return;
 
-    document.getElementById('oceanModalTitle').innerText = 'Edit Ocean Entity';
+    document.getElementById('oceanModalTitle').innerHTML = '<i class="fa fa-pencil me-2"></i> Edit Ocean Entity';
     document.getElementById('ocean_id').value = item.id;
     document.getElementById('ocean_name').value = item.name || '';
     document.getElementById('ocean_order').value = item.order || 1;
     document.getElementById('ocean_category').value = item.category || 'Ocean';
+    
+    // Overview & Descriptions
+    document.getElementById('ocean_short_desc').value = item.short_description || '';
+    document.getElementById('ocean_overview').value = item.overview || item.full_description || '';
+    
+    // Metrics
+    document.getElementById('ocean_area').value = item.area || '';
+    document.getElementById('ocean_average_depth').value = item.average_depth || '';
+    document.getElementById('ocean_deepest_point').value = item.deepest_point || '';
     document.getElementById('ocean_depth').value = item.depth || '';
     document.getElementById('ocean_location').value = item.location || '';
     document.getElementById('ocean_temperature').value = item.temperature || '';
-    document.getElementById('ocean_species').value = item.species || '';
     document.getElementById('ocean_fun_fact').value = item.fun_fact || '';
-    document.getElementById('ocean_short_desc').value = item.short_description || '';
-    document.getElementById('ocean_full_desc').value = item.full_description || '';
-    document.getElementById('ocean_image_url').value = item.image_url || '';
-    document.getElementById('ocean_banner_url').value = item.banner_image_url || '';
+
+    // Titles & Images
+    document.getElementById('ocean_image_url').value = item.title_image_url || item.image_url || '';
+    document.getElementById('ocean_cover_image_title').value = item.cover_image_title || '';
+    document.getElementById('ocean_banner_url').value = item.cover_image_url || item.banner_image_url || '';
+
+    // Species
+    document.getElementById('ocean_species').value = item.key_species || item.species || '';
+    document.getElementById('ocean_species_image_url').value = item.key_species_image_url || item.species_image_url || '';
+
     document.getElementById('ocean_is_active').checked = item.is_active !== false;
 
     updateSinglePreview('ocean_image_url', 'ocean_image_preview');
     updateSinglePreview('ocean_banner_url', 'ocean_banner_preview');
+    updateSinglePreview('ocean_species_image_url', 'ocean_species_image_preview');
 
     galleryImageUrls = item.gallery_images || [];
     renderGalleryPreviews();
 
-    currentDescriptionsList = (item.descriptions && item.descriptions.length > 0) ? item.descriptions : [item.full_description || ''];
+    // Descriptions & Multi-image support
+    currentDescriptionsList = (item.descriptions && item.descriptions.length > 0) 
+      ? item.descriptions 
+      : [item.overview || item.full_description || ''];
+
+    if (item.description_images && item.description_images.length > 0) {
+      currentDescriptionImagesList = item.description_images.map(img => {
+        if (Array.isArray(img)) return img;
+        if (typeof img === 'string' && img.trim()) return img.split(',').map(s => s.trim());
+        return [];
+      });
+    } else {
+      currentDescriptionImagesList = currentDescriptionsList.map(() => []);
+    }
+
     renderDescriptionsContainer();
 
     const modal = new bootstrap.Modal(document.getElementById('oceanEntityModal'));
+    modal.show();
+  }
+
+  function viewOceanEntity(id) {
+    const item = oceanEntities.find(i => i.id === id);
+    if (!item) return;
+
+    document.getElementById('viewModalTitle').innerText = item.name + ' - Ocean Details';
+    
+    const defaultImg = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=200&q=80';
+    const titleImg = item.title_image_url || item.image_url || defaultImg;
+    const bannerImg = item.cover_image_url || item.banner_image_url || '';
+    const speciesImg = item.key_species_image_url || item.species_image_url || '';
+
+    let descsHtml = '';
+    const descs = item.descriptions || [];
+    const descImgs = item.description_images || [];
+    if (descs.length > 0) {
+      descsHtml = descs.map((d, idx) => {
+        let imgs = descImgs[idx] || [];
+        if (typeof imgs === 'string' && imgs.trim()) imgs = imgs.split(',').map(s => s.trim());
+        const imgsHtml = (Array.isArray(imgs) && imgs.length > 0)
+          ? `<div class="d-flex flex-wrap gap-2 mt-2">${imgs.map(u => `<img src="${escapeHtml(u)}" style="width:70px; height:70px; object-fit:cover; border-radius:8px; border:1px solid #0077b6;" />`).join('')}</div>`
+          : '';
+
+        return `
+          <div class="card p-3 mb-2 bg-white border">
+            <h6 class="text-primary font-weight-bold mb-1">Description Block #${idx + 1}</h6>
+            <p class="mb-1 text-secondary">${escapeHtml(d)}</p>
+            ${imgsHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    let galleryHtml = '';
+    if (item.gallery_images && item.gallery_images.length > 0) {
+      galleryHtml = `<div class="d-flex flex-wrap gap-2 mt-2">${item.gallery_images.map(u => `<img src="${escapeHtml(u)}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #0077b6;" />`).join('')}</div>`;
+    }
+
+    const html = `
+      <div class="text-center mb-3">
+        <img src="${escapeHtml(titleImg)}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #0077b6; box-shadow:0 4px 15px rgba(0,0,0,0.15);" />
+        <h4 class="font-weight-bold mt-2 mb-0">${escapeHtml(item.name)}</h4>
+        <span class="badge bg-primary rounded-pill px-3 py-1 mt-1">${escapeHtml(item.category || 'Ocean')}</span>
+      </div>
+
+      ${bannerImg ? `
+        <div class="card p-2 mb-3 bg-white border">
+          <div class="fw-bold text-muted mb-1"><i class="fa fa-image text-warning me-1"></i> Cover: ${escapeHtml(item.cover_image_title || 'Banner Cover')}</div>
+          <img src="${escapeHtml(bannerImg)}" style="width:100%; max-height:180px; object-fit:cover; border-radius:8px;" />
+        </div>
+      ` : ''}
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <div class="card p-3 bg-white border text-center h-100">
+            <small class="text-muted fw-bold">TOTAL AREA</small>
+            <h6 class="text-dark font-weight-bold mb-0 mt-1">${escapeHtml(item.area || '—')}</h6>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card p-3 bg-white border text-center h-100">
+            <small class="text-muted fw-bold">AVERAGE DEPTH</small>
+            <h6 class="text-dark font-weight-bold mb-0 mt-1">${escapeHtml(item.average_depth || '—')}</h6>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card p-3 bg-white border text-center h-100">
+            <small class="text-muted fw-bold">DEEPEST POINT</small>
+            <h6 class="text-danger font-weight-bold mb-0 mt-1">${escapeHtml(item.deepest_point || '—')}</h6>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-3 mb-3 bg-white border">
+        <h6 class="font-weight-bold text-dark mb-1"><i class="fa fa-info-circle text-primary me-1"></i> Overview</h6>
+        <p class="text-secondary mb-0">${escapeHtml(item.overview || item.full_description || item.short_description || 'No overview provided.')}</p>
+      </div>
+
+      <div class="card p-3 mb-3 bg-white border">
+        <div class="d-flex align-items-center gap-3">
+          ${speciesImg ? `<img src="${escapeHtml(speciesImg)}" style="width:65px; height:65px; border-radius:10px; object-fit:cover; border:2px solid #10b981;" />` : ''}
+          <div>
+            <h6 class="font-weight-bold text-success mb-1"><i class="fa fa-paw me-1"></i> Key Species &amp; Organisms</h6>
+            <p class="text-secondary mb-0">${escapeHtml(item.key_species || item.species || 'No species information specified.')}</p>
+          </div>
+        </div>
+      </div>
+
+      ${descsHtml ? `
+        <div class="mb-3">
+          <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-list-alt text-primary me-1"></i> Detailed Description Blocks</h6>
+          ${descsHtml}
+        </div>
+      ` : ''}
+
+      ${galleryHtml ? `
+        <div class="card p-3 mb-2 bg-white border">
+          <h6 class="font-weight-bold text-dark mb-1"><i class="fa fa-camera text-secondary me-1"></i> Photo Gallery</h6>
+          ${galleryHtml}
+        </div>
+      ` : ''}
+    `;
+
+    document.getElementById('viewModalBody').innerHTML = html;
+    const modal = new bootstrap.Modal(document.getElementById('oceanViewModal'));
     modal.show();
   }
 
@@ -649,30 +929,212 @@
     }
   }
 
+  /* Description Blocks Multi-Image & State Handling */
+  function collectDescriptionsState() {
+    const descFields = document.querySelectorAll('.desc-input-field');
+    const imgFields = document.querySelectorAll('.desc-img-input-field');
+    if (descFields.length > 0) {
+      currentDescriptionsList = Array.from(descFields).map(f => f.value);
+    }
+    if (imgFields.length > 0) {
+      imgFields.forEach((f, idx) => {
+        const val = f.value.trim();
+        currentDescriptionImagesList[idx] = val ? val.split(',').map(s => s.trim()).filter(v => v) : [];
+      });
+    }
+  }
+
+  function renderDescriptionsContainer() {
+    const container = document.getElementById('descriptions-container');
+    if (!container) return;
+    if (!currentDescriptionsList || currentDescriptionsList.length === 0) {
+      currentDescriptionsList = [''];
+      currentDescriptionImagesList = [[]];
+    }
+
+    container.innerHTML = currentDescriptionsList.map((desc, idx) => {
+      let rawImgs = currentDescriptionImagesList[idx] || [];
+      let imgUrls = Array.isArray(rawImgs) 
+        ? rawImgs 
+        : (typeof rawImgs === 'string' && rawImgs.trim() ? rawImgs.split(',').map(s => s.trim()) : []);
+
+      const thumbsHtml = imgUrls.map((url, imgIdx) => `
+        <div class="position-relative d-inline-block me-2 mb-2">
+          <img src="${escapeHtml(url)}" class="img-preview-box" style="height: 60px; width: 60px; object-fit: cover; border-radius: 8px;" />
+          <button type="button" class="btn btn-danger btn-sm rounded-circle position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center" 
+                  style="width: 20px; height: 20px; font-size: 10px; transform: translate(30%, -30%);" 
+                  onclick="removeBlockImage(${idx}, ${imgIdx})" title="Remove image">&times;</button>
+        </div>
+      `).join('');
+
+      return `
+        <div class="card p-3 bg-white border shadow-sm rounded-3 w-100">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold text-dark" style="font-size: 0.85rem;">
+              <i class="fa fa-align-left text-primary me-1"></i> Description Block #${idx + 1}
+            </span>
+            ${currentDescriptionsList.length > 1 ? `
+              <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;" onclick="removeDescriptionField(${idx})" title="Remove Block">
+                <i class="fa fa-trash me-1"></i> Remove Block
+              </button>
+            ` : ''}
+          </div>
+          <div class="mb-2">
+            <textarea class="form-control form-control-custom desc-input-field" rows="3" placeholder="Enter detailed description block #${idx + 1}...">${escapeHtml(desc || '')}</textarea>
+          </div>
+          <div>
+            <label style="font-size: 0.78rem;" class="text-muted fw-bold mb-1">
+              <i class="fa fa-image text-info me-1"></i> Description Block Images #${idx + 1} 
+              <span class="text-muted font-weight-normal">(Multiple Images Supported)</span>
+            </label>
+            <div class="input-group input-group-sm mb-2">
+              <input type="text" class="form-control form-control-custom desc-img-input-field" id="ocean_desc_img_${idx}" value="${escapeHtml(imgUrls.join(', '))}" placeholder="Paste image URL(s) separated by comma or click Upload" onchange="updateBlockImagesFromInput(${idx})" />
+              <button type="button" class="btn btn-outline-secondary" onclick="triggerBlockMultiUpload(${idx})">
+                <i class="fa fa-upload me-1"></i> Upload Images
+              </button>
+            </div>
+            <div id="desc_block_img_preview_${idx}" class="d-flex flex-wrap align-items-center mt-2">
+              ${thumbsHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function addDescriptionField() {
+    collectDescriptionsState();
+    currentDescriptionsList.push('');
+    currentDescriptionImagesList.push([]);
+    renderDescriptionsContainer();
+  }
+
+  function removeDescriptionField(index) {
+    collectDescriptionsState();
+    currentDescriptionsList.splice(index, 1);
+    currentDescriptionImagesList.splice(index, 1);
+    renderDescriptionsContainer();
+  }
+
+  function triggerBlockMultiUpload(idx) {
+    collectDescriptionsState();
+    activeBlockUploadIdx = idx;
+    document.getElementById('desc_block_multi_file_input').click();
+  }
+
+  async function handleBlockMultiFileUpload(input) {
+    if (!input.files || input.files.length === 0 || activeBlockUploadIdx < 0) return;
+    const formData = new FormData();
+    for (let i = 0; i < input.files.length; i++) {
+      formData.append('files', input.files[i]);
+    }
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/ocean-explorer/upload-multiple-images', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Failed to upload images');
+      const data = await resp.json();
+      if (data.urls && data.urls.length > 0) {
+        let currentImgs = currentDescriptionImagesList[activeBlockUploadIdx];
+        if (!Array.isArray(currentImgs)) {
+          currentImgs = (typeof currentImgs === 'string' && currentImgs.trim()) ? currentImgs.split(',').map(s => s.trim()) : [];
+        }
+        currentImgs.push(...data.urls);
+        currentDescriptionImagesList[activeBlockUploadIdx] = currentImgs;
+        renderDescriptionsContainer();
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+    input.value = '';
+  }
+
+  function removeBlockImage(blockIdx, imgIdx) {
+    collectDescriptionsState();
+    let imgs = currentDescriptionImagesList[blockIdx];
+    if (!Array.isArray(imgs)) {
+      imgs = (typeof imgs === 'string' && imgs.trim()) ? imgs.split(',').map(s => s.trim()) : [];
+    }
+    imgs.splice(imgIdx, 1);
+    currentDescriptionImagesList[blockIdx] = imgs;
+    renderDescriptionsContainer();
+  }
+
+  function updateBlockImagesFromInput(idx) {
+    const input = document.getElementById(`ocean_desc_img_${idx}`);
+    if (input) {
+      const val = input.value.trim();
+      currentDescriptionImagesList[idx] = val ? val.split(',').map(s => s.trim()).filter(v => v) : [];
+      renderDescriptionsContainer();
+    }
+  }
+
+  function getCollectedDescriptions() {
+    collectDescriptionsState();
+    return {
+      descriptions: currentDescriptionsList.map(s => s.trim()).filter(s => s.length > 0),
+      description_images: currentDescriptionImagesList
+    };
+  }
+
   async function saveOceanEntity() {
     const id = document.getElementById('ocean_id').value;
     const name = document.getElementById('ocean_name').value.trim();
     if (!name) {
-      alert('Please enter entity name');
+      alert('Please enter ocean / feature title');
       return;
     }
 
-    const descriptionsList = getCollectedDescriptions();
+    const collectedDescs = getCollectedDescriptions();
+    const overviewVal = document.getElementById('ocean_overview').value.trim();
+    const titleImageUrl = document.getElementById('ocean_image_url').value.trim();
+    const coverTitle = document.getElementById('ocean_cover_image_title').value.trim();
+    const coverImageUrl = document.getElementById('ocean_banner_url').value.trim();
+    const speciesVal = document.getElementById('ocean_species').value.trim();
+    const speciesImgVal = document.getElementById('ocean_species_image_url').value.trim();
 
     const payload = {
       name: name,
       order: parseInt(document.getElementById('ocean_order').value) || 1,
       category: document.getElementById('ocean_category').value,
+      
+      // Images & Titles
+      title_image_url: titleImageUrl,
+      image_url: titleImageUrl,
+      cover_image_title: coverTitle,
+      cover_image_url: coverImageUrl,
+      banner_image_url: coverImageUrl,
+
+      // Descriptions & Overview
+      short_description: document.getElementById('ocean_short_desc').value.trim(),
+      overview: overviewVal,
+      full_description: overviewVal,
+      descriptions: collectedDescs.descriptions,
+      description_images: collectedDescs.description_images,
+
+      // Metrics & Geography
+      area: document.getElementById('ocean_area').value.trim(),
+      average_depth: document.getElementById('ocean_average_depth').value.trim(),
+      deepest_point: document.getElementById('ocean_deepest_point').value.trim(),
       depth: document.getElementById('ocean_depth').value.trim(),
       location: document.getElementById('ocean_location').value.trim(),
       temperature: document.getElementById('ocean_temperature').value.trim(),
-      species: document.getElementById('ocean_species').value.trim(),
       fun_fact: document.getElementById('ocean_fun_fact').value.trim(),
-      short_description: document.getElementById('ocean_short_desc').value.trim(),
-      full_description: document.getElementById('ocean_full_desc').value.trim(),
-      descriptions: descriptionsList,
-      image_url: document.getElementById('ocean_image_url').value.trim(),
-      banner_image_url: document.getElementById('ocean_banner_url').value.trim(),
+
+      // Key Species
+      key_species: speciesVal,
+      species: speciesVal,
+      key_species_image_url: speciesImgVal,
+      species_image_url: speciesImgVal,
+
+      // Gallery & Status
       gallery_images: galleryImageUrls,
       is_active: document.getElementById('ocean_is_active').checked
     };
@@ -693,7 +1155,7 @@
 
       if (!resp.ok) {
         const errData = await resp.json();
-        throw new Error(errData.detail || 'Failed to save entity');
+        throw new Error(errData.detail || 'Failed to save ocean entity');
       }
 
       bootstrap.Modal.getInstance(document.getElementById('oceanEntityModal')).hide();
@@ -793,7 +1255,7 @@
     const container = document.getElementById('gallery_preview_container');
     container.innerHTML = galleryImageUrls.map((url, idx) => `
       <div class="gallery-thumb-item">
-        <img src="${url}" />
+        <img src="${escapeHtml(url)}" />
         <button type="button" class="btn-remove-gal" onclick="removeGalleryImg(${idx})">&times;</button>
       </div>
     `).join('');
@@ -802,48 +1264,6 @@
   function removeGalleryImg(idx) {
     galleryImageUrls.splice(idx, 1);
     renderGalleryPreviews();
-  }
-
-  /* Multiple Descriptions Support (+ Add Description Button) */
-  function renderDescriptionsContainer() {
-    const container = document.getElementById('descriptions-container');
-    if (!container) return;
-    if (!currentDescriptionsList || currentDescriptionsList.length === 0) {
-      currentDescriptionsList = [''];
-    }
-
-    container.innerHTML = currentDescriptionsList.map((desc, idx) => `
-      <div class="input-group">
-        <span class="input-group-text bg-white text-muted fw-bold" style="font-size: 0.8rem;">Desc ${idx + 1}</span>
-        <textarea class="form-control form-control-custom desc-input-field" rows="2" placeholder="Enter Description ${idx + 1}...">${escapeHtml(desc || '')}</textarea>
-        ${currentDescriptionsList.length > 1 ? `
-          <button type="button" class="btn btn-outline-danger" onclick="removeDescriptionField(${idx})" title="Remove Description"><i class="fa fa-trash"></i></button>
-        ` : ''}
-      </div>
-    `).join('');
-  }
-
-  function addDescriptionField() {
-    const inputs = document.querySelectorAll('.desc-input-field');
-    if (inputs.length > 0) {
-      currentDescriptionsList = Array.from(inputs).map(i => i.value);
-    }
-    currentDescriptionsList.push('');
-    renderDescriptionsContainer();
-  }
-
-  function removeDescriptionField(index) {
-    const inputs = document.querySelectorAll('.desc-input-field');
-    if (inputs.length > 0) {
-      currentDescriptionsList = Array.from(inputs).map(i => i.value);
-    }
-    currentDescriptionsList.splice(index, 1);
-    renderDescriptionsContainer();
-  }
-
-  function getCollectedDescriptions() {
-    const inputs = document.querySelectorAll('.desc-input-field');
-    return Array.from(inputs).map(i => i.value.trim()).filter(v => v.length > 0);
   }
 
   function escapeHtml(str) {

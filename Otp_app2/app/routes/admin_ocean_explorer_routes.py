@@ -20,10 +20,36 @@ def serialize_doc(doc):
     if not doc:
         return None
     doc["id"] = str(doc.pop("_id"))
+    
+    # Images & Aliases
+    img = doc.get("title_image_url") or doc.get("image_url") or ""
+    doc["title_image_url"] = img
+    doc["image_url"] = img
+
+    cover = doc.get("cover_image_url") or doc.get("banner_image_url") or ""
+    doc["cover_image_url"] = cover
+    doc["banner_image_url"] = cover
+
+    # Overview & Descriptions
+    overview = doc.get("overview") or doc.get("full_description") or ""
+    doc["overview"] = overview
+    doc["full_description"] = overview
+
+    # Species & Image
+    spec = doc.get("key_species") or doc.get("species") or ""
+    doc["key_species"] = spec
+    doc["species"] = spec
+
+    spec_img = doc.get("key_species_image_url") or doc.get("species_image_url") or ""
+    doc["key_species_image_url"] = spec_img
+    doc["species_image_url"] = spec_img
+
     if "gallery_images" not in doc or doc["gallery_images"] is None:
         doc["gallery_images"] = []
     if "descriptions" not in doc or doc["descriptions"] is None:
-        doc["descriptions"] = [doc.get("full_description")] if doc.get("full_description") else []
+        doc["descriptions"] = [overview] if overview else []
+    if "description_images" not in doc or doc["description_images"] is None:
+        doc["description_images"] = []
     return doc
 
 def save_and_optimize_image(file_obj, filepath: str, max_dim: int = 1920):

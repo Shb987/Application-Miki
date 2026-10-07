@@ -272,7 +272,7 @@
         <span class="badge bg-warning text-dark px-3 py-2 rounded-pill font-weight-bold">
           <i class="fa fa-tint me-1"></i> ADMIN MODULE
         </span>
-        <span class="badge bg-info text-white px-3 py-2 rounded-pill font-weight-bold">Deep Sea &amp; Marine Learning</span>
+        <span class="badge bg-info text-white px-3 py-2 rounded-pill font-weight-bold">Ocean Explorer</span>
       </div>
       <h2 class="font-weight-bold text-white mb-1" style="letter-spacing: -0.02em;">Ocean Explorer Dashboard</h2>
       <p class="text-white-50 mb-0" style="font-size: 0.95rem;">
@@ -285,7 +285,7 @@
       <div class="stat-pill">
         <i class="fa fa-tint text-info fs-5"></i>
         <div>
-          <div style="font-size: 0.75rem; opacity: 0.85;">Total Entities</div>
+          <div style="font-size: 0.75rem; opacity: 0.85;">Total Oceans</div>
           <div id="stat-total-count" style="font-size: 1.15rem; font-weight: 800; color: #fff;">0</div>
         </div>
       </div>
@@ -302,10 +302,11 @@
     <!-- Filter and Search Bar -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
       
-      <!-- Category Filter Pills -->
-      <div class="d-flex align-items-center gap-2 flex-wrap" id="category-filter-buttons">
-        <button type="button" class="btn btn-primary rounded-pill btn-sm px-3 filter-btn active" data-cat="all" onclick="filterCategory('all', this)">All Entities</button>
-        <button type="button" class="btn btn-outline-secondary rounded-pill btn-sm px-3 filter-btn" data-cat="Ocean" onclick="filterCategory('Ocean', this)">Ocean</button>
+      <!-- Category Badge -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.88rem; font-weight: 600;">
+          <i class="fa fa-tint me-1"></i> Category: Ocean
+        </span>
       </div>
 
       <!-- Prominent Search Bar -->
@@ -323,7 +324,7 @@
             <th class="ps-3" style="width: 70px;">Order</th>
             <th style="width: 80px;">Title Image</th>
             <th>Ocean Name &amp; Category</th>
-            <th>Cover Title &amp; Banner</th>
+            <th>Cover Image</th>
             <th>Geography &amp; Metrics</th>
             <th>Key Species</th>
             <th>Status</th>
@@ -364,7 +365,7 @@
           <div class="row g-3">
             <div class="col-md-6 form-group-custom">
               <label>Ocean / Feature Title <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-custom" id="ocean_name" required placeholder="e.g. Pacific Ocean, Mariana Trench" />
+              <input type="text" class="form-control form-control-custom" id="ocean_name" required placeholder="e.g. Pacific Ocean, Atlantic Ocean, Indian Ocean" />
             </div>
             <div class="col-md-3 form-group-custom">
               <label>Order Number <span class="text-danger">*</span></label>
@@ -374,9 +375,6 @@
               <label>Category <span class="text-danger">*</span></label>
               <select class="form-select form-select-custom" id="ocean_category">
                 <option value="Ocean" selected>Ocean</option>
-                <option value="Sea">Sea</option>
-                <option value="Trench">Trench</option>
-                <option value="Reef">Reef</option>
               </select>
             </div>
 
@@ -447,10 +445,8 @@
               </div>
             </div>
 
-            <!-- Cover Image Title & Cover Image -->
+            <!-- Cover Image -->
             <div class="col-md-6 form-group-custom">
-              <label>Cover Image Title</label>
-              <input type="text" class="form-control form-control-custom mb-2" id="ocean_cover_image_title" placeholder="e.g. Vast Pacific Horizons, Abyssal Plain" />
               <label>Cover Image / Banner URL</label>
               <div class="input-group">
                 <input type="text" class="form-control form-control-custom" id="ocean_banner_url" placeholder="Paste cover banner URL or click upload" oninput="updateSinglePreview('ocean_banner_url', 'ocean_banner_preview')" />
@@ -565,7 +561,6 @@
 {% block scripts %}
 <script>
   let oceanEntities = [];
-  let currentFilter = 'all';
   let currentTargetInputId = '';
   let currentTargetPreviewId = '';
   let galleryImageUrls = [];
@@ -609,17 +604,6 @@
     }
   }
 
-  function filterCategory(cat, btn) {
-    currentFilter = cat;
-    document.querySelectorAll('#category-filter-buttons .filter-btn').forEach(b => {
-      b.classList.remove('btn-primary', 'active');
-      b.classList.add('btn-outline-secondary');
-    });
-    btn.classList.remove('btn-outline-secondary');
-    btn.classList.add('btn-primary', 'active');
-    filterOceanTable();
-  }
-
   function filterOceanTable() {
     renderOceanTable();
   }
@@ -629,12 +613,11 @@
     const q = document.getElementById('oceanSearchInput').value.toLowerCase().trim();
     
     let list = oceanEntities.filter(item => {
-      const matchCat = (currentFilter === 'all') || (item.category === currentFilter);
       const nameStr = (item.name || '').toLowerCase();
       const descStr = (item.overview || item.full_description || item.short_description || '').toLowerCase();
       const specStr = (item.species || item.key_species || item.location || item.deepest_point || item.area || '').toLowerCase();
       const matchSearch = nameStr.includes(q) || descStr.includes(q) || specStr.includes(q) || String(item.order).includes(q);
-      return matchCat && matchSearch;
+      return matchSearch;
     });
 
     if (list.length === 0) {
@@ -683,19 +666,18 @@
             <div class="fw-bold text-dark d-flex align-items-center gap-2">
               ${escapeHtml(item.name)}
               <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
-                ${escapeHtml(item.category || 'Ocean')}
+                Ocean
               </span>
             </div>
             <small class="text-muted d-block text-truncate" style="max-width: 220px;">${escapeHtml(item.short_description || item.overview || '')}</small>
           </td>
           <td>
             <div>
-              <span class="fw-semibold text-dark" style="font-size:0.85rem;">${escapeHtml(item.cover_image_title || '—')}</span>
               ${bannerUrl ? `
-                <div class="mt-1">
-                  <img src="${escapeHtml(bannerUrl)}" style="height:32px; width:70px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1;" onerror="this.style.display='none'" />
+                <div>
+                  <img src="${escapeHtml(bannerUrl)}" style="height:36px; width:80px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1;" onerror="this.style.display='none'" />
                 </div>
-              ` : ''}
+              ` : '<span class="text-muted" style="font-size:0.8rem;">No cover</span>'}
             </div>
           </td>
           <td>
@@ -756,7 +738,7 @@
     document.getElementById('ocean_id').value = item.id;
     document.getElementById('ocean_name').value = item.name || '';
     document.getElementById('ocean_order').value = item.order || 1;
-    document.getElementById('ocean_category').value = item.category || 'Ocean';
+    document.getElementById('ocean_category').value = 'Ocean';
     
     // Overview & Descriptions
     document.getElementById('ocean_short_desc').value = item.short_description || '';
@@ -773,7 +755,6 @@
 
     // Titles & Images
     document.getElementById('ocean_image_url').value = item.title_image_url || item.image_url || '';
-    document.getElementById('ocean_cover_image_title').value = item.cover_image_title || '';
     document.getElementById('ocean_banner_url').value = item.cover_image_url || item.banner_image_url || '';
 
     // Species
@@ -851,12 +832,12 @@
       <div class="text-center mb-3">
         <img src="${escapeHtml(titleImg)}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #0077b6; box-shadow:0 4px 15px rgba(0,0,0,0.15);" />
         <h4 class="font-weight-bold mt-2 mb-0">${escapeHtml(item.name)}</h4>
-        <span class="badge bg-primary rounded-pill px-3 py-1 mt-1">${escapeHtml(item.category || 'Ocean')}</span>
+        <span class="badge bg-primary rounded-pill px-3 py-1 mt-1">Ocean</span>
       </div>
 
       ${bannerImg ? `
         <div class="card p-2 mb-3 bg-white border">
-          <div class="fw-bold text-muted mb-1"><i class="fa fa-image text-warning me-1"></i> Cover: ${escapeHtml(item.cover_image_title || 'Banner Cover')}</div>
+          <div class="fw-bold text-muted mb-1"><i class="fa fa-image text-warning me-1"></i> Cover Banner</div>
           <img src="${escapeHtml(bannerImg)}" style="width:100%; max-height:180px; object-fit:cover; border-radius:8px;" />
         </div>
       ` : ''}
@@ -1095,7 +1076,6 @@
     const collectedDescs = getCollectedDescriptions();
     const overviewVal = document.getElementById('ocean_overview').value.trim();
     const titleImageUrl = document.getElementById('ocean_image_url').value.trim();
-    const coverTitle = document.getElementById('ocean_cover_image_title').value.trim();
     const coverImageUrl = document.getElementById('ocean_banner_url').value.trim();
     const speciesVal = document.getElementById('ocean_species').value.trim();
     const speciesImgVal = document.getElementById('ocean_species_image_url').value.trim();
@@ -1103,12 +1083,11 @@
     const payload = {
       name: name,
       order: parseInt(document.getElementById('ocean_order').value) || 1,
-      category: document.getElementById('ocean_category').value,
+      category: 'Ocean',
       
       // Images & Titles
       title_image_url: titleImageUrl,
       image_url: titleImageUrl,
-      cover_image_title: coverTitle,
       cover_image_url: coverImageUrl,
       banner_image_url: coverImageUrl,
 

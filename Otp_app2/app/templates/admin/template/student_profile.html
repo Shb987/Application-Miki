@@ -300,6 +300,11 @@
                         <label class="form-label font-weight-bold" style="font-size:0.85rem;">Student Name</label>
                         <input type="text" class="form-control" id="prof-modal-student-name" readonly style="background:#f8f9fa;">
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label font-weight-bold" style="font-size:0.85rem;">School</label>
+                        <input type="text" class="form-control" id="prof-modal-school-name" readonly style="background:#f8f9fa;">
+                    </div>
                     
                     <div class="mb-3">
                         <label class="form-label font-weight-bold" style="font-size:0.85rem;">Student Phone Number</label>
@@ -396,6 +401,7 @@
                         <h1 class="profile-name">${s.student_name || "Unknown Student"}</h1>
                         <div class="d-flex align-items-center flex-wrap gap-3 mt-2">
                             <span class="profile-badge ${badgeClass}"><i data-feather="shield" style="width:14px;height:14px;margin-right:4px;"></i> ${tier} Plan</span>
+                            <span><i data-feather="home" style="width:14px;height:14px;margin-right:4px;"></i> ${s.school_name || "No School Assigned"}</span>
                             <span><i data-feather="phone" style="width:14px;height:14px;margin-right:4px;"></i> ${currentStudentPhone || "N/A"}</span>
                             <span><i data-feather="book-open" style="width:14px;height:14px;margin-right:4px;"></i> Class ${s.student_class || "N/A"}</span>
                             <span><i data-feather="calendar" style="width:14px;height:14px;margin-right:4px;"></i> Joined: ${new Date(s.created_at).toLocaleDateString()}</span>
@@ -498,6 +504,8 @@
                     </div>
                     <div class="content-body" style="padding: 15px 25px;">
                         <ul class="info-list">
+                            <li><span class="info-label">School</span><span class="info-value text-primary font-weight-bold">${s.school_name || "—"}</span></li>
+                            ${s.school_link ? `<li><span class="info-label">School Link</span><span class="info-value" style="word-break:break-all;"><a href="${s.school_link.startsWith('http') ? s.school_link : 'https://' + s.school_link}" target="_blank" class="text-decoration-none">${s.school_link}</a></span></li>` : ''}
                             <li><span class="info-label">Student Phone</span><span class="info-value">${currentStudentPhone || "—"}</span></li>
                             <li><span class="info-label">Guardian Name</span><span class="info-value">${s.guardian_name || "—"}</span></li>
                             <li><span class="info-label">Guardian Phone</span><span class="info-value">${s.guardian_phone || s.parent_mobile || "—"}</span></li>
@@ -693,6 +701,9 @@
         const guardianName = s.guardian_name || "";
 
         document.getElementById("prof-modal-student-name").value = s.student_name || "";
+        if (document.getElementById("prof-modal-school-name")) {
+            document.getElementById("prof-modal-school-name").value = s.school_name || "No School Assigned";
+        }
         document.getElementById("prof-modal-student-phone").value = currentStudentPhone;
         document.getElementById("prof-modal-guardian-name").value = guardianName;
         document.getElementById("prof-modal-guardian-phone").value = guardianPhone;

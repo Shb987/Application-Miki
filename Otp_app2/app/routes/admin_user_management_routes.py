@@ -28,6 +28,130 @@ def serialize(doc: dict) -> dict:
 
 
 # ──────────────────────────────────────────────────────────────
+# SCHOOL ASSOCIATION HELPER
+# ──────────────────────────────────────────────────────────────
+
+async def resolve_and_enrich_student_school(student: dict, persist: bool = False) -> dict:
+    """
+    Enrich a student document with school association (school_id, school_name, school_link).
+    Handles:
+    - Direct school_id (string or ObjectId) looking up db.schools
+    - Direct school_link or link on student looking up db.schools
+    - EduSoft integration credentials (db.edusoft_credentials) looking up school_link
+    - Pre-existing school_name looking up db.schools if school_id is missing
+    - Persists resolved school_id, school_name, school_link back to db.students if persist=True
+    """
+    if not student:
+        return student
+
+    import re
+    sid = student.get("school_id")
+    sname = student.get("school_name")
+    slink = student.get("school_link") or student.get("link")
+    st_oid = student.get("_id")
+    st_id_str = str(st_oid) if st_oid else None
+
+    # 1. If school_link is missing, check EduSoft credentials
+    if not slink and st_id_str:
+        cred_q = [{"student_id": st_id_str}]
+        if isinstance(st_oid, ObjectId):
+            cred_q.append({"student_id": st_oid})
+        try:
+            cred = await db.edusoft_credentials.find_one({"$or": cred_q})
+            if cred and cred.get("school_link"):
+                slink = cred.get("school_link")
+        except Exception:
+            pass
+
+    # 2. Lookup in db.schools
+    school_doc = None
+
+    # Priority A: Query by school_id (ObjectId and string)
+    if sid:
+        sid_str = str(sid).strip()
+        q_or = [{"_id": sid_str}]
+        try:
+            q_or.append({"_id": ObjectId(sid_str)})
+        except Exception:
+            pass
+        try:
+            school_doc = await db.schools.find_one({"$or": q_or})
+        except Exception:
+            pass
+
+    # Priority B: Query by school_link
+    if not school_doc and slink:
+        try:
+            school_doc = await db.schools.find_one({"link": slink})
+            if not school_doc:
+                import urllib.parse
+                target_link = slink if str(slink).startswith("http") else f"http://{slink}"
+                parsed = urllib.parse.urlparse(target_link)
+                clean_domain = parsed.netloc or parsed.path
+                domain_part = clean_domain.split(':')[0].replace("www.", "")
+                if domain_part:
+                    school_doc = await db.schools.find_one({
+                        "link": {"$regex": re.escape(domain_part), "$options": "i"}
+                    })
+                if not school_doc and domain_part:
+                    clean_name_cand = domain_part.split('.')[0]
+                    school_doc = await db.schools.find_one({
+                        "name": {"$regex": f"^{re.escape(clean_name_cand)}$", "$options": "i"}
+                    })
+        except Exception:
+            pass
+
+    # Priority C: Query by school_name
+    if not school_doc and sname:
+        try:
+            school_doc = await db.schools.find_one({
+                "name": {"$regex": f"^{re.escape(str(sname).strip())}$", "$options": "i"}
+            })
+        except Exception:
+            pass
+
+    # 3. Apply resolved data to student dict
+    if school_doc:
+        resolved_sid = str(school_doc["_id"])
+        resolved_sname = school_doc.get("name") or sname
+        resolved_slink = school_doc.get("link") or slink
+
+        student["school_id"] = resolved_sid
+        student["school_name"] = resolved_sname
+        if resolved_slink:
+            student["school_link"] = resolved_slink
+    else:
+        if sid:
+            student["school_id"] = str(sid)
+        if sname:
+            student["school_name"] = sname
+        if slink:
+            student["school_link"] = slink
+
+    # 4. Optional persistence to db.students to heal legacy or incomplete student docs
+    if persist and st_oid:
+        update_set = {}
+        if student.get("school_id") and (not sid or str(sid) != str(student.get("school_id"))):
+            update_set["school_id"] = student["school_id"]
+        if student.get("school_name") and student.get("school_name") != sname:
+            update_set["school_name"] = student["school_name"]
+        if student.get("school_link") and not student.get("school_link"):
+            update_set["school_link"] = student["school_link"]
+        if student.get("school_name") and not sname:
+            update_set["school_name"] = student["school_name"]
+        if student.get("school_id") and not sid:
+            update_set["school_id"] = student["school_id"]
+
+        if update_set:
+            try:
+                await db.students.update_one({"_id": st_oid}, {"$set": update_set})
+            except Exception as e:
+                print(f"[School Persist Warn] {e}")
+
+    return student
+
+
+# ──────────────────────────────────────────────────────────────
 # STUDENTS
 # ──────────────────────────────────────────────────────────────
 
@@ -59,25 +183,20 @@ async def search_students(
             or_cls.append({"student_class": int(clean_cls)})
         query["$or"] = or_cls
     if school_id:
-        query["school_id"] = school_id
+        sid_clean = str(school_id).strip()
+        s_filter = [{"school_id": sid_clean}]
+        try:
+            s_filter.append({"school_id": ObjectId(sid_clean)})
+        except Exception:
+            pass
+        if "$or" in query:
+            query["$and"] = [{"$or": query.pop("$or")}, {"$or": s_filter}]
+        else:
+            query["$or"] = s_filter
 
     total = await db.students.count_documents(query)
     cursor = db.students.find(query).sort("created_at", -1).skip(skip).limit(limit)
     students = await cursor.to_list(length=limit)
-
-    school_ids = list(set([s.get("school_id") for s in students if s.get("school_id")]))
-    school_map = {}
-    if school_ids:
-        valid_school_ids = []
-        for sid in school_ids:
-            try:
-                valid_school_ids.append(ObjectId(sid))
-            except:
-                pass
-        if valid_school_ids:
-            s_cursor = db.schools.find({"_id": {"$in": valid_school_ids}})
-            async for school in s_cursor:
-                school_map[str(school["_id"])] = school.get("name")
 
     # Batch lookup student mobile numbers from usertable if not directly on student doc
     missing_mobile_sids = [s["_id"] for s in students if not (s.get("student_phone") or s.get("mobile_number") or s.get("phone_number") or s.get("mobileno") or s.get("mobile_no") or s.get("phone") or s.get("mobile"))]
@@ -110,10 +229,8 @@ async def search_students(
                         mobile_map[key] = m_num
 
     for s in students:
-        sid = s.get("school_id")
-        if sid and sid in school_map:
-            s["school_name"] = school_map[sid]
-        
+        await resolve_and_enrich_student_school(s, persist=True)
+
         st_id_str = str(s["_id"])
 
         # Populate guardian phone cleanly
@@ -176,6 +293,8 @@ async def get_student_profile(
     student = await db.students.find_one({"_id": s_oid})
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+
+    await resolve_and_enrich_student_school(student, persist=True)
 
     if not student.get("age") and student.get("dob"):
         from app.routes.external_registration_routes import calculate_age_from_dob
@@ -413,7 +532,15 @@ async def update_student_phone(
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
+    # Resolve and preserve school association so it is never dropped during phone updates
+    await resolve_and_enrich_student_school(student, persist=False)
     student_update = {"updated_at": datetime.now(timezone.utc)}
+    if student.get("school_id"):
+        student_update["school_id"] = student["school_id"]
+    if student.get("school_name"):
+        student_update["school_name"] = student["school_name"]
+    if student.get("school_link"):
+        student_update["school_link"] = student["school_link"]
 
     # 1. Update Student Phone
     if payload.student_phone is not None:
@@ -529,8 +656,21 @@ async def update_student_phone(
     # Apply update to student doc
     await db.students.update_one({"_id": s_oid}, {"$set": student_update})
 
-    # Fetch updated student doc
+    # Fetch updated student doc and guarantee school enrichment & persistence
     updated_student = await db.students.find_one({"_id": s_oid})
+    await resolve_and_enrich_student_school(updated_student, persist=True)
+
+    # Ensure EduSoft credentials retain student link and school link
+    try:
+        cred = await db.edusoft_credentials.find_one({"$or": [{"student_id": student_id}, {"student_id": s_oid}]})
+        if cred:
+            c_update = {}
+            if updated_student.get("school_link") and not cred.get("school_link"):
+                c_update["school_link"] = updated_student["school_link"]
+            if c_update:
+                await db.edusoft_credentials.update_one({"_id": cred["_id"]}, {"$set": c_update})
+    except Exception as e:
+        print(f"[EduSoft Credential Sync Warning] {e}")
 
     return {
         "status": "success",
@@ -713,6 +853,9 @@ async def update_parent_phone(
             {"_id": {"$in": s_oids}},
             {"$set": st_update}
         )
+        # Ensure all affected students have their school associations verified and preserved
+        for s_doc in linked_students:
+            await resolve_and_enrich_student_school(s_doc, persist=True)
 
     # 5. Update OTP record
     await db.otps.update_many(

@@ -330,6 +330,7 @@ async def external_register_student(
             "category": payload.category,
             "age": calculated_age,
             "school_id": school_id,
+            "school_name": school_name,
             "school_link": payload.link,
             "updated_at": datetime.now(timezone.utc)
         }
@@ -438,6 +439,7 @@ async def external_register_student(
         "mobile_no": resolved_st_phone,
         "phone_number": resolved_st_phone,
         "school_id": school_id,
+        "school_name": school_name,
         "school_link": payload.link,
         "image_url": None,
         "created_at": datetime.now(timezone.utc),
@@ -631,6 +633,13 @@ async def external_update_student(
         update_fields["mobileno"] = resolved_st_phone
         update_fields["mobile_no"] = resolved_st_phone
         update_fields["phone_number"] = resolved_st_phone
+
+    if payload.link:
+        school = await db.schools.find_one({"link": payload.link})
+        if school:
+            update_fields["school_id"] = str(school["_id"])
+            update_fields["school_name"] = school.get("name", "")
+            update_fields["school_link"] = payload.link
 
     await db.students.update_one({"_id": student["_id"]}, {"$set": update_fields})
 

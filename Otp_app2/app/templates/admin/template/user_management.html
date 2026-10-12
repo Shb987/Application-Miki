@@ -471,6 +471,10 @@
                         <input type="text" id="edit-student-name" class="form-control" disabled style="background:#f8f9fa; border-radius:8px;">
                     </div>
                     <div class="mb-3">
+                        <label class="form-label font-weight-bold text-muted small">SCHOOL</label>
+                        <input type="text" id="edit-student-school" class="form-control" disabled style="background:#f8f9fa; border-radius:8px;">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label font-weight-bold text-dark small">STUDENT PHONE NUMBER</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white" style="border-radius:8px 0 0 8px;"><i data-feather="smartphone" style="width:16px;height:16px;"></i></span>
@@ -736,6 +740,7 @@
             
             const escapedName = (s.student_name || "").replace(/'/g, "\\'");
             const escapedGName = (s.guardian_name || "").replace(/'/g, "\\'");
+            const escapedSchool = (s.school_name || "").replace(/'/g, "\\'");
             const stPhoneVal = (mobileNum === "—") ? "" : mobileNum;
             const gPhoneVal = s.guardian_phone || "";
 
@@ -753,7 +758,7 @@
                 <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" style="border-radius:8px;" onclick="location.href='/admin-panel/student-profile-page?id=${s._id}'" title="View Profile">
                     <i class="fa fa-eye" style="font-size:13px;"></i> View
                 </button>
-                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" style="border-radius:8px;" onclick="openEditStudentPhoneModal('${s._id}', '${escapedName}', '${stPhoneVal}', '${escapedGName}', '${gPhoneVal}')" title="Update Phone Number">
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" style="border-radius:8px;" onclick="openEditStudentPhoneModal('${s._id}', '${escapedName}', '${stPhoneVal}', '${escapedGName}', '${gPhoneVal}', '${escapedSchool}')" title="Update Phone Number">
                     <i class="fa fa-edit" style="font-size:13px;"></i> Update
                 </button>
                 <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="border-radius:8px; width:30px; height:30px; padding:0;" onclick="promptDelete('${s._id}', '${escapedName}')" title="Delete">
@@ -794,9 +799,12 @@
 
     // Modal Handlers for Student Phone Update
     let studentPhoneModalInstance = null;
-    function openEditStudentPhoneModal(id, name, stPhone, gName, gPhone) {
+    function openEditStudentPhoneModal(id, name, stPhone, gName, gPhone, schoolName = "") {
         document.getElementById("edit-student-id").value = id;
         document.getElementById("edit-student-name").value = name;
+        if (document.getElementById("edit-student-school")) {
+            document.getElementById("edit-student-school").value = schoolName || "No School Assigned";
+        }
         document.getElementById("edit-student-phone").value = stPhone || "";
         document.getElementById("edit-guardian-name").value = gName || "";
         document.getElementById("edit-guardian-phone").value = gPhone || "";

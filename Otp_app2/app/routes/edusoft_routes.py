@@ -424,6 +424,13 @@ async def edusoft_update_student(
 
     await db.students.update_one({"_id": student["_id"]}, {"$set": update_doc})
 
+    # Ensure school association remains resolved and preserved
+    try:
+        from app.routes.admin_user_management_routes import resolve_and_enrich_student_school
+        await resolve_and_enrich_student_school(student, persist=True)
+    except Exception:
+        pass
+
     # Sync to usertable
     if resolved_g_phone and resolved_g_phone != "0000000000":
         await db.usertable.update_one(

@@ -28,6 +28,8 @@ class Student(BaseModel):
     subscription: Optional[SubscriptionInfo] = SubscriptionInfo()
     usage_buckets: Optional[UsageBuckets] = UsageBuckets()
     school_id: Optional[str] = None
+    school_name: Optional[str] = None
+    school_link: Optional[str] = None
     skill_profile: Optional[Dict[str, int]] = {}
     syllabus: str
 
@@ -40,6 +42,8 @@ class StudentUpdate(BaseModel):
     guardian_name: Optional[str] = None
     image_url: Optional[str] = None
     school_id: Optional[str] = None
+    school_name: Optional[str] = None
+    school_link: Optional[str] = None
     skill_profile: Optional[Dict[str, int]] = None
     syllabus: Optional[str] = None
 

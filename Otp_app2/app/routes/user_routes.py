@@ -462,6 +462,15 @@ async def get_parent_details(
             upsert=True
         )
 
+    # Ensure all parent's students have their school association resolved
+    if raw_students:
+        try:
+            from app.routes.admin_user_management_routes import resolve_and_enrich_student_school
+            for st in raw_students:
+                await resolve_and_enrich_student_school(st, persist=False)
+        except Exception:
+            pass
+
     students = [serialize_mongo_doc(doc) for doc in raw_students]
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
 
@@ -505,16 +514,20 @@ async def get_current_student_profile(
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
 
-    # Resolve school name if school_id exists
-    if student.get("school_id") and not student.get("school_name"):
-        try:
-            school = await db.schools.find_one({"_id": ObjectId(student["school_id"])})
-            if not school:
-                school = await db.schools.find_one({"_id": str(student["school_id"])})
-            if school:
-                student["school_name"] = school.get("name")
-        except Exception:
-            pass
+    # Resolve school association
+    try:
+        from app.routes.admin_user_management_routes import resolve_and_enrich_student_school
+        await resolve_and_enrich_student_school(student, persist=True)
+    except Exception:
+        if student.get("school_id") and not student.get("school_name"):
+            try:
+                school = await db.schools.find_one({"_id": ObjectId(student["school_id"])})
+                if not school:
+                    school = await db.schools.find_one({"_id": str(student["school_id"])})
+                if school:
+                    student["school_name"] = school.get("name")
+            except Exception:
+                pass
 
     serialized = serialize_mongo_doc(student)
     return {

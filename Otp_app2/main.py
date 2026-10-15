@@ -23,7 +23,8 @@ from app.routes import (
     admin_space_explorer_routes, user_space_explorer_routes,
     admin_ocean_explorer_routes, user_ocean_explorer_routes,
     admin_plant_explorer_routes, user_plant_explorer_routes,
-    admin_indian_explorer_routes, user_indian_explorer_routes
+    admin_indian_explorer_routes, user_indian_explorer_routes,
+    miki_care_routes
 ) 
 
 from fastapi.responses import JSONResponse, Response
@@ -57,11 +58,12 @@ async def seed_default_roles():
             perms["Plant Explorer"] = full_explorer_perms
             perms["Indian Explorer"] = full_explorer_perms
             perms["Explorer"] = full_explorer_perms
+            perms["Miki Care"] = full_explorer_perms
             await db.roles.update_one(
                 {"_id": data_operator_role["_id"]},
                 {"$set": {"permissions": perms}}
             )
-            print("[INFO] Updated Data Operator role with full Explorer permissions.")
+            print("[INFO] Updated Data Operator role with full Explorer and Miki Care permissions.")
         else:
             default_perms = {
                 "User Management": {"read": True, "create": False, "update": False, "delete": False},
@@ -82,7 +84,8 @@ async def seed_default_roles():
                 "AI Usage": {"read": True, "create": False, "update": False, "delete": False},
                 "Subscription Plans & Transactions": {"read": False, "create": False, "update": False, "delete": False},
                 "Schools": {"read": True, "create": False, "update": False, "delete": False},
-                "Roles & Permissions": {"read": False, "create": False, "update": False, "delete": False}
+                "Roles & Permissions": {"read": False, "create": False, "update": False, "delete": False},
+                "Miki Care": full_explorer_perms
             }
             await db.roles.insert_one({
                 "role_name": "Data Operator",
@@ -280,5 +283,10 @@ app.include_router(admin_space_explorer_routes.router, prefix="/admin-panel", ta
 app.include_router(admin_ocean_explorer_routes.router, prefix="/admin-panel", tags=["Ocean Explorer - Admin"])
 app.include_router(admin_plant_explorer_routes.router, prefix="/admin-panel", tags=["Plant Explorer - Admin"])
 app.include_router(admin_indian_explorer_routes.router, prefix="/admin-panel", tags=["Indian Explorer - Admin"])
+
+# Miki Care Module
+app.include_router(miki_care_routes.admin_router, prefix="/admin-panel", tags=["Miki Care - Admin"])
+app.include_router(miki_care_routes.public_router, prefix="/api/v1", tags=["Miki Care - Public"])
+
 
 

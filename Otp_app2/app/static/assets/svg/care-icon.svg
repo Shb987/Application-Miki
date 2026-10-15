@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Medical Care / Health Heart with Cross Icon -->
+  <path d="M32 56 C14 42 6 30 6 19 A13 13 0 0 1 32 15 A13 13 0 0 1 58 19 C58 30 50 42 32 56 Z" fill="none" stroke="white" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Central Medical Cross -->
+  <path d="M32 20 V38 M23 29 H41" fill="none" stroke="white" stroke-width="4.5" stroke-linecap="round"/>
+</svg>

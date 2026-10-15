@@ -342,6 +342,11 @@
             background-color: #252936 !important;
             border-color: #2b3040 !important;
         }
+        body.dark-only .modal-body,
+        html.dark-only .modal-body {
+            background-color: #1e222d !important;
+            color: #f1f5f9 !important;
+        }
         body.dark-only .form-control,
         body.dark-only .form-select,
         body.dark-only .input-group-text,
@@ -501,7 +506,8 @@
                 "menu-special-days": "Special Days",
                 "menu-analytics": "Analytics",
                 "menu-social-media": "Social Content & Contributors",
-                "menu-roles": "Roles & Permissions"
+                "menu-roles": "Roles & Permissions",
+                "menu-miki-care": "Miki Care"
             };
             try {
                 const cached = localStorage.getItem("admin_permissions");
@@ -590,7 +596,8 @@
                 "menu-special-days": "Special Days",
                 "menu-analytics": "Analytics",
                 "menu-social-media": "Social Content & Contributors",
-                "menu-roles": "Roles & Permissions"
+                "menu-roles": "Roles & Permissions",
+                "menu-miki-care": "Miki Care"
             };
 
             // If superadmin, show everything

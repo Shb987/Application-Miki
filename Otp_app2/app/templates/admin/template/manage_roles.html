@@ -1778,7 +1778,8 @@ const MODULES = [
   { key: "Special Days",                      icon: "fa-calendar" },
   { key: "Social Content & Contributors",     icon: "fa-share-alt" },
   { key: "AI Usage",                          icon: "fa-microchip" },
-  { key: "Roles & Permissions",               icon: "fa-shield" }
+  { key: "Roles & Permissions",               icon: "fa-shield" },
+  { key: "Miki Care",                         icon: "fa-heartbeat" }
 ];
 
 const ACTIONS = ["read", "create", "update", "delete"];
@@ -1849,6 +1850,10 @@ function formatActionName(action) {
     'update_user': 'Update User',
     'delete_user': 'Delete User',
     'update_user_role': 'Update User Role',
+    'create_doctor': 'Create Doctor',
+    'update_doctor': 'Update Doctor',
+    'update_doctor_status': 'Update Doctor Status',
+    'delete_doctor': 'Delete Doctor',
     'login': 'Admin Login',
     'logout': 'Admin Logout'
   };
@@ -1889,7 +1894,8 @@ function getModuleSummary(moduleName) {
     "Special Days": "Configure seasonal or event content.",
     "Social Content & Contributors": "Moderate social and contributor content.",
     "AI Usage": "Inspect AI usage and cost impact.",
-    "Roles & Permissions": "Manage access rules for roles."
+    "Roles & Permissions": "Manage access rules for roles.",
+    "Miki Care": "Manage doctor profiles, specializations, and healthcare services."
   };
   return map[moduleName] || "Module access and settings.";
 }

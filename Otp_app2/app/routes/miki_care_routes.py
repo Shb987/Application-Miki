@@ -448,19 +448,16 @@ async def delete_doctor(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 👨‍👩‍👧 PARENTS AND STUDENTS GET API
+# 👨‍👩‍👧 PARENTS AND STUDENTS GET API (NO PARAMETERS)
 # ═════════════════════════════════════════════════════════════════════════════
 
 @public_router.get("/doctors", response_model=List[DoctorPublicResponse])
-async def get_doctors_for_parents_and_students(
-    specialization: Optional[str] = Query(None, description="Optional filter by specialization"),
-    search: Optional[str] = Query(None, description="Optional search by doctor name, city, or clinic")
-):
+async def get_doctors_for_parents_and_students():
     """
     GET API for Parents and Students:
     Endpoint: GET /api/v1/miki-care/doctors
 
-    Requirements:
+    - No parameters needed.
     - Returns all ACTIVE doctor profiles added through Miki Care admin panel.
     - Excludes inactive doctor profiles.
     - Fetches the latest saved details directly from the database.
@@ -476,23 +473,8 @@ async def get_doctors_for_parents_and_students(
         ]
     }
 
-    if specialization and specialization.strip() and specialization.lower() != "all":
-        query["specialization"] = specialization.strip()
-
-    if search and search.strip():
-        term = search.strip()
-        search_filter = [
-            {"doctor_name": {"$regex": term, "$options": "i"}},
-            {"hospital_clinic_name": {"$regex": term, "$options": "i"}},
-            {"city": {"$regex": term, "$options": "i"}},
-            {"qualification": {"$regex": term, "$options": "i"}},
-            {"specialization": {"$regex": term, "$options": "i"}},
-            {"other_specialization": {"$regex": term, "$options": "i"}},
-        ]
-        query["$and"] = [{"$or": search_filter}]
-
     cursor = db.doctors.find(query).sort([("experience", -1), ("created_at", -1)])
-    docs = await cursor.to_list(length=500)
+    docs = await cursor.to_list(length=None)
 
     results = []
     for d in docs:
@@ -528,48 +510,4 @@ async def get_doctors_for_parents_and_students(
         )
 
     return results
-
-
-@public_router.get("/doctors/{doctor_id}", response_model=DoctorPublicResponse)
-async def get_doctor_details_for_parents_and_students(doctor_id: str):
-    """
-    GET API for Parents and Students to retrieve individual active doctor details.
-    """
-    query = {
-        "$and": [
-            {"$or": [{"doctor_id": doctor_id}, {"_id": ObjectId(doctor_id)}] if ObjectId.is_valid(doctor_id) else [{"doctor_id": doctor_id}]},
-            {"$or": [{"is_active": True}, {"status": {"$regex": "^active$", "$options": "i"}}]}
-        ]
-    }
-
-    doc = await db.doctors.find_one(query)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Active doctor profile not found.")
-
-    serialized = serialize_doctor(doc)
-    spec_display = serialized.get("specialization") or "Specialist"
-    if spec_display == "Other" and serialized.get("other_specialization"):
-        spec_display = serialized["other_specialization"]
-
-    return DoctorPublicResponse(
-        doctor_id=serialized.get("doctor_id") or serialized.get("id"),
-        doctor_name=serialized.get("doctor_name", ""),
-        profile_image=serialized.get("profile_image"),
-        profile_image_url=serialized.get("profile_image"),
-        specialization=spec_display,
-        other_specialization=serialized.get("other_specialization"),
-        qualification=serialized.get("qualification", ""),
-        experience=float(serialized.get("experience") or 0.0),
-        hospital_clinic_name=serialized.get("hospital_clinic_name"),
-        consultation_address=serialized.get("consultation_address"),
-        city=serialized.get("city"),
-        state=serialized.get("state"),
-        available_days=serialized.get("available_days") or [],
-        available_time=serialized.get("available_time"),
-        short_biography=serialized.get("short_biography"),
-        contact_number=serialized.get("contact_number"),
-        email=serialized.get("email"),
-        status=serialized.get("status", "Active"),
-        is_active=True
-    )
 

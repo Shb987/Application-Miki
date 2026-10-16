@@ -255,6 +255,11 @@ async def indian_explorer_page(request: Request):
     """Render the Indian Explorer Management admin page."""
     return templates.TemplateResponse("indian_explorer.html", {"request": request})
 
+@router.get("/animal-explorer-page", response_class=HTMLResponse)
+async def animal_explorer_page(request: Request):
+    """Render the Animal Explorer Management admin page."""
+    return templates.TemplateResponse("animal_explorer.html", {"request": request})
+
 @router.get("/miki-care-page", response_class=HTMLResponse)
 async def miki_care_page(request: Request):
     """Render the Miki Care Doctor Management admin page."""

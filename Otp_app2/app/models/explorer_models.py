@@ -511,3 +511,127 @@ class IndianExplorerResponse(IndianExplorerBase):
         by_alias = True
         json_encoders = {datetime: lambda v: v.isoformat()}
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 🦁 5. Animal Explorer Models
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AnimalExplorerBase(BaseModel):
+    # 1. Category & Order
+    category: str = Field("Wild Animals", description="Category: Wild Animals, Domestic Animals & Pets, Insects, Reptiles, Mammals, Birds, Amphibians, Aquatic & Marine Animals, Endangered Animals, Prehistoric Animals, Arachnids, Worms & Other Invertebrates")
+    order: int = Field(1, ge=1, description="Display Order")
+
+    # 2. Animal / Species Name & Taxonomy
+    name: str = Field(..., min_length=1, max_length=150, description="Animal / Species Name")
+    scientific_name: Optional[str] = Field("", description="Scientific Name")
+    family: Optional[str] = Field("", description="Animal Family")
+    habitat: Optional[str] = Field("", description="Habitat / Region")
+    climate_zone: Optional[str] = Field("", description="Climate Zone")
+    conservation_status: Optional[str] = Field("", description="Conservation Status (e.g. Least Concern, Vulnerable, Endangered)")
+    fun_fact: Optional[str] = Field("", description="Fun Fact")
+    short_summary: Optional[str] = Field("", description="Short Summary")
+    short_description: Optional[str] = Field("", description="Short Description alias")
+    full_description: Optional[str] = Field("", description="Full Description")
+    descriptions: Optional[List[str]] = Field(default_factory=list, description="Multiple Description Blocks")
+
+    # 🖼️ Images & Media
+    image_url: Optional[str] = Field("", description="Main Image URL")
+    banner_image_url: Optional[str] = Field("", description="Banner Cover Image URL")
+    gallery_images: Optional[List[str]] = Field(default_factory=list, description="Gallery Images")
+
+    # 🐾 Animal Characteristics – Images & Descriptions
+    appearance_image_url: Optional[str] = Field("", description="Animal Appearance Image URL")
+    appearance_description: Optional[str] = Field("", description="Animal Appearance Description")
+    habitat_image_url: Optional[str] = Field("", description="Habitat Image URL")
+    habitat_description: Optional[str] = Field("", description="Habitat Description")
+    diet_image_url: Optional[str] = Field("", description="Food Habits / Diet Image URL")
+    diet_description: Optional[str] = Field("", description="Food Habits / Diet Description")
+    sound_audio_url: Optional[str] = Field("", description="Animal Sound Audio / Image URL")
+    sound_image_url: Optional[str] = Field("", description="Animal Sound Image URL")
+    sound_description: Optional[str] = Field("", description="Animal Sound & Audio Description")
+    body_parts_image_url: Optional[str] = Field("", description="Body Parts Image URL")
+    body_parts_description: Optional[str] = Field("", description="Body Parts Description")
+    life_cycle_image_url: Optional[str] = Field("", description="Life Cycle / Reproduction Image URL")
+    life_cycle_description: Optional[str] = Field("", description="Life Cycle / Reproduction Description")
+    adaptations_image_url: Optional[str] = Field("", description="Special Abilities / Adaptations Image URL")
+    adaptations_description: Optional[str] = Field("", description="Special Abilities / Adaptations Description")
+    offspring_image_url: Optional[str] = Field("", description="Animal Babies / Offspring Image URL")
+    offspring_description: Optional[str] = Field("", description="Animal Babies / Offspring Description")
+
+    # 🌿 Additional Animal Information
+    diet_type: Optional[str] = Field("Carnivore", description="Diet Type (Herbivore, Carnivore, Omnivore, Insectivore, Other)")
+    lifespan: Optional[str] = Field("", description="Average Lifespan")
+    size_weight: Optional[str] = Field("", description="Size & Weight")
+    movement_type: Optional[str] = Field("Walking", description="Movement Type (Walking, Running, Flying, Swimming, Crawling, Hopping)")
+    interesting_facts: Optional[List[str]] = Field(default_factory=list, description="Interesting Facts entries")
+
+    # ⚙️ Publishing & Management
+    language: str = Field("English", description="Language")
+    is_active: bool = Field(True, description="Active / Published status")
+
+    class Config:
+        populate_by_name = True
+        extra = "allow"
+
+class AnimalExplorerCreate(AnimalExplorerBase):
+    pass
+
+class AnimalExplorerUpdate(BaseModel):
+    category: Optional[str] = None
+    order: Optional[int] = None
+    name: Optional[str] = None
+    scientific_name: Optional[str] = None
+    family: Optional[str] = None
+    habitat: Optional[str] = None
+    climate_zone: Optional[str] = None
+    conservation_status: Optional[str] = None
+    fun_fact: Optional[str] = None
+    short_summary: Optional[str] = None
+    short_description: Optional[str] = None
+    full_description: Optional[str] = None
+    descriptions: Optional[List[str]] = None
+
+    image_url: Optional[str] = None
+    banner_image_url: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
+
+    appearance_image_url: Optional[str] = None
+    appearance_description: Optional[str] = None
+    habitat_image_url: Optional[str] = None
+    habitat_description: Optional[str] = None
+    diet_image_url: Optional[str] = None
+    diet_description: Optional[str] = None
+    sound_audio_url: Optional[str] = None
+    sound_image_url: Optional[str] = None
+    sound_description: Optional[str] = None
+    body_parts_image_url: Optional[str] = None
+    body_parts_description: Optional[str] = None
+    life_cycle_image_url: Optional[str] = None
+    life_cycle_description: Optional[str] = None
+    adaptations_image_url: Optional[str] = None
+    adaptations_description: Optional[str] = None
+    offspring_image_url: Optional[str] = None
+    offspring_description: Optional[str] = None
+
+    diet_type: Optional[str] = None
+    lifespan: Optional[str] = None
+    size_weight: Optional[str] = None
+    movement_type: Optional[str] = None
+    interesting_facts: Optional[List[str]] = None
+
+    language: Optional[str] = None
+    is_active: Optional[bool] = None
+
+    class Config:
+        extra = "allow"
+
+class AnimalExplorerResponse(AnimalExplorerBase):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+

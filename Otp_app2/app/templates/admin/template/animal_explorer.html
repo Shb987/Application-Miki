@@ -1,0 +1,1822 @@
+{% extends "base.html" %}
+
+{% block title %}Animal Explorer Management - Miki Admin{% endblock %}
+
+{% block head %}
+<style>
+  /* 🦁 Animal Explorer Safari & Wildlife Aesthetic */
+  .animal-header-card {
+    background: linear-gradient(135deg, #78350f 0%, #b45309 45%, #d97706 80%, #f59e0b 100%);
+    border-radius: 20px;
+    color: white;
+    padding: 26px 30px;
+    box-shadow: 0 10px 30px rgba(180, 83, 9, 0.28);
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .animal-header-card::before {
+    content: '🦁';
+    position: absolute;
+    top: -20px;
+    right: 20px;
+    font-size: 8rem;
+    opacity: 0.12;
+    pointer-events: none;
+    transform: rotate(10deg);
+  }
+
+  /* High contrast action buttons */
+  .btn-add-animal {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: none !important;
+    border-radius: 30px !important;
+    padding: 10px 24px !important;
+    font-size: 0.92rem !important;
+    box-shadow: 0 4px 15px rgba(217, 119, 6, 0.45) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+  }
+  .btn-add-animal:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(217, 119, 6, 0.6) !important;
+    color: #ffffff !important;
+  }
+
+  .btn-generate-ai {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
+    font-size: 0.95rem !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35) !important;
+    transition: all 0.2s ease !important;
+  }
+  .btn-generate-ai:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5) !important;
+    color: #ffffff !important;
+  }
+
+  .stat-pill {
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 14px;
+    padding: 8px 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #fef3c7;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .glass-table-card {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+  }
+
+  .animal-img-thumb {
+    width: 54px;
+    height: 54px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #fed7aa;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    background: #78350f;
+  }
+
+  .order-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+    color: white;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);
+  }
+
+  .table-action-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid transparent !important;
+    padding: 0 !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+  }
+
+  .table-action-edit {
+    background-color: #fef3c7 !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+  }
+  .table-action-edit:hover {
+    background-color: #f59e0b !important;
+    color: #ffffff !important;
+    border-color: #f59e0b !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35) !important;
+  }
+
+  .table-action-delete {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+  }
+  .table-action-delete:hover {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+  }
+
+  .search-input-wrapper {
+    position: relative;
+    min-width: 280px;
+  }
+
+  .search-input-wrapper input {
+    width: 100% !important;
+    padding: 10px 16px 10px 42px !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 30px !important;
+    font-size: 0.9rem !important;
+    outline: none !important;
+    transition: all 0.2s ease !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+  .search-input-wrapper input:focus {
+    border-color: #d97706 !important;
+  }
+
+  .search-input-wrapper i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+  }
+
+  /* Filter pill styling */
+  .category-filter-btn {
+    border-radius: 20px !important;
+    padding: 6px 14px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+  }
+  .category-filter-btn.active {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+    color: #ffffff !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 8px rgba(180, 83, 9, 0.35) !important;
+  }
+
+  /* Form Elements & Section Containers */
+  .form-section-box {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 22px;
+    transition: all 0.2s ease;
+  }
+
+  .form-group-custom label,
+  .field-label {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .characteristic-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .form-control-custom, .form-select-custom {
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    padding: 9px 14px !important;
+    font-size: 0.9rem !important;
+    color: #0f172a !important;
+    transition: all 0.2s ease !important;
+    background-color: #ffffff !important;
+  }
+  .form-control-custom:focus, .form-select-custom:focus {
+    border-color: #d97706 !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15) !important;
+  }
+
+  .section-badge-header {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+  }
+  .section-badge-header h6 {
+    margin: 0;
+    font-weight: 800;
+    color: #92400e;
+    font-size: 0.98rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .characteristic-card {
+    background: #ffffff;
+    border: 1.5px solid #fed7aa;
+    border-radius: 14px;
+    padding: 16px;
+    height: 100%;
+    transition: all 0.2s ease;
+  }
+  .characteristic-card:hover {
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.12);
+  }
+
+  .img-preview-box {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 2px solid #fed7aa;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  .gallery-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+  }
+
+  /* Multiple Description Blocks & Dynamic Card Styling */
+  #descriptions-container {
+    width: 100% !important;
+  }
+
+  .desc-section-header {
+    border-bottom: 1.5px solid #e2e8f0;
+  }
+
+  .dynamic-block-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 18px;
+    position: relative;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s ease;
+  }
+  .dynamic-block-row:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.07);
+  }
+
+  .dynamic-block-desc-badge {
+    background: rgba(217, 119, 6, 0.12) !important;
+    color: #b45309 !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    border: 1px solid rgba(217, 119, 6, 0.25) !important;
+    letter-spacing: 0.02em;
+  }
+
+  .dynamic-block-title {
+    color: #1e293b;
+    font-weight: 700;
+    font-size: 0.88rem;
+  }
+
+  .description-block-input {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+    font-size: 0.9rem !important;
+    line-height: 1.55 !important;
+    border-radius: 10px !important;
+  }
+
+  .block-remove-btn {
+    font-size: 0.78rem !important;
+    padding: 4px 12px !important;
+    font-weight: 600 !important;
+    border-radius: 20px !important;
+    transition: all 0.2s ease !important;
+    line-height: 1.5 !important;
+  }
+  .block-remove-btn:hover {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3) !important;
+  }
+
+  /* ========================================================================= */
+  /* 🌙 DARK MODE STYLING SUPPORT (body.dark-only / .dark-only)                */
+  /* ========================================================================= */
+  body.dark-only,
+  .dark-only {
+    background-color: #0b0f19 !important;
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .glass-table-card,
+  .dark-only .glass-table-card {
+    background: #14172b !important;
+    border-color: #242b3d !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  body.dark-only .table-light,
+  .dark-only .table-light,
+  body.dark-only .table thead th,
+  .dark-only .table thead th {
+    background-color: #1e2238 !important;
+    color: #f8fafc !important;
+    border-color: #2e354f !important;
+  }
+
+  body.dark-only .table tbody tr,
+  .dark-only .table tbody tr {
+    border-color: #242b3d !important;
+    color: #e2e8f0 !important;
+  }
+
+  body.dark-only .table tbody tr:hover,
+  .dark-only .table tbody tr:hover {
+    background-color: #1a2035 !important;
+  }
+
+  body.dark-only .search-input-wrapper input,
+  .dark-only .search-input-wrapper input {
+    background-color: #14172b !important;
+    border-color: #2e354f !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .search-input-wrapper input:focus,
+  .dark-only .search-input-wrapper input:focus {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25) !important;
+  }
+
+  /* Modal in Dark Mode */
+  body.dark-only .modal-content,
+  .dark-only .modal-content {
+    background-color: #14172b !important;
+    color: #f8fafc !important;
+    border: 1px solid #2e354f !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  body.dark-only .modal-body,
+  .dark-only .modal-body {
+    background-color: #0d101f !important;
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .modal-footer,
+  .dark-only .modal-footer {
+    background-color: #0d101f !important;
+    border-top: 1px solid #242b3d !important;
+  }
+
+  /* Form Containers in Dark Mode */
+  body.dark-only .form-section-box,
+  .dark-only .form-section-box {
+    background: #14172b !important;
+    border: 1.5px solid #242b3d !important;
+  }
+
+  /* Section Badge Headers in Dark Mode */
+  body.dark-only .section-badge-header,
+  .dark-only .section-badge-header {
+    background: rgba(245, 158, 11, 0.12) !important;
+    border: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  }
+  body.dark-only .section-badge-header h6,
+  .dark-only .section-badge-header h6 {
+    color: #fbbf24 !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  /* Characteristic Cards & Labels in Dark Mode */
+  body.dark-only .characteristic-card,
+  .dark-only .characteristic-card {
+    background: #181d33 !important;
+    border: 1.5px solid #2b334e !important;
+  }
+  body.dark-only .characteristic-card:hover,
+  .dark-only .characteristic-card:hover {
+    border-color: #d97706 !important;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.18) !important;
+  }
+
+  body.dark-only .characteristic-label,
+  .dark-only .characteristic-label,
+  body.dark-only .field-label,
+  .dark-only .field-label,
+  body.dark-only .form-group-custom label,
+  .dark-only .form-group-custom label {
+    color: #f8fafc !important;
+    font-weight: 700 !important;
+  }
+
+  /* Inputs, Textareas, Selects in Dark Mode */
+  body.dark-only .form-control-custom,
+  .dark-only .form-control-custom,
+  body.dark-only .form-select-custom,
+  .dark-only .form-select-custom {
+    background-color: #0b0e1b !important;
+    border-color: #2b334e !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .form-control-custom::placeholder,
+  .dark-only .form-control-custom::placeholder {
+    color: #64748b !important;
+  }
+  body.dark-only .form-control-custom:focus,
+  .dark-only .form-control-custom:focus,
+  body.dark-only .form-select-custom:focus,
+  .dark-only .form-select-custom:focus {
+    background-color: #0f1325 !important;
+    border-color: #f59e0b !important;
+    color: #f8fafc !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25) !important;
+  }
+
+  /* Dynamic Description Blocks in Dark Mode */
+  body.dark-only .desc-section-header,
+  .dark-only .desc-section-header,
+  html.dark-only .desc-section-header {
+    border-bottom: 1.5px solid #2b334e !important;
+  }
+
+  body.dark-only .dynamic-block-row,
+  .dark-only .dynamic-block-row,
+  html.dark-only .dynamic-block-row {
+    background: #181d33 !important;
+    border: 1.5px solid #2b334e !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+  }
+  body.dark-only .dynamic-block-row:hover,
+  .dark-only .dynamic-block-row:hover,
+  html.dark-only .dynamic-block-row:hover {
+    border-color: #f59e0b !important;
+    box-shadow: 0 4px 18px rgba(245, 158, 11, 0.15) !important;
+  }
+
+  body.dark-only .dynamic-block-title,
+  .dark-only .dynamic-block-title,
+  html.dark-only .dynamic-block-title {
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .dynamic-block-desc-badge,
+  .dark-only .dynamic-block-desc-badge,
+  html.dark-only .dynamic-block-desc-badge {
+    background: rgba(245, 158, 11, 0.18) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(245, 158, 11, 0.38) !important;
+  }
+
+  body.dark-only .description-block-input,
+  .dark-only .description-block-input,
+  html.dark-only .description-block-input {
+    background-color: #0b0e1b !important;
+    border: 1.5px solid #2b334e !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .description-block-input::placeholder,
+  .dark-only .description-block-input::placeholder,
+  html.dark-only .description-block-input::placeholder {
+    color: #64748b !important;
+  }
+  body.dark-only .description-block-input:focus,
+  .dark-only .description-block-input:focus,
+  html.dark-only .description-block-input:focus {
+    background-color: #0f1325 !important;
+    border-color: #f59e0b !important;
+    color: #f8fafc !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25) !important;
+  }
+
+  body.dark-only .block-remove-btn,
+  .dark-only .block-remove-btn,
+  html.dark-only .block-remove-btn {
+    border-color: #ef4444 !important;
+    color: #f87171 !important;
+    background: transparent !important;
+  }
+  body.dark-only .block-remove-btn:hover,
+  .dark-only .block-remove-btn:hover,
+  html.dark-only .block-remove-btn:hover {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+  }
+
+  body.dark-only .input-group-text,
+  .dark-only .input-group-text {
+    background-color: #181d33 !important;
+    border-color: #2b334e !important;
+    color: #fbbf24 !important;
+  }
+
+  body.dark-only .btn-outline-secondary,
+  .dark-only .btn-outline-secondary {
+    border-color: #3a4568 !important;
+    color: #cbd5e1 !important;
+  }
+  body.dark-only .btn-outline-secondary:hover,
+  .dark-only .btn-outline-secondary:hover {
+    background-color: #242b3d !important;
+    color: #ffffff !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header Card -->
+  <div class="animal-header-card">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span style="font-size: 1.7rem;">🦁</span>
+          <h2 class="font-weight-bold text-white mb-0" style="letter-spacing: -0.02em; font-size: 1.85rem;">Animal Explorer Management</h2>
+        </div>
+        <p class="text-white-50 mb-3" style="font-size: 0.92rem;">
+          Curate, auto-generate, and publish rich multi-category zoological content, characteristics, habitats, and gallery media.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <div class="stat-pill">
+            <i class="fa fa-paw text-warning"></i> Total Animals: <span id="stat-total-count" class="text-white fw-bold">0</span>
+          </div>
+          <div class="stat-pill">
+            <i class="fa fa-check-circle text-success"></i> Active / Published: <span id="stat-active-count" class="text-white fw-bold">0</span>
+          </div>
+          <div class="stat-pill">
+            <i class="fa fa-globe text-info"></i> Categories: <span class="text-white fw-bold">12</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-add-animal" onclick="openAddAnimalModal()">
+          <i class="fa fa-plus-circle me-1"></i> Add Animal Entity
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Card -->
+  <div class="glass-table-card">
+
+    <!-- Filter and Search Row -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+      <div class="search-input-wrapper">
+        <i class="fa fa-search"></i>
+        <input type="text" id="animalSearchInput" placeholder="Search by animal name, scientific name, habitat..." oninput="filterAnimalTable()" />
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-muted small fw-bold">Quick Actions:</span>
+        <button class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold" onclick="loadAnimalEntities()">
+          <i class="fa fa-refresh me-1"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Category Filter Pills -->
+    <div class="d-flex flex-wrap gap-2 mb-4 pb-2 border-bottom" id="category-filter-buttons" style="overflow-x: auto;">
+      <button class="btn btn-sm category-filter-btn active" onclick="filterCategory('all', this)">
+        🌐 All Categories
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Wild Animals', this)">
+        🦁 Wild Animals
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Domestic Animals & Pets', this)">
+        🐕 Domestic &amp; Pets
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Insects', this)">
+        🐜 Insects
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Reptiles', this)">
+        🐍 Reptiles
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Mammals', this)">
+        🐘 Mammals
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Birds', this)">
+        🐦 Birds
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Amphibians', this)">
+        🐸 Amphibians
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Aquatic & Marine Animals', this)">
+        🐬 Aquatic &amp; Marine
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Endangered Animals', this)">
+        🦋 Endangered
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Prehistoric Animals', this)">
+        🦴 Prehistoric
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Arachnids', this)">
+        🕷️ Arachnids
+      </button>
+      <button class="btn btn-sm btn-outline-secondary category-filter-btn" onclick="filterCategory('Worms & Other Invertebrates', this)">
+        🪱 Worms &amp; Invertebrates
+      </button>
+    </div>
+
+    <!-- Animals Table -->
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 60px;">Order</th>
+            <th style="width: 70px;">Photo</th>
+            <th>Animal / Species Name</th>
+            <th>Category</th>
+            <th>Diet &amp; Movement</th>
+            <th>Status</th>
+            <th class="text-center pe-3" style="width: 110px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="animalTableBody">
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <div class="spinner-border text-warning me-2" role="status"></div> Loading Animal Explorer data...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- Modal: Add / Edit Animal Entity with Complete Admin Form Fields -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="animalEntityModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      
+      <!-- Modal Header -->
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #78350f 0%, #b45309 60%, #d97706 100%);">
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size: 1.4rem;">🦁</span>
+          <h5 class="modal-title font-weight-bold text-white mb-0" id="animalModalTitle">Add Animal Entity</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body p-4">
+        <form id="animalEntityForm">
+          <input type="hidden" id="animal_id" />
+
+          <!-- ==================== 1. SELECT ANIMAL CATEGORY * & DISPLAY ORDER * ==================== -->
+          <div class="section-badge-header">
+            <h6><i class="fa fa-folder-open text-warning"></i> 1. SELECT ANIMAL CATEGORY * &amp; DISPLAY ORDER *</h6>
+          </div>
+          <div class="form-section-box">
+            <div class="row g-3 align-items-center">
+              <div class="col-md-8 form-group-custom mb-0">
+                <label class="field-label">Category <span class="text-danger">*</span></label>
+                <select class="form-select form-select-custom fw-bold border-warning" id="animal_category" required>
+                  <option value="Wild Animals">🦁 Wild Animals</option>
+                  <option value="Domestic Animals & Pets">🐕 Domestic Animals &amp; Pets</option>
+                  <option value="Insects">🐜 Insects</option>
+                  <option value="Reptiles">🐍 Reptiles</option>
+                  <option value="Mammals">🐘 Mammals</option>
+                  <option value="Birds">🐦 Birds</option>
+                  <option value="Amphibians">🐸 Amphibians</option>
+                  <option value="Aquatic & Marine Animals">🐬 Aquatic &amp; Marine Animals</option>
+                  <option value="Endangered Animals">🦋 Endangered Animals</option>
+                  <option value="Prehistoric Animals">🦴 Prehistoric Animals</option>
+                  <option value="Arachnids">🕷️ Arachnids</option>
+                  <option value="Worms & Other Invertebrates">🪱 Worms &amp; Other Invertebrates</option>
+                </select>
+              </div>
+              <div class="col-md-4 form-group-custom mb-0">
+                <label class="field-label">Display Order <span class="text-danger">*</span></label>
+                <input type="number" class="form-control form-control-custom" id="animal_order" required min="1" value="1" />
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== 2. Animal / Species Name * & AI Generate Button ==================== -->
+          <div class="section-badge-header">
+            <h6><i class="fa fa-paw text-warning"></i> 2. ANIMAL / SPECIES NAME * &amp; TAXONOMY</h6>
+          </div>
+          <div class="form-section-box">
+            <div class="row g-3">
+              <div class="col-12 form-group-custom">
+                <label class="field-label">Animal / Species Name <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="text" class="form-control form-control-custom form-control-lg fw-bold" id="animal_name" required placeholder="e.g. African Lion, Bengal Tiger, Golden Retriever, Bald Eagle, Blue Whale" />
+                  <button type="button" class="btn btn-generate-ai" id="btn_generate_animal" onclick="generateAnimalContent()">
+                    <i class="fa fa-bolt me-1"></i> Generate All Content
+                  </button>
+                </div>
+                <small class="text-muted d-block mt-1">
+                  <i class="fa fa-info-circle text-warning me-1"></i> Type the animal name and click <strong>Generate All Content</strong> to auto-fill taxonomy, full descriptions, characteristics, audio notes, facts, and real imagery instantly!
+                </small>
+              </div>
+
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Scientific Name <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <input type="text" class="form-control form-control-custom" id="animal_scientific_name" placeholder="e.g. Panthera leo" />
+              </div>
+
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Animal Family <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <input type="text" class="form-control form-control-custom" id="animal_family" placeholder="e.g. Felidae" />
+              </div>
+
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Habitat / Region <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <input type="text" class="form-control form-control-custom" id="animal_habitat" placeholder="e.g. Grasslands, Savannas, Woodlands" />
+              </div>
+
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Climate Zone <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <input type="text" class="form-control form-control-custom" id="animal_climate_zone" placeholder="e.g. Tropical Savanna, Arid, Temperate" />
+              </div>
+
+              <div class="col-12 form-group-custom">
+                <label class="field-label">Fun Fact <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <input type="text" class="form-control form-control-custom" id="animal_fun_fact" placeholder="e.g. A lion's roar can be heard from 5 miles (8 km) away!" />
+              </div>
+
+              <div class="col-12 form-group-custom">
+                <label class="field-label">Short Summary</label>
+                <input type="text" class="form-control form-control-custom" id="animal_short_summary" placeholder="Brief summary of this animal species..." />
+              </div>
+
+              <div class="col-12 form-group-custom">
+                <label class="field-label">Full Description</label>
+                <textarea class="form-control form-control-custom" id="animal_full_description" rows="3" placeholder="Comprehensive species overview for mobile detail screen..."></textarea>
+              </div>
+
+              <!-- Multiple Description Blocks (Desc 1, Desc 2, Desc 3, Add Description Block) -->
+              <div class="col-12 form-group-custom mt-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 desc-section-header">
+                  <div>
+                    <label class="field-label mb-0" style="font-size: 0.95rem;">
+                      <i class="fa fa-align-left text-warning me-1"></i> Multiple Description Blocks
+                    </label>
+                    <div class="text-muted small mt-1" style="font-size: 0.78rem;">
+                      Structured overview blocks (Desc 1, Desc 2, Desc 3...) displayed sequentially in mobile &amp; web details.
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 fw-bold shadow-sm" onclick="addDescriptionBlock()">
+                    <i class="fa fa-plus-circle me-1"></i> Add Description Block
+                  </button>
+                </div>
+                <div id="descriptions-container" class="w-100 d-flex flex-column gap-3">
+                  <!-- Dynamic description blocks -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== 🖼️ Animal Images & Media ==================== -->
+          <div class="section-badge-header">
+            <h6><i class="fa fa-image text-warning"></i> 🖼️ ANIMAL IMAGES &amp; MEDIA</h6>
+          </div>
+          <div class="form-section-box">
+            <div class="row g-3">
+              <!-- Main Image URL -->
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Main Image URL</label>
+                <div class="input-group">
+                  <input type="text" class="form-control form-control-custom" id="animal_image_url" placeholder="Paste image URL or click upload" oninput="updateSinglePreview('animal_image_url', 'animal_image_preview')" />
+                  <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_image_url', 'animal_image_preview')">
+                    <i class="fa fa-upload"></i> Upload
+                  </button>
+                </div>
+                <div id="animal_image_preview_wrap" class="mt-2 d-none">
+                  <img id="animal_image_preview" src="" class="img-preview-box" />
+                </div>
+              </div>
+
+              <!-- Banner Cover Image URL -->
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Banner Cover Image URL</label>
+                <div class="input-group">
+                  <input type="text" class="form-control form-control-custom" id="animal_banner_image_url" placeholder="Paste banner cover URL or click upload" oninput="updateSinglePreview('animal_banner_image_url', 'animal_banner_preview')" />
+                  <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_banner_image_url', 'animal_banner_preview')">
+                    <i class="fa fa-upload"></i> Upload
+                  </button>
+                </div>
+                <div id="animal_banner_preview_wrap" class="mt-2 d-none">
+                  <img id="animal_banner_preview" src="" class="img-preview-box" style="width: 130px;" />
+                </div>
+              </div>
+
+              <!-- Gallery Images (Multiple Upload Support) -->
+              <div class="col-12 form-group-custom">
+                <label class="field-label">Gallery Images (Multiple Upload Support)</label>
+                <input type="file" class="form-control form-control-custom" id="animal_gallery_files" multiple accept="image/*" onchange="handleMultipleUpload(this)" />
+                <small class="text-muted d-block mt-1">Upload multiple photos for the species photo carousel.</small>
+                <div id="gallery_preview_container" class="gallery-preview-grid mt-2"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== 🐾 Animal Characteristics – Images & Descriptions ==================== -->
+          <div class="section-badge-header">
+            <h6><i class="fa fa-camera text-warning"></i> 🐾 ANIMAL CHARACTERISTICS – IMAGES &amp; DESCRIPTIONS</h6>
+          </div>
+          <div class="mb-4">
+            <div class="row g-3">
+
+              <!-- 1. Animal Appearance Image & Description -->
+              <div class="col-md-6">
+                <div class="characteristic-card">
+                  <label class="characteristic-label"><i class="fa fa-eye text-warning me-1"></i> Animal Appearance Image &amp; Description</label>
+                  <textarea class="form-control form-control-custom mb-2" id="animal_appearance_desc" rows="2" placeholder="Describe physical appearance, fur/scales, coloration..."></textarea>
+                  <div class="input-group">
+                    <input type="text" class="form-control form-control-custom" id="animal_appearance_image_url" placeholder="Appearance Image URL or upload" oninput="updateSinglePreview('animal_appearance_image_url', 'animal_appearance_preview')" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_appearance_image_url', 'animal_appearance_preview')">
+                      <i class="fa fa-upload"></i>
+                    </button>
+                  </div>
+                  <div id="animal_appearance_preview_wrap" class="mt-2 d-none">
+                    <img id="animal_appearance_preview" src="" class="img-preview-box" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Habitat Image & Description -->
+              <div class="col-md-6">
+                <div class="characteristic-card">
+                  <label class="characteristic-label"><i class="fa fa-tree text-success me-1"></i> Habitat Image &amp; Description</label>
+                  <textarea class="form-control form-control-custom mb-2" id="animal_habitat_desc" rows="2" placeholder="Describe natural habitat, terrain, shelter..."></textarea>
+                  <div class="input-group">
+                    <input type="text" class="form-control form-control-custom" id="animal_habitat_image_url" placeholder="Habitat Image URL or upload" oninput="updateSinglePreview('animal_habitat_image_url', 'animal_habitat_preview')" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_habitat_image_url', 'animal_habitat_preview')">
+                      <i class="fa fa-upload"></i>
+                    </button>
+                  </div>
+                  <div id="animal_habitat_preview_wrap" class="mt-2 d-none">
+                    <img id="animal_habitat_preview" src="" class="img-preview-box" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Food Habits / Diet Image & Description -->
+              <div class="col-md-6">
+                <div class="characteristic-card">
+                  <label class="characteristic-label"><i class="fa fa-cutlery text-danger me-1"></i> Food Habits / Diet Image &amp; Description</label>
+                  <textarea class="form-control form-control-custom mb-2" id="animal_diet_desc" rows="2" placeholder="Describe diet, prey, vegetation, feeding patterns..."></textarea>
+                  <div class="input-group">
+                    <input type="text" class="form-control form-control-custom" id="animal_diet_image_url" placeholder="Diet Image URL or upload" oninput="updateSinglePreview('animal_diet_image_url', 'animal_diet_preview')" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_diet_image_url', 'animal_diet_preview')">
+                      <i class="fa fa-upload"></i>
+                    </button>
+                  </div>
+                  <div id="animal_diet_preview_wrap" class="mt-2 d-none">
+                    <img id="animal_diet_preview" src="" class="img-preview-box" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Animal Sound & Audio Description -->
+              <div class="col-md-6">
+                <div class="characteristic-card">
+                  <label class="characteristic-label"><i class="fa fa-volume-up text-primary me-1"></i> Animal Sound &amp; Audio Description</label>
+                  <textarea class="form-control form-control-custom mb-2" id="animal_sound_desc" rows="2" placeholder="Describe vocalization, roar, chirp, communication sounds..."></textarea>
+                  <div class="input-group">
+                    <input type="text" class="form-control form-control-custom" id="animal_sound_audio_url" placeholder="Sound audio / photo URL or upload" oninput="updateSinglePreview('animal_sound_audio_url', 'animal_sound_preview')" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_sound_audio_url', 'animal_sound_preview')">
+                      <i class="fa fa-upload"></i>
+                    </button>
+                  </div>
+                  <div id="animal_sound_preview_wrap" class="mt-2 d-none">
+                    <img id="animal_sound_preview" src="" class="img-preview-box" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. Body Parts Image & Description -->
+              <div class="col-md-6">
+                <div class="characteristic-card">
+                  <label class="characteristic-label"><i class="fa fa-cubes text-info me-1"></i> Body Parts Image &amp; Description</label>
+                  <textarea class="form-control form-control-custom mb-2" id="animal_body_parts_desc" rows="2" placeholder="Describe anatomical features, claws, paws, wings, senses..."></textarea>
+                  <div class="input-group">
+                    <input type="text" class="form-control form-control-custom" id="animal_body_parts_image_url" placeholder="Body Parts Image URL or upload" oninput="updateSinglePreview('animal_body_parts_image_url', 'animal_body_parts_preview')" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_body_parts_image_url', 'animal_body_parts_preview')">
+                      <i class="fa fa-upload"></i>
+                    </button>
+                  </div>
+                  <div id="animal_body_parts_preview_wrap" class="mt-2 d-none">
+                    <img id="animal_body_parts_preview" src="" class="img-preview-box" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 6. Life Cycle / Reproduction Image & Description -->
+              <div class="col-md-6">
+                <div class="characteristic-card">
+                  <label class="characteristic-label"><i class="fa fa-refresh text-warning me-1"></i> Life Cycle / Reproduction Image &amp; Description</label>
+                  <textarea class="form-control form-control-custom mb-2" id="animal_life_cycle_desc" rows="2" placeholder="Describe life stages, breeding, gestation, growth..."></textarea>
+                  <div class="input-group">
+                    <input type="text" class="form-control form-control-custom" id="animal_life_cycle_image_url" placeholder="Life Cycle Image URL or upload" oninput="updateSinglePreview('animal_life_cycle_image_url', 'animal_life_cycle_preview')" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_life_cycle_image_url', 'animal_life_cycle_preview')">
+                      <i class="fa fa-upload"></i>
+                    </button>
+                  </div>
+                  <div id="animal_life_cycle_preview_wrap" class="mt-2 d-none">
+                    <img id="animal_life_cycle_preview" src="" class="img-preview-box" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 7. Special Abilities / Adaptations Image & Description -->
+              <div class="col-md-6">
+                <div class="characteristic-card">
+                  <label class="characteristic-label"><i class="fa fa-shield text-danger me-1"></i> Special Abilities / Adaptations Image &amp; Description</label>
+                  <textarea class="form-control form-control-custom mb-2" id="animal_adaptations_desc" rows="2" placeholder="Describe camouflage, speed, night vision, survival adaptations..."></textarea>
+                  <div class="input-group">
+                    <input type="text" class="form-control form-control-custom" id="animal_adaptations_image_url" placeholder="Adaptations Image URL or upload" oninput="updateSinglePreview('animal_adaptations_image_url', 'animal_adaptations_preview')" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_adaptations_image_url', 'animal_adaptations_preview')">
+                      <i class="fa fa-upload"></i>
+                    </button>
+                  </div>
+                  <div id="animal_adaptations_preview_wrap" class="mt-2 d-none">
+                    <img id="animal_adaptations_preview" src="" class="img-preview-box" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 8. Animal Babies / Offspring Image & Description (Optional) -->
+              <div class="col-md-6">
+                <div class="characteristic-card">
+                  <label class="characteristic-label"><i class="fa fa-heart text-danger me-1"></i> Animal Babies / Offspring Image &amp; Description <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                  <textarea class="form-control form-control-custom mb-2" id="animal_offspring_desc" rows="2" placeholder="Describe animal cubs/pups/chicks, maternal care, litters..."></textarea>
+                  <div class="input-group">
+                    <input type="text" class="form-control form-control-custom" id="animal_offspring_image_url" placeholder="Offspring Image URL or upload" oninput="updateSinglePreview('animal_offspring_image_url', 'animal_offspring_preview')" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_offspring_image_url', 'animal_offspring_preview')">
+                      <i class="fa fa-upload"></i>
+                    </button>
+                  </div>
+                  <div id="animal_offspring_preview_wrap" class="mt-2 d-none">
+                    <img id="animal_offspring_preview" src="" class="img-preview-box" />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ==================== 🌿 Additional Animal Information ==================== -->
+          <div class="section-badge-header">
+            <h6><i class="fa fa-leaf text-success"></i> 🌿 ADDITIONAL ANIMAL INFORMATION</h6>
+          </div>
+          <div class="form-section-box">
+            <div class="row g-3">
+
+              <!-- Diet Type (Optional) -->
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Diet Type <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <select class="form-select form-select-custom" id="animal_diet_type">
+                  <option value="Herbivore">Herbivore</option>
+                  <option value="Carnivore">Carnivore</option>
+                  <option value="Omnivore">Omnivore</option>
+                  <option value="Insectivore">Insectivore</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <!-- Movement Type (Optional) -->
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Movement Type <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <select class="form-select form-select-custom" id="animal_movement_type">
+                  <option value="Walking">Walking</option>
+                  <option value="Running">Running</option>
+                  <option value="Flying">Flying</option>
+                  <option value="Swimming">Swimming</option>
+                  <option value="Crawling">Crawling</option>
+                  <option value="Hopping">Hopping</option>
+                </select>
+              </div>
+
+              <!-- Average Lifespan (Optional) -->
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Average Lifespan <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <input type="text" class="form-control form-control-custom" id="animal_lifespan" placeholder="e.g. 10 - 15 years in wild, up to 20 years in captivity" />
+              </div>
+
+              <!-- Size & Weight (Optional) -->
+              <div class="col-md-6 form-group-custom">
+                <label class="field-label">Size &amp; Weight <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
+                <input type="text" class="form-control form-control-custom" id="animal_size_weight" placeholder="e.g. Length: 1.8 - 2.1 m | Weight: 150 - 250 kg" />
+              </div>
+
+              <!-- Interesting Facts (Multiple Entries) -->
+              <div class="col-12 form-group-custom">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <label class="field-label mb-0">Interesting Facts (Multiple Entries)</label>
+                  <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold" onclick="addFactEntry()">
+                    <i class="fa fa-plus me-1"></i> Add Interesting Fact
+                  </button>
+                </div>
+                <div id="facts-container" class="d-flex flex-column gap-2">
+                  <!-- Dynamic interesting facts -->
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ==================== ⚙️ Publishing & Management ==================== -->
+          <div class="section-badge-header">
+            <h6><i class="fa fa-cogs text-secondary"></i> ⚙️ PUBLISHING &amp; MANAGEMENT</h6>
+          </div>
+          <div class="form-section-box">
+            <div class="row g-3 align-items-center">
+              <div class="col-12 form-group-custom">
+                <div class="form-check form-switch mt-1">
+                  <input class="form-check-input" type="checkbox" id="animal_is_active" checked />
+                  <label class="form-check-label fw-bold ms-2" for="animal_is_active">Active / Published <span class="text-danger">*</span></label>
+                </div>
+              </div>
+
+              <div class="col-md-6 text-muted small" id="meta_created_at_wrap" style="display: none;">
+                <strong>Created At:</strong> <span id="meta_created_at">-</span>
+              </div>
+              <div class="col-md-6 text-muted small" id="meta_updated_at_wrap" style="display: none;">
+                <strong>Updated At:</strong> <span id="meta_updated_at">-</span>
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-add-animal rounded-pill px-5" onclick="saveAnimalEntity()">Save Entity</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Hidden File Input for Single Image Upload -->
+<input type="file" id="single_image_input" accept="image/*" class="d-none" onchange="handleSingleUpload(this)" />
+
+<!-- Page Scripts -->
+<script>
+  let animalEntities = [];
+  let currentFilter = 'all';
+  let currentTargetInputId = '';
+  let currentTargetPreviewId = '';
+  let galleryImageUrls = [];
+  let currentDescriptionsList = [''];
+  let currentFactsList = [''];
+
+  function getAuthToken() {
+    return window.token || localStorage.getItem('admin_token') || '';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadAnimalEntities();
+  });
+
+  async function loadAnimalEntities() {
+    const tbody = document.getElementById('animalTableBody');
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-5 text-muted">
+          <div class="spinner-border text-warning me-2" role="status"></div> Loading Animal Explorer data...
+        </td>
+      </tr>
+    `;
+
+    try {
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const resp = await fetch('/admin-panel/animal-explorer', { headers });
+      if (!resp.ok) throw new Error('Failed to fetch animal entities');
+      animalEntities = await resp.json();
+      
+      document.getElementById('stat-total-count').innerText = animalEntities.length;
+      document.getElementById('stat-active-count').innerText = animalEntities.filter(x => x.is_active).length;
+      renderAnimalTable();
+    } catch (err) {
+      console.error(err);
+      animalEntities = [];
+      document.getElementById('stat-total-count').innerText = "0";
+      document.getElementById('stat-active-count').innerText = "0";
+      renderAnimalTable();
+    }
+  }
+
+  function filterCategory(cat, btn) {
+    currentFilter = cat;
+    document.querySelectorAll('#category-filter-buttons .category-filter-btn').forEach(b => {
+      b.classList.remove('active');
+      b.classList.add('btn-outline-secondary');
+    });
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('active');
+    filterAnimalTable();
+  }
+
+  function filterAnimalTable() {
+    renderAnimalTable();
+  }
+
+  const categoryEmojiMap = {
+    'Wild Animals': '🦁',
+    'Domestic Animals & Pets': '🐕',
+    'Insects': '🐜',
+    'Reptiles': '🐍',
+    'Mammals': '🐘',
+    'Birds': '🐦',
+    'Amphibians': '🐸',
+    'Aquatic & Marine Animals': '🐬',
+    'Endangered Animals': '🦋',
+    'Prehistoric Animals': '🦴',
+    'Arachnids': '🕷️',
+    'Worms & Other Invertebrates': '🪱'
+  };
+
+  function renderAnimalTable() {
+    const tbody = document.getElementById('animalTableBody');
+    const q = (document.getElementById('animalSearchInput').value || '').toLowerCase().trim();
+
+    let list = animalEntities.filter(item => {
+      const matchCat = (currentFilter === 'all') || (item.category === currentFilter);
+      const nameStr = (item.name || '').toLowerCase();
+      const sciStr = (item.scientific_name || '').toLowerCase();
+      const habitatStr = (item.habitat || '').toLowerCase();
+      const dietStr = (item.diet_type || '').toLowerCase();
+      const orderStr = String(item.order || '');
+      const matchSearch = nameStr.includes(q) || sciStr.includes(q) || habitatStr.includes(q) || dietStr.includes(q) || orderStr.includes(q);
+      return matchCat && matchSearch;
+    });
+
+    if (list.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-5">
+            <div class="my-3">
+              <span style="font-size: 3.5rem; opacity: 0.4;">🦁</span>
+              <h5 class="font-weight-bold text-dark mb-1 mt-2">No Animal Explorer Entities Found</h5>
+              <p class="text-muted mb-3" style="font-size: 0.9rem;">
+                ${animalEntities.length === 0 ? 'No animal records added yet. Click below to add an animal entity.' : 'No entities match your search criteria.'}
+              </p>
+              <button class="btn btn-add-animal shadow-sm" onclick="openAddAnimalModal()">
+                <i class="fa fa-plus-circle me-1"></i> Add Animal Entity
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    let html = '';
+    list.forEach(item => {
+      const emoji = categoryEmojiMap[item.category] || '🐾';
+      const thumb = item.image_url || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80';
+      const statusBadge = item.is_active ? 
+        '<span class="badge bg-success rounded-pill px-2 py-1"><i class="fa fa-check me-1"></i>Active</span>' : 
+        '<span class="badge bg-secondary rounded-pill px-2 py-1">Draft</span>';
+
+      html += `
+        <tr>
+          <td>
+            <div class="order-badge">${item.order || 1}</div>
+          </td>
+          <td>
+            <img src="${thumb}" class="animal-img-thumb" alt="${item.name || ''}" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80'" />
+          </td>
+          <td>
+            <div class="fw-bold" style="font-size: 0.95rem;">${item.name || 'Unnamed Species'}</div>
+            <div class="text-muted small fst-italic">${item.scientific_name || item.family || 'Taxonomy pending'}</div>
+          </td>
+          <td>
+            <span class="badge rounded-pill bg-light text-dark border px-2 py-1" style="font-size: 0.8rem;">
+              ${emoji} ${item.category || 'Wild Animals'}
+            </span>
+          </td>
+          <td>
+            <span class="badge bg-warning text-dark me-1" style="font-size: 0.78rem;">${item.diet_type || 'Carnivore'}</span>
+            <span class="badge bg-info text-white" style="font-size: 0.78rem;">${item.movement_type || 'Walking'}</span>
+          </td>
+          <td>${statusBadge}</td>
+          <td class="text-center pe-3">
+            <div class="d-flex align-items-center justify-content-center gap-1">
+              <button class="table-action-btn table-action-edit" title="Edit Entity" onclick="openEditAnimalModal('${item.id}')">
+                <i class="fa fa-pencil"></i>
+              </button>
+              <button class="table-action-btn table-action-delete" title="Delete Entity" onclick="deleteAnimalEntity('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}')">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = html;
+  }
+
+  /* Description Blocks Management (Desc 1, Desc 2, Desc 3, + Add Description Block) */
+  function renderDescriptionsContainer() {
+    const container = document.getElementById('descriptions-container');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!currentDescriptionsList || currentDescriptionsList.length === 0) {
+      currentDescriptionsList = [''];
+    }
+
+    currentDescriptionsList.forEach((desc, idx) => {
+      const row = document.createElement('div');
+      row.className = 'dynamic-block-row w-100';
+      row.innerHTML = `
+        <div class="d-flex align-items-center justify-content-between mb-2 pb-1">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge dynamic-block-desc-badge">Desc ${idx + 1}</span>
+            <span class="dynamic-block-title small">
+              <i class="fa fa-paragraph text-warning me-1"></i> Description Block ${idx + 1}
+            </span>
+          </div>
+          ${currentDescriptionsList.length > 1 ? `
+            <button type="button" class="btn btn-sm btn-outline-danger block-remove-btn" onclick="removeDescriptionBlock(${idx})" title="Remove Block ${idx + 1}">
+              <i class="fa fa-trash-o me-1"></i> Remove
+            </button>
+          ` : ''}
+        </div>
+        <textarea class="form-control form-control-custom description-block-input w-100" rows="3" placeholder="Enter detailed description block ${idx + 1} (e.g. anatomical features, behavior, habitat interactions...)...">${desc || ''}</textarea>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function addDescriptionBlock() {
+    syncCurrentDescriptions();
+    currentDescriptionsList.push('');
+    renderDescriptionsContainer();
+    const inputs = document.querySelectorAll('.description-block-input');
+    if (inputs.length > 0) {
+      inputs[inputs.length - 1].focus();
+    }
+  }
+
+  function removeDescriptionBlock(idx) {
+    syncCurrentDescriptions();
+    currentDescriptionsList.splice(idx, 1);
+    if (currentDescriptionsList.length === 0) currentDescriptionsList = [''];
+    renderDescriptionsContainer();
+  }
+
+  function syncCurrentDescriptions() {
+    const inputs = document.querySelectorAll('.description-block-input');
+    if (inputs.length > 0) {
+      currentDescriptionsList = Array.from(inputs).map(inp => inp.value);
+    }
+  }
+
+  function getCollectedDescriptions() {
+    syncCurrentDescriptions();
+    return currentDescriptionsList.map(s => s.trim()).filter(Boolean);
+  }
+
+  /* Interesting Facts Management */
+  function renderFactsContainer() {
+    const container = document.getElementById('facts-container');
+    container.innerHTML = '';
+    if (currentFactsList.length === 0) currentFactsList = [''];
+
+    currentFactsList.forEach((fact, idx) => {
+      const row = document.createElement('div');
+      row.className = 'input-group';
+      row.innerHTML = `
+        <span class="input-group-text fw-bold">${idx + 1}</span>
+        <input type="text" class="form-control form-control-custom fact-entry-input" value="${fact || ''}" placeholder="Enter interesting animal fact..." />
+        ${currentFactsList.length > 1 ? `
+          <button type="button" class="btn btn-outline-danger" onclick="removeFactEntry(${idx})">
+            <i class="fa fa-trash"></i>
+          </button>
+        ` : ''}
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function addFactEntry() {
+    syncCurrentFacts();
+    currentFactsList.push('');
+    renderFactsContainer();
+  }
+
+  function removeFactEntry(idx) {
+    syncCurrentFacts();
+    currentFactsList.splice(idx, 1);
+    if (currentFactsList.length === 0) currentFactsList = [''];
+    renderFactsContainer();
+  }
+
+  function syncCurrentFacts() {
+    const inputs = document.querySelectorAll('.fact-entry-input');
+    currentFactsList = Array.from(inputs).map(inp => inp.value);
+  }
+
+  function getCollectedFacts() {
+    syncCurrentFacts();
+    return currentFactsList.map(s => s.trim()).filter(Boolean);
+  }
+
+  /* Modal Open / Reset */
+  function openAddAnimalModal() {
+    document.getElementById('animalModalTitle').innerText = 'Add Animal Entity';
+    document.getElementById('animal_id').value = '';
+    document.getElementById('animalEntityForm').reset();
+    document.getElementById('animal_order').value = (animalEntities.length + 1);
+    document.getElementById('animal_is_active').checked = true;
+
+    currentDescriptionsList = ['', '', ''];
+    renderDescriptionsContainer();
+
+    currentFactsList = ['', '', ''];
+    renderFactsContainer();
+
+    galleryImageUrls = [];
+    renderGalleryPreviews();
+
+    // Reset previews
+    const previewIds = [
+      'animal_image_preview', 'animal_banner_preview', 'animal_appearance_preview',
+      'animal_habitat_preview', 'animal_diet_preview', 'animal_sound_preview',
+      'animal_body_parts_preview', 'animal_life_cycle_preview', 'animal_adaptations_preview',
+      'animal_offspring_preview'
+    ];
+    previewIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.src = '';
+      const wrap = document.getElementById(id + '_wrap');
+      if (wrap) wrap.classList.add('d-none');
+    });
+
+    document.getElementById('meta_created_at_wrap').style.display = 'none';
+    document.getElementById('meta_updated_at_wrap').style.display = 'none';
+
+    new bootstrap.Modal(document.getElementById('animalEntityModal')).show();
+  }
+
+  function openEditAnimalModal(id) {
+    const item = animalEntities.find(x => x.id === id);
+    if (!item) return;
+
+    document.getElementById('animalModalTitle').innerText = 'Edit Animal Entity: ' + (item.name || '');
+    document.getElementById('animal_id').value = item.id;
+
+    // 1. Category & Order
+    document.getElementById('animal_category').value = item.category || 'Wild Animals';
+    document.getElementById('animal_order').value = item.order || 1;
+
+    // 2. Name & Taxonomy
+    document.getElementById('animal_name').value = item.name || '';
+    document.getElementById('animal_scientific_name').value = item.scientific_name || '';
+    document.getElementById('animal_family').value = item.family || '';
+    document.getElementById('animal_habitat').value = item.habitat || '';
+    document.getElementById('animal_climate_zone').value = item.climate_zone || '';
+    document.getElementById('animal_fun_fact').value = item.fun_fact || '';
+    document.getElementById('animal_short_summary').value = item.short_summary || item.short_description || '';
+    document.getElementById('animal_full_description').value = item.full_description || '';
+
+    // Multiple Description Blocks
+    currentDescriptionsList = (item.descriptions && item.descriptions.length > 0) ? item.descriptions : [item.full_description || ''];
+    renderDescriptionsContainer();
+
+    // 3. Images & Media
+    setFieldAndPreview('animal_image_url', 'animal_image_preview', item.image_url);
+    setFieldAndPreview('animal_banner_image_url', 'animal_banner_preview', item.banner_image_url);
+
+    galleryImageUrls = item.gallery_images || [];
+    renderGalleryPreviews();
+
+    // 4. Characteristics
+    setFieldAndPreview('animal_appearance_image_url', 'animal_appearance_preview', item.appearance_image_url);
+    document.getElementById('animal_appearance_desc').value = item.appearance_description || '';
+
+    setFieldAndPreview('animal_habitat_image_url', 'animal_habitat_preview', item.habitat_image_url);
+    document.getElementById('animal_habitat_desc').value = item.habitat_description || '';
+
+    setFieldAndPreview('animal_diet_image_url', 'animal_diet_preview', item.diet_image_url);
+    document.getElementById('animal_diet_desc').value = item.diet_description || '';
+
+    setFieldAndPreview('animal_sound_audio_url', 'animal_sound_preview', item.sound_audio_url || item.sound_image_url);
+    document.getElementById('animal_sound_desc').value = item.sound_description || '';
+
+    setFieldAndPreview('animal_body_parts_image_url', 'animal_body_parts_preview', item.body_parts_image_url);
+    document.getElementById('animal_body_parts_desc').value = item.body_parts_description || '';
+
+    setFieldAndPreview('animal_life_cycle_image_url', 'animal_life_cycle_preview', item.life_cycle_image_url);
+    document.getElementById('animal_life_cycle_desc').value = item.life_cycle_description || '';
+
+    setFieldAndPreview('animal_adaptations_image_url', 'animal_adaptations_preview', item.adaptations_image_url);
+    document.getElementById('animal_adaptations_desc').value = item.adaptations_description || '';
+
+    setFieldAndPreview('animal_offspring_image_url', 'animal_offspring_preview', item.offspring_image_url);
+    document.getElementById('animal_offspring_desc').value = item.offspring_description || '';
+
+    // 5. Additional Information
+    document.getElementById('animal_diet_type').value = item.diet_type || 'Carnivore';
+    document.getElementById('animal_movement_type').value = item.movement_type || 'Walking';
+    document.getElementById('animal_lifespan').value = item.lifespan || '';
+    document.getElementById('animal_size_weight').value = item.size_weight || '';
+
+    currentFactsList = (item.interesting_facts && item.interesting_facts.length > 0) ? item.interesting_facts : [''];
+    renderFactsContainer();
+
+    // 6. Publishing
+    document.getElementById('animal_is_active').checked = !!item.is_active;
+
+    if (item.created_at) {
+      document.getElementById('meta_created_at_wrap').style.display = 'block';
+      document.getElementById('meta_created_at').innerText = new Date(item.created_at).toLocaleString();
+    }
+    if (item.updated_at) {
+      document.getElementById('meta_updated_at_wrap').style.display = 'block';
+      document.getElementById('meta_updated_at').innerText = new Date(item.updated_at).toLocaleString();
+    }
+
+    new bootstrap.Modal(document.getElementById('animalEntityModal')).show();
+  }
+
+  function setFieldAndPreview(inputId, previewId, val) {
+    const inp = document.getElementById(inputId);
+    if (inp) inp.value = val || '';
+    updateSinglePreview(inputId, previewId);
+  }
+
+  function updateSinglePreview(inputId, previewId) {
+    const val = document.getElementById(inputId).value.trim();
+    const preview = document.getElementById(previewId);
+    const wrap = document.getElementById(previewId + '_wrap');
+    if (!preview || !wrap) return;
+
+    if (val) {
+      preview.src = val;
+      wrap.classList.remove('d-none');
+    } else {
+      preview.src = '';
+      wrap.classList.add('d-none');
+    }
+  }
+
+  /* ==================== ⚡ AI CONTENT GENERATOR ==================== */
+  async function generateAnimalContent() {
+    const nameInput = document.getElementById('animal_name');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+      alert('Please enter an Animal or Species Name first (e.g. African Lion, Bengal Tiger, Golden Retriever, Bald Eagle).');
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    const category = document.getElementById('animal_category').value || 'Wild Animals';
+    const btn = document.getElementById('btn_generate_animal');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Generating...';
+
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const resp = await fetch('/admin-panel/animal-explorer/generate-content', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ name: name, category: category })
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.detail || 'Failed to generate content');
+      }
+
+      const data = await resp.json();
+
+      // Basic Information & Taxonomy
+      if (data.name) document.getElementById('animal_name').value = data.name;
+      if (data.scientific_name) document.getElementById('animal_scientific_name').value = data.scientific_name;
+      if (data.family) document.getElementById('animal_family').value = data.family;
+      if (data.habitat) document.getElementById('animal_habitat').value = data.habitat;
+      if (data.climate_zone) document.getElementById('animal_climate_zone').value = data.climate_zone;
+      if (data.fun_fact) document.getElementById('animal_fun_fact').value = data.fun_fact;
+      if (data.short_summary) document.getElementById('animal_short_summary').value = data.short_summary;
+      if (data.full_description) document.getElementById('animal_full_description').value = data.full_description;
+
+      // Multiple Description Blocks (Desc 1, Desc 2, Desc 3)
+      if (data.descriptions && Array.isArray(data.descriptions) && data.descriptions.length > 0) {
+        currentDescriptionsList = data.descriptions;
+      } else if (data.full_description) {
+        currentDescriptionsList = [data.full_description];
+      }
+      renderDescriptionsContainer();
+
+      // Images & Media
+      if (data.image_url) setFieldAndPreview('animal_image_url', 'animal_image_preview', data.image_url);
+      if (data.banner_image_url) setFieldAndPreview('animal_banner_image_url', 'animal_banner_preview', data.banner_image_url);
+
+      if (data.gallery_images && Array.isArray(data.gallery_images) && data.gallery_images.length > 0) {
+        galleryImageUrls = data.gallery_images;
+        renderGalleryPreviews();
+      }
+
+      // Characteristics
+      if (data.appearance_description) document.getElementById('animal_appearance_desc').value = data.appearance_description;
+      if (data.appearance_image_url) setFieldAndPreview('animal_appearance_image_url', 'animal_appearance_preview', data.appearance_image_url);
+
+      if (data.habitat_description) document.getElementById('animal_habitat_desc').value = data.habitat_description;
+      if (data.habitat_image_url) setFieldAndPreview('animal_habitat_image_url', 'animal_habitat_preview', data.habitat_image_url);
+
+      if (data.diet_description) document.getElementById('animal_diet_desc').value = data.diet_description;
+      if (data.diet_image_url) setFieldAndPreview('animal_diet_image_url', 'animal_diet_preview', data.diet_image_url);
+
+      if (data.sound_description) document.getElementById('animal_sound_desc').value = data.sound_description;
+      if (data.sound_audio_url || data.sound_image_url) setFieldAndPreview('animal_sound_audio_url', 'animal_sound_preview', data.sound_audio_url || data.sound_image_url);
+
+      if (data.body_parts_description) document.getElementById('animal_body_parts_desc').value = data.body_parts_description;
+      if (data.body_parts_image_url) setFieldAndPreview('animal_body_parts_image_url', 'animal_body_parts_preview', data.body_parts_image_url);
+
+      if (data.life_cycle_description) document.getElementById('animal_life_cycle_desc').value = data.life_cycle_description;
+      if (data.life_cycle_image_url) setFieldAndPreview('animal_life_cycle_image_url', 'animal_life_cycle_preview', data.life_cycle_image_url);
+
+      if (data.adaptations_description) document.getElementById('animal_adaptations_desc').value = data.adaptations_description;
+      if (data.adaptations_image_url) setFieldAndPreview('animal_adaptations_image_url', 'animal_adaptations_preview', data.adaptations_image_url);
+
+      if (data.offspring_description) document.getElementById('animal_offspring_desc').value = data.offspring_description;
+      if (data.offspring_image_url) setFieldAndPreview('animal_offspring_image_url', 'animal_offspring_preview', data.offspring_image_url);
+
+      // Additional Information
+      if (data.diet_type) document.getElementById('animal_diet_type').value = data.diet_type;
+      if (data.movement_type) document.getElementById('animal_movement_type').value = data.movement_type;
+      if (data.lifespan) document.getElementById('animal_lifespan').value = data.lifespan;
+      if (data.size_weight) document.getElementById('animal_size_weight').value = data.size_weight;
+
+      if (data.interesting_facts && Array.isArray(data.interesting_facts) && data.interesting_facts.length > 0) {
+        currentFactsList = data.interesting_facts;
+      }
+      renderFactsContainer();
+
+    } catch (err) {
+      alert(`Generation Error: ${err.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  /* ==================== SAVE ENTITY ==================== */
+  async function saveAnimalEntity() {
+    const id = document.getElementById('animal_id').value;
+    const name = document.getElementById('animal_name').value.trim();
+    if (!name) {
+      alert('Please enter an Animal or Species Name.');
+      document.getElementById('animal_name').focus();
+      return;
+    }
+
+    const payload = {
+      category: document.getElementById('animal_category').value,
+      order: parseInt(document.getElementById('animal_order').value) || 1,
+      name: name,
+      scientific_name: document.getElementById('animal_scientific_name').value.trim(),
+      family: document.getElementById('animal_family').value.trim(),
+      habitat: document.getElementById('animal_habitat').value.trim(),
+      climate_zone: document.getElementById('animal_climate_zone').value.trim(),
+      fun_fact: document.getElementById('animal_fun_fact').value.trim(),
+      short_summary: document.getElementById('animal_short_summary').value.trim(),
+      short_description: document.getElementById('animal_short_summary').value.trim(),
+      full_description: document.getElementById('animal_full_description').value.trim(),
+      descriptions: getCollectedDescriptions(),
+
+      image_url: document.getElementById('animal_image_url').value.trim(),
+      banner_image_url: document.getElementById('animal_banner_image_url').value.trim(),
+      gallery_images: galleryImageUrls,
+
+      appearance_image_url: document.getElementById('animal_appearance_image_url').value.trim(),
+      appearance_description: document.getElementById('animal_appearance_desc').value.trim(),
+      habitat_image_url: document.getElementById('animal_habitat_image_url').value.trim(),
+      habitat_description: document.getElementById('animal_habitat_desc').value.trim(),
+      diet_image_url: document.getElementById('animal_diet_image_url').value.trim(),
+      diet_description: document.getElementById('animal_diet_desc').value.trim(),
+      sound_audio_url: document.getElementById('animal_sound_audio_url').value.trim(),
+      sound_image_url: document.getElementById('animal_sound_audio_url').value.trim(),
+      sound_description: document.getElementById('animal_sound_desc').value.trim(),
+      body_parts_image_url: document.getElementById('animal_body_parts_image_url').value.trim(),
+      body_parts_description: document.getElementById('animal_body_parts_desc').value.trim(),
+      life_cycle_image_url: document.getElementById('animal_life_cycle_image_url').value.trim(),
+      life_cycle_description: document.getElementById('animal_life_cycle_desc').value.trim(),
+      adaptations_image_url: document.getElementById('animal_adaptations_image_url').value.trim(),
+      adaptations_description: document.getElementById('animal_adaptations_desc').value.trim(),
+      offspring_image_url: document.getElementById('animal_offspring_image_url').value.trim(),
+      offspring_description: document.getElementById('animal_offspring_desc').value.trim(),
+
+      diet_type: document.getElementById('animal_diet_type').value,
+      movement_type: document.getElementById('animal_movement_type').value,
+      lifespan: document.getElementById('animal_lifespan').value.trim(),
+      size_weight: document.getElementById('animal_size_weight').value.trim(),
+      interesting_facts: getCollectedFacts(),
+
+      language: "English",
+      is_active: document.getElementById('animal_is_active').checked
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const url = id ? `/admin-panel/animal-explorer/${id}` : '/admin-panel/animal-explorer';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      const resp = await fetch(url, {
+        method: method,
+        headers: headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.detail || 'Failed to save animal entity');
+      }
+
+      bootstrap.Modal.getInstance(document.getElementById('animalEntityModal')).hide();
+      loadAnimalEntities();
+    } catch (err) {
+      alert(`Error saving animal entity: ${err.message}`);
+    }
+  }
+
+  /* ==================== DELETE ENTITY ==================== */
+  async function deleteAnimalEntity(id, name) {
+    if (!confirm(`Are you sure you want to delete the animal entity "${name}"?`)) return;
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch(`/admin-panel/animal-explorer/${id}`, {
+        method: 'DELETE',
+        headers: headers
+      });
+      if (!resp.ok) throw new Error('Failed to delete animal entity');
+      loadAnimalEntities();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  /* ==================== IMAGE UPLOADING ==================== */
+  function triggerSingleUpload(targetInputId, targetPreviewId) {
+    currentTargetInputId = targetInputId;
+    currentTargetPreviewId = targetPreviewId;
+    document.getElementById('single_image_input').click();
+  }
+
+  async function handleSingleUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/animal-explorer/upload-image', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Upload failed');
+      const data = await resp.json();
+
+      if (currentTargetInputId) {
+        document.getElementById(currentTargetInputId).value = data.url;
+        updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
+      }
+    } catch (err) {
+      alert(`Image upload error: ${err.message}`);
+    } finally {
+      input.value = '';
+    }
+  }
+
+  async function handleMultipleUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const formData = new FormData();
+    for (let i = 0; i < input.files.length; i++) {
+      formData.append('files', input.files[i]);
+    }
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/animal-explorer/upload-multiple-images', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Multiple upload failed');
+      const data = await resp.json();
+      if (data.urls && Array.isArray(data.urls)) {
+        galleryImageUrls = galleryImageUrls.concat(data.urls);
+        renderGalleryPreviews();
+      }
+    } catch (err) {
+      alert(`Gallery upload error: ${err.message}`);
+    } finally {
+      input.value = '';
+    }
+  }
+
+  function renderGalleryPreviews() {
+    const container = document.getElementById('gallery_preview_container');
+    container.innerHTML = '';
+    galleryImageUrls.forEach((url, idx) => {
+      const div = document.createElement('div');
+      div.className = 'position-relative';
+      div.innerHTML = `
+        <img src="${url}" class="img-preview-box w-100" />
+        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 rounded-circle" style="width: 20px; height: 20px; line-height: 1;" onclick="removeGalleryImage(${idx})">&times;</button>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function removeGalleryImage(idx) {
+    galleryImageUrls.splice(idx, 1);
+    renderGalleryPreviews();
+  }
+</script>
+{% endblock %}

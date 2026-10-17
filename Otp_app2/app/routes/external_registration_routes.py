@@ -297,19 +297,28 @@ async def external_register_student(
             ]
         })
 
-    if not existing_student and payload.name and payload.dob:
-        existing_student = await db.students.find_one({
-            "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
-            "dob": payload.dob
-        })
-
     if not existing_student and payload.name and resolved_g_phone and resolved_g_phone != "0000000000":
-        existing_student = await db.students.find_one({
-            "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
+        g_filter = {
             "$or": [
                 {"guardian_phone": resolved_g_phone},
                 {"parent_mobile": resolved_g_phone}
             ]
+        }
+        if payload.dob:
+            existing_student = await db.students.find_one({
+                "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
+                "dob": payload.dob,
+                **g_filter
+            })
+        if not existing_student:
+            existing_student = await db.students.find_one({
+                "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
+                **g_filter
+            })
+    elif not existing_student and payload.name and payload.dob and (not resolved_g_phone or resolved_g_phone == "0000000000"):
+        existing_student = await db.students.find_one({
+            "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
+            "dob": payload.dob
         })
 
     calculated_age = calculate_age_from_dob(payload.dob)
@@ -327,6 +336,7 @@ async def external_register_student(
             "address": payload.address,
             "guardian_name": payload.guardian_name,
             "guardian_phone": resolved_g_phone,
+            "parent_mobile": resolved_g_phone,
             "category": payload.category,
             "age": calculated_age,
             "school_id": school_id,
@@ -432,6 +442,7 @@ async def external_register_student(
         "address": payload.address,
         "guardian_name": payload.guardian_name,
         "guardian_phone": resolved_g_phone,
+        "parent_mobile": resolved_g_phone,
         "student_phone": resolved_st_phone,
         "mobile_number": resolved_st_phone,
         "phone": resolved_st_phone,

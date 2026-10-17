@@ -282,6 +282,18 @@ async def verify_otp(data: OTPVerify):
         linked_cursor = db.students.find({"$or": student_query})
         linked_students = await linked_cursor.to_list(length=None)
 
+        filtered_linked = []
+        for s in linked_students:
+            g_phone = s.get("guardian_phone") or s.get("parent_mobile") or s.get("father_phone") or s.get("parent_phone")
+            if not g_phone:
+                filtered_linked.append(s)
+            else:
+                clean_g = re.sub(r'\D', '', str(g_phone).strip())
+                g_cands = {str(g_phone).strip(), clean_g, clean_g[-10:] if len(clean_g) >= 10 else ""}
+                if any(cand in candidates for cand in g_cands if cand):
+                    filtered_linked.append(s)
+        linked_students = filtered_linked
+
         if linked_students:
             found_oids = [s["_id"] for s in linked_students]
             await db.usertable.update_one(

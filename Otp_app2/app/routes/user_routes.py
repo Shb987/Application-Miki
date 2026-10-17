@@ -34,7 +34,8 @@ async def register_student(
     age: str = Form(...),
     address: str = Form(...),
     guardian_name: str = Form(...),
-    parent_mobile: str = Query(...),
+    parent_mobile: Optional[str] = Form(None),
+    parent_mobile_query: Optional[str] = Query(None, alias="parent_mobile"),
     profile_image: Union[UploadFile, str, None] = File(None),
     school_id: Optional[str] = Form(None),
     syllabus: Optional[str] = Form(None),
@@ -50,6 +51,13 @@ async def register_student(
         
     usertype = current.get("usertype")
     is_user = usertype == "student"
+
+    effective_parent_mobile = (parent_mobile or parent_mobile_query or "").strip()
+    if not effective_parent_mobile and usertype == "parent":
+        effective_parent_mobile = str(current.get("sub") or "").strip()
+
+    if usertype == "parent" and not effective_parent_mobile:
+        raise HTTPException(status_code=400, detail="Parent mobile is required")
 
     image_url = None
     if profile_image and not isinstance(profile_image, str):
@@ -72,8 +80,10 @@ async def register_student(
 
     st_mobile_number = current.get("sub") if usertype == "student" else None
     
-    # ── Check if student already exists to prevent duplicate accounts ──
+    # ── Check if student already exists ──
     existing_student = None
+
+    # 1. If student is self-registering with their own phone, match by student phone
     if st_mobile_number:
         clean_st = re.sub(r'\D', '', str(st_mobile_number).strip())
         cands = list(filter(None, {st_mobile_number, clean_st, clean_st[-10:] if len(clean_st) >= 10 else None}))
@@ -88,26 +98,61 @@ async def register_student(
             ]
         })
 
-    if not existing_student and student_name and dob:
-        clean_p = re.sub(r'\D', '', str(parent_mobile).strip())
-        p_cands = list(filter(None, {parent_mobile, clean_p, clean_p[-10:] if len(clean_p) >= 10 else None}))
-        query_list = [
-            {"student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"}, "dob": dob}
+    # 2. If student is self-registering and claiming an existing student created by their parent
+    if not existing_student and usertype == "student" and effective_parent_mobile and student_name and dob:
+        clean_p = re.sub(r'\D', '', str(effective_parent_mobile).strip())
+        p_cands = list(filter(None, {effective_parent_mobile, clean_p, clean_p[-10:] if len(clean_p) >= 10 else None}))
+        existing_student = await db.students.find_one({
+            "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
+            "dob": dob,
+            "$or": [
+                {"guardian_phone": {"$in": p_cands}},
+                {"parent_mobile": {"$in": p_cands}},
+                {"father_phone": {"$in": p_cands}},
+                {"parent_phone": {"$in": p_cands}}
+            ]
+        })
+
+    # 3. For parent/admin registration: duplicate check is strictly scoped to THIS parent's account
+    if not existing_student and usertype != "student" and effective_parent_mobile and student_name:
+        clean_p = re.sub(r'\D', '', str(effective_parent_mobile).strip())
+        p_cands = list(filter(None, {effective_parent_mobile, clean_p, clean_p[-10:] if len(clean_p) >= 10 else None}))
+
+        parent_scope = [
+            {"guardian_phone": {"$in": p_cands}},
+            {"parent_mobile": {"$in": p_cands}},
+            {"father_phone": {"$in": p_cands}},
+            {"parent_phone": {"$in": p_cands}}
         ]
-        if school_id:
-            query_list.append({
-                "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
-                "school_id": school_id
-            })
-        if p_cands:
-            query_list.append({
-                "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
-                "$or": [
-                    {"guardian_phone": {"$in": p_cands}},
-                    {"parent_mobile": {"$in": p_cands}}
+        parent_user = await db.usertable.find_one({"mobile_number": {"$in": p_cands}})
+        if parent_user and parent_user.get("student_ids"):
+            parent_scope.append({"_id": {"$in": parent_user["student_ids"]}})
+
+        name_match = {"student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"}}
+
+        if dob and str(dob).strip():
+            existing_student = await db.students.find_one({
+                "$and": [
+                    {"$or": parent_scope},
+                    name_match,
+                    {"dob": str(dob).strip()}
                 ]
             })
-        existing_student = await db.students.find_one({"$or": query_list})
+        elif school_id:
+            existing_student = await db.students.find_one({
+                "$and": [
+                    {"$or": parent_scope},
+                    name_match,
+                    {"school_id": school_id}
+                ]
+            })
+        else:
+            existing_student = await db.students.find_one({
+                "$and": [
+                    {"$or": parent_scope},
+                    name_match
+                ]
+            })
 
     if existing_student:
         student_oid = existing_student["_id"]
@@ -119,7 +164,9 @@ async def register_student(
         if address: update_fields["address"] = address
         if age: update_fields["age"] = age
         if guardian_name: update_fields["guardian_name"] = guardian_name
-        if parent_mobile: update_fields["guardian_phone"] = parent_mobile
+        if effective_parent_mobile:
+            update_fields["guardian_phone"] = effective_parent_mobile
+            update_fields["parent_mobile"] = effective_parent_mobile
         if image_url: update_fields["image_url"] = image_url
         if school_id: update_fields["school_id"] = school_id
         if st_mobile_number:
@@ -138,7 +185,8 @@ async def register_student(
             "age": age,
             "address": address,
             "guardian_name": guardian_name,
-            "guardian_phone": parent_mobile,
+            "guardian_phone": effective_parent_mobile or None,
+            "parent_mobile": effective_parent_mobile or None,
             "student_phone": st_mobile_number,
             "mobile_number": st_mobile_number,
             "phone_number": st_mobile_number,
@@ -157,9 +205,9 @@ async def register_student(
         student_oid = result.inserted_id
 
     # 2️⃣ Parent registers student
-    if usertype == "parent" and parent_mobile:
+    if usertype != "student" and effective_parent_mobile:
         await db.usertable.update_one(
-            {"mobile_number": parent_mobile},
+            {"mobile_number": effective_parent_mobile},
             {
                 "$setOnInsert": {
                     "usertype": "parent",
@@ -194,7 +242,8 @@ async def register_student(
         "status_code": 200,
         "message": "Student registered successfully",
         "student_id": str(student_oid),
-        "is_user": is_user
+        "is_user": is_user,
+        "parent_mobile": effective_parent_mobile
     }
 
 
@@ -207,15 +256,20 @@ async def register_student_public(
     age: str = Form(...),
     address: str = Form(...),
     guardian_name: str = Form(...),
-    parent_mobile: str = Form(...),  # Required for public registration
+    parent_mobile: Optional[str] = Form(None),
+    parent_mobile_query: Optional[str] = Query(None, alias="parent_mobile"),
     profile_image: Union[UploadFile, str, None] = File(None),
     school_id: Optional[str] = Form(None),
     syllabus: Optional[str] = Form(None),
-    syllabus_spaced: Optional[str] = Form(None, alias="syllabus ")
+    syllabus_spaced: Optional[str] = Form(None, alias="syllabus "),
 ):
     """
     Public endpoint for parents to register students without logging in first.
     """
+    effective_parent_mobile = (parent_mobile or parent_mobile_query or "").strip()
+    if not effective_parent_mobile:
+        raise HTTPException(status_code=400, detail="Parent mobile is required")
+
     actual_syllabus = syllabus or syllabus_spaced
     if not actual_syllabus:
         raise HTTPException(status_code=400, detail="Syllabus is required")
@@ -243,26 +297,46 @@ async def register_student_public(
         "class_balance": 0
     }
 
-    # ── Check if student already exists ──
-    clean_p = re.sub(r'\D', '', str(parent_mobile).strip())
-    p_cands = list(filter(None, {parent_mobile, clean_p, clean_p[-10:] if len(clean_p) >= 10 else None}))
-    query_list = [
-        {"student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"}, "dob": dob}
+    # ── Check if student already exists strictly for THIS parent ──
+    clean_p = re.sub(r'\D', '', str(effective_parent_mobile).strip())
+    p_cands = list(filter(None, {effective_parent_mobile, clean_p, clean_p[-10:] if len(clean_p) >= 10 else None}))
+
+    parent_scope = [
+        {"guardian_phone": {"$in": p_cands}},
+        {"parent_mobile": {"$in": p_cands}},
+        {"father_phone": {"$in": p_cands}},
+        {"parent_phone": {"$in": p_cands}}
     ]
-    if school_id:
-        query_list.append({
-            "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
-            "school_id": school_id
-        })
-    if p_cands:
-        query_list.append({
-            "student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"},
-            "$or": [
-                {"guardian_phone": {"$in": p_cands}},
-                {"parent_mobile": {"$in": p_cands}}
+    parent_user = await db.usertable.find_one({"mobile_number": {"$in": p_cands}})
+    if parent_user and parent_user.get("student_ids"):
+        parent_scope.append({"_id": {"$in": parent_user["student_ids"]}})
+
+    name_match = {"student_name": {"$regex": f"^{re.escape(student_name.strip())}$", "$options": "i"}}
+
+    existing_student = None
+    if dob and str(dob).strip():
+        existing_student = await db.students.find_one({
+            "$and": [
+                {"$or": parent_scope},
+                name_match,
+                {"dob": str(dob).strip()}
             ]
         })
-    existing_student = await db.students.find_one({"$or": query_list})
+    elif school_id:
+        existing_student = await db.students.find_one({
+            "$and": [
+                {"$or": parent_scope},
+                name_match,
+                {"school_id": school_id}
+            ]
+        })
+    else:
+        existing_student = await db.students.find_one({
+            "$and": [
+                {"$or": parent_scope},
+                name_match
+            ]
+        })
 
     if existing_student:
         student_oid = existing_student["_id"]
@@ -274,7 +348,9 @@ async def register_student_public(
         if address: update_fields["address"] = address
         if age: update_fields["age"] = age
         if guardian_name: update_fields["guardian_name"] = guardian_name
-        if parent_mobile: update_fields["guardian_phone"] = parent_mobile
+        if effective_parent_mobile:
+            update_fields["guardian_phone"] = effective_parent_mobile
+            update_fields["parent_mobile"] = effective_parent_mobile
         if image_url: update_fields["image_url"] = image_url
         if school_id: update_fields["school_id"] = school_id
 
@@ -288,7 +364,8 @@ async def register_student_public(
             "age": age,
             "address": address,
             "guardian_name": guardian_name,
-            "guardian_phone": parent_mobile,
+            "guardian_phone": effective_parent_mobile,
+            "parent_mobile": effective_parent_mobile,
             "image_url": image_url,
             "created_at": datetime.now(timezone.utc),
             "subscription": {"current_tier": "basic", "last_recharge_date": None},
@@ -303,7 +380,7 @@ async def register_student_public(
 
     # 3️⃣ Create or Link Parent Account
     await db.usertable.update_one(
-        {"mobile_number": parent_mobile},
+        {"mobile_number": effective_parent_mobile},
         {
             "$setOnInsert": {
                 "usertype": "parent",
@@ -320,7 +397,7 @@ async def register_student_public(
         "status_code": 200,
         "message": "Student registered successfully (Public)",
         "student_id": str(student_oid),
-        "parent_mobile": parent_mobile
+        "parent_mobile": effective_parent_mobile
     }
 
 
@@ -441,6 +518,19 @@ async def get_parent_details(
 
     cursor = db.students.find({"$or": query_list})
     raw_students = await cursor.to_list(length=None)
+
+    # Filter out students whose guardian phone belongs to a different parent
+    valid_students = []
+    for s in raw_students:
+        g_phone = s.get("guardian_phone") or s.get("parent_mobile") or s.get("father_phone") or s.get("parent_phone")
+        if not g_phone:
+            valid_students.append(s)
+        else:
+            clean_g = re.sub(r'\D', '', str(g_phone).strip())
+            g_cands = {str(g_phone).strip(), clean_g, clean_g[-10:] if len(clean_g) >= 10 else ""}
+            if any(cand in p_candidates for cand in g_cands if cand):
+                valid_students.append(s)
+    raw_students = valid_students
 
     # If students were found, ensure usertable is synced with all student_ids
     if raw_students:

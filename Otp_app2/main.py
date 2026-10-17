@@ -118,6 +118,9 @@ async def seed_default_roles():
 async def cleanup_and_sync_student_data():
     try:
         from app.routes.external_registration_routes import calculate_age_from_dob
+        from datetime import datetime, timezone
+        from bson import ObjectId
+
         cursor = db.students.find({})
         clean_count = 0
         async for s in cursor:
@@ -133,8 +136,203 @@ async def cleanup_and_sync_student_data():
 
         if clean_count > 0:
             print(f"[INFO] Backfilled age for {clean_count} student records.")
+
+        # Heal and separate shared student records between distinct parents
+        parents_cursor = db.usertable.find({"usertype": "parent", "student_ids": {"$exists": True, "$ne": []}})
+        all_parents = await parents_cursor.to_list(length=None)
+
+        student_parent_map = {}
+        for p in all_parents:
+            for s_id in p.get("student_ids", []):
+                s_id_str = str(s_id)
+                if s_id_str not in student_parent_map:
+                    student_parent_map[s_id_str] = []
+                student_parent_map[s_id_str].append((p, s_id))
+
+        for s_id_str, parent_list in student_parent_map.items():
+            if len(parent_list) > 1:
+                try:
+                    s_oid = ObjectId(s_id_str)
+                except Exception:
+                    s_oid = s_id_str
+                orig_student = await db.students.find_one({"_id": s_oid})
+                if not orig_student:
+                    continue
+
+                # Match original parent by phone
+                first_parent_tuple = parent_list[0]
+                for p, sid in parent_list:
+                    p_mob = str(p.get("mobile_number") or "").strip()
+                    g_ph = str(orig_student.get("guardian_phone") or orig_student.get("parent_mobile") or "").strip()
+                    if p_mob and g_ph and (p_mob in g_ph or g_ph in p_mob):
+                        first_parent_tuple = (p, sid)
+                        break
+
+                first_p_mobile = str(first_parent_tuple[0].get("mobile_number") or "").strip()
+                if first_p_mobile:
+                    await db.students.update_one(
+                        {"_id": s_oid},
+                        {"$set": {"guardian_phone": first_p_mobile, "parent_mobile": first_p_mobile}}
+                    )
+
+                # For every other parent sharing this student record, clone an independent student record
+                for p, sid in parent_list:
+                    if p["_id"] == first_parent_tuple[0]["_id"]:
+                        continue
+                    p_mob = str(p.get("mobile_number") or "").strip()
+                    new_doc = dict(orig_student)
+                    new_doc.pop("_id", None)
+                    new_doc["guardian_phone"] = p_mob
+                    new_doc["parent_mobile"] = p_mob
+                    new_doc["created_at"] = p.get("created_at") or datetime.now(timezone.utc)
+                    new_res = await db.students.insert_one(new_doc)
+                    new_sid = new_res.inserted_id
+
+                    cur_sids = p.get("student_ids", [])
+                    updated_sids = [new_sid if (str(x) == s_id_str) else x for x in cur_sids]
+                    await db.usertable.update_one(
+                        {"_id": p["_id"]},
+                        {"$set": {"student_ids": updated_sids}}
+                    )
+                    print(f"[INFO] Separated shared student {s_id_str} -> new student {new_sid} for parent {p_mob}")
+
     except Exception as e:
-        print(f"[WARN] Failed to sync student age: {e}")
+        print(f"[WARN] Failed to sync/heal student data: {e}")
+
+async def seed_example_parents_and_students():
+    try:
+        from bson import ObjectId
+        from datetime import datetime, timezone
+
+        p1_mobile = "7510752568"
+        p2_mobile = "7306964987"
+
+        # 1. Parent 1 Student ABCD
+        s1 = await db.students.find_one({
+            "student_name": {"$regex": "^ABCD$", "$options": "i"},
+            "$or": [{"guardian_phone": p1_mobile}, {"parent_mobile": p1_mobile}]
+        })
+        if not s1:
+            s1_doc = {
+                "student_name": "ABCD",
+                "student_class": "3",
+                "dob": "2015-05-10",
+                "age": "8",
+                "address": "Kerala, India",
+                "guardian_name": "Parent 1",
+                "guardian_phone": p1_mobile,
+                "parent_mobile": p1_mobile,
+                "student_phone": None,
+                "image_url": None,
+                "created_at": datetime.now(timezone.utc),
+                "subscription": {"current_tier": "basic", "last_recharge_date": None},
+                "usage_buckets": {
+                    "exam_balance": 1,
+                    "voice_balance_mins": 2,
+                    "tutor_balance_qs": 5,
+                    "class_balance": 0
+                },
+                "is_user": False,
+                "is_new_user": True,
+                "syllabus": "NCERT"
+            }
+            res1 = await db.students.insert_one(s1_doc)
+            s1_id = res1.inserted_id
+            print(f"[DB SEED] Inserted Student S1 ({s1_id}) for Parent 1 ({p1_mobile})")
+        else:
+            s1_id = s1["_id"]
+
+        # 2. Parent 2 Student ABCD (distinct student record with identical details)
+        s2 = await db.students.find_one({
+            "student_name": {"$regex": "^ABCD$", "$options": "i"},
+            "$or": [{"guardian_phone": p2_mobile}, {"parent_mobile": p2_mobile}]
+        })
+        if not s2:
+            s2_doc = {
+                "student_name": "ABCD",
+                "student_class": "3",
+                "dob": "2015-05-10",
+                "age": "8",
+                "address": "Kerala, India",
+                "guardian_name": "Parent 2",
+                "guardian_phone": p2_mobile,
+                "parent_mobile": p2_mobile,
+                "student_phone": None,
+                "image_url": None,
+                "created_at": datetime.now(timezone.utc),
+                "subscription": {"current_tier": "basic", "last_recharge_date": None},
+                "usage_buckets": {
+                    "exam_balance": 1,
+                    "voice_balance_mins": 2,
+                    "tutor_balance_qs": 5,
+                    "class_balance": 0
+                },
+                "is_user": False,
+                "is_new_user": True,
+                "syllabus": "NCERT"
+            }
+            res2 = await db.students.insert_one(s2_doc)
+            s2_id = res2.inserted_id
+            print(f"[DB SEED] Inserted Student S2 ({s2_id}) for Parent 2 ({p2_mobile})")
+        else:
+            s2_id = s2["_id"]
+
+        # Ensure S1 and S2 are distinct
+        if s1_id == s2_id:
+            s2_doc = dict(s1 if s1 else s2)
+            s2_doc.pop("_id", None)
+            s2_doc["guardian_phone"] = p2_mobile
+            s2_doc["parent_mobile"] = p2_mobile
+            res2 = await db.students.insert_one(s2_doc)
+            s2_id = res2.inserted_id
+            print(f"[DB SEED] Cloned separate Student S2 ({s2_id}) for Parent 2 ({p2_mobile})")
+
+        # 3. Update usertable for Parent 1
+        await db.usertable.update_one(
+            {"mobile_number": p1_mobile},
+            {
+                "$set": {
+                    "usertype": "parent",
+                    "updated_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": s1_id
+                },
+                "$pull": {
+                    "student_ids": s2_id
+                },
+                "$setOnInsert": {
+                    "created_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+
+        # 4. Update usertable for Parent 2
+        await db.usertable.update_one(
+            {"mobile_number": p2_mobile},
+            {
+                "$set": {
+                    "usertype": "parent",
+                    "updated_at": datetime.now(timezone.utc)
+                },
+                "$addToSet": {
+                    "student_ids": s2_id
+                },
+                "$pull": {
+                    "student_ids": s1_id
+                },
+                "$setOnInsert": {
+                    "created_at": datetime.now(timezone.utc)
+                }
+            },
+            upsert=True
+        )
+
+        print(f"[DB SEED COMPLETE] Parent 1 ({p1_mobile} -> Student {s1_id}) & Parent 2 ({p2_mobile} -> Student {s2_id}) saved in local DB.")
+
+    except Exception as e:
+        print(f"[WARN] Failed to seed example parents and students: {e}")
 
 @app.on_event("startup")
 async def startup_event():
@@ -145,6 +343,8 @@ async def startup_event():
         print(f"[WARN] Failed to auto-seed default roles: {e}")
     # Cleanup duplicate guardian numbers stored as student phone and backfill age
     asyncio.create_task(cleanup_and_sync_student_data())
+    # Seed Parent 1 and Parent 2 data into local db
+    asyncio.create_task(seed_example_parents_and_students())
     # Start the background scheduler for Special Days
     asyncio.create_task(start_special_day_scheduler(db))
     # Start the background scheduler for Digital Tuition

@@ -967,6 +967,15 @@ async def get_all_textbooks():
     textbooks = await db.textbook.find({}).sort("created_at", -1).to_list(None)
     for t in textbooks:
         t["_id"] = str(t["_id"])
+        # Ensure compatibility fields for competitive exam textbooks
+        if t.get("module_type") == "competitive_exam" or t.get("exam_name"):
+            t["module_type"] = "competitive_exam"
+            t["board"] = t.get("board") or "Competitive Exams"
+            t["standard"] = t.get("standard") or t.get("exam_name") or "Competitive"
+            t["state"] = t.get("state") or t.get("exam_category") or "National"
+            t["textbook_name"] = t.get("textbook_name") or t.get("textbook_title") or t.get("subject")
+            t["publication_year"] = t.get("publication_year") or t.get("exam_year") or ""
+            t["stored_chunk_count"] = t.get("stored_chunk_count", 0)
         if isinstance(t.get("chapters"), list):
             t["chapters"] = sorted(t["chapters"], key=natural_sort_key)
     return {"textbooks": textbooks}

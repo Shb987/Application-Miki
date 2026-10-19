@@ -78,6 +78,18 @@ async def generated_question_page(request: Request):
     return templates.TemplateResponse("view_questions.html", {"request": request})
 
 
+# ==================== COMPETITIVE EXAMS MODULE PAGES ====================
+
+
+@router.get("/competitive-exams/upload-textbook", response_class=HTMLResponse)
+async def competitive_exams_upload_textbook_page(request: Request):
+    return templates.TemplateResponse("competitive_exams/comp_upload_textbook.html", {"request": request})
+
+@router.get("/competitive-exams/generate-questions", response_class=HTMLResponse)
+async def competitive_exams_generate_questions_page(request: Request):
+    return templates.TemplateResponse("competitive_exams/comp_generate_questions.html", {"request": request})
+
+
 @router.get("/questions/{category}", response_class=HTMLResponse)
 async def questions_category_page(request: Request, category: str):
     questions_cursor = db.questions.find({"category": category}).sort([("_id", -1)])

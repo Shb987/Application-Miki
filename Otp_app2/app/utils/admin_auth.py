@@ -108,6 +108,8 @@ def require_permission(module: str, action: str):
         fallback_modules = [module_normalized]
         if module_normalized in ["ocean_explorer", "plant_explorer", "ocean explorer", "plant explorer", "space explorer", "space_explorer", "indian_explorer", "indian explorer", "animal_explorer", "animal explorer"]:
             fallback_modules.extend(["explorer", "space explorer", "space_explorer", "ocean explorer", "ocean_explorer", "plant explorer", "plant_explorer", "indian explorer", "indian_explorer", "animal explorer", "animal_explorer"])
+        elif module_normalized in ["competitive exams", "competitive_exams", "competitive exam", "competitive_exam"]:
+            fallback_modules.extend(["competitive exams", "competitive_exams", "exams, textbooks & syllabus", "exams", "exam module"])
 
 
         for db_key, db_val in permissions.items():

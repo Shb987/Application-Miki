@@ -1,0 +1,523 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Textbook - Competitive Exams - Miki{% endblock %}
+
+{% block head %}
+<style>
+  .dropzone-box {
+    border: 2px dashed #002B49;
+    border-radius: 12px;
+    background-color: #f8fafc;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .dropzone-box:hover, .dropzone-box.dragover {
+    background-color: #eff6ff !important;
+    border-color: #1d4ed8;
+  }
+  .dropzone-label {
+    color: #1e293b;
+    font-weight: 700;
+    margin-top: 0.5rem;
+    transition: color 0.3s ease;
+  }
+  .dropzone-info {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-bottom: 0;
+    transition: color 0.3s ease;
+  }
+
+  /* Comprehensive Dark Mode Support */
+  body.dark-only .dropzone-box,
+  .dark-only .dropzone-box {
+    background-color: rgba(30, 41, 59, 0.75) !important;
+    border-color: #3b82f6 !important;
+  }
+  body.dark-only .dropzone-box:hover,
+  body.dark-only .dropzone-box.dragover,
+  .dark-only .dropzone-box:hover,
+  .dark-only .dropzone-box.dragover {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    border-color: #60a5fa !important;
+  }
+  body.dark-only .dropzone-label,
+  .dark-only .dropzone-label,
+  body.dark-only #file-label,
+  .dark-only #file-label {
+    color: #f8fafc !important;
+  }
+  body.dark-only .dropzone-info,
+  .dark-only .dropzone-info,
+  body.dark-only #file-info,
+  .dark-only #file-info {
+    color: #cbd5e1 !important;
+  }
+  body.dark-only .dropzone-box i.fa-cloud-upload,
+  .dark-only .dropzone-box i.fa-cloud-upload {
+    color: #60a5fa !important;
+  }
+  body.dark-only .card,
+  .dark-only .card {
+    background-color: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  body.dark-only .card-header.bg-white,
+  .dark-only .card-header.bg-white,
+  body.dark-only .card-body.bg-white,
+  .dark-only .card-body.bg-white {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .form-control,
+  body.dark-only .form-select,
+  .dark-only .form-control,
+  .dark-only .form-select {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .form-label,
+  .dark-only .form-label {
+    color: #e2e8f0 !important;
+  }
+  body.dark-only .form-check-label,
+  .dark-only .form-check-label {
+    color: #e2e8f0 !important;
+  }
+  body.dark-only .text-dark,
+  .dark-only .text-dark {
+    color: #f8fafc !important;
+  }
+  body.dark-only .text-muted,
+  .dark-only .text-muted {
+    color: #94a3b8 !important;
+  }
+  body.dark-only .bg-light,
+  .dark-only .bg-light {
+    background-color: rgba(15, 23, 42, 0.6) !important;
+  }
+  body.dark-only .border,
+  .dark-only .border {
+    border-color: #334155 !important;
+  }
+  body.dark-only #progress-container,
+  .dark-only #progress-container {
+    border-top-color: #334155 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="page-title">
+    <div class="row align-items-center">
+      <div class="col-6">
+        <h4 class="fw-bold mb-0">Upload Competitive Exam Textbook</h4>
+        <small class="text-muted">Ingest Full Textbook PDF with Automatic Chapter Extraction, Vectorization, and Mandatory PDF Purging</small>
+      </div>
+      <div class="col-6 text-end">
+        <ol class="breadcrumb mb-0 justify-content-end">
+          <li class="breadcrumb-item"><a href="/admin-panel/user-management-page"><i class="fa fa-home"></i></a></li>
+          <li class="breadcrumb-item">Competitive Exams</li>
+          <li class="breadcrumb-item active">Upload Textbooks</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid mt-3 mb-5">
+  <div class="row justify-content-center">
+    <!-- Centered: Upload Form -->
+    <div class="col-lg-9 col-xl-8">
+      <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-primary text-white rounded-top-3 py-3 d-flex align-items-center">
+          <i class="fa fa-cloud-upload fs-5 me-2"></i>
+          <h5 class="mb-0 fw-bold text-white">Full Textbook Ingestion Form</h5>
+        </div>
+        
+        <div class="card-body p-4 bg-white">
+          <form id="uploadForm" enctype="multipart/form-data" onsubmit="startUpload(event)">
+            
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold font-primary"><i class="fa fa-graduation-cap me-1"></i> Exam Category <span class="text-danger">*</span></label>
+                <select class="form-select shadow-sm" id="exam_category" required onchange="onCategoryChange()">
+                  <option value="">-- Select Category --</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold font-primary"><i class="fa fa-list-alt me-1"></i> Exam Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control shadow-sm" id="exam_name" placeholder="e.g. UPSC Civil Services, Kerala PSC KAS, SSC CGL" list="exam_name_list" oninput="onExamInput()" required>
+                <datalist id="exam_name_list"></datalist>
+                <input type="hidden" id="exam_id">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold font-primary"><i class="fa fa-book me-1"></i> Subject <span class="text-danger">*</span></label>
+                <input type="text" class="form-control shadow-sm" id="subject" placeholder="e.g. Indian Polity, General Science, History" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold font-primary"><i class="fa fa-calendar me-1"></i> Exam Year</label>
+                <input type="text" class="form-control shadow-sm" id="exam_year" placeholder="2026">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-bold font-primary"><i class="fa fa-language me-1"></i> Language</label>
+                <select class="form-select shadow-sm" id="language">
+                  <option value="en">English</option>
+                  <option value="ml">Malayalam</option>
+                  <option value="hi">Hindi</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold font-primary"><i class="fa fa-bookmark me-1"></i> Full Textbook Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control shadow-sm" id="textbook_title" placeholder="e.g. Indian Polity by M. Laxmikanth (7th Edition)" required>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">Publisher / Author (Optional)</label>
+                <input type="text" class="form-control form-control-sm" id="publisher" placeholder="e.g. McGraw Hill / Author Name">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">Syllabus Mapping (Optional)</label>
+                <input type="text" class="form-control form-control-sm" id="syllabus_mapping" placeholder="e.g. UPSC GS-II / Kerala PSC Prelims">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check form-switch p-2 bg-light rounded-3 border">
+                <input class="form-check-input ms-0 me-2" type="checkbox" id="force_vision">
+                <label class="form-check-label fw-bold font-primary" for="force_vision">
+                  Force Vision Extraction (GPT-4o-mini Vision)
+                </label>
+                <div class="small text-muted ps-4">Enable this toggle if the textbook is a scanned image PDF or contains complex equations.</div>
+              </div>
+            </div>
+
+            <!-- Single Full Textbook PDF Dropzone -->
+            <div class="mb-4">
+              <label class="form-label fw-bold font-primary"><i class="fa fa-file-pdf-o text-danger me-1"></i> Full Textbook PDF <span class="text-danger">*</span></label>
+              <div class="dropzone-box p-4 text-center" id="dropzone" onclick="document.getElementById('pdf-file').click()">
+                <i class="fa fa-cloud-upload text-primary" style="font-size: 42px;"></i>
+                <h6 class="fw-bold mt-2 dropzone-label" id="file-label">Drag &amp; Drop Full Textbook PDF here or click to browse</h6>
+                <p class="small dropzone-info mb-0" id="file-info">Uploads the complete textbook. Individual chapter PDFs are not required.</p>
+                <input type="file" id="pdf-file" class="d-none" accept="application/pdf" onchange="handleFileSelect(this.files)">
+              </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="btn btn-primary w-100 rounded-pill py-2 fw-bold text-uppercase shadow-sm" disabled>
+              <i class="fa fa-upload me-2"></i> Start Full Textbook Ingestion
+            </button>
+          </form>
+
+          <!-- Loading Bar with Percentage (Shown below during ingestion) -->
+          <div id="progress-container" class="mt-4 pt-3 border-top d-none">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-bold text-dark" id="progress-status-label">
+                <i class="fa fa-circle-o-notch fa-spin text-primary me-2"></i>Uploading &amp; Extracting Textbook...
+              </span>
+              <span class="fw-bold text-primary fs-5" id="progress-percentage-label">0%</span>
+            </div>
+            <div class="progress shadow-none" style="height: 14px; border-radius: 8px; background-color: #e2e8f0;">
+              <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="progress-bar-el" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+
+            <!-- Completion Notice -->
+            <div id="progress-success-box" class="alert alert-success border-0 rounded-3 mt-3 d-none align-items-center justify-content-between p-3">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa fa-check-circle fs-4 text-success"></i>
+                <div>
+                  <b class="d-block text-success">Textbook Ingested Successfully!</b>
+                  <small class="text-muted">Content indexed into MongoDB vectors. Source PDF has been deleted.</small>
+                </div>
+              </div>
+              <div class="d-flex justify-content-end">
+                <a href="/admin-panel/competitive-exams/generate-questions" class="btn btn-primary btn-sm rounded-pill px-4">
+                  <i class="fa fa-bolt me-1"></i> Generate Papers
+                </a>
+              </div>
+            </div>
+
+            <!-- Failure Notice -->
+            <div id="progress-error-box" class="alert alert-danger border-0 rounded-3 mt-3 d-none p-3">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa fa-exclamation-triangle fs-4 text-danger"></i>
+                <div>
+                  <b class="d-block text-danger">Ingestion Failed</b>
+                  <small id="progress-error-msg" class="text-muted">An error occurred while processing the textbook.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const token = localStorage.getItem("admin_token");
+  let selectedPdf = null;
+  let allCategories = [];
+  let allExams = [];
+  let pollInterval = null;
+
+  async function init() {
+    // Read URL query params if pre-selected
+    const urlParams = new URLSearchParams(window.location.search);
+    const preCat = urlParams.get('category');
+    const preExamId = urlParams.get('exam_id');
+    const preExamName = urlParams.get('exam_name');
+
+    await loadCategories();
+    await loadExams();
+
+    if (preCat) {
+      const catOpt = Array.from(document.getElementById("exam_category").options).find(o => o.value === preCat);
+      if (catOpt) catOpt.selected = true;
+      onCategoryChange();
+    }
+    if (preExamId) {
+      document.getElementById("exam_id").value = preExamId;
+      const exOpt = Array.from(document.getElementById("exam_name").options).find(o => o.getAttribute("data-id") === preExamId);
+      if (exOpt) exOpt.selected = true;
+      onExamChange();
+    }
+  }
+
+  async function loadCategories() {
+    try {
+      const res = await fetch("/admin-panel/competitive-exams/categories", { headers: { "Authorization": "Bearer " + token } });
+      const data = await res.json();
+      allCategories = data.categories || [];
+      const catSel = document.getElementById("exam_category");
+      catSel.innerHTML = '<option value="">-- Select Category --</option>' + 
+        allCategories.map(c => `<option value="${escapeHtml(c.category_name)}">${escapeHtml(c.category_name)}</option>`).join('');
+    } catch(e) { console.error(e); }
+  }
+
+  async function loadExams() {
+    try {
+      const res = await fetch("/admin-panel/competitive-exams/api/exams", { headers: { "Authorization": "Bearer " + token } });
+      const data = await res.json();
+      allExams = data.exams || [];
+      updateExamDatalist();
+    } catch(e) { console.error(e); }
+  }
+
+  function updateExamDatalist() {
+    const selectedCat = document.getElementById("exam_category").value;
+    const dl = document.getElementById("exam_name_list");
+    if (!dl) return;
+    const filtered = allExams.filter(e => !selectedCat || e.category_name === selectedCat);
+    dl.innerHTML = filtered.map(e => `<option value="${escapeHtml(e.exam_name)}">`).join('');
+  }
+
+  function onCategoryChange() {
+    updateExamDatalist();
+  }
+
+  function onExamInput() {
+    const val = (document.getElementById("exam_name").value || "").trim().toLowerCase();
+    const match = allExams.find(e => (e.exam_name || "").toLowerCase() === val);
+    if (match) {
+      document.getElementById("exam_id").value = match._id || "";
+      if (match.subjects && match.subjects.length && !document.getElementById("subject").value) {
+        document.getElementById("subject").value = match.subjects[0];
+      }
+    } else {
+      document.getElementById("exam_id").value = "";
+    }
+  }
+
+  function handleFileSelect(files) {
+    if (!files || files.length === 0) return;
+    const f = files[0];
+    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
+      alert("Please select a valid PDF file.");
+      return;
+    }
+    selectedPdf = f;
+    document.getElementById("file-label").innerText = f.name;
+    const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
+    document.getElementById("file-info").innerText = `Selected: ${f.name} (${sizeMb} MB) — Ready for ingestion`;
+    document.getElementById("dropzone").classList.add("border-success");
+
+    // Suggest textbook title if empty
+    const titleInput = document.getElementById("textbook_title");
+    if (!titleInput.value) {
+      let suggested = f.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ");
+      titleInput.value = suggested.charAt(0).toUpperCase() + suggested.slice(1);
+    }
+    document.getElementById("submit-btn").disabled = false;
+  }
+
+  // Setup drag & drop
+  const dropzone = document.getElementById("dropzone");
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); }, false);
+  });
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); }, false);
+  });
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileSelect(e.dataTransfer.files);
+    }
+  });
+
+  async function startUpload(e) {
+    e.preventDefault();
+    if (!selectedPdf) {
+      alert("Please select a PDF file.");
+      return;
+    }
+
+    const submitBtn = document.getElementById("submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Staging &amp; Ingesting...';
+
+    const formData = new FormData();
+    formData.append("exam_category", document.getElementById("exam_category").value);
+    formData.append("exam_name", document.getElementById("exam_name").value);
+    formData.append("exam_id", document.getElementById("exam_id").value);
+    formData.append("exam_year", document.getElementById("exam_year").value);
+    formData.append("subject", document.getElementById("subject").value);
+    formData.append("language", document.getElementById("language").value);
+    formData.append("textbook_title", document.getElementById("textbook_title").value);
+    formData.append("publisher", document.getElementById("publisher").value);
+    formData.append("syllabus_mapping", document.getElementById("syllabus_mapping").value);
+    formData.append("force_vision", document.getElementById("force_vision").checked ? "true" : "false");
+    formData.append("file", selectedPdf);
+
+    try {
+      const res = await fetch("/admin-panel/competitive-exams/textbook/upload-full", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.detail || "Upload failed.");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa fa-upload me-2"></i> Start Full Textbook Ingestion';
+        return;
+      }
+
+      // Reveal the progress container below the form
+      const progContainer = document.getElementById("progress-container");
+      if (progContainer) progContainer.classList.remove("d-none");
+      
+      const successBox = document.getElementById("progress-success-box");
+      if (successBox) successBox.classList.add("d-none");
+      
+      const errorBox = document.getElementById("progress-error-box");
+      if (errorBox) errorBox.classList.add("d-none");
+
+      updateProgress(0, "Initializing textbook ingestion...");
+
+      // Start polling status
+      pollStatus(data.textbook_id);
+
+    } catch (err) {
+      alert("Network error occurred.");
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa fa-upload me-2"></i> Start Full Textbook Ingestion';
+    }
+  }
+
+  function pollStatus(textbookId) {
+    if (pollInterval) clearInterval(pollInterval);
+
+    const check = async () => {
+      try {
+        const res = await fetch(`/admin-panel/competitive-exams/textbook-status/${textbookId}`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const p = data.progress || 0;
+        let label = "Processing Textbook...";
+        if (data.stage === "uploaded") label = "PDF Validated & Stored...";
+        else if (data.stage === "extracting") label = "Extracting Full Text Pages...";
+        else if (data.stage === "chapter_detection") label = "Detecting Chapters & Topics...";
+        else if (data.stage === "embedding") label = "Generating Semantic Embeddings...";
+        else if (data.stage === "validating") label = "Storing & Validating Vector Store...";
+        else if (data.stage === "pdf_cleanup") label = "Cleaning Temporary PDF...";
+
+        updateProgress(p, label);
+
+        if (data.status === 'completed') {
+          clearInterval(pollInterval);
+          updateProgress(100, "Textbook Ingestion Complete");
+          const successBox = document.getElementById("progress-success-box");
+          if (successBox) successBox.classList.remove("d-none");
+          const submitBtn = document.getElementById("submit-btn");
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa fa-check me-2"></i> Ingestion Completed';
+        } else if (data.status === 'failed' || data.status === 'cleanup_failed') {
+          if (data.status === 'failed') {
+            clearInterval(pollInterval);
+            const errBox = document.getElementById("progress-error-box");
+            if (errBox) errBox.classList.remove("d-none");
+            const errMsg = document.getElementById("progress-error-msg");
+            if (errMsg) errMsg.innerText = data.error || "Processing failed.";
+            const submitBtn = document.getElementById("submit-btn");
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa fa-upload me-2"></i> Retry Ingestion';
+          } else {
+            // cleanup_failed: content is saved
+            clearInterval(pollInterval);
+            updateProgress(100, "Ingestion Complete (Cleanup Note)");
+            const successBox = document.getElementById("progress-success-box");
+            if (successBox) successBox.classList.remove("d-none");
+            const submitBtn = document.getElementById("submit-btn");
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa fa-check me-2"></i> Ingestion Completed';
+          }
+        }
+      } catch (e) {
+        console.error("Polling error", e);
+      }
+    };
+
+    check();
+    pollInterval = setInterval(check, 2500);
+  }
+
+  function updateProgress(pct, statusText) {
+    const bar = document.getElementById("progress-bar-el");
+    const pctLabel = document.getElementById("progress-percentage-label");
+    const statusLabel = document.getElementById("progress-status-label");
+    if (bar) bar.style.width = `${pct}%`;
+    if (pctLabel) pctLabel.innerText = `${pct}%`;
+    if (statusLabel && statusText) {
+      if (pct >= 100) {
+        statusLabel.innerHTML = `<i class="fa fa-check-circle text-success me-2"></i>${escapeHtml(statusText)}`;
+      } else {
+        statusLabel.innerHTML = `<i class="fa fa-circle-o-notch fa-spin text-primary me-2"></i>${escapeHtml(statusText)}`;
+      }
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+</script>
+{% endblock %}

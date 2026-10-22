@@ -13,7 +13,7 @@ import json
 from bson import ObjectId
 import difflib
 from app.core.database import db
-from typing import List
+from typing import List, Tuple, Dict, Any, Optional
 from app.utils.user_auth import get_current_user
 from app.services.notification_service import create_notification
 from app.utils.usage_guard import check_and_use_quota
@@ -34,39 +34,83 @@ def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
-async def extract_answers_with_vision(image_paths, question_paper_text, student_id: str):
+def is_invalid_or_unattempted_answer(student_answer: str) -> Tuple[bool, str]:
     """
-    Sends images to GPT-4o to extract handwritten answers directly into JSON.
+    Checks if a student answer string is missing, unattempted, unreadable, 
+    or a non-academic placeholder (e.g. 'JPG', file name, random punctuation).
     """
+    if student_answer is None or not isinstance(student_answer, str):
+        return True, "No answer was provided for this question."
     
+    cleaned = student_answer.strip()
+    lower_cleaned = cleaned.lower()
+
+    if not lower_cleaned:
+        return True, "No answer was provided for this question."
+
+    # Immediate match against common non-attempt / unreadable / placeholder tokens
+    unattempted_tokens = {
+        "[not attempted]", "not attempted", "[unreadable]", "unreadable",
+        "[invalid answersheet]", "invalid answersheet", "none", "n/a", "na",
+        "no answer", "nil", "null", "blank", "unanswered", "empty",
+        "jpg", "jpeg", "png", "gif", "svg", "pdf", "image", "file", "icon",
+        "thumbnail", "placeholder", "document"
+    }
+    if lower_cleaned in unattempted_tokens:
+        return True, "No valid answer provided (unattempted, unreadable, or placeholder)."
+
+    # Remove non-alphanumeric characters
+    alpha_chars = re.sub(r'[^a-zA-Z]', '', lower_cleaned)
+    
+    # If the text has fewer than 2 letters and is not "yes" or "no"
+    if len(alpha_chars) < 2 and lower_cleaned not in ["yes", "no"]:
+        return True, "Answer contains no meaningful content or is too short to evaluate."
+        
+    # Check if the answer is just file extensions or image words like "jpg file"
+    if alpha_chars in ["jpg", "jpeg", "png", "gif", "svg", "pdf", "jpgfile", "jpegfile", "imagefile"]:
+        return True, "Answer is a file extension / placeholder label rather than student work."
+
+    return False, ""
+
+
+async def extract_answers_with_vision(image_paths, question_paper_text, student_id: str) -> dict:
+    """
+    Sends images to GPT-4o Vision to extract handwritten answers directly into structured data.
+    Validates whether the image is actually a valid student exam answersheet.
+    """
     content_payload = [
         {
             "type": "text", 
             "text": f"""
-            You are an expert OCR assistant for handwritten exam papers.
-            
-            ### EXAM QUESTIONS (CONTEXT) ###
-            {question_paper_text}
-            ### END QUESTIONS ###
+You are a strict, objective document verification and OCR assistant for school exam papers.
 
-            TASK:
-            1. Read the handwritten answers from the provided images.
-            2. Match each answer to the correct Question Number from the "EXAM QUESTIONS" list above based on the content.
-               - IGNORE the student's handwritten numbering if it conflicts with the content of the answer.
-               - Use the content to determine which question is being answered.
-            3. Extract the full text of the answer.
-            
-            OUTPUT FORMAT:
-            Return a STRICT JSON object where keys are Question Numbers (as integers) and values are the Answer Text.
-            
-            Example:
-            {{
-                "1": "The cell is the basic unit of life...",
-                "2": "Photosynthesis is the process..."
-            }}
-            
-            If you cannot read an answer, mark it as "[Unreadable]".
-            """
+### EXAM QUESTIONS (CONTEXT FOR MATCHING ONLY) ###
+{question_paper_text}
+### END QUESTIONS ###
+
+CRITICAL RULES:
+1. DOCUMENT VALIDITY CHECK:
+   - Determine whether the provided image(s) show a genuine student exam paper, handwritten answer sheet, or notebook with student answers.
+   - If the image is a generic file icon (such as a placeholder 'JPG' or 'PNG' document icon), a logo, computer icon, landscape, meme, random object, blank image, or contains NO handwritten student exam answers, you MUST set "is_valid_answersheet": false.
+2. DO NOT ANSWER THE QUESTIONS:
+   - You are STRICTLY a mechanical OCR transcriber.
+   - NEVER generate, invent, summarize, or solve the questions yourself.
+   - ONLY transcribe text that is physically written by the student on the page.
+   - If a question is not answered on the page, set its value to "[Not Attempted]" or omit it.
+3. UNREADABLE OR PLACEHOLDER TEXT:
+   - Do not transcribe image metadata, file extensions like 'JPG', or computer UI text as student answers.
+   - If handwritten text is illegible, mark it as "[Unreadable]".
+
+OUTPUT FORMAT (STRICT JSON OBJECT):
+{{
+  "is_valid_answersheet": true or false,
+  "invalid_reason": "Provide reason if false (e.g. 'Uploaded image is a generic file placeholder icon, not an exam paper'), otherwise empty string",
+  "answers": {{
+    "1": "transcribed answer for Q1...",
+    "2": "[Not Attempted]"
+  }}
+}}
+"""
         }
     ]
 
@@ -96,15 +140,57 @@ async def extract_answers_with_vision(image_paths, question_paper_text, student_
             await log_ai_usage(student_id, "Exam Evaluation - OCR", "gpt-4o-mini", response.usage)
             
         result = response.choices[0].message.content
-        return json.loads(result)
+        parsed = json.loads(result)
+
+        is_valid = parsed.get("is_valid_answersheet", True)
+        invalid_reason = parsed.get("invalid_reason", "")
+        
+        if "answers" in parsed and isinstance(parsed["answers"], dict):
+            raw_answers = parsed["answers"]
+        else:
+            raw_answers = {k: v for k, v in parsed.items() if k not in ["is_valid_answersheet", "invalid_reason"]}
+            
+        # Extra safety check: verify if any extracted answer has meaningful content
+        has_any_meaningful_answer = False
+        for k, ans in raw_answers.items():
+            is_inv, _ = is_invalid_or_unattempted_answer(str(ans))
+            if not is_inv:
+                has_any_meaningful_answer = True
+                break
+        
+        if not raw_answers or not has_any_meaningful_answer:
+            is_valid = False
+            if not invalid_reason:
+                invalid_reason = "No handwritten or valid student answers could be detected on the uploaded image."
+                
+        return {
+            "is_valid_answersheet": is_valid,
+            "invalid_reason": invalid_reason,
+            "answers": raw_answers
+        }
     except Exception as e:
         print(f"OCR Failed: {e}")
-        return {}
+        return {
+            "is_valid_answersheet": False,
+            "invalid_reason": f"OCR processing failed: {str(e)}",
+            "answers": {}
+        }
+
 
 # --------------------------------
 # 2. EVALUATE ONE QUESTION (RAG)
 # --------------------------------
 async def evaluate_answer(question, student_answer, max_marks, context_text, student_id: str, model: str = "gpt-4o-mini"):
+    # 🚨 PRE-CHECK: If the answer is unattempted, unreadable, blank, or placeholder,
+    # award exactly 0 marks deterministically without wasting AI tokens or risking hallucinations.
+    is_invalid, invalid_feedback = is_invalid_or_unattempted_answer(student_answer)
+    if is_invalid:
+        return {
+            "score": 0.0,
+            "feedback": invalid_feedback,
+            "ideal_answer": "No valid answer submitted to evaluate against textbook reference."
+        }
+
     prompt = f"""
 You are an expert academic evaluator.
 
@@ -122,13 +208,16 @@ MAX MARKS: {max_marks}
 
 TASK:
 Evaluate the student's answer based STRICTLY on the provided REFERENCE MATERIAL.
-- If the answer is correct according to the text, award full marks.
-- If partially correct, award partial marks.
-- If the answer contradicts the text, award 0.
+- Award marks strictly based on factual correctness according to the reference material.
+- If the answer is completely correct, award {max_marks}.
+- If partially correct, award partial marks strictly proportional to the valid factual points made.
+- If the answer is wrong, contradicts the text, is irrelevant, gibberish, filler, or merely repeats the question, award 0.
+- NEVER award default, base, or sympathy marks for incorrect, irrelevant, or non-responsive answers.
+- Score MUST be a numeric value between 0 and {max_marks}.
 
 Return JSON only:
 {{
-  "score": "number (e.g. 2, 0.5, 5)",
+  "score": "number between 0 and {max_marks}",
   "feedback": "Brief feedback explaining the score",
   "ideal_answer": "The correct answer based on the reference text"
 }}
@@ -152,7 +241,16 @@ Return JSON only:
                 await log_ai_usage(student_id, "Exam Evaluation - Grading", model, response.usage)
 
             message = response.choices[0].message.content
-            return json.loads(message)
+            parsed = json.loads(message)
+            raw_score = parsed.get("score", 0)
+            try:
+                score_val = float(str(raw_score).split("/")[0].strip())
+            except:
+                score_val = 0.0
+            
+            # Clamp score between 0 and max_marks
+            parsed["score"] = max(0.0, min(float(max_marks), score_val))
+            return parsed
 
         except Exception as e:
             last_error = str(e)
@@ -162,7 +260,7 @@ Return JSON only:
 
     print(f"[Grading] All {MAX_RETRIES + 1} attempts failed. Last error: {last_error}")
     return {
-        "score": 0,
+        "score": 0.0,
         "feedback": f"AI evaluation failed after {MAX_RETRIES + 1} attempts.",
         "ideal_answer": "",
         "grading_error": True
@@ -203,9 +301,9 @@ def _grade_from_pct(pct: float) -> str:
 
 
 def _question_status(score: float, max_marks: float, student_answer: str) -> str:
-    if student_answer == "[Not Attempted]":
+    if not student_answer or "[Not Attempted" in student_answer or student_answer.strip() in ["[Not Attempted]", "Not Attempted", "[Unreadable]", "[Invalid Answersheet]"]:
         return "not_attempted"
-    if score == max_marks:
+    if score == max_marks and max_marks > 0:
         return "correct"
     if score > 0:
         return "partial"
@@ -372,13 +470,18 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
                 q_counter += 1
 
         # 4. OCR
-        student_answers_json = await extract_answers_with_vision(
+        ocr_result = await extract_answers_with_vision(
             saved_file_paths,
             question_paper_text,
             student_id
         )
 
-        student_answers = {str(k): v for k, v in student_answers_json.items()}
+        is_valid_paper = ocr_result.get("is_valid_answersheet", True) if isinstance(ocr_result, dict) else True
+        invalid_reason = ocr_result.get("invalid_reason", "") if isinstance(ocr_result, dict) else ""
+        raw_answers = ocr_result.get("answers", ocr_result) if isinstance(ocr_result, dict) else ocr_result
+        if not isinstance(raw_answers, dict):
+            raw_answers = {}
+        student_answers = {str(k): v for k, v in raw_answers.items()}
 
         # 5. Context
         chapter_docs = await db.textbook_chapters.find({
@@ -404,66 +507,107 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
         if not context_text:
             context_text = "Evaluate using general academic knowledge."
 
-        # 6. Evaluation — build task list for concurrent execution
-        grading_tasks = []
-        task_meta = []  # (q_number, question_text, student_ans, marks)
-        q_number = 1
+        # If image was detected as invalid (e.g. placeholder file icon like 'JPG', blank, or non-exam file):
+        if not is_valid_paper:
+            print(f"[Evaluation] Invalid answersheet uploaded for eval {eval_oid}: {invalid_reason}")
+            detailed_results = []
+            q_number = 1
+            for section in paper["sections"]:
+                marks = section["marks_per_question"]
+                for q in section["questions"]:
+                    max_total += marks
+                    detailed_results.append({
+                        "q_no": q_number,
+                        "question": q["question"],
+                        "student_answer": "[Not Attempted - Invalid Image Uploaded]",
+                        "max_marks": marks,
+                        "score": 0.0,
+                        "pct": 0.0,
+                        "status": "not_attempted",
+                        "feedback": invalid_reason or "The uploaded image is not a valid handwritten exam answersheet. It appears to be an icon, placeholder, or non-exam file.",
+                        "ideal_answer": "No handwritten answersheet was detected.",
+                        "grading_error": False,
+                        "ai_tutor_context": None
+                    })
+                    q_number += 1
 
-        for section in paper["sections"]:
-            marks = section["marks_per_question"]
-            for q in section["questions"]:
-                student_ans = student_answers.get(str(q_number), "[Not Attempted]")
-                grading_tasks.append(
-                    evaluate_answer(q["question"], student_ans, marks, context_text, student_id, model)
-                )
-                task_meta.append((q_number, q["question"], student_ans, marks))
-                q_number += 1
+            total_score = 0.0
+            score_pct = 0.0
+            grade = "D"
+            evaluation_status = "COMPLETED"
 
-        # Fire all grading calls concurrently
-        print(f"[Evaluation] Grading {len(grading_tasks)} questions concurrently...")
-        eval_results = await asyncio.gather(*grading_tasks)
+            section_performance = calculate_section_performance(
+                paper.get("sections", []), detailed_results
+            )
+            topic_analysis = {
+                "chapter_performance": {},
+                "strong_areas": [],
+                "weak_areas": paper.get("chapters_used", []),
+                "skill_gap": "No valid exam paper was uploaded for evaluation.",
+                "recommendations": ["Please upload a clear photo or scan of your handwritten answersheet."],
+                "weakness_quiz": []
+            }
+        else:
+            # 6. Evaluation — build task list for concurrent execution
+            grading_tasks = []
+            task_meta = []  # (q_number, question_text, student_ans, marks)
+            q_number = 1
 
-        detailed_results = []
-        for (q_no, question_text, student_ans, marks), eval_result in zip(task_meta, eval_results):
-            score = float(str(eval_result.get("score", "0")).split("/")[0])
-            total_score += score
-            max_total += marks
+            for section in paper["sections"]:
+                marks = section["marks_per_question"]
+                for q in section["questions"]:
+                    student_ans = student_answers.get(str(q_number), "[Not Attempted]")
+                    grading_tasks.append(
+                        evaluate_answer(q["question"], student_ans, marks, context_text, student_id, model)
+                    )
+                    task_meta.append((q_number, q["question"], student_ans, marks))
+                    q_number += 1
 
-            detailed_results.append({
-                "q_no": q_no,
-                "question": question_text,
-                "student_answer": student_ans,
-                "max_marks": marks,
-                "score": score,
-                "pct": round((score / marks * 100) if marks > 0 else 0.0, 1),
-                "status": _question_status(score, marks, student_ans),
-                "feedback": eval_result.get("feedback"),
-                "ideal_answer": eval_result.get("ideal_answer"),
-                "grading_error": eval_result.get("grading_error", False),
-                "ai_tutor_context": (
-                    f"Question: {question_text}\n"
-                    f"My Answer: {student_ans}\n"
-                    f"Feedback received: {eval_result.get('feedback')}\n"
-                    f"Ideal Answer: {eval_result.get('ideal_answer')}\n\n"
-                    "Can you help me understand why my answer was wrong and explain the correct concept?"
-                ) if _question_status(score, marks, student_ans) in ["wrong", "partial"] else None
-            })
+            # Fire all grading calls concurrently
+            print(f"[Evaluation] Grading {len(grading_tasks)} questions concurrently...")
+            eval_results = await asyncio.gather(*grading_tasks)
 
-        evaluation_status = "COMPLETED"
-        score_pct = round((total_score / max_total * 100) if max_total > 0 else 0.0, 1)
-        grade = _grade_from_pct(score_pct)
+            detailed_results = []
+            for (q_no, question_text, student_ans, marks), eval_result in zip(task_meta, eval_results):
+                score = float(str(eval_result.get("score", "0")).split("/")[0])
+                total_score += score
+                max_total += marks
 
-        # 7. Section performance (pure math, no AI)
-        section_performance = calculate_section_performance(
-            paper.get("sections", []), detailed_results
-        )
+                detailed_results.append({
+                    "q_no": q_no,
+                    "question": question_text,
+                    "student_answer": student_ans,
+                    "max_marks": marks,
+                    "score": score,
+                    "pct": round((score / marks * 100) if marks > 0 else 0.0, 1),
+                    "status": _question_status(score, marks, student_ans),
+                    "feedback": eval_result.get("feedback"),
+                    "ideal_answer": eval_result.get("ideal_answer"),
+                    "grading_error": eval_result.get("grading_error", False),
+                    "ai_tutor_context": (
+                        f"Question: {question_text}\n"
+                        f"My Answer: {student_ans}\n"
+                        f"Feedback received: {eval_result.get('feedback')}\n"
+                        f"Ideal Answer: {eval_result.get('ideal_answer')}\n\n"
+                        "Can you help me understand why my answer was wrong and explain the correct concept?"
+                    ) if _question_status(score, marks, student_ans) in ["wrong", "partial"] else None
+                })
 
-        # 8. Topic & Chapter analysis (one GPT-4o-mini call)
-        chapters_used = paper.get("chapters_used", [])
-        subject = paper.get("subject", "")
-        topic_analysis = await analyze_topic_strengths(
-            detailed_results, chapters_used, subject, student_id
-        )
+            evaluation_status = "COMPLETED"
+            score_pct = round((total_score / max_total * 100) if max_total > 0 else 0.0, 1)
+            grade = _grade_from_pct(score_pct)
+
+            # 7. Section performance (pure math, no AI)
+            section_performance = calculate_section_performance(
+                paper.get("sections", []), detailed_results
+            )
+
+            # 8. Topic & Chapter analysis (one GPT-4o-mini call)
+            chapters_used = paper.get("chapters_used", [])
+            subject = paper.get("subject", "")
+            topic_analysis = await analyze_topic_strengths(
+                detailed_results, chapters_used, subject, student_id
+            )
 
         # Save full enriched evaluation record
         await db.evaluations.update_one(
@@ -505,11 +649,18 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
         # 🔔 Notification
         try:
             if evaluation_status == "COMPLETED":
+                if not is_valid_paper:
+                    notif_title = "Evaluation: Invalid Answersheet"
+                    notif_msg = f"The uploaded file was not a valid handwritten exam paper. Score: 0/{max_total}. Please upload a clear photo of your handwritten answers."
+                else:
+                    notif_title = "Evaluation Completed"
+                    notif_msg = f"Your evaluation is complete. Score: {total_score}/{max_total}."
+
                 await create_notification(
                     db=db,
                     user_id=student_id,
-                    title="Evaluation Completed",
-                    message=f"Your evaluation is complete. Score: {total_score}/{max_total}.",
+                    title=notif_title,
+                    message=notif_msg,
                     notification_type="evaluation_completed",
                     # extra_data={"evaluation_id": eval_oid}
                     extra_data={"evaluation_id": eval_oid} 

@@ -189,34 +189,6 @@
         line-height: 1.35;
     }
 
-    /* High Priority Banner Row */
-    .priority-box {
-        background: #f8fafc;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 16px 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-    }
-
-    .priority-box .p-title {
-        font-weight: 700;
-        font-size: 0.88rem;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        color: #1e293b;
-        margin-bottom: 2px;
-        display: block;
-    }
-
-    .priority-box .p-desc {
-        font-size: 0.78rem;
-        color: #64748b;
-        margin: 0;
-    }
-
     /* Buttons */
     .btn-gradient-send {
         background: linear-gradient(135deg, #3cdddd 0%, #13c9ca 100%);
@@ -364,22 +336,6 @@
     .dark-only .audience-card.active .aud-icon {
         background: #13c9ca !important;
         color: #ffffff !important;
-    }
-
-    body.dark-only .priority-box,
-    .dark-only .priority-box {
-        background: #181b24 !important;
-        border-color: #2e3243 !important;
-    }
-
-    body.dark-only .priority-box .p-title,
-    .dark-only .priority-box .p-title {
-        color: #f8fafc !important;
-    }
-
-    body.dark-only .priority-box .p-desc,
-    .dark-only .priority-box .p-desc {
-        color: #94a3b8 !important;
     }
 
     body.dark-only .btn-reset-custom,
@@ -563,16 +519,7 @@
                         </select>
                     </div>
 
-                    <!-- Priority Level -->
-                    <div class="mb-4 priority-box">
-                        <div>
-                            <span class="p-title">High Priority Delivery</span>
-                            <p class="p-desc">Elevate push notification priority for urgent or time-sensitive announcements</p>
-                        </div>
-                        <div class="form-check form-switch fs-5 mb-0">
-                            <input class="form-check-input" type="checkbox" id="nc-priority" style="cursor:pointer;">
-                        </div>
-                    </div>
+
 
                     <!-- Action Buttons -->
                     <div class="d-flex flex-wrap align-items-center gap-3 pt-3 border-top">
@@ -702,7 +649,6 @@
         const message = document.getElementById("nc-message").value.trim();
         const target = document.getElementById("nc-target").value;
         const cls = document.getElementById("nc-class").value;
-        const isUrgent = document.getElementById("nc-priority").checked;
 
         if (!title) {
             showToast("Please enter a notification title", "danger");
@@ -722,12 +668,11 @@
             return;
         }
 
-        const priorityVal = isUrgent ? 20 : 10;
         pendingPayload = {
             title,
             message,
             type: "announcement",
-            priority: priorityVal,
+            priority: 10,
             _target: target
         };
 
@@ -739,14 +684,10 @@
             ? `<span class="badge" style="background:#13c9ca; font-size:0.85rem;">Class ${cls}</span>`
             : `<span class="badge bg-primary" style="font-size:0.85rem;">All Registered Users</span>`;
 
-        const priorityLabel = isUrgent
-            ? `<span class="badge bg-danger">Urgent / High Priority</span>`
-            : `<span class="badge bg-secondary">Standard</span>`;
-
         document.getElementById("confirm-body").innerHTML = `
             <div class="mb-3">
                 <span class="text-muted small mb-1 fw-bold text-uppercase d-block">Target Audience</span>
-                <div>${targetLabel} &nbsp; ${priorityLabel}</div>
+                <div>${targetLabel}</div>
             </div>
             <div class="mb-3">
                 <span class="text-muted small mb-1 fw-bold text-uppercase d-block">Notification Title</span>
@@ -815,7 +756,6 @@
         document.getElementById("nc-message").value = "";
         document.getElementById("title-char-counter").textContent = "0 / 80";
         document.getElementById("msg-char-counter").textContent = "0 / 300";
-        document.getElementById("nc-priority").checked = false;
         selectAudience("all");
         document.getElementById("nc-class").selectedIndex = 0;
     }

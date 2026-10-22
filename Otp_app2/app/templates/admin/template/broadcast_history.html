@@ -139,6 +139,96 @@
         transform: translateY(-1px);
         color: #ffffff;
     }
+
+    /* Dark Mode Support */
+    body.dark-only .metric-card,
+    .dark-only .metric-card {
+        background: #20232e !important;
+        border-color: #2e3243 !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    body.dark-only .metric-card .metric-value,
+    .dark-only .metric-card .metric-value {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .metric-card .metric-title,
+    .dark-only .metric-card .metric-title {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .history-card,
+    .dark-only .history-card {
+        background: #20232e !important;
+        border-color: #2e3243 !important;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    body.dark-only .history-card .border-bottom,
+    .dark-only .history-card .border-bottom {
+        background: #20232e !important;
+        border-color: #2e3243 !important;
+    }
+
+    body.dark-only .history-table th,
+    .dark-only .history-table th {
+        background: #181b24 !important;
+        color: #cbd5e1 !important;
+        border-bottom-color: #2e3243 !important;
+    }
+
+    body.dark-only .history-table td,
+    .dark-only .history-table td {
+        border-bottom-color: #262a38 !important;
+        color: #e2e8f0 !important;
+    }
+
+    body.dark-only .history-table strong,
+    .dark-only .history-table strong {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .search-input-group input,
+    .dark-only .search-input-group input,
+    body.dark-only #target-filter,
+    .dark-only #target-filter {
+        background-color: #16181f !important;
+        border-color: #2e3243 !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .card-footer,
+    .dark-only .card-footer {
+        background: #20232e !important;
+        border-top-color: #2e3243 !important;
+    }
+
+    body.dark-only .modal-content,
+    .dark-only .modal-content {
+        background: #20232e !important;
+        border: 1px solid #2e3243 !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .modal-body,
+    .dark-only .modal-body {
+        background: #20232e !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .modal-body .p-3,
+    .dark-only .modal-body .p-3 {
+        background: #16181f !important;
+        border-color: #2e3243 !important;
+        color: #e2e8f0 !important;
+    }
+
+    body.dark-only .modal-footer,
+    .dark-only .modal-footer {
+        background: #181b24 !important;
+        border-color: #2e3243 !important;
+    }
 </style>
 {% endblock %}
 

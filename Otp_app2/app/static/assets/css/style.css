@@ -49842,3 +49842,136 @@ body.dark-only .page-header {
 body.dark-only .page-header .header-wrapper {
   background-color: #16171d !important;
 }
+
+/* ========================================================
+   FIX: Profile Dropdown & Hover Persistence (Slow Pointer Support)
+   ======================================================== */
+
+/* Ensure dropdown parent is positioned and has a safe hit area */
+.page-wrapper .page-header .header-wrapper .nav-right ul li.onhover-dropdown,
+.onhover-dropdown {
+  position: relative;
+  cursor: pointer;
+}
+
+/* Safe Hover Bridge:
+   Invisible bridge extending 25px downward from the trigger into the dropdown,
+   and 15px to each side, so moving the cursor down (slowly or diagonally)
+   never leaves the hover boundary. */
+.onhover-dropdown::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: -15px;
+  right: -15px;
+  height: 25px;
+  background: transparent;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.onhover-dropdown:hover::after,
+.onhover-dropdown.active::after,
+.onhover-dropdown.show::after {
+  pointer-events: auto;
+}
+
+/* Dropdown Container */
+.page-wrapper .page-header .header-wrapper .nav-right .profile-dropdown,
+.profile-dropdown.onhover-show-div {
+  top: 50px !important;
+  right: 0 !important;
+  left: auto !important;
+  min-width: 175px !important;
+  width: auto !important;
+  padding: 8px 10px !important;
+  background-color: #ffffff;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+  z-index: 999 !important;
+}
+
+/* Smooth transition & graceful exit delay (250ms grace period on mouseleave) */
+.onhover-show-div {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity 0.22s ease-out, visibility 0.22s ease-out, transform 0.22s ease-out;
+  transition-delay: 0.25s; /* Stays open 250ms if mouse slips out */
+  pointer-events: none;
+}
+
+/* Instant show on hover or active/show class */
+.onhover-dropdown:hover .onhover-show-div,
+.onhover-dropdown.active .onhover-show-div,
+.onhover-dropdown.show .onhover-show-div,
+.onhover-show-div.active,
+.onhover-show-div.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0px) !important;
+  transition-delay: 0s !important; /* Instant appearance */
+  pointer-events: auto !important;
+}
+
+/* Dropdown list items and logout button */
+.profile-dropdown li {
+  padding: 4px 0 !important;
+  border-bottom: none !important;
+  margin: 0 !important;
+}
+
+.profile-dropdown li + li {
+  margin-top: 4px !important;
+}
+
+.profile-dropdown li a {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.profile-dropdown li a:hover {
+  background-color: rgba(0, 102, 102, 0.08) !important;
+  color: var(--theme-deafult, #006666) !important;
+}
+
+.profile-dropdown li a i,
+.profile-dropdown li a svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke: currentColor !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+}
+
+.profile-dropdown li a span {
+  color: inherit !important;
+  font-weight: 500 !important;
+}
+
+/* Dark Mode support */
+body.dark-only .page-wrapper .page-header .header-wrapper .nav-right .profile-dropdown,
+body.dark-only .profile-dropdown.onhover-show-div {
+  background-color: #20232e !important;
+  border: 1px solid #2e3243 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-only .profile-dropdown li a {
+  color: #cbd5e1 !important;
+}
+
+body.dark-only .profile-dropdown li a:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #38bdf8 !important;
+}

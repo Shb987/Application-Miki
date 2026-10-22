@@ -370,6 +370,60 @@
         body.dark-only .footer-copyright p {
             color: rgba(255, 255, 255, 0.7) !important;
         }
+
+        /* Profile Dropdown & Hover Persistence (Slow Pointer Support) */
+        .profile-nav.onhover-dropdown {
+            position: relative;
+        }
+        .profile-nav.onhover-dropdown::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: -20px;
+            right: -20px;
+            height: 25px;
+            background: transparent;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .profile-nav.onhover-dropdown:hover::after,
+        .profile-nav.onhover-dropdown.active::after,
+        .profile-nav.onhover-dropdown.show::after {
+            pointer-events: auto;
+        }
+        .profile-nav .profile-dropdown {
+            top: 50px !important;
+            right: 0 !important;
+            left: auto !important;
+            min-width: 175px !important;
+            border-radius: 8px !important;
+        }
+        .onhover-show-div {
+            transition: opacity 0.22s ease-out, visibility 0.22s ease-out, transform 0.22s ease-out !important;
+            transition-delay: 0.25s !important;
+        }
+        .onhover-dropdown:hover .onhover-show-div,
+        .onhover-dropdown.active .onhover-show-div,
+        .onhover-dropdown.show .onhover-show-div,
+        .onhover-show-div.active,
+        .onhover-show-div.show {
+            transition-delay: 0s !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0px) !important;
+            pointer-events: auto !important;
+        }
+        .profile-dropdown li a {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            padding: 8px 14px !important;
+            border-radius: 6px !important;
+            font-size: 13.5px !important;
+            font-weight: 500 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
     </style>
 
     {% block head %}{% endblock %}

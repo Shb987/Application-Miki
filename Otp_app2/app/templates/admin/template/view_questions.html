@@ -96,6 +96,60 @@
         background: rgba(56, 189, 248, 0.15) !important;
         color: #7dd3fc !important;
     }
+
+    /* Profile Dropdown & Hover Persistence (Slow Pointer Support) */
+    .profile-nav.onhover-dropdown {
+      position: relative;
+    }
+    .profile-nav.onhover-dropdown::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: -20px;
+      right: -20px;
+      height: 25px;
+      background: transparent;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .profile-nav.onhover-dropdown:hover::after,
+    .profile-nav.onhover-dropdown.active::after,
+    .profile-nav.onhover-dropdown.show::after {
+      pointer-events: auto;
+    }
+    .profile-nav .profile-dropdown {
+      top: 50px !important;
+      right: 0 !important;
+      left: auto !important;
+      min-width: 175px !important;
+      border-radius: 8px !important;
+    }
+    .onhover-show-div {
+      transition: opacity 0.22s ease-out, visibility 0.22s ease-out, transform 0.22s ease-out !important;
+      transition-delay: 0.25s !important;
+    }
+    .onhover-dropdown:hover .onhover-show-div,
+    .onhover-dropdown.active .onhover-show-div,
+    .onhover-dropdown.show .onhover-show-div,
+    .onhover-show-div.active,
+    .onhover-show-div.show {
+      transition-delay: 0s !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: translateY(0px) !important;
+      pointer-events: auto !important;
+    }
+    .profile-dropdown li a {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      padding: 8px 14px !important;
+      border-radius: 6px !important;
+      font-size: 13.5px !important;
+      font-weight: 500 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
   </style>
 </head>
 
@@ -443,18 +497,13 @@
             <li class="profile-nav onhover-dropdown">
               <div class="media profile-media"><img class="b-r-10" src="/assets/images/dashboard/profile.png" alt="">
                 <div class="media-body d-xxl-block d-none box-col-none">
-                  <div class="d-flex align-items-center gap-2"> <span>Alex Mora </span><i
+                  <div class="d-flex align-items-center gap-2"> <span id="header-profile-name">Admin </span><i
                       class="middle fa fa-angle-down"> </i></div>
-                  <p class="mb-0 font-roboto">Admin</p>
+                  <p class="mb-0 font-roboto" id="header-profile-role">Platform Manager</p>
                 </div>
               </div>
               <ul class="profile-dropdown onhover-show-div">
-                <li><a href="user-profile.html"><i data-feather="user"></i><span>My Profile</span></a></li>
-                <li><a href="letter-box.html"><i data-feather="mail"></i><span>Inbox</span></a></li>
-                <li> <a href="edit-profile.html"> <i data-feather="settings"></i><span>Settings</span></a></li>
-                <li>
-                  <a class="btn btn-pill btn-outline-primary btn-sm" href="#" onclick="logout()">Log Out</a>
-                </li>
+                <li><a href="javascript:void(0)" onclick="logout()"><i data-feather="log-out"></i><span>Log Out</span></a></li>
               </ul>
             </li>
           </ul>

@@ -808,6 +808,11 @@ async def get_textbook_status(textbook_id: str):
 # --------------------------
 # 4. INGESTED TEXTBOOKS API
 # --------------------------
+def natural_sort_key(s):
+    if not s:
+        return []
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', str(s))]
+
 @router.get("/competitive-exams/textbooks")
 async def list_competitive_textbooks(
     category: Optional[str] = None,
@@ -841,7 +846,113 @@ async def list_competitive_textbooks(
         t["exam_category"] = t.get("exam_category") or t.get("board") or "Competitive Exams"
         t["exam_year"] = t.get("exam_year") or t.get("publication_year") or ""
         t["stored_chunk_count"] = t.get("stored_chunk_count", 0)
+        t["pdf_deleted"] = bool(t.get("pdf_deleted", False))
+        t["status"] = t.get("status", "completed")
+        if isinstance(t.get("chapters"), list):
+            t["chapters"] = sorted(t["chapters"], key=natural_sort_key)
+        else:
+            t["chapters"] = []
+        if "created_at" in t and isinstance(t["created_at"], datetime):
+            t["created_at"] = t["created_at"].isoformat()
     return {"textbooks": textbooks}
+
+
+@router.delete("/competitive-exams/textbook/{textbook_id}")
+async def delete_competitive_textbook(
+    textbook_id: str,
+    current_admin: dict = Depends(require_permission("Competitive Exams", "delete"))
+):
+    """Delete a competitive exam textbook and all its associated vector chunks and chapters."""
+    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
+    if not textbook:
+        raise HTTPException(status_code=404, detail="Competitive textbook not found")
+        
+    del_result = await db.textbook_chapters.delete_many({
+        "$or": [
+            {"textbook_id": str(textbook_id)},
+            {"textbook_id": textbook_id}
+        ]
+    })
+    await db.chapter_status.delete_many({
+        "$or": [
+            {"textbook_id": str(textbook_id)},
+            {"textbook_id": textbook_id}
+        ]
+    })
+    await db.textbook.delete_one({"_id": ObjectId(textbook_id)})
+    
+    return {
+        "status": "success",
+        "message": f"Deleted competitive textbook '{textbook.get('textbook_title') or textbook.get('textbook_name')}' successfully.",
+        "deleted_passages_count": del_result.deleted_count
+    }
+
+
+@router.delete("/competitive-exams/textbook/{textbook_id}/chapter/{chapter_name}")
+async def delete_competitive_chapter(
+    textbook_id: str,
+    chapter_name: str,
+    current_admin: dict = Depends(require_permission("Competitive Exams", "delete"))
+):
+    """Delete a specific chapter and its passages from a competitive exam textbook."""
+    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
+    if not textbook:
+        raise HTTPException(status_code=404, detail="Competitive textbook not found")
+        
+    del_result = await db.textbook_chapters.delete_many({
+        "$or": [
+            {"textbook_id": str(textbook_id), "chapter_title": chapter_name},
+            {"textbook_id": textbook_id, "chapter_title": chapter_name}
+        ]
+    })
+    
+    await db.textbook.update_one(
+        {"_id": ObjectId(textbook_id)},
+        {"$pull": {"chapters": chapter_name}}
+    )
+    
+    return {
+        "status": "success",
+        "message": f"Deleted chapter '{chapter_name}' successfully.",
+        "deleted_passages_count": del_result.deleted_count
+    }
+
+
+@router.put("/competitive-exams/textbook/{textbook_id}")
+async def update_competitive_textbook(
+    textbook_id: str,
+    request: Request,
+    current_admin: dict = Depends(require_permission("Competitive Exams", "update"))
+):
+    """Edit competitive textbook metadata."""
+    data = await request.json()
+    textbook = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
+    if not textbook:
+        raise HTTPException(status_code=404, detail="Competitive textbook not found")
+        
+    update_data = {}
+    for key in ["exam_category", "exam_name", "subject", "exam_year", "textbook_title", "publisher", "description"]:
+        if key in data:
+            val = data[key].strip() if isinstance(data[key], str) else data[key]
+            if val and str(val).lower() != "null":
+                update_data[key] = val
+            else:
+                update_data[key] = None
+                
+    if update_data:
+        if "exam_name" in update_data:
+            update_data["standard"] = update_data["exam_name"]
+        if "exam_category" in update_data:
+            update_data["state"] = update_data["exam_category"]
+        if "textbook_title" in update_data:
+            update_data["textbook_name"] = update_data["textbook_title"]
+        if "exam_year" in update_data:
+            update_data["publication_year"] = update_data["exam_year"]
+            
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": update_data})
+        
+    return {"status": "success", "message": "Textbook updated successfully"}
 
 
 

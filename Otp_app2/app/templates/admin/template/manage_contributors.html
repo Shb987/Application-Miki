@@ -332,9 +332,323 @@
         width: 6px;
     }
 
-    .modal-body-scrollable::-webkit-scrollbar-thumb {
-        background-color: rgba(115, 102, 255, 0.3);
-        border-radius: 10px;
+    .stat-label {
+        font-size: 0.82rem;
+        color: #64748b;
+    }
+
+    .stat-value {
+        color: #1e293b;
+    }
+
+    .page-main-title {
+        color: #2c3e50;
+    }
+
+    .card-section-title {
+        color: #1e293b;
+    }
+
+    .contributor-name {
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+
+    .modal-form-label {
+        color: #475569;
+    }
+
+    .posts-modal-body {
+        background: #f8fafc;
+        min-height: 380px;
+    }
+
+    .post-card .card-title,
+    .post-empty-title {
+        color: #1e293b;
+    }
+
+    .empty-posts-icon-box {
+        background: rgba(115, 102, 255, 0.08);
+    }
+
+    /* 🌙 DARK MODE OVERRIDES (body.dark-only, html.dark-only) */
+    body.dark-only,
+    html.dark-only {
+        --glass-bg: #1e222d;
+        --glass-border: #2e3446;
+        --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    body.dark-only .page-main-title,
+    html.dark-only .page-main-title,
+    body.dark-only .card-section-title,
+    html.dark-only .card-section-title {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .breadcrumb-item,
+    html.dark-only .breadcrumb-item {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .breadcrumb-item.active,
+    html.dark-only .breadcrumb-item.active {
+        color: #f1f5f9 !important;
+    }
+
+    /* Stat Cards in Dark Mode */
+    body.dark-only .stat-card,
+    html.dark-only .stat-card {
+        background: #1e222d !important;
+        border: 1px solid #2e3446 !important;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    body.dark-only .stat-card:hover,
+    html.dark-only .stat-card:hover {
+        border-color: rgba(115, 102, 255, 0.4) !important;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45) !important;
+    }
+
+    body.dark-only .stat-label,
+    html.dark-only .stat-label,
+    body.dark-only .stat-card .text-muted,
+    html.dark-only .stat-card .text-muted {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .stat-value,
+    html.dark-only .stat-value,
+    body.dark-only .stat-card h3,
+    html.dark-only .stat-card h3 {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .stat-icon.purple,
+    html.dark-only .stat-icon.purple {
+        background: rgba(115, 102, 255, 0.2) !important;
+        color: #a5b4fc !important;
+    }
+
+    body.dark-only .stat-icon.blue,
+    html.dark-only .stat-icon.blue {
+        background: rgba(81, 187, 254, 0.2) !important;
+        color: #7dd3fc !important;
+    }
+
+    body.dark-only .stat-icon.emerald,
+    html.dark-only .stat-icon.emerald {
+        background: rgba(16, 185, 129, 0.2) !important;
+        color: #6ee7b7 !important;
+    }
+
+    /* Glass Container */
+    body.dark-only .glass-card,
+    html.dark-only .glass-card {
+        background: #1e222d !important;
+        border: 1px solid #2e3446 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    /* Search Box */
+    body.dark-only .search-input-group input,
+    html.dark-only .search-input-group input {
+        background: #151824 !important;
+        border-color: #2e3446 !important;
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-only .search-input-group input::placeholder,
+    html.dark-only .search-input-group input::placeholder {
+        color: #64748b !important;
+    }
+
+    body.dark-only .search-input-group input:focus,
+    html.dark-only .search-input-group input:focus {
+        background: #191d2c !important;
+        border-color: #7366ff !important;
+        box-shadow: 0 0 12px rgba(115, 102, 255, 0.3) !important;
+    }
+
+    body.dark-only .search-icon-inside,
+    html.dark-only .search-icon-inside {
+        color: #94a3b8 !important;
+    }
+
+    /* Table in Dark Mode */
+    body.dark-only .custom-table thead th,
+    html.dark-only .custom-table thead th {
+        color: #94a3b8 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    body.dark-only .custom-table tbody tr,
+    html.dark-only .custom-table tbody tr {
+        background: #171b26 !important;
+        border: 1px solid #282f42 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    body.dark-only .custom-table tbody tr:hover,
+    html.dark-only .custom-table tbody tr:hover {
+        background: #1f2535 !important;
+        border-color: rgba(115, 102, 255, 0.45) !important;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
+    }
+
+    body.dark-only .custom-table tbody tr.empty-row,
+    html.dark-only .custom-table tbody tr.empty-row {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    body.dark-only .custom-table tbody td,
+    html.dark-only .custom-table tbody td {
+        color: #f1f5f9 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    body.dark-only .contributor-name,
+    html.dark-only .contributor-name {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .custom-table .text-muted,
+    html.dark-only .custom-table .text-muted {
+        color: #94a3b8 !important;
+    }
+
+    /* Badges */
+    body.dark-only .status-badge-pill.active,
+    html.dark-only .status-badge-pill.active {
+        background: rgba(16, 185, 129, 0.18) !important;
+        color: #34d399 !important;
+        border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    }
+
+    body.dark-only .status-badge-pill.inactive,
+    html.dark-only .status-badge-pill.inactive {
+        background: rgba(239, 68, 68, 0.18) !important;
+        color: #f87171 !important;
+        border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    }
+
+    /* Action Button */
+    body.dark-only .btn-view-posts,
+    html.dark-only .btn-view-posts {
+        background: rgba(115, 102, 255, 0.16) !important;
+        color: #a5b4fc !important;
+        border-color: rgba(115, 102, 255, 0.35) !important;
+    }
+
+    body.dark-only .btn-view-posts:hover,
+    html.dark-only .btn-view-posts:hover {
+        background: #7366ff !important;
+        color: #ffffff !important;
+        border-color: #7366ff !important;
+        box-shadow: 0 4px 16px rgba(115, 102, 255, 0.4) !important;
+    }
+
+    /* Modals in Dark Mode */
+    body.dark-only .modal-content-glass,
+    html.dark-only .modal-content-glass {
+        background-color: #1e222d !important;
+        border: 1px solid #2e3446 !important;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65) !important;
+    }
+
+    body.dark-only .contributor-modal-body,
+    html.dark-only .contributor-modal-body {
+        background-color: #1e222d !important;
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-only .modal-form-label,
+    html.dark-only .modal-form-label {
+        color: #cbd5e1 !important;
+    }
+
+    body.dark-only .contributor-modal-body .input-group-text,
+    html.dark-only .contributor-modal-body .input-group-text {
+        background-color: #151824 !important;
+        border-color: #2e3446 !important;
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .contributor-modal-body .form-control,
+    html.dark-only .contributor-modal-body .form-control {
+        background-color: #151824 !important;
+        border-color: #2e3446 !important;
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-only .contributor-modal-body .form-control::placeholder,
+    html.dark-only .contributor-modal-body .form-control::placeholder {
+        color: #64748b !important;
+    }
+
+    body.dark-only .contributor-modal-body .form-control:focus,
+    html.dark-only .contributor-modal-body .form-control:focus {
+        border-color: #7366ff !important;
+        box-shadow: 0 0 12px rgba(115, 102, 255, 0.25) !important;
+    }
+
+    body.dark-only .posts-modal-body,
+    html.dark-only .posts-modal-body {
+        background: #141724 !important;
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-only .post-card,
+    html.dark-only .post-card {
+        background: #1e222d !important;
+        border: 1px solid #2e3446 !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    body.dark-only .post-card:hover,
+    html.dark-only .post-card:hover {
+        border-color: rgba(115, 102, 255, 0.5) !important;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    body.dark-only .post-media-container,
+    html.dark-only .post-media-container {
+        background: linear-gradient(135deg, #191c2b 0%, #121520 100%) !important;
+    }
+
+    body.dark-only .post-card .card-title,
+    html.dark-only .post-card .card-title,
+    body.dark-only .post-empty-title,
+    html.dark-only .post-empty-title {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .post-card .card-text,
+    html.dark-only .post-card .card-text {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .tag-chip,
+    html.dark-only .tag-chip {
+        background: rgba(115, 102, 255, 0.2) !important;
+        color: #c7d2fe !important;
+        border: 1px solid rgba(115, 102, 255, 0.3) !important;
+    }
+
+    body.dark-only .post-card .card-footer,
+    html.dark-only .post-card .card-footer {
+        background: #171a24 !important;
+        border-top: 1px solid #2b3040 !important;
+    }
+
+    body.dark-only .empty-posts-icon-box,
+    html.dark-only .empty-posts-icon-box {
+        background: rgba(115, 102, 255, 0.18) !important;
     }
 </style>
 {% endblock %}
@@ -344,7 +658,7 @@
     <div class="page-title mb-3">
         <div class="row align-items-center">
             <div class="col-6">
-                <h4 class="f-w-700 mb-0" style="color: #2c3e50;">
+                <h4 class="f-w-700 mb-0 page-main-title">
                     <i data-feather="users" style="width:22px;height:22px;color:#7366ff;margin-right:8px;"></i>
                     Manage Contributors
                 </h4>
@@ -371,8 +685,8 @@
                     <i data-feather="users" style="width:26px;height:26px;"></i>
                 </div>
                 <div>
-                    <h6 class="text-muted mb-1 font-weight-normal" style="font-size: 0.82rem;">Total Contributors</h6>
-                    <h3 class="mb-0 f-w-700" id="totalContributorsCount" style="color: #1e293b;">0</h3>
+                    <h6 class="stat-label mb-1 font-weight-normal">Total Contributors</h6>
+                    <h3 class="mb-0 f-w-700 stat-value" id="totalContributorsCount">0</h3>
                 </div>
             </div>
         </div>
@@ -382,8 +696,8 @@
                     <i data-feather="user-check" style="width:26px;height:26px;"></i>
                 </div>
                 <div>
-                    <h6 class="text-muted mb-1 font-weight-normal" style="font-size: 0.82rem;">Active Accounts</h6>
-                    <h3 class="mb-0 f-w-700" id="activeContributorsCount" style="color: #1e293b;">0</h3>
+                    <h6 class="stat-label mb-1 font-weight-normal">Active Accounts</h6>
+                    <h3 class="mb-0 f-w-700 stat-value" id="activeContributorsCount">0</h3>
                 </div>
             </div>
         </div>
@@ -393,8 +707,8 @@
                     <i data-feather="layers" style="width:26px;height:26px;"></i>
                 </div>
                 <div>
-                    <h6 class="text-muted mb-1 font-weight-normal" style="font-size: 0.82rem;">Educational Feed Creators</h6>
-                    <h3 class="mb-0 f-w-700" style="color: #1e293b;">Active</h3>
+                    <h6 class="stat-label mb-1 font-weight-normal">Educational Feed Creators</h6>
+                    <h3 class="mb-0 f-w-700 stat-value">Active</h3>
                 </div>
             </div>
         </div>
@@ -406,7 +720,7 @@
             <div class="card glass-card">
                 <div class="card-header pb-0 bg-transparent border-0 d-flex justify-content-between align-items-center mt-3 mx-2">
                     <div>
-                        <h5 class="mb-1 f-w-700" style="color: #1e293b;">Social Media Contributors</h5>
+                        <h5 class="mb-1 f-w-700 card-section-title">Social Media Contributors</h5>
                         <p class="text-muted mb-0" style="font-size: 0.85rem;">Manage content creators for the educational social feed.</p>
                     </div>
                     <div class="d-flex align-items-center gap-3">
@@ -453,24 +767,24 @@
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body p-4">
+      <div class="modal-body p-4 contributor-modal-body">
         <form id="addContributorForm">
             <div class="mb-3">
-                <label class="form-label f-w-600" style="color: #475569;">Full Name</label>
+                <label class="form-label f-w-600 modal-form-label">Full Name</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;"><i data-feather="user" style="width:16px;height:16px;color:#94a3b8;"></i></span>
                     <input type="text" id="contributorName" class="form-control border-start-0" placeholder="e.g. John Doe" required style="border-radius: 0 10px 10px 0;" />
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label f-w-600" style="color: #475569;">Username</label>
+                <label class="form-label f-w-600 modal-form-label">Username</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;"><i data-feather="at-sign" style="width:16px;height:16px;color:#94a3b8;"></i></span>
                     <input type="text" id="contributorUsername" class="form-control border-start-0" placeholder="Choose a unique username" required style="border-radius: 0 10px 10px 0;" />
                 </div>
             </div>
             <div class="mb-4">
-                <label class="form-label f-w-600" style="color: #475569;">Temporary Password</label>
+                <label class="form-label f-w-600 modal-form-label">Temporary Password</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;"><i data-feather="lock" style="width:16px;height:16px;color:#94a3b8;"></i></span>
                     <input type="password" id="contributorPassword" class="form-control border-start-0" placeholder="Enter temporary password" required style="border-radius: 0 10px 10px 0;" />
@@ -499,7 +813,7 @@
         </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body p-4 modal-body-scrollable" style="background: #f8fafc; min-height: 380px;">
+      <div class="modal-body p-4 modal-body-scrollable posts-modal-body">
         <div class="row g-4" id="authorPostsGrid">
             <!-- Loaded via JS -->
         </div>
@@ -573,7 +887,7 @@
 
     async function loadContributors() {
         const tbody = document.querySelector('#contributorsTable tbody');
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted" style="font-size:0.85rem;">Loading contributors...</p></td></tr>';
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted" style="font-size:0.85rem;">Loading contributors...</p></td></tr>';
 
         try {
             const authToken = window.token || localStorage.getItem("admin_token");
@@ -590,7 +904,7 @@
 
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4"><i data-feather="alert-circle" class="me-1"></i> Failed to load contributors.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="5" class="text-center text-danger py-4"><i data-feather="alert-circle" class="me-1"></i> Failed to load contributors.</td></tr>';
             feather.replace();
         }
     }
@@ -606,7 +920,7 @@
         tbody.innerHTML = '';
         
         if (contributors.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5"><i data-feather="user-x" style="width:32px;height:32px;display:block;margin:0 auto 8px;opacity:0.5;"></i>No contributors found.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="5" class="text-center text-muted py-5"><i data-feather="user-x" style="width:32px;height:32px;display:block;margin:0 auto 8px;opacity:0.5;"></i>No contributors found.</td></tr>';
             feather.replace();
             return;
         }
@@ -619,6 +933,7 @@
             
             const joinedStr = formatDateStr(c.created_at);
             const initial = (c.name || 'C').charAt(0).toUpperCase();
+            const usernameDisplay = c.username ? `@${escapeHtml(c.username)}` : '<span class="text-muted opacity-50">-</span>';
             
             // Palette generation based on initial
             const bgGradients = [
@@ -636,18 +951,18 @@
                     <div class="d-flex align-items-center gap-3">
                         <div class="avatar-circle" style="background: ${gradient};">${initial}</div>
                         <div>
-                            <div class="f-w-700" style="color:#1e293b; font-size:0.95rem;">${escapeHtml(c.name || 'Unnamed')}</div>
-                            <small class="text-muted d-block d-sm-none">@${escapeHtml(c.username || '')}</small>
+                            <div class="f-w-700 contributor-name">${escapeHtml(c.name || 'Unnamed')}</div>
+                            <small class="text-muted d-block d-sm-none">${c.username ? '@' + escapeHtml(c.username) : ''}</small>
                         </div>
                     </div>
                 </td>
-                <td><span class="text-muted fw-semibold">@${escapeHtml(c.username || '')}</span></td>
+                <td><span class="text-muted fw-semibold">${usernameDisplay}</span></td>
                 <td>
                     <span class="status-badge-pill ${statusClass}">
                         <span class="status-dot"></span> ${statusText}
                     </span>
                 </td>
-                <td><span class="text-muted" style="font-size:0.88rem;"><i data-feather="calendar" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:#a0aec0;"></i>${joinedStr}</span></td>
+                <td><span class="text-muted contributor-date" style="font-size:0.88rem;"><i data-feather="calendar" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:#a0aec0;"></i>${joinedStr}</span></td>
                 <td class="text-end">
                     <button class="btn btn-view-posts" onclick="viewAuthorPosts('${c._id}', '${escapeJsStr(c.name || '')}', '${escapeJsStr(c.username || '')}')">
                         <i data-feather="grid" style="width:14px;height:14px;"></i>
@@ -699,10 +1014,10 @@
             if (!contents || contents.length === 0) {
                 grid.innerHTML = `
                     <div class="col-12 text-center py-5">
-                        <div style="background: rgba(115, 102, 255, 0.08); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                        <div class="empty-posts-icon-box" style="width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                             <i data-feather="folder-off" style="width:28px;height:28px;color:#7366ff;"></i>
                         </div>
-                        <h6 class="f-w-700 text-dark mb-1">No Posts Found</h6>
+                        <h6 class="f-w-700 post-empty-title mb-1">No Posts Found</h6>
                         <p class="text-muted mb-0" style="font-size:0.88rem;">This contributor has not published any social media content yet.</p>
                     </div>
                 `;
@@ -743,14 +1058,14 @@
                             ${mediaHeader}
                             <div class="card-body p-3 d-flex flex-column justify-content-between">
                                 <div>
-                                    <h6 class="card-title f-w-700 text-dark mb-2" style="font-size:0.95rem; line-height: 1.4;">${escapeHtml(c.title || 'Untitled')}</h6>
+                                    <h6 class="card-title f-w-700 mb-2" style="font-size:0.95rem; line-height: 1.4;">${escapeHtml(c.title || 'Untitled')}</h6>
                                     <p class="card-text text-muted mb-3" style="font-size: 0.84rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5;">${escapeHtml(c.description || '')}</p>
                                 </div>
                                 <div class="d-flex flex-wrap gap-1 mt-auto pt-2">
                                     ${tagsHtml}
                                 </div>
                             </div>
-                            <div class="card-footer bg-light p-3 d-flex justify-content-between align-items-center" style="border-top: 1px solid #f1f5f9;">
+                            <div class="card-footer p-3 d-flex justify-content-between align-items-center">
                                 <span style="color:#51bbfe; font-weight:700; font-size:0.82rem;">
                                     <i data-feather="eye" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;"></i>${c.views_count || 0}
                                 </span>

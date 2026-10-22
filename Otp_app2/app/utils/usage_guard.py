@@ -56,26 +56,47 @@ async def check_and_use_quota(student_id: str, feature: str, cost: int = 1):
             needs_reset = True
         else:
             if isinstance(last_reset, str):
-                last_reset_dt = datetime.fromisoformat(last_reset.replace('Z', '+00:00'))
+                try:
+                    last_reset_dt = datetime.fromisoformat(last_reset.replace('Z', '+00:00'))
+                except Exception:
+                    last_reset_dt = None
             else:
                 last_reset_dt = last_reset
             
-            if last_reset_dt.date() < today:
+            if not last_reset_dt or last_reset_dt.date() < today:
                 needs_reset = True
                 
         if needs_reset:
-            buckets["tutor_balance_qs"] = 5
+            basic_plan = await db.subscription_plans.find_one({"_id": "basic"})
+            daily_limit = basic_plan.get("buckets", {}).get("tutor_balance_qs", 15) if basic_plan else 15
+            buckets["tutor_balance_qs"] = daily_limit
             await db.students.update_one(
                 {"_id": s_oid},
                 {"$set": {
-                    "usage_buckets.tutor_balance_qs": 5,
+                    "usage_buckets.tutor_balance_qs": daily_limit,
                     "subscription.last_tutor_reset_date": datetime.now(timezone.utc)
                 }}
             )
 
     # Check Balance
     current_balance = buckets.get(bucket_key, 0)
-    
+
+    # Auto-heal / one-time upgrade: If basic student was stranded at 0 questions under old 5-limit
+    if tier == "basic" and feature == "tutor" and current_balance < cost:
+        if not student.get("subscription", {}).get("quota_upgraded_v2"):
+            basic_plan = await db.subscription_plans.find_one({"_id": "basic"})
+            daily_limit = basic_plan.get("buckets", {}).get("tutor_balance_qs", 15) if basic_plan else 15
+            current_balance = daily_limit
+            buckets["tutor_balance_qs"] = daily_limit
+            await db.students.update_one(
+                {"_id": s_oid},
+                {"$set": {
+                    "usage_buckets.tutor_balance_qs": daily_limit,
+                    "subscription.quota_upgraded_v2": True,
+                    "subscription.last_tutor_reset_date": datetime.now(timezone.utc)
+                }}
+            )
+
     if current_balance < cost:
         raise HTTPException(
             status_code=402, # Payment Required

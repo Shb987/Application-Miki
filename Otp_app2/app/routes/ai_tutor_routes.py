@@ -4,6 +4,7 @@ from app.utils.user_auth import get_current_user
 from app.models.ai_tutor_models import TutorChatRequest, ChatMessage, TutorChatHistory
 from datetime import datetime, timezone
 import os
+import re
 from openai import AsyncOpenAI
 from bson import ObjectId
 from app.utils.ai_usage_logger import log_ai_usage
@@ -148,6 +149,43 @@ async def get_relevant_context(student_class: str, query: str) -> str:
             
     return context_text
 
+def is_exit_or_stop_command(message: str) -> bool:
+    """Detect if the student wants to stop, leave, close, or exit the session."""
+    if not message:
+        return False
+    msg = message.strip().lower()
+    cleaned = re.sub(r'[^a-zA-Z0-9\s]', ' ', msg)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+    stop_phrases = [
+        "stop everything and leve miki",
+        "stop everything and leave miki",
+        "stop everything",
+        "leave miki",
+        "leve miki",
+        "stop miki",
+        "exit miki",
+        "bye miki",
+        "goodbye miki",
+        "stop chat",
+        "end chat",
+        "stop session",
+        "end session",
+        "stop talking",
+        "stop now",
+        "see you later",
+        "talk to you later"
+    ]
+    for sp in stop_phrases:
+        if sp in cleaned:
+            return True
+
+    words = cleaned.split()
+    if words and words[0] in ["stop", "exit", "quit", "leave", "leve", "bye", "goodbye"]:
+        return True
+
+    return False
+
 # -----------------------------------------------------------------------------
 # 💬 CHAT ENDPOINT
 # -----------------------------------------------------------------------------
@@ -161,9 +199,6 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
     student_id = payload.student_id
     user_message = payload.message
 
-    # 🚨 Check & Use Quota
-    await check_and_use_quota(student_id, "tutor", cost=1)
-
     # 1. Verify Student
     student = await db.students.find_one({"_id": ObjectId(student_id)})
     if not student:
@@ -171,6 +206,32 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
         
     student_class = str(student.get("student_class", "general"))
     student_name = student.get("student_name", "Student")
+
+    # 🛑 Handle Exit / Stop / Leave commands (Zero quota cost)
+    if is_exit_or_stop_command(user_message):
+        farewell_reply = (
+            f"Goodbye, {student_name}! 👋 I've stopped our session as you requested. "
+            "Whenever you are ready to study, ask questions, or learn something new, Miki will be right here for you. "
+            "Have a wonderful day! 🌟"
+        )
+        new_messages = [
+            {"role": "user", "content": user_message, "timestamp": datetime.now(timezone.utc)},
+            {"role": "assistant", "content": farewell_reply, "timestamp": datetime.now(timezone.utc)}
+        ]
+        await db.ai_tutor_chats.update_one(
+            {"student_id": student_id},
+            {
+                "$set": {"updated_at": datetime.now(timezone.utc)},
+                "$push": {"messages": {"$each": new_messages}}
+            },
+            upsert=True
+        )
+        return {
+            "status": "success",
+            "student_id": student_id,
+            "reply": farewell_reply,
+            "source": "SESSION_END"
+        }
 
     # 2. Determine Teacher Persona (Adaptive Tone)
     try:
@@ -208,6 +269,40 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
 
     rag_context = ""
     source_type = "GENERAL KNOWLEDGE"
+
+    # 🚨 Quota is ONLY checked and deducted for Academic / Factual Questions (Textbook or Web Search)
+    # Casual chat, greetings, and small talk are free!
+    if intent in ["TEXTBOOK", "WEB"]:
+        try:
+            await check_and_use_quota(student_id, "tutor", cost=1)
+        except HTTPException as he:
+            if he.status_code == 402:
+                quota_reply = (
+                    f"🌟 Hello {student_name}! You've reached your daily question limit for today. "
+                    "To ask more questions, you can upgrade your plan or recharge your balance, "
+                    "or come back tomorrow when your daily free questions refill! "
+                    "Feel free to chat casually or review previous topics anytime. 📚"
+                )
+                new_messages = [
+                    {"role": "user", "content": user_message, "timestamp": datetime.now(timezone.utc)},
+                    {"role": "assistant", "content": quota_reply, "timestamp": datetime.now(timezone.utc)}
+                ]
+                await db.ai_tutor_chats.update_one(
+                    {"student_id": student_id},
+                    {
+                        "$set": {"updated_at": datetime.now(timezone.utc)},
+                        "$push": {"messages": {"$each": new_messages}}
+                    },
+                    upsert=True
+                )
+                return {
+                    "status": "quota_exceeded",
+                    "student_id": student_id,
+                    "reply": quota_reply,
+                    "source": "LIMIT_REACHED",
+                    "quota_exceeded": True
+                }
+            raise he
 
     if intent == "TEXTBOOK":
         rag_context = await get_relevant_context(student_class, user_message)
@@ -315,3 +410,63 @@ async def get_chat_history(student_id: str, current_user: dict = Depends(get_cur
         return {"messages": []}
         
     return {"messages": history.get("messages", [])}
+
+@router.get("/quota/{student_id}")
+async def get_tutor_quota(student_id: str, current_user: dict = Depends(get_current_user)):
+    """Fetch the student's remaining tutor questions and daily limit"""
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    student = await db.students.find_one({"_id": s_oid})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    tier = student.get("subscription", {}).get("current_tier", "basic")
+    buckets = student.get("usage_buckets", {})
+    balance = buckets.get("tutor_balance_qs", 0)
+
+    basic_plan = await db.subscription_plans.find_one({"_id": tier})
+    daily_limit = basic_plan.get("buckets", {}).get("tutor_balance_qs", 15) if basic_plan else 15
+
+    return {
+        "status": "success",
+        "student_id": student_id,
+        "current_tier": tier,
+        "tutor_balance_qs": balance,
+        "daily_limit": daily_limit
+    }
+
+@router.post("/refill-quota/{student_id}")
+async def refill_tutor_quota(student_id: str, amount: int = 25, current_user: dict = Depends(get_current_user)):
+    """Refill or add tutor questions to a student for testing or manual recharge"""
+    try:
+        s_oid = ObjectId(student_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid student_id format")
+
+    student = await db.students.find_one({"_id": s_oid})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    await db.students.update_one(
+        {"_id": s_oid},
+        {
+            "$inc": {"usage_buckets.tutor_balance_qs": amount},
+            "$set": {
+                "subscription.quota_upgraded_v2": True,
+                "subscription.last_tutor_reset_date": datetime.now(timezone.utc)
+            }
+        }
+    )
+
+    updated_student = await db.students.find_one({"_id": s_oid})
+    new_bal = updated_student.get("usage_buckets", {}).get("tutor_balance_qs", 0)
+
+    return {
+        "status": "success",
+        "message": f"Successfully refilled {amount} tutor questions.",
+        "new_tutor_balance": new_bal
+    }
+

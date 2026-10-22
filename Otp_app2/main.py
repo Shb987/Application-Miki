@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import (
     admin_routes, admin_roles_routes, user_routes, otp_routes, admin_pages,
-    admin_exam_routes, admin_competitive_exam_routes, user_exam_routes, exam_evaluation_routes,
+    admin_exam_routes, admin_competitive_exam_routes, user_competitive_exam_routes, user_exam_routes, exam_evaluation_routes,
     user_futurestudy_routes, admin_quiz_routes, user_quiz_routes,
     companion_routes, chat_routes, ai_tutor_routes,
     admin_tutorial_routes, user_tutorial_routes,
@@ -419,6 +419,8 @@ app.include_router(admin_competitive_exam_routes.router, prefix="/admin-panel", 
 app.include_router(user_routes.router, prefix="/user", tags=["User"])
 app.include_router(otp_routes.router, prefix="/otp", tags=["OTP"])
 app.include_router(user_exam_routes.router,prefix="/user", tags=["User_Exam Module"])
+app.include_router(user_competitive_exam_routes.router, prefix="/user", tags=["Competitive Exams - User"])
+app.include_router(user_competitive_exam_routes.router, prefix="/api/user", tags=["Competitive Exams - User"], include_in_schema=False)
 app.include_router(exam_evaluation_routes.router,prefix="/user", tags=["User_Exam Module"])
 app.include_router(user_todo_routes.router, prefix="/user", tags=["User To-Do Module"])
 app.include_router(user_space_explorer_routes.router, prefix="/user", tags=["Space Explorer - User"])

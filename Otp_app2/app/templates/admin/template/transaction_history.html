@@ -13,6 +13,7 @@
         margin-bottom: 30px;
         position: relative;
         overflow: hidden;
+        transition: all 0.3s ease;
     }
     
     .metric-icon-bg {
@@ -22,10 +23,11 @@
         width: 100px;
         height: 100px;
         border-radius: 50%;
-        opacity: 0.05;
+        opacity: 0.08;
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: opacity 0.3s ease;
     }
     
     .metric-icon-bg i { width: 50px; height: 50px; }
@@ -51,6 +53,7 @@
         box-shadow: 0 8px 25px rgba(0,0,0,0.03);
         border: 1px solid #f0f0f0;
         overflow: hidden;
+        transition: all 0.3s ease;
     }
     
     .data-table-header {
@@ -61,14 +64,181 @@
         justify-content: space-between;
         align-items: center;
     }
+
+    .order-id-cell {
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #555;
+    }
+    
+    .student-cell {
+        font-weight: 600;
+        color: #2b2b2b;
+    }
+
+    .amount-cell {
+        font-weight: 700;
+        color: #2b2b2b;
+    }
     
     .badge-tier-basic { background: #8ca5c9; color: #fff; }
     .badge-tier-plus { background: #7366ff; color: #fff; }
     .badge-tier-pro { background: #f73164; color: #fff; }
     
-    .badge-status-success { background: rgba(84, 186, 74, 0.1); color: #54ba4a; }
-    .badge-status-failed { background: rgba(247, 49, 100, 0.1); color: #f73164; }
-    .badge-status-pending { background: rgba(255, 159, 64, 0.1); color: #ff9f40; }
+    .badge-status-success { background: rgba(84, 186, 74, 0.12); color: #54ba4a; }
+    .badge-status-failed { background: rgba(247, 49, 100, 0.12); color: #f73164; }
+    .badge-status-pending { background: rgba(255, 159, 64, 0.12); color: #ff9f40; }
+
+    /* ========================================================
+       DARK MODE ENHANCEMENTS (Cuba Admin: body.dark-only / .dark-only)
+       ======================================================== */
+    body.dark-only .metric-card,
+    .dark-only .metric-card {
+        background: #1e2433 !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+    }
+    
+    body.dark-only .metric-value,
+    .dark-only .metric-value {
+        color: #f8fafc !important;
+    }
+    
+    body.dark-only .metric-icon-bg,
+    .dark-only .metric-icon-bg {
+        opacity: 0.18 !important;
+    }
+    
+    body.dark-only .data-table-card,
+    .dark-only .data-table-card {
+        background: #1e2433 !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+    }
+    
+    body.dark-only .data-table-header,
+    .dark-only .data-table-header {
+        background: #161b26 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    
+    body.dark-only .data-table-header h5,
+    .dark-only .data-table-header h5 {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .data-table-card .card-body,
+    .dark-only .data-table-card .card-body,
+    body.dark-only .data-table-card .table-responsive,
+    .dark-only .data-table-card .table-responsive {
+        background: transparent !important;
+    }
+    
+    /* Table Styling in Dark Mode */
+    body.dark-only #transactions-table,
+    .dark-only #transactions-table {
+        color: #f1f5f9 !important;
+        background-color: transparent !important;
+    }
+
+    body.dark-only #transactions-table thead,
+    .dark-only #transactions-table thead,
+    body.dark-only #transactions-table thead.bg-light,
+    .dark-only #transactions-table thead.bg-light {
+        background-color: #111622 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    body.dark-only #transactions-table thead th,
+    .dark-only #transactions-table thead th {
+        background-color: #111622 !important;
+        color: #94a3b8 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    
+    body.dark-only #transactions-table tbody,
+    .dark-only #transactions-table tbody {
+        background-color: transparent !important;
+    }
+    
+    body.dark-only #transactions-table tbody tr,
+    .dark-only #transactions-table tbody tr {
+        background-color: transparent !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+    
+    body.dark-only #transactions-table tbody tr:hover,
+    .dark-only #transactions-table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.04) !important;
+    }
+    
+    body.dark-only #transactions-table tbody td,
+    .dark-only #transactions-table tbody td {
+        background-color: transparent !important;
+        color: #e2e8f0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+
+    body.dark-only .order-id-cell,
+    .dark-only .order-id-cell {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .student-cell,
+    .dark-only .student-cell {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .amount-cell,
+    .dark-only .amount-cell {
+        color: #f8fafc !important;
+    }
+
+    /* Status Badges in Dark Mode */
+    body.dark-only .badge-status-success,
+    .dark-only .badge-status-success {
+        background: rgba(84, 186, 74, 0.2) !important;
+        color: #4ade80 !important;
+        border: 1px solid rgba(84, 186, 74, 0.35);
+    }
+    
+    body.dark-only .badge-status-failed,
+    .dark-only .badge-status-failed {
+        background: rgba(247, 49, 100, 0.2) !important;
+        color: #f87171 !important;
+        border: 1px solid rgba(247, 49, 100, 0.35);
+    }
+    
+    body.dark-only .badge-status-pending,
+    .dark-only .badge-status-pending {
+        background: rgba(255, 159, 64, 0.2) !important;
+        color: #fb923c !important;
+        border: 1px solid rgba(255, 159, 64, 0.35);
+    }
+
+    /* Tier Badges in Dark Mode */
+    body.dark-only .badge-tier-basic,
+    .dark-only .badge-tier-basic {
+        background: rgba(140, 165, 201, 0.25) !important;
+        color: #bfdbfe !important;
+        border: 1px solid rgba(140, 165, 201, 0.4);
+    }
+
+    body.dark-only .badge-tier-plus,
+    .dark-only .badge-tier-plus {
+        background: rgba(115, 102, 255, 0.25) !important;
+        color: #c4b5fd !important;
+        border: 1px solid rgba(115, 102, 255, 0.4);
+    }
+
+    body.dark-only .badge-tier-pro,
+    .dark-only .badge-tier-pro {
+        background: rgba(247, 49, 100, 0.25) !important;
+        color: #fbcfe8 !important;
+        border: 1px solid rgba(247, 49, 100, 0.4);
+    }
 </style>
 {% endblock %}
 
@@ -188,10 +358,10 @@
                     const row = `
                     <tr>
                         <td class="px-4">${date}</td>
-                        <td style="font-family: monospace; font-size: 0.85rem; color: #555;">${t.order_id || t.payment_id || "N/A"}</td>
-                        <td><strong>${t.student_name}</strong></td>
+                        <td class="order-id-cell">${t.order_id || t.payment_id || "N/A"}</td>
+                        <td class="student-cell"><strong>${t.student_name}</strong></td>
                         <td><span class="badge ${tierBadge}" style="text-transform:uppercase;">${t.tier}</span></td>
-                        <td style="font-weight: 700;">₹${amount}</td>
+                        <td class="amount-cell">₹${amount}</td>
                         <td><span class="badge ${statusBadge}" style="text-transform:uppercase; font-size:0.75rem;">${t.status}</span></td>
                     </tr>
                     `;

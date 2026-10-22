@@ -50,29 +50,53 @@
     border-color: #475569 !important;
     color: #cbd5e1 !important;
   }
-  body.dark-only .modal-content,
-  .dark-only .modal-content {
-    background-color: #1e293b !important;
+  body.dark-only .text-dark,
+  .dark-only .text-dark {
     color: #f8fafc !important;
   }
-  body.dark-only .modal-body,
-  .dark-only .modal-body {
+  body.dark-only .modal-content {
     background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
   }
-  body.dark-only .modal-footer,
-  .dark-only .modal-footer {
+  body.dark-only .modal-header.bg-primary {
+    background-color: #002B49 !important;
+  }
+  body.dark-only .modal-footer.bg-light,
+  body.dark-only .modal-body .bg-white,
+  body.dark-only .modal-body .bg-light {
     background-color: #1e293b !important;
-    border-top-color: #334155 !important;
+    border-color: #334155 !important;
+  }
+  body.dark-only .modal-body .card {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .nav-pills .nav-link:not(.active) {
+    color: #cbd5e1 !important;
+    background-color: #0f172a !important;
+  }
+  body.dark-only .option-box {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+  }
+  body.dark-only .option-box.correct {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    border-color: #22c55e !important;
+    color: #4ade80 !important;
+  }
+  body.dark-only .explanation-box {
+    background-color: rgba(34, 197, 94, 0.08) !important;
+    border-color: rgba(34, 197, 94, 0.25) !important;
+    color: #86efac !important;
   }
   body.dark-only .border,
   .dark-only .border,
   body.dark-only .border-light-subtle,
   .dark-only .border-light-subtle {
     border-color: #334155 !important;
-  }
-  body.dark-only #textbook-details-container .card {
-    background-color: #0f172a !important;
-    border-color: #3b82f6 !important;
   }
 </style>
 {% endblock %}
@@ -97,9 +121,9 @@
 </div>
 
 <div class="container-fluid mt-3 mb-5">
-  <div class="row g-4">
-    <!-- Question Generation Parameters Card -->
-    <div class="col-lg-8">
+  <div class="row justify-content-center">
+    <!-- Main Column: Competitive Exam Paper Generator -->
+    <div class="col-xl-8 col-lg-10 col-12">
       <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-primary text-white py-3 rounded-top-3 d-flex align-items-center">
           <i class="fa fa-bolt fs-5 me-2"></i>
@@ -141,52 +165,15 @@
               </div>
             </div>
 
-            <!-- Uploaded Textbook Details Card -->
-            <div id="textbook-details-container" class="mb-3" style="display: none;">
-              <div class="card border border-primary-subtle shadow-sm rounded-3 p-3 bg-light">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
-                  <div>
-                    <span class="badge bg-primary text-white mb-1"><i class="fa fa-book me-1"></i> Ingested Textbook Details</span>
-                    <h6 class="fw-bold mb-0 text-dark" id="tb-details-title">-</h6>
-                  </div>
-                  <span id="tb-details-pdf-badge" class="badge bg-soft-success text-success border border-success">
-                    <i class="fa fa-check-circle me-1"></i> PDF Purged • In MongoDB
-                  </span>
-                </div>
-                <div class="row g-2 small text-muted pt-2 border-top">
-                  <div class="col-sm-6 col-md-3">
-                    <i class="fa fa-graduation-cap text-primary me-1"></i> <b>Target Exam:</b> <span id="tb-details-exam" class="text-dark fw-semibold">-</span>
-                  </div>
-                  <div class="col-sm-6 col-md-3">
-                    <i class="fa fa-bookmark text-primary me-1"></i> <b>Subject:</b> <span id="tb-details-subject" class="text-dark fw-semibold">-</span>
-                  </div>
-                  <div class="col-sm-6 col-md-3">
-                    <i class="fa fa-list-ol text-primary me-1"></i> <b>Chapters:</b> <span id="tb-details-chapters" class="text-dark fw-semibold">0</span>
-                  </div>
-                  <div class="col-sm-6 col-md-3">
-                    <i class="fa fa-database text-primary me-1"></i> <b>Vector Chunks:</b> <span id="tb-details-chunks" class="text-dark fw-semibold">0</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div id="no-textbook-alert" class="alert alert-warning small d-flex align-items-center mb-3" style="display: none;">
-              <i class="fa fa-exclamation-triangle fs-5 me-2 text-warning"></i>
-              <div>
-                <b>No textbook uploaded for this target exam yet.</b>
-                Please select another exam or <a href="/admin-panel/competitive-exams/upload-textbook" class="alert-link fw-bold">upload the textbook PDF here</a>.
-              </div>
-            </div>
-
             <div class="mb-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <label class="form-label fw-bold font-primary mb-0"><i class="fa fa-list me-1"></i> Select Chapters / Topics</label>
                 <button type="button" class="btn btn-link btn-sm text-primary p-0" onclick="selectAllChapters()">Select All</button>
               </div>
-              <select class="form-select shadow-sm" id="gen-chapters" multiple size="5" style="min-height: 120px;">
+              <select class="form-select shadow-sm" id="gen-chapters" multiple size="4" style="min-height: 105px;">
                 <option value="">-- All Chapters in Textbook (Default) --</option>
               </select>
-              <small class="text-muted">Hold <b>Ctrl</b> (Windows) or <b>Cmd</b> (Mac) to select multiple specific chapters.</small>
+              <small class="text-muted">Hold <b>Ctrl</b> (Windows) or <b>Cmd</b> (Mac) to select specific chapters.</small>
             </div>
 
             <!-- Exam Pattern Customization -->
@@ -194,19 +181,19 @@
               <h6 class="fw-bold text-dark mb-3"><i class="fa fa-sliders text-primary me-2"></i>Exam Blueprint &amp; Marking Rules</h6>
               
               <div class="row g-3 mb-3">
-                <div class="col-md-3">
+                <div class="col-md-3 col-6">
                   <label class="form-label small fw-bold">Number of Papers</label>
                   <input type="number" class="form-control form-control-sm" id="gen-paper-count" value="1" min="1" max="5" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 col-6">
                   <label class="form-label small fw-bold">Total Questions</label>
                   <input type="number" class="form-control form-control-sm" id="gen-total-questions" value="50" min="5" max="200" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 col-6">
                   <label class="form-label small fw-bold">Total Marks</label>
                   <input type="number" class="form-control form-control-sm" id="gen-total-marks" value="100" min="10" max="500" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-3 col-6">
                   <label class="form-label small fw-bold">Duration (Mins)</label>
                   <input type="number" class="form-control form-control-sm" id="gen-duration" value="120" min="15" max="360" required>
                 </div>
@@ -221,7 +208,7 @@
                   <div class="input-group input-group-sm mt-1">
                     <span class="input-group-text">Deduct</span>
                     <input type="number" step="0.01" class="form-control" id="gen-neg-penalty" value="0.33">
-                    <span class="input-group-text">marks per wrong answer</span>
+                    <span class="input-group-text">marks per wrong</span>
                   </div>
                 </div>
 
@@ -232,7 +219,7 @@
                   </div>
                   <div class="form-check mt-1">
                     <input class="form-check-input" type="checkbox" id="gen-include-explanations" checked>
-                    <label class="form-check-label small fw-semibold" for="gen-include-explanations">Include Detailed Explanations with textbook citations</label>
+                    <label class="form-check-label small fw-semibold" for="gen-include-explanations">Include Detailed Explanations</label>
                   </div>
                 </div>
               </div>
@@ -242,89 +229,136 @@
               <i class="fa fa-magic me-2"></i> Synthesize Question Papers
             </button>
           </form>
-        </div>
-      </div>
-    </div>
 
-    <!-- Right: Generation Status & Live Progress -->
-    <div class="col-lg-4">
-      <div class="card border-0 shadow-sm rounded-3 h-100">
-        <div class="card-header bg-white border-0 py-3">
-          <h6 class="mb-0 fw-bold text-dark"><i class="fa fa-cog fa-spin text-primary me-2"></i>RAG Generation Status</h6>
-        </div>
-        <div class="card-body p-4">
-          <div id="gen-status-idle">
-            <div class="text-center py-5 text-muted">
-              <i class="fa fa-magic fs-1 mb-3 text-secondary"></i>
-              <h6>Ready to Generate</h6>
-              <p class="small">Configure parameters on the left and click 'Synthesize Question Papers' to generate full exam-grade papers grounded in textbook passages.</p>
+          <!-- Loading Bar Only (Active during generation) -->
+          <div id="gen-progress-container" class="mt-4 pt-3 border-top d-none">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-bold text-dark" id="gen-status-label">
+                <i class="fa fa-circle-o-notch fa-spin text-primary me-2"></i>Synthesizing Question Papers...
+              </span>
+              <span class="fw-bold text-primary fs-5" id="gen-pct">0%</span>
             </div>
+            <div class="progress shadow-none" style="height: 14px; border-radius: 8px; background-color: #e2e8f0;">
+              <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="gen-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <small class="text-muted d-block text-center mt-2" id="gen-subtext">
+              Retrieving textbook vector passages and synthesizing examination paper...
+            </small>
           </div>
 
-          <div id="gen-status-active" class="d-none">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="fw-bold text-dark">Synthesizing...</span>
-              <span class="fw-bold text-primary" id="gen-pct">0%</span>
+          <!-- Completion Notice & Generated Papers List -->
+          <div id="gen-completion-box" class="alert alert-success border-0 rounded-3 mt-4 p-3 d-none">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <i class="fa fa-check-circle fs-3 text-success"></i>
+              <div>
+                <b class="d-block text-success fs-6">Question Paper Generated Successfully!</b>
+                <small class="text-muted">Strictly grounded in textbook embeddings with full answer key &amp; explanations.</small>
+              </div>
             </div>
-
-            <div class="progress mb-3" style="height: 10px; border-radius: 6px;">
-              <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="gen-bar" style="width: 0%;"></div>
-            </div>
-
-            <div class="p-3 bg-light rounded-3 mb-3 small text-muted">
-              <div><i class="fa fa-check text-success me-1"></i> Retrieving passages via Semantic Vector Search</div>
-              <div><i class="fa fa-check text-success me-1"></i> Framing candidate MCQs with 4 distinct options</div>
-              <div><i class="fa fa-check text-success me-1"></i> Applying Negative Marking rules</div>
-              <div><i class="fa fa-check text-success me-1"></i> Building pedagogical answer explanations</div>
-              <div><i class="fa fa-check text-success me-1"></i> Compiling official PDF question paper</div>
-            </div>
-
-            <div id="gen-completion-box" class="d-none alert alert-success border-0 rounded-3">
-              <h6 class="fw-bold mb-1"><i class="fa fa-check-circle me-1"></i> Paper Generation Complete!</h6>
-              <p class="small mb-3">Your competitive exam question paper has been compiled and is ready for download or review.</p>
-              <div id="generated-papers-list" class="d-grid gap-2 mb-2"></div>
-              <button class="btn btn-outline-success btn-sm rounded-pill w-100 mt-2" onclick="location.reload()">
+            <div id="generated-papers-list" class="d-grid gap-2"></div>
+            <div class="d-flex justify-content-end mt-3 pt-2 border-top">
+              <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="resetGenerationForm()">
                 <i class="fa fa-refresh me-1"></i> Generate Another Paper
               </button>
             </div>
+          </div>
 
-            <div id="gen-fail-box" class="d-none alert alert-danger border-0 rounded-3">
-              <h6 class="fw-bold mb-1"><i class="fa fa-times-circle me-1"></i> Generation Failed</h6>
-              <p class="small mb-2" id="gen-fail-msg">An error occurred during question generation.</p>
-              <button class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="location.reload()">Retry</button>
+          <!-- Generation Failure Notice -->
+          <div id="gen-fail-box" class="alert alert-danger border-0 rounded-3 mt-4 p-3 d-none">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="fa fa-times-circle fs-3 text-danger"></i>
+              <div>
+                <b class="d-block text-danger">Generation Failed</b>
+                <small class="text-muted d-block" id="gen-fail-msg">An error occurred during question generation.</small>
+              </div>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="resetGenerationForm()">
+                <i class="fa fa-repeat me-1"></i> Try Again
+              </button>
             </div>
           </div>
+
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Modal: Interactive Paper Preview -->
-<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+<!-- Modal for Previewing Generated Questions & Official PDF -->
+<div class="modal fade" id="previewPaperModal" tabindex="-1" aria-labelledby="previewPaperModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header bg-primary text-white">
-        <div>
-          <h5 class="modal-title fw-bold" id="previewModalTitle">Question Paper Preview</h5>
-          <small class="text-white-50" id="previewModalSubtitle"></small>
-        </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body p-4 bg-light">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="toggle-answers" checked onchange="toggleAnswersView()">
-            <label class="form-check-label fw-bold small text-dark" for="toggle-answers">Show Correct Answers &amp; Explanations</label>
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa fa-file-text-o fs-5"></i>
+          <div>
+            <h5 class="modal-title fw-bold text-white mb-0" id="previewModalTitle">Generated Question Paper</h5>
+            <small class="text-white-50" id="previewModalSubtitle">Interactive question preview, answer keys, and PDF view</small>
           </div>
-          <a id="preview-download-pdf-btn" href="#" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill">
-            <i class="fa fa-download me-1"></i> Download PDF
-          </a>
         </div>
-        <div id="preview-content-container"></div>
+        <div class="d-flex align-items-center gap-2">
+          <span id="previewModalMarksBadge" class="badge bg-light text-primary fw-bold">100 Marks</span>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
       </div>
-      <div class="modal-footer bg-white">
+
+      <div class="modal-body p-0">
+        <!-- Top Toolbar inside modal -->
+        <div class="p-3 bg-white border-bottom shadow-sm">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <ul class="nav nav-pills" id="modal-tab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active rounded-pill px-3 py-1 fw-semibold small" id="modal-tab-questions-btn" type="button" onclick="switchModalTab('questions')">
+                  <i class="fa fa-list-ol me-1"></i> Questions &amp; Answers
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-pill px-3 py-1 fw-semibold small" id="modal-tab-pdf-btn" type="button" onclick="switchModalTab('pdf')">
+                  <i class="fa fa-file-pdf-o me-1"></i> Official PDF View
+                </button>
+              </li>
+            </ul>
+            <div class="d-flex align-items-center gap-2">
+              <a id="modal-download-pdf-btn" href="#" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="fa fa-download me-1"></i> Download PDF
+              </a>
+            </div>
+          </div>
+          <!-- Toggle answers switch -->
+          <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="toggle-modal-answers" checked onchange="renderModalQuestions()">
+              <label class="form-check-label fw-bold small text-dark" for="toggle-modal-answers">
+                Highlight Answers &amp; Explanations
+              </label>
+            </div>
+            <span id="modal-questions-count" class="badge bg-light text-dark border">0 Questions</span>
+          </div>
+        </div>
+
+        <div class="p-3" style="min-height: 400px; max-height: 65vh; overflow-y: auto;">
+          <!-- Tab 1: Questions & Answers -->
+          <div id="modal-tab-questions">
+            <div id="modal-questions-container"></div>
+          </div>
+
+          <!-- Tab 2: PDF Document View -->
+          <div id="modal-tab-pdf" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
+              <small class="text-muted"><i class="fa fa-info-circle me-1"></i> In-browser preview of formatted PDF</small>
+              <a id="modal-open-tab-btn" href="#" target="_blank" class="btn btn-link btn-sm text-primary p-0">Open in New Window <i class="fa fa-external-link ms-1"></i></a>
+            </div>
+            <iframe id="modal-pdf-iframe" src="" style="width: 100%; height: 55vh; border: none; border-radius: 4px;"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
         <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+        <a id="modal-footer-open-btn" href="#" target="_blank" class="btn btn-sm btn-success rounded-pill px-3">
+          <i class="fa fa-external-link me-1"></i> Open PDF in Tab
+        </a>
       </div>
     </div>
   </div>
@@ -466,14 +500,15 @@
       return;
     }
 
-    // Auto-sync category dropdown if needed
+    // Auto-sync category dropdown ONLY if user hasn't selected a category yet
     const catSel = document.getElementById("gen-category");
-    if (exam.category_name) {
-      const matchingCat = Array.from(catSel.options).find(o => 
-        o.value.toLowerCase() === exam.category_name.toLowerCase() ||
-        exam.category_name.toLowerCase().includes(o.value.toLowerCase())
-      );
-      if (matchingCat && (!catSel.value || catSel.value !== matchingCat.value)) {
+    if (!catSel.value && exam.category_name) {
+      const eCat = exam.category_name.trim().toLowerCase();
+      const matchingCat = Array.from(catSel.options).find(o => {
+        const val = (o.value || "").trim().toLowerCase();
+        return val && (val === eCat || eCat.includes(val) || val.includes(eCat));
+      });
+      if (matchingCat) {
         catSel.value = matchingCat.value;
       }
     }
@@ -523,7 +558,6 @@
     }
 
     const tbSel = document.getElementById("gen-textbook");
-    const noTbAlert = document.getElementById("no-textbook-alert");
 
     if (selectedExam && filtered.length === 0) {
       // Look for category fallback
@@ -535,13 +569,10 @@
       if (catFallback.length > 0) {
         tbSel.innerHTML = '<option value="">-- Select from Category Textbooks (' + catFallback.length + ' Available) --</option>' +
           catFallback.map(t => `<option value="${t._id}">${escapeHtml(t.textbook_title || t.textbook_name || t.subject)} [${escapeHtml(t.exam_name || t.subject)}] (${t.stored_chunk_count || 0} chunks)</option>`).join('');
-        if (noTbAlert) noTbAlert.style.display = "none";
       } else {
         tbSel.innerHTML = '<option value="">-- No Textbooks Uploaded for this Exam --</option>';
-        if (noTbAlert) noTbAlert.style.display = "flex";
       }
     } else {
-      if (noTbAlert) noTbAlert.style.display = "none";
       tbSel.innerHTML = '<option value="">-- Select Ingested Textbook (' + filtered.length + ' Available) --</option>' + 
         filtered.map(t => `<option value="${t._id}">${escapeHtml(t.textbook_title || t.textbook_name || t.subject)} [${escapeHtml(t.exam_name || t.subject)}] (${t.stored_chunk_count || 0} chunks)</option>`).join('');
     }
@@ -557,32 +588,10 @@
   function onTextbookChange() {
     const tbId = document.getElementById("gen-textbook").value;
     const tb = allTextbooks.find(t => t._id === tbId);
-    const detailsContainer = document.getElementById("textbook-details-container");
     const chSel = document.getElementById("gen-chapters");
     chSel.innerHTML = '<option value="" selected>-- All Chapters in Textbook (Default) --</option>';
 
-    if (!tb) {
-      if (detailsContainer) detailsContainer.style.display = "none";
-      return;
-    }
-
-    if (detailsContainer) {
-      detailsContainer.style.display = "block";
-      document.getElementById("tb-details-title").textContent = tb.textbook_title || tb.textbook_name || tb.subject;
-      document.getElementById("tb-details-exam").textContent = tb.exam_name || "General";
-      document.getElementById("tb-details-subject").textContent = tb.subject || "-";
-      document.getElementById("tb-details-chapters").textContent = `${(tb.chapters || []).length} Chapters`;
-      document.getElementById("tb-details-chunks").textContent = `${tb.stored_chunk_count || 0} Vectors (3072-dim)`;
-      
-      const pdfBadge = document.getElementById("tb-details-pdf-badge");
-      if (tb.pdf_deleted) {
-        pdfBadge.className = "badge bg-soft-success text-success border border-success";
-        pdfBadge.innerHTML = '<i class="fa fa-check-circle me-1"></i> Source PDF Auto-Deleted • Stored in MongoDB';
-      } else {
-        pdfBadge.className = "badge bg-light text-muted border";
-        pdfBadge.innerHTML = '<i class="fa fa-file-pdf-o me-1"></i> PDF Retained';
-      }
-    }
+    if (!tb) return;
 
     if (tb.chapters && tb.chapters.length > 0) {
       tb.chapters.forEach(ch => {
@@ -645,8 +654,13 @@
         return;
       }
 
-      document.getElementById("gen-status-idle").classList.add("d-none");
-      document.getElementById("gen-status-active").classList.remove("d-none");
+      // Hide completion/failure notices and show loading bar only
+      document.getElementById("gen-completion-box").classList.add("d-none");
+      document.getElementById("gen-fail-box").classList.add("d-none");
+      document.getElementById("gen-progress-container").classList.remove("d-none");
+      document.getElementById("gen-pct").innerText = "0%";
+      document.getElementById("gen-bar").style.width = "0%";
+      
       pollTask(data.task_id);
 
     } catch (err) {
@@ -673,12 +687,23 @@
 
         if (data.status === 'completed') {
           clearInterval(pollInterval);
+          document.getElementById("gen-progress-container").classList.add("d-none");
           document.getElementById("gen-completion-box").classList.remove("d-none");
+          
+          const btn = document.getElementById("generate-btn");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa fa-magic me-2"></i> Synthesize Question Papers';
+
           await renderCompletedPapers(data.generated_paper_ids || []);
         } else if (data.status === 'failed') {
           clearInterval(pollInterval);
+          document.getElementById("gen-progress-container").classList.add("d-none");
           document.getElementById("gen-fail-box").classList.remove("d-none");
           document.getElementById("gen-fail-msg").innerText = data.error || "Generation worker failed.";
+          
+          const btn = document.getElementById("generate-btn");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa fa-magic me-2"></i> Synthesize Question Papers';
         }
       } catch(e) {}
     };
@@ -688,11 +713,41 @@
   }
 
   let currentPreviewPaper = null;
-  const previewModal = new bootstrap.Modal(document.getElementById("previewModal"));
+  let previewModalInstance = null;
+
+  function switchModalTab(tabName) {
+    const qBtn = document.getElementById("modal-tab-questions-btn");
+    const pBtn = document.getElementById("modal-tab-pdf-btn");
+    const qPane = document.getElementById("modal-tab-questions");
+    const pPane = document.getElementById("modal-tab-pdf");
+
+    if (tabName === 'questions') {
+      if (qBtn) qBtn.classList.add("active");
+      if (pBtn) pBtn.classList.remove("active");
+      if (qPane) qPane.style.display = "block";
+      if (pPane) pPane.style.display = "none";
+    } else {
+      if (pBtn) pBtn.classList.add("active");
+      if (qBtn) qBtn.classList.remove("active");
+      if (pPane) pPane.style.display = "block";
+      if (qPane) qPane.style.display = "none";
+      ensureModalPdfLoaded();
+    }
+  }
+
+  function ensureModalPdfLoaded() {
+    if (!currentPreviewPaper) return;
+    const iframe = document.getElementById("modal-pdf-iframe");
+    const pdfUrl = formatPdfUrl(currentPreviewPaper.pdf_url || currentPreviewPaper.pdf_path);
+    if (pdfUrl && pdfUrl !== '#' && (!iframe.src || iframe.src === '' || iframe.src.endsWith('/') || iframe.src.endsWith('#'))) {
+      iframe.src = pdfUrl;
+    }
+  }
 
   async function renderCompletedPapers(paperIds) {
     const listDiv = document.getElementById("generated-papers-list");
     listDiv.innerHTML = "";
+
     for (let pid of paperIds) {
       try {
         const res = await fetch(`/admin-panel/competitive-exams/generated-paper/${pid}`, {
@@ -701,21 +756,33 @@
         if (res.ok) {
           const item = await res.json();
           const p = item.paper || {};
+          const pInfo = p.paper || {};
           const pdfPath = formatPdfUrl(p.pdf_url || p.pdf_path);
           const card = document.createElement("div");
-          card.className = "p-2 bg-white rounded border shadow-sm mb-2";
+          card.className = "card border border-success-subtle shadow-sm mb-2 bg-white";
           card.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="fw-bold text-dark small">${escapeHtml(p.paper?.paper_title || 'Question Paper')}</span>
-              <span class="badge bg-light text-dark">${p.paper?.total_marks || 100} M</span>
-            </div>
-            <div class="d-flex gap-2 mt-2">
-              <a href="${pdfPath}" target="_blank" class="btn btn-sm btn-success flex-fill rounded-pill">
-                <i class="fa fa-file-pdf-o me-1"></i> Download PDF
-              </a>
-              <button class="btn btn-sm btn-outline-primary flex-fill rounded-pill" onclick="openPreview('${pid}')">
-                <i class="fa fa-eye me-1"></i> Preview
-              </button>
+            <div class="card-body p-3">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">${escapeHtml(pInfo.paper_title || 'Question Paper')}</h6>
+                  <div class="small text-muted">
+                    <span class="me-3"><i class="fa fa-graduation-cap text-primary me-1"></i> ${escapeHtml(p.exam_name || 'Competitive Exam')}</span>
+                    <span class="me-3"><i class="fa fa-book text-primary me-1"></i> ${escapeHtml(pInfo.subject || 'General Studies')}</span>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-1">
+                  <span class="badge bg-primary text-white">${pInfo.total_marks || 100} Marks</span>
+                  <span class="badge bg-light text-dark border">${pInfo.time_limit || '120 MINS'}</span>
+                </div>
+              </div>
+              <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+                <a href="${pdfPath}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                  <i class="fa fa-file-pdf-o me-1"></i> View Paper
+                </a>
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="openPreviewModal('${pid}')">
+                  <i class="fa fa-list-ol me-1"></i> Preview Questions
+                </button>
+              </div>
             </div>
           `;
           listDiv.appendChild(card);
@@ -735,64 +802,87 @@
     return '/' + clean;
   }
 
-  async function openPreview(paperId) {
+  async function openPreviewModal(paperId) {
+    if (!paperId) return;
+
     try {
       const res = await fetch(`/admin-panel/competitive-exams/generated-paper/${paperId}`, {
         headers: { "Authorization": "Bearer " + token }
       });
+      if (!res.ok) throw new Error("Failed to load paper details");
       const data = await res.json();
       currentPreviewPaper = data.paper || {};
       const pInfo = currentPreviewPaper.paper || {};
 
-      document.getElementById("previewModalTitle").innerText = pInfo.paper_title || "Question Paper";
-      document.getElementById("previewModalSubtitle").innerText = `${currentPreviewPaper.exam_name || ''} | Subject: ${pInfo.subject || ''} | ${pInfo.total_marks || 100} Marks`;
+      document.getElementById("previewModalTitle").innerText = pInfo.paper_title || "Generated Question Paper";
+      document.getElementById("previewModalSubtitle").innerText = `${currentPreviewPaper.exam_name || ''} • Subject: ${pInfo.subject || ''} • ${pInfo.time_limit || '120 MINS'}`;
+      document.getElementById("previewModalMarksBadge").innerText = `${pInfo.total_marks || 100} Marks`;
 
-      const pdfBtn = document.getElementById("preview-download-pdf-btn");
-      if (currentPreviewPaper.pdf_url || currentPreviewPaper.pdf_path) {
-        pdfBtn.href = formatPdfUrl(currentPreviewPaper.pdf_url || currentPreviewPaper.pdf_path);
-        pdfBtn.classList.remove("d-none");
+      const pdfUrl = formatPdfUrl(currentPreviewPaper.pdf_url || currentPreviewPaper.pdf_path);
+      const downloadBtn = document.getElementById("modal-download-pdf-btn");
+      const openTabBtn = document.getElementById("modal-open-tab-btn");
+      const footerOpenBtn = document.getElementById("modal-footer-open-btn");
+      const pdfIframe = document.getElementById("modal-pdf-iframe");
+
+      if (pdfUrl && pdfUrl !== '#') {
+        if (downloadBtn) { downloadBtn.href = pdfUrl; downloadBtn.classList.remove("disabled"); }
+        if (openTabBtn) { openTabBtn.href = pdfUrl; openTabBtn.classList.remove("disabled"); }
+        if (footerOpenBtn) { footerOpenBtn.href = pdfUrl; footerOpenBtn.classList.remove("disabled"); }
+        if (pdfIframe) { pdfIframe.src = pdfUrl; }
       } else {
-        pdfBtn.classList.add("d-none");
+        if (downloadBtn) { downloadBtn.href = '#'; downloadBtn.classList.add("disabled"); }
+        if (openTabBtn) { openTabBtn.href = '#'; openTabBtn.classList.add("disabled"); }
+        if (footerOpenBtn) { footerOpenBtn.href = '#'; footerOpenBtn.classList.add("disabled"); }
+        if (pdfIframe) { pdfIframe.src = ''; }
       }
 
-      renderQuestions();
-      previewModal.show();
+      renderModalQuestions();
+      switchModalTab('questions');
+
+      const modalEl = document.getElementById("previewPaperModal");
+      previewModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+      previewModalInstance.show();
     } catch (e) {
-      alert("Failed to load paper details.");
+      console.error("Error loading paper details:", e);
+      alert("Failed to load question paper details.");
     }
   }
 
-  function toggleAnswersView() {
-    renderQuestions();
-  }
-
-  function renderQuestions() {
+  function renderModalQuestions() {
     if (!currentPreviewPaper) return;
     const pInfo = currentPreviewPaper.paper || {};
-    const showAnswers = document.getElementById("toggle-answers").checked;
-    const container = document.getElementById("preview-content-container");
+    const showAnswers = document.getElementById("toggle-modal-answers").checked;
+    const container = document.getElementById("modal-questions-container");
 
     const sections = pInfo.sections || [];
+    let totalQuestionsCount = 0;
+    sections.forEach(s => totalQuestionsCount += (s.questions || []).length);
+    document.getElementById("modal-questions-count").innerText = `${totalQuestionsCount} Questions`;
+
     if (sections.length === 0) {
-      container.innerHTML = `<div class="alert alert-light text-center py-4">No questions found.</div>`;
+      container.innerHTML = `<div class="alert alert-light text-center py-4 border">No questions found in this paper.</div>`;
       return;
     }
 
     container.innerHTML = sections.map((sec, sIdx) => `
-      <div class="card border-0 shadow-sm rounded-3 mb-4">
-        <div class="card-header bg-white py-2 border-bottom">
+      <div class="card border border-light-subtle shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-white py-2 border-bottom d-flex justify-content-between align-items-center">
           <h6 class="fw-bold text-dark mb-0">${escapeHtml(sec.section_title || `Section ${String.fromCharCode(65+sIdx)}`)}</h6>
+          <span class="badge bg-light text-muted border small">${(sec.questions || []).length} Qs</span>
         </div>
         <div class="card-body p-3">
           ${(sec.questions || []).map(q => {
             const opts = q.options || {};
-            const correctKey = q.correct_answer || "";
+            const correctKey = (q.correct_answer || "").trim().toUpperCase();
 
             return `
               <div class="card border border-light-subtle shadow-none mb-3 p-3 bg-white" style="border-left: 4px solid #002B49 !important;">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                   <span class="fw-bold text-dark">Q${q.question_number}. ${escapeHtml(q.question)}</span>
-                  <span class="badge bg-light text-dark">[${q.marks || 1} M]</span>
+                  <div class="d-flex gap-1 ms-2 flex-shrink-0">
+                    ${q.difficulty ? `<span class="badge bg-light text-secondary border">${escapeHtml(q.difficulty)}</span>` : ''}
+                    <span class="badge bg-light text-dark border">[${q.marks || 1} M]</span>
+                  </div>
                 </div>
 
                 <div class="row g-2 mb-2">
@@ -802,19 +892,19 @@
                     const isCorrect = showAnswers && optKey === correctKey;
                     return `
                       <div class="col-md-6">
-                        <div class="p-2 rounded border small ${isCorrect ? 'bg-success-subtle border-success text-success fw-bold' : 'bg-light'}">
+                        <div class="p-2 rounded border small option-box ${isCorrect ? 'correct bg-success-subtle border-success text-success fw-bold' : 'bg-light'}">
                           <b>(${optKey})</b> ${escapeHtml(optVal)}
-                          ${isCorrect ? '<span class="badge bg-success float-end">✔ Correct</span>' : ''}
+                          ${isCorrect ? '<span class="badge bg-success float-end"><i class="fa fa-check me-1"></i>Correct</span>' : ''}
                         </div>
                       </div>
                     `;
                   }).join('')}
                 </div>
 
-                ${showAnswers && q.explanation ? `
-                  <div class="p-2 bg-light rounded text-success small border border-success-subtle mt-1">
-                    <b>Explanation:</b> ${escapeHtml(q.explanation)}
-                    ${q.chapter_reference ? `<div class="text-muted small mt-1">Source: ${escapeHtml(q.chapter_reference)}</div>` : ''}
+                ${showAnswers && (q.explanation || q.chapter_reference) ? `
+                  <div class="p-2 rounded small explanation-box border mt-2">
+                    ${q.explanation ? `<div><b><i class="fa fa-lightbulb-o me-1"></i>Explanation:</b> ${escapeHtml(q.explanation)}</div>` : ''}
+                    ${q.chapter_reference ? `<div class="text-muted small mt-1"><i class="fa fa-bookmark text-primary me-1"></i>Source: ${escapeHtml(q.chapter_reference)}</div>` : ''}
                   </div>
                 ` : ''}
               </div>
@@ -824,6 +914,20 @@
       </div>
     `).join('');
   }
+
+  function resetGenerationForm() {
+    document.getElementById("gen-progress-container").classList.add("d-none");
+    document.getElementById("gen-completion-box").classList.add("d-none");
+    document.getElementById("gen-fail-box").classList.add("d-none");
+    document.getElementById("gen-pct").innerText = "0%";
+    document.getElementById("gen-bar").style.width = "0%";
+    const btn = document.getElementById("generate-btn");
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-magic me-2"></i> Synthesize Question Papers';
+  }
+
+  // Alias for backward compatibility
+  const openPreview = openPreviewModal;
 
   function escapeHtml(str) {
     if (!str) return "";

@@ -118,13 +118,125 @@
         box-shadow: 0 0 14px rgba(115, 102, 255, 0.15);
     }
 
-    .search-icon-inside {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #a0aec0;
-        pointer-events: none;
+    .page-main-title {
+        color: #2c3e50;
+    }
+
+    .card-section-title {
+        color: #1e293b;
+    }
+
+    .content-title {
+        color: #1e293b;
+        font-size: 0.92rem;
+    }
+
+    /* 🌙 DARK MODE OVERRIDES (body.dark-only, html.dark-only) */
+    body.dark-only,
+    html.dark-only {
+        --glass-bg: #1e222d;
+        --glass-border: #2e3446;
+        --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    body.dark-only .page-main-title,
+    html.dark-only .page-main-title,
+    body.dark-only .card-section-title,
+    html.dark-only .card-section-title {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .breadcrumb-item,
+    html.dark-only .breadcrumb-item {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .breadcrumb-item.active,
+    html.dark-only .breadcrumb-item.active {
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-only .glass-card,
+    html.dark-only .glass-card {
+        background: #1e222d !important;
+        border: 1px solid #2e3446 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    body.dark-only .search-input-group input,
+    html.dark-only .search-input-group input {
+        background: #151824 !important;
+        border-color: #2e3446 !important;
+        color: #f1f5f9 !important;
+    }
+
+    body.dark-only .search-input-group input::placeholder,
+    html.dark-only .search-input-group input::placeholder {
+        color: #64748b !important;
+    }
+
+    body.dark-only .search-input-group input:focus,
+    html.dark-only .search-input-group input:focus {
+        background: #191d2c !important;
+        border-color: #7366ff !important;
+        box-shadow: 0 0 12px rgba(115, 102, 255, 0.3) !important;
+    }
+
+    body.dark-only .search-icon-inside,
+    html.dark-only .search-icon-inside {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .custom-table thead th,
+    html.dark-only .custom-table thead th {
+        color: #94a3b8 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    body.dark-only .custom-table tbody tr,
+    html.dark-only .custom-table tbody tr {
+        background: #171b26 !important;
+        border: 1px solid #282f42 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    body.dark-only .custom-table tbody tr:hover,
+    html.dark-only .custom-table tbody tr:hover {
+        background: #1f2535 !important;
+        border-color: rgba(115, 102, 255, 0.45) !important;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
+    }
+
+    body.dark-only .custom-table tbody tr.empty-row,
+    html.dark-only .custom-table tbody tr.empty-row {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    body.dark-only .custom-table tbody td,
+    html.dark-only .custom-table tbody td {
+        color: #f1f5f9 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    body.dark-only .content-title,
+    html.dark-only .content-title {
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .custom-table .text-muted,
+    html.dark-only .custom-table .text-muted {
+        color: #94a3b8 !important;
+    }
+
+    body.dark-only .tag-badge,
+    html.dark-only .tag-badge {
+        background: rgba(115, 102, 255, 0.2) !important;
+        color: #c7d2fe !important;
+        border: 1px solid rgba(115, 102, 255, 0.3) !important;
     }
 </style>
 {% endblock %}
@@ -134,7 +246,7 @@
     <div class="page-title mb-3">
         <div class="row align-items-center">
             <div class="col-6">
-                <h4 class="f-w-700 mb-0" style="color: #2c3e50;">
+                <h4 class="f-w-700 mb-0 page-main-title">
                     <i data-feather="layout" style="width:22px;height:22px;color:#7366ff;margin-right:8px;"></i>
                     Social Content
                 </h4>
@@ -158,7 +270,7 @@
             <div class="card glass-card">
                 <div class="card-header pb-0 bg-transparent border-0 d-flex justify-content-between align-items-center mt-3 mx-2">
                     <div>
-                        <h5 class="mb-1 f-w-700" style="color: #1e293b;">Published Feed Posts</h5>
+                        <h5 class="mb-1 f-w-700 card-section-title">Published Feed Posts</h5>
                         <p class="text-muted mb-0" style="font-size: 0.85rem;">Review educational content submitted by all registered contributors.</p>
                     </div>
                     <div class="search-input-group d-none d-sm-block">
@@ -204,7 +316,7 @@
 
     async function loadContent() {
         const tbody = document.querySelector('#contentTable tbody');
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted" style="font-size:0.85rem;">Loading content feed...</p></td></tr>';
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted" style="font-size:0.85rem;">Loading content feed...</p></td></tr>';
 
         try {
             const authToken = window.token || localStorage.getItem("admin_token");
@@ -220,7 +332,7 @@
 
         } catch (err) {
             console.error(err);
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4"><i data-feather="alert-circle" class="me-1"></i> Failed to load published content.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="6" class="text-center text-danger py-4"><i data-feather="alert-circle" class="me-1"></i> Failed to load published content.</td></tr>';
             feather.replace();
         }
     }
@@ -230,7 +342,7 @@
         tbody.innerHTML = '';
         
         if (!contents || contents.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-5"><i data-feather="file-off" style="width:32px;height:32px;display:block;margin:0 auto 8px;opacity:0.5;"></i>No social content has been published yet.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="6" class="text-center text-muted py-5"><i data-feather="file-off" style="width:32px;height:32px;display:block;margin:0 auto 8px;opacity:0.5;"></i>No social content has been published yet.</td></tr>';
             feather.replace();
             return;
         }
@@ -245,7 +357,7 @@
 
             tr.innerHTML = `
                 <td>
-                    <div class="f-w-700" style="color:#1e293b; font-size:0.92rem;">${escapeHtml(shortTitle)}</div>
+                    <div class="f-w-700 content-title">${escapeHtml(shortTitle)}</div>
                 </td>
                 <td><span class="text-muted fw-semibold"><i data-feather="user" style="width:13px;height:13px;margin-right:4px;vertical-align:middle;color:#7366ff;"></i>${escapeHtml(c.contributor_name || 'Unknown')}</span></td>
                 <td><span class="format-badge ${formatClass}">${escapeHtml(mediaType)}</span></td>

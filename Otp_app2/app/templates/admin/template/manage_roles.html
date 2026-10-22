@@ -19,16 +19,16 @@
     background:
       radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 28%),
       linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #064e3b 100%);
-    border-radius: 28px;
-    padding: 36px 40px;
+    border-radius: 20px;
+    padding: 22px 28px;
     color: #fff;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 24px;
-    box-shadow: 0 20px 40px -12px rgba(6, 78, 59, 0.4);
+    gap: 16px;
+    box-shadow: 0 10px 25px -8px rgba(6, 78, 59, 0.35);
     position: relative;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.15);
@@ -101,7 +101,7 @@
     border-radius: 16px;
     padding: 6px;
     gap: 6px;
-    margin-bottom: 32px !important;
+    margin-bottom: 20px !important;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   }
   .nav-tabs.border-tab .nav-item {
@@ -246,20 +246,40 @@
   }
   .roles-search input {
     width: 100%;
-    border: 1px solid rgba(148,163,184,0.25);
+    border: 1px solid rgba(148,163,184,0.3);
     background: #fff;
     border-radius: 999px;
-    padding: 10px 14px 10px 38px;
+    padding: 10px 36px 10px 38px;
     outline: none;
     font-size: 0.9rem;
     color: #0f172a;
+    transition: all 0.2s ease;
   }
-  .roles-search i {
+  .roles-search i.search-icon {
     position: absolute;
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
     color: #94a3b8;
+    pointer-events: none;
+  }
+  .btn-clear-search {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 15px;
+    line-height: 1;
+    border-radius: 50%;
+    transition: color 0.15s ease;
+  }
+  .btn-clear-search:hover {
+    color: #ef4444;
   }
   .role-item {
     display: flex;
@@ -818,13 +838,13 @@
   .modules-table th {
     background: #f8fafb; padding: 12px 20px; text-align: left;
     font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;
-    color: #666; font-weight: 700; border-bottom: 1px solid #eee;
+    color: #475569 !important; font-weight: 700; border-bottom: 1px solid #e2e8f0;
   }
-  .modules-table td { padding: 14px 20px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+  .modules-table td { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #0f172a !important; }
   .modules-table tr:last-child td { border-bottom: none; }
   .modules-table tr:hover td { background: #fafcfc; }
-  .module-name { font-weight: 600; color: #333; font-size: 0.9rem; }
-  .module-icon { color: #006666; margin-right: 8px; }
+  .module-name { font-weight: 600; color: #0f172a !important; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 8px; }
+  .module-icon { color: #0f766e !important; margin-right: 4px; font-size: 1.05rem; }
 
   /* Checkbox Toggle */
   .perm-check { text-align: center; vertical-align: middle; }
@@ -1245,7 +1265,307 @@
   }
   .toast-msg.show { opacity: 1; transform: translateY(0); }
   .toast-msg.success { background: linear-gradient(135deg, #0d9488, #0f766e); }
-  .toast-msg.error   { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+  /* Section title */
+  .roles-section-title {
+    color: #0f172a !important;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  /* ── Dark Mode Overrides (Theme Alignment & Contrast) ── */
+  body.dark-only .roles-page,
+  html.dark-only .roles-page {
+    background:
+      radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 30%),
+      radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 30%),
+      #16171d !important;
+    color: #f1f5f9 !important;
+  }
+
+  body.dark-only .roles-section-title,
+  html.dark-only .roles-section-title {
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .nav-tabs.border-tab,
+  html.dark-only .nav-tabs.border-tab {
+    background: rgba(30, 34, 45, 0.9) !important;
+    border-color: #2e3243 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+  body.dark-only .nav-tabs.border-tab .nav-link,
+  html.dark-only .nav-tabs.border-tab .nav-link {
+    color: #94a3b8 !important;
+  }
+  body.dark-only .nav-tabs.border-tab .nav-link:hover,
+  html.dark-only .nav-tabs.border-tab .nav-link:hover {
+    color: #2dd4bf !important;
+    background: rgba(45, 212, 191, 0.1) !important;
+  }
+  body.dark-only .nav-tabs.border-tab .nav-link.active,
+  html.dark-only .nav-tabs.border-tab .nav-link.active {
+    background: #1e222d !important;
+    color: #2dd4bf !important;
+    border: 1px solid rgba(45, 212, 191, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  body.dark-only .roles-panel,
+  body.dark-only .permissions-panel,
+  body.dark-only .monitor-panel,
+  body.dark-only .role-kpi-card,
+  body.dark-only .staff-stat-card,
+  body.dark-only .staff-card,
+  body.dark-only .profile-header,
+  body.dark-only .profile-kpi-card,
+  body.dark-only .profile-timeline,
+  body.dark-only .activity-kpi-card,
+  body.dark-only .activity-panel,
+  body.dark-only .filter-bar,
+  body.dark-only .last-active-card,
+  html.dark-only .roles-panel,
+  html.dark-only .permissions-panel,
+  html.dark-only .monitor-panel,
+  html.dark-only .role-kpi-card,
+  html.dark-only .staff-stat-card,
+  html.dark-only .staff-card,
+  html.dark-only .profile-header,
+  html.dark-only .profile-kpi-card,
+  html.dark-only .profile-timeline,
+  html.dark-only .activity-kpi-card,
+  html.dark-only .activity-panel,
+  html.dark-only .filter-bar,
+  html.dark-only .last-active-card {
+    background: #1e222d !important;
+    border-color: #2e3243 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+    color: #f1f5f9 !important;
+  }
+
+  body.dark-only .roles-panel-header,
+  body.dark-only .permissions-panel-header,
+  body.dark-only .monitor-panel-header,
+  body.dark-only .activity-panel-header,
+  body.dark-only .activity-feed-toolbar,
+  html.dark-only .roles-panel-header,
+  html.dark-only .permissions-panel-header,
+  html.dark-only .monitor-panel-header,
+  html.dark-only .activity-panel-header,
+  html.dark-only .activity-feed-toolbar {
+    border-bottom: 1px solid #2e3243 !important;
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .permissions-panel-header h5,
+  html.dark-only .permissions-panel-header h5 {
+    color: #f8fafc !important;
+  }
+  body.dark-only #selected-role-meta,
+  html.dark-only #selected-role-meta {
+    color: #94a3b8 !important;
+  }
+
+  body.dark-only .role-kpi-label,
+  html.dark-only .role-kpi-label { color: #94a3b8 !important; }
+  body.dark-only .role-kpi-value,
+  html.dark-only .role-kpi-value { color: #f8fafc !important; }
+  body.dark-only .role-kpi-sub,
+  html.dark-only .role-kpi-sub { color: #64748b !important; }
+
+  body.dark-only .roles-search input,
+  html.dark-only .roles-search input {
+    background: #16181f !important;
+    border: 1px solid #2e3243 !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .roles-search input:focus,
+  html.dark-only .roles-search input:focus {
+    border-color: #2dd4bf !important;
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2) !important;
+  }
+
+  body.dark-only .role-item,
+  html.dark-only .role-item {
+    border-bottom: 1px solid #282d3c !important;
+  }
+  body.dark-only .role-item:hover,
+  html.dark-only .role-item:hover {
+    background: #252a38 !important;
+  }
+  body.dark-only .role-item.active,
+  html.dark-only .role-item.active {
+    background: linear-gradient(90deg, rgba(45, 212, 191, 0.15), rgba(30, 34, 45, 0)) !important;
+  }
+  body.dark-only .role-item-name,
+  html.dark-only .role-item-name {
+    color: #f8fafc !important;
+  }
+  body.dark-only .role-item-desc,
+  html.dark-only .role-item-desc {
+    color: #94a3b8 !important;
+  }
+  body.dark-only .btn-icon,
+  html.dark-only .btn-icon {
+    color: #94a3b8 !important;
+  }
+  body.dark-only .btn-icon:hover.delete {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+  }
+  body.dark-only .btn-icon:hover.edit {
+    background: rgba(45, 212, 191, 0.15) !important;
+    color: #2dd4bf !important;
+  }
+
+  /* Modules Table in Dark Mode */
+  body.dark-only .modules-table th,
+  html.dark-only .modules-table th {
+    background: #16181f !important;
+    color: #94a3b8 !important;
+    border-bottom: 1px solid #2e3243 !important;
+  }
+  body.dark-only .modules-table td,
+  html.dark-only .modules-table td {
+    border-bottom: 1px solid #282d3c !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .modules-table tr:hover td,
+  html.dark-only .modules-table tr:hover td {
+    background: #252a38 !important;
+  }
+  body.dark-only .module-name,
+  html.dark-only .module-name {
+    color: #f8fafc !important;
+  }
+  body.dark-only .module-icon,
+  html.dark-only .module-icon {
+    color: #2dd4bf !important;
+  }
+  body.dark-only .permissions-footer,
+  html.dark-only .permissions-footer {
+    border-top: 1px solid #2e3243 !important;
+    background: #1e222d !important;
+  }
+
+  /* Staff & Activity Dark Mode Overrides */
+  body.dark-only .staff-name,
+  html.dark-only .staff-name { color: #f8fafc !important; }
+  body.dark-only .staff-username,
+  html.dark-only .staff-username { color: #94a3b8 !important; }
+  body.dark-only .staff-stat-value,
+  html.dark-only .staff-stat-value { color: #f8fafc !important; }
+  body.dark-only .staff-detail-row,
+  html.dark-only .staff-detail-row {
+    background: #16181f !important;
+    color: #cbd5e1 !important;
+  }
+  body.dark-only .staff-action-btn,
+  html.dark-only .staff-action-btn {
+    background: #1e222d !important;
+    border-color: #2e3243 !important;
+    color: #cbd5e1 !important;
+  }
+  body.dark-only .monitor-summary-card,
+  html.dark-only .monitor-summary-card {
+    background: #16181f !important;
+    border-color: #2e3243 !important;
+  }
+  body.dark-only .monitor-summary-card .value,
+  html.dark-only .monitor-summary-card .value {
+    color: #f8fafc !important;
+  }
+  body.dark-only .monitor-item,
+  html.dark-only .monitor-item {
+    background: #1e222d !important;
+    border-color: #282d3c !important;
+  }
+  body.dark-only .monitor-item-title,
+  html.dark-only .monitor-item-title {
+    color: #f8fafc !important;
+  }
+  body.dark-only .activity-visual-card,
+  html.dark-only .activity-visual-card {
+    background: #16181f !important;
+    border-color: #2e3243 !important;
+  }
+  body.dark-only .activity-kpi-value,
+  html.dark-only .activity-kpi-value {
+    color: #f8fafc !important;
+  }
+  body.dark-only .empty-state,
+  html.dark-only .empty-state {
+    color: #94a3b8 !important;
+  }
+  body.dark-only .empty-state i,
+  html.dark-only .empty-state i {
+    color: #64748b !important;
+  }
+  body.dark-only .empty-state p,
+  html.dark-only .empty-state p {
+    color: #94a3b8 !important;
+  }
+
+  /* Modals in Dark Mode */
+  body.dark-only .modal-box,
+  html.dark-only .modal-box {
+    background: #1e222d !important;
+    border: 1px solid #2e3243 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+  }
+  body.dark-only .modal-box h4,
+  html.dark-only .modal-box h4 {
+    color: #f8fafc !important;
+  }
+  body.dark-only .form-field label,
+  html.dark-only .form-field label {
+    color: #94a3b8 !important;
+  }
+  body.dark-only .form-field input,
+  body.dark-only .form-field textarea,
+  html.dark-only .form-field input,
+  html.dark-only .form-field textarea {
+    background: #16181f !important;
+    border: 1px solid #2e3243 !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .custom-select-trigger,
+  html.dark-only .custom-select-trigger {
+    background-color: #16181f !important;
+    border: 1px solid #2e3243 !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .custom-select-options,
+  html.dark-only .custom-select-options {
+    background: #1e222d !important;
+    border: 1px solid #2e3243 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  }
+  body.dark-only .custom-select-option,
+  html.dark-only .custom-select-option {
+    color: #cbd5e1 !important;
+  }
+  body.dark-only .custom-select-option:hover,
+  html.dark-only .custom-select-option:hover {
+    background: rgba(45, 212, 191, 0.15) !important;
+    color: #2dd4bf !important;
+  }
+  body.dark-only .custom-select-option.selected,
+  html.dark-only .custom-select-option.selected {
+    background: rgba(45, 212, 191, 0.2) !important;
+    color: #2dd4bf !important;
+  }
+  body.dark-only .btn-cancel,
+  html.dark-only .btn-cancel {
+    background: #252a38 !important;
+    border-color: #2e3243 !important;
+    color: #cbd5e1 !important;
+  }
+  body.dark-only .btn-cancel:hover,
+  html.dark-only .btn-cancel:hover {
+    background: #33394b !important;
+    color: #f8fafc !important;
+  }
 </style>
 {% endblock %}
 
@@ -1286,7 +1606,7 @@
       <!-- Roles Action Bar -->
       <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-          <h4 class="mb-1 text-dark fw-bold"><i class="fa fa-shield text-teal me-2" style="color: #0f766e;"></i>Roles Control Center</h4>
+          <h4 class="mb-1 roles-section-title fw-bold"><i class="fa fa-shield text-teal me-2" style="color: #0f766e;"></i>Roles Control Center</h4>
           <p class="text-muted mb-0 small">Design permissions, create structured access roles, and monitor role activity.</p>
         </div>
         <button class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold" onclick="openCreateModal()" style="background-color: #0f766e; border: none;">
@@ -1329,9 +1649,23 @@
               <i class="fa fa-list-ul"></i> All Roles
               <small>Search, select, edit, or delete access roles.</small>
             </div>
-            <div class="roles-search">
-              <i class="fa fa-search"></i>
-              <input type="text" id="role-search" placeholder="Search roles">
+            <div class="roles-search position-relative">
+              <i class="fa fa-search search-icon"></i>
+              <input type="text"
+                     id="role-search"
+                     name="role_filter_search_no_autofill"
+                     placeholder="Search roles..."
+                     autocomplete="new-password"
+                     autocorrect="off"
+                     autocapitalize="off"
+                     spellcheck="false"
+                     data-lpignore="true"
+                     data-form-type="other"
+                     readonly
+                     onfocus="this.removeAttribute('readonly');">
+              <button type="button" id="role-search-clear" class="btn-clear-search" onclick="clearRoleSearch()" title="Clear search" style="display: none;">
+                <i class="fa fa-times-circle"></i>
+              </button>
             </div>
           </div>
           <div id="roles-list">
@@ -1590,44 +1924,46 @@
 <div class="modal-backdrop-custom" id="adminModal">
   <div class="modal-box">
     <h4>Create Admin Staff Account</h4>
-    <div class="form-grid">
-      <div class="form-field full-width">
-        <label>Full Name *</label>
-        <input type="text" id="admin-fullname" placeholder="e.g. Jane Doe">
-      </div>
-      <div class="form-field">
-        <label>Email *</label>
-        <input type="email" id="admin-email" placeholder="e.g. jane@example.com">
-      </div>
-      <div class="form-field">
-        <label>Phone Number *</label>
-        <input type="text" id="admin-phone" placeholder="e.g. +1234567890">
-      </div>
-      <div class="form-field full-width">
-        <label>Address *</label>
-        <input type="text" id="admin-address" placeholder="e.g. 123 Main St, City">
-      </div>
-      <div class="form-field">
-        <label>Username *</label>
-        <input type="text" id="admin-username" placeholder="e.g. data_entry_jane">
-      </div>
-      <div class="form-field">
-        <label>Password *</label>
-        <input type="password" id="admin-password" placeholder="Password (min 6 characters)">
-      </div>
-      <div class="form-field full-width">
-        <label>Assigned Role *</label>
-        <select id="admin-role-select"></select>
-        <div class="custom-select-wrap" id="admin-role-wrap">
-          <div class="custom-select-trigger" id="admin-role-trigger" tabindex="0">Superadmin (All Permissions)</div>
-          <div class="custom-select-options" id="admin-role-options"></div>
+    <form id="createAdminForm" autocomplete="off" onsubmit="submitAdmin(); return false;">
+      <div class="form-grid">
+        <div class="form-field full-width">
+          <label>Full Name *</label>
+          <input type="text" id="admin-fullname" name="admin_create_fullname" placeholder="e.g. Jane Doe" autocomplete="off">
+        </div>
+        <div class="form-field">
+          <label>Email *</label>
+          <input type="email" id="admin-email" name="admin_create_email" placeholder="e.g. jane@example.com" autocomplete="off">
+        </div>
+        <div class="form-field">
+          <label>Phone Number *</label>
+          <input type="text" id="admin-phone" name="admin_create_phone" placeholder="e.g. +1234567890" autocomplete="off">
+        </div>
+        <div class="form-field full-width">
+          <label>Address *</label>
+          <input type="text" id="admin-address" name="admin_create_address" placeholder="e.g. 123 Main St, City" autocomplete="off">
+        </div>
+        <div class="form-field">
+          <label>Username *</label>
+          <input type="text" id="admin-username" name="admin_create_username" placeholder="e.g. data_entry_jane" autocomplete="off">
+        </div>
+        <div class="form-field">
+          <label>Password *</label>
+          <input type="password" id="admin-password" name="admin_create_password" placeholder="Password (min 6 characters)" autocomplete="new-password">
+        </div>
+        <div class="form-field full-width">
+          <label>Assigned Role *</label>
+          <select id="admin-role-select"></select>
+          <div class="custom-select-wrap" id="admin-role-wrap">
+            <div class="custom-select-trigger" id="admin-role-trigger" tabindex="0">Superadmin (All Permissions)</div>
+            <div class="custom-select-options" id="admin-role-options"></div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeAdminModal()">Cancel</button>
-      <button class="btn-submit" onclick="submitAdmin()">Create Account</button>
-    </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeAdminModal()">Cancel</button>
+        <button type="submit" class="btn-submit">Create Account</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1650,51 +1986,53 @@
         <div class="detail-chip"><i class="fa fa-shield"></i><span id="side-role">role</span></div>
       </aside>
       <main class="admin-detail-main">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <div>
-            <h4 class="mb-1" id="admin-details-main-title" style="font-weight:800; letter-spacing:-0.03em;">Staff Profile</h4>
-            <p class="text-muted mb-0">Edit mode allows changes to be saved immediately.</p>
-          </div>
-          <div class="d-flex gap-2">
-            <button class="btn-cancel" onclick="closeAdminDetailsModal()">Close</button>
-            <button class="btn-submit" id="admin-details-save-btn" onclick="submitAdminDetails()">Save Changes</button>
-          </div>
-        </div>
-        <div class="form-grid">
-          <div class="form-field full-width">
-            <label>Full Name *</label>
-            <input type="text" id="detail-admin-fullname" placeholder="e.g. Jane Doe">
-          </div>
-          <div class="form-field">
-            <label>Email *</label>
-            <input type="email" id="detail-admin-email" placeholder="e.g. jane@example.com">
-          </div>
-          <div class="form-field">
-            <label>Phone Number *</label>
-            <input type="text" id="detail-admin-phone" placeholder="e.g. +1234567890">
-          </div>
-          <div class="form-field full-width">
-            <label>Address *</label>
-            <input type="text" id="detail-admin-address" placeholder="e.g. 123 Main St, City">
-          </div>
-          <div class="form-field">
-            <label>Username</label>
-            <input type="text" id="detail-admin-username" placeholder="e.g. data_entry_jane">
-          </div>
-          <div class="form-field">
-            <label>Assigned Role *</label>
-            <select id="detail-admin-role-select"></select>
-            <div class="custom-select-wrap" id="detail-admin-role-wrap">
-              <div class="custom-select-trigger" id="detail-admin-role-trigger" tabindex="0">Superadmin (All Permissions)</div>
-              <div class="custom-select-options" id="detail-admin-role-options"></div>
+        <form id="editAdminForm" autocomplete="off" onsubmit="submitAdminDetails(); return false;">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+              <h4 class="mb-1" id="admin-details-main-title" style="font-weight:800; letter-spacing:-0.03em;">Staff Profile</h4>
+              <p class="text-muted mb-0">Edit mode allows changes to be saved immediately.</p>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn-cancel" onclick="closeAdminDetailsModal()">Close</button>
+              <button type="submit" class="btn-submit" id="admin-details-save-btn">Save Changes</button>
             </div>
           </div>
-          <div class="form-field full-width" id="detail-password-wrap">
-            <label>New Password</label>
-            <input type="password" id="detail-admin-password" placeholder="Leave blank to keep current password">
-            <div class="detail-footer-note">Only enter a new password if you want to reset it.</div>
+          <div class="form-grid">
+            <div class="form-field full-width">
+              <label>Full Name *</label>
+              <input type="text" id="detail-admin-fullname" name="admin_edit_fullname" placeholder="e.g. Jane Doe" autocomplete="off">
+            </div>
+            <div class="form-field">
+              <label>Email *</label>
+              <input type="email" id="detail-admin-email" name="admin_edit_email" placeholder="e.g. jane@example.com" autocomplete="off">
+            </div>
+            <div class="form-field">
+              <label>Phone Number *</label>
+              <input type="text" id="detail-admin-phone" name="admin_edit_phone" placeholder="e.g. +1234567890" autocomplete="off">
+            </div>
+            <div class="form-field full-width">
+              <label>Address *</label>
+              <input type="text" id="detail-admin-address" name="admin_edit_address" placeholder="e.g. 123 Main St, City" autocomplete="off">
+            </div>
+            <div class="form-field">
+              <label>Username</label>
+              <input type="text" id="detail-admin-username" name="admin_edit_username" placeholder="e.g. data_entry_jane" autocomplete="off">
+            </div>
+            <div class="form-field">
+              <label>Assigned Role *</label>
+              <select id="detail-admin-role-select"></select>
+              <div class="custom-select-wrap" id="detail-admin-role-wrap">
+                <div class="custom-select-trigger" id="detail-admin-role-trigger" tabindex="0">Superadmin (All Permissions)</div>
+                <div class="custom-select-options" id="detail-admin-role-options"></div>
+              </div>
+            </div>
+            <div class="form-field full-width" id="detail-password-wrap">
+              <label>New Password</label>
+              <input type="password" id="detail-admin-password" name="admin_edit_password" placeholder="Leave blank to keep current password" autocomplete="new-password">
+              <div class="detail-footer-note">Only enter a new password if you want to reset it.</div>
+            </div>
           </div>
-        </div>
+        </form>
       </main>
     </div>
   </div>
@@ -1937,6 +2275,17 @@ function updateRoleKpis() {
   document.getElementById("roles-failed-count").textContent = roleMonitorLogs.filter(log => normalizeStatus(log.status) === "failed").length;
 }
 
+function clearRoleSearch() {
+  const input = document.getElementById("role-search");
+  if (input) {
+    input.value = "";
+    roleSearchQuery = "";
+  }
+  const clearBtn = document.getElementById("role-search-clear");
+  if (clearBtn) clearBtn.style.display = "none";
+  renderRolesList();
+}
+
 function renderRolesList() {
   const el = document.getElementById("roles-list");
   const filteredRoles = roles.filter(role => {
@@ -1949,9 +2298,12 @@ function renderRolesList() {
   if (!filteredRoles.length) {
     if (roles.length) {
       el.innerHTML = `
-        <div class="empty-state">
+        <div class="empty-state" style="padding:28px 16px;">
           <i class="fa fa-search"></i>
-          <p>No roles match your search.</p>
+          <p class="mb-2">No roles match "<strong>${escapeHtml(roleSearchQuery)}</strong>"</p>
+          <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 mt-1" onclick="clearRoleSearch()">
+            <i class="fa fa-refresh me-1"></i> Clear Search Filter
+          </button>
         </div>`;
     } else {
       el.innerHTML = `<div class="empty-state"><i class="fa fa-folder-open-o"></i><p>No roles yet. Create your first role!</p></div>`;
@@ -1967,17 +2319,9 @@ function renderRolesList() {
     return;
   }
 
-  if (!roles.length) {
-    el.innerHTML = `<div class="empty-state"><i class="fa fa-folder-open-o"></i><p>No roles yet. Create your first role!</p></div>`;
-    document.getElementById("permissions-body").innerHTML = `
-      <div class="empty-state">
-        <i class="fa fa-mouse-pointer"></i>
-        <p>Select a role from the left panel to view and edit its module permissions.</p>
-      </div>`;
-    document.getElementById("selected-role-badge").textContent = "";
-    document.getElementById("selected-role-badge").style.display = "none";
-    document.getElementById("selected-role-meta").textContent = "Select a role to inspect its permission matrix.";
-    return;
+  // Ensure an active role is always selected if one isn't currently set
+  if (!selectedRole || !filteredRoles.some(r => r.role_name === selectedRole.role_name)) {
+    selectedRole = filteredRoles[0];
   }
 
   el.innerHTML = filteredRoles.map(r => {
@@ -2755,11 +3099,45 @@ document.addEventListener('click', () => {
 
 // --- INIT ---
 const roleSearchInput = document.getElementById("role-search");
+const roleSearchClearBtn = document.getElementById("role-search-clear");
+
 if (roleSearchInput) {
+  // Always initialize with clean empty input
+  roleSearchInput.value = "";
+  roleSearchQuery = "";
+
+  roleSearchInput.addEventListener("focus", function() {
+    this.removeAttribute("readonly");
+  });
+
   roleSearchInput.addEventListener("input", (event) => {
-    roleSearchQuery = event.target.value.trim().toLowerCase();
+    const val = event.target.value;
+    roleSearchQuery = val.trim().toLowerCase();
+    if (roleSearchClearBtn) {
+      roleSearchClearBtn.style.display = val ? "block" : "none";
+    }
     renderRolesList();
   });
+
+  // Guard against browser autofilling "admin" on document click or load
+  function sanitizeSearchAutofill() {
+    if (roleSearchInput.value.toLowerCase() === "admin" && !roles.some(r => (r.role_name || "").toLowerCase().includes("admin"))) {
+      roleSearchInput.value = "";
+      roleSearchQuery = "";
+      if (roleSearchClearBtn) roleSearchClearBtn.style.display = "none";
+      renderRolesList();
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", sanitizeSearchAutofill);
+  document.addEventListener("click", () => {
+    if (document.activeElement !== roleSearchInput) {
+      sanitizeSearchAutofill();
+    }
+  });
+  setTimeout(sanitizeSearchAutofill, 200);
+  setTimeout(sanitizeSearchAutofill, 600);
+  setTimeout(sanitizeSearchAutofill, 1200);
 }
 
 const rolesTab = document.getElementById("roles-tab");

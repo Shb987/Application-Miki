@@ -85,6 +85,11 @@ async def generated_question_page(request: Request):
 async def competitive_exams_upload_textbook_page(request: Request):
     return templates.TemplateResponse("competitive_exams/comp_upload_textbook.html", {"request": request})
 
+@router.get("/competitive-exams/manage-exams", response_class=HTMLResponse)
+@router.get("/competitive-exams/manage-textbooks", response_class=HTMLResponse)
+async def competitive_exams_manage_exams_page(request: Request):
+    return templates.TemplateResponse("competitive_exams/comp_manage_exams.html", {"request": request})
+
 @router.get("/competitive-exams/generate-questions", response_class=HTMLResponse)
 async def competitive_exams_generate_questions_page(request: Request):
     return templates.TemplateResponse("competitive_exams/comp_generate_questions.html", {"request": request})

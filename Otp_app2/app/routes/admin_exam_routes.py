@@ -864,8 +864,18 @@ def build_board_filter(board: Optional[str]) -> dict:
 @router.get("/standards")
 async def get_standards(board: Optional[str] = Query(None)):
     query = build_board_filter(board)
-    standards_tb = await db.textbook.distinct("standard", query) if query else await db.textbook.distinct("standard")
-    standards_tc = await db.textbook_chapters.distinct("standard", query) if query else await db.textbook_chapters.distinct("standard")
+    base_comp_filter = {
+        "$and": [
+            {"module_type": {"$ne": "competitive_exam"}},
+            {"exam_name": {"$in": [None, ""]}}
+        ]
+    }
+    if query:
+        query = {"$and": [query, base_comp_filter]}
+    else:
+        query = base_comp_filter
+    standards_tb = await db.textbook.distinct("standard", query)
+    standards_tc = await db.textbook_chapters.distinct("standard", query)
     standards = list(set([str(s) for s in (standards_tb + standards_tc) if s]))
     try:
         standards_sorted = sorted(standards, key=lambda x: int(x))
@@ -962,20 +972,19 @@ async def get_chapter_status(
 # --------------------------
 
 @router.get("/textbooks", dependencies=[Depends(require_permission("Exams, Textbooks & Syllabus", "read"))])
-async def get_all_textbooks():
-    """Fetch all uploaded textbooks and their generated chapters."""
-    textbooks = await db.textbook.find({}).sort("created_at", -1).to_list(None)
+async def get_all_textbooks(include_competitive: bool = Query(False)):
+    """Fetch all uploaded regular/school textbooks and their generated chapters (excludes competitive exams)."""
+    query = {}
+    if not include_competitive:
+        query = {
+            "$and": [
+                {"module_type": {"$ne": "competitive_exam"}},
+                {"exam_name": {"$in": [None, ""]}}
+            ]
+        }
+    textbooks = await db.textbook.find(query).sort("created_at", -1).to_list(None)
     for t in textbooks:
         t["_id"] = str(t["_id"])
-        # Ensure compatibility fields for competitive exam textbooks
-        if t.get("module_type") == "competitive_exam" or t.get("exam_name"):
-            t["module_type"] = "competitive_exam"
-            t["board"] = t.get("board") or "Competitive Exams"
-            t["standard"] = t.get("standard") or t.get("exam_name") or "Competitive"
-            t["state"] = t.get("state") or t.get("exam_category") or "National"
-            t["textbook_name"] = t.get("textbook_name") or t.get("textbook_title") or t.get("subject")
-            t["publication_year"] = t.get("publication_year") or t.get("exam_year") or ""
-            t["stored_chunk_count"] = t.get("stored_chunk_count", 0)
         if isinstance(t.get("chapters"), list):
             t["chapters"] = sorted(t["chapters"], key=natural_sort_key)
     return {"textbooks": textbooks}

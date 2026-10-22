@@ -290,6 +290,10 @@ async def create_question(
                     buffer.write(await question_image.read())
                 question_image_path = f"/uploads/{filename}"
 
+            correct_answer_val = None
+            if 0 <= correct_index < len(image_options) and image_options[correct_index]:
+                correct_answer_val = image_options[correct_index]
+
             question_data = Question(
                 category=category,
                 text=text,
@@ -297,6 +301,7 @@ async def create_question(
                 image_options=image_options,
                 question_image=question_image_path,
                 correct_index=correct_index,
+                correct_answer=correct_answer_val,
                 age_min=age_min,
                 age_max=age_max,
             )
@@ -326,12 +331,16 @@ async def create_question(
             except:
                 raise HTTPException(status_code=400, detail="Options must be a valid JSON list")
 
+            c_idx = int(correct_answer) - 1
+            correct_answer_val = options_list[c_idx] if (0 <= c_idx < len(options_list)) else None
+
             question_data = Question(
                 category=category,
                 text=text,
                 type="text",
                 options=options_list,
-                correct_index=int(correct_answer) - 1,
+                correct_index=c_idx,
+                correct_answer=correct_answer_val,
                 age_min=age_min,
                 age_max=age_max,
             )
@@ -415,10 +424,12 @@ async def update_question(
         if correct_index is not None:
             update_data["correct_index"] = correct_index
 
-        # Always update correct_answer if provided
+        # Always update correct_answer if provided (avoid overwriting image questions with option numbers)
+        effective_type = update_data.get("type", existing.get("type", "text"))
         if correct_answer is not None and str(correct_answer).strip():
             ca_str = str(correct_answer).strip()
-            update_data["correct_answer"] = ca_str
+            if effective_type != "image":
+                update_data["correct_answer"] = ca_str
             if update_data.get("correct_index") is None and ca_str.isdigit():
                 try:
                     c_idx = int(ca_str) - 1
@@ -432,7 +443,7 @@ async def update_question(
             try:
                 options_list = json.loads(options)
                 update_data["options"] = options_list
-                c_idx = update_data.get("correct_index")
+                c_idx = update_data.get("correct_index") if update_data.get("correct_index") is not None else existing.get("correct_index")
                 if c_idx is not None and 0 <= c_idx < len(options_list):
                     update_data["correct_answer"] = options_list[c_idx]
             except Exception:
@@ -454,6 +465,13 @@ async def update_question(
                         buffer.write(await file.read())
                     new_image_options[idx] = f"/uploads/{filename}"
             update_data["image_options"] = new_image_options
+
+        # Ensure correct_answer is synchronized to option URL for image questions
+        if effective_type == "image":
+            img_c_idx = update_data.get("correct_index") if update_data.get("correct_index") is not None else existing.get("correct_index")
+            imgs = update_data.get("image_options") or existing.get("image_options") or []
+            if img_c_idx is not None and 0 <= img_c_idx < len(imgs) and imgs[img_c_idx]:
+                update_data["correct_answer"] = imgs[img_c_idx]
 
         if question_image and question_image.filename:
             filename = f"{ObjectId()}_{question_image.filename}"

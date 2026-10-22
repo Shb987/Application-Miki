@@ -17,6 +17,7 @@ from fastapi import HTTPException
 from datetime import datetime, timezone
 from fastapi import BackgroundTasks
 from app.services.future_study_service import generate_and_store_future_study
+from app.utils.question_evaluator import evaluate_question_answer
 
 
 router = APIRouter(tags=["User"])
@@ -840,38 +841,31 @@ async def get_questions_by_age(age: int = Query(...)):
         random.shuffle(selected_questions)
         
         for q in selected_questions:
-            # Build question payload (as per original logic)
+            eval_meta = evaluate_question_answer(q, None)
+            q_type = eval_meta["q_type"]
+            options = eval_meta["options"]
+            c_idx = eval_meta["verified_correct_index"]
+            correct_ans = eval_meta["verified_correct_answer"]
+
             question_data = {
                 "id": q["_id"],
                 "text": q.get("text"),
             }
 
-            if q.get("type") == "image":
+            if q_type == "image":
                 question_data["type"] = "image"
-                img_opts = q.get("image_options", [])
-                c_idx = q.get("correct_index")
-                question_data["options"] = img_opts
+                question_data["options"] = options
                 question_data["correct_index"] = c_idx
-                
-                correct_ans = q.get("correct_answer")
-                if not correct_ans and c_idx is not None and img_opts:
-                    try:
-                        c_i = int(c_idx)
-                        if 0 <= c_i < len(img_opts):
-                            correct_ans = img_opts[c_i]
-                        elif 1 <= c_i <= len(img_opts):
-                            correct_ans = img_opts[c_i - 1]
-                    except (ValueError, TypeError):
-                        pass
                 question_data["correct_answer"] = correct_ans
-            elif q.get("type") == "rating":
+            elif q_type == "rating":
                 question_data["type"] = "rating"
                 question_data["age_min"] = q.get("age_min")
                 question_data["age_max"] = q.get("age_max")
             else:
                 question_data["type"] = "text"
-                question_data["options"] = q.get("options", [])
-                question_data["correct_answer"] = q.get("correct_answer")
+                question_data["options"] = options
+                question_data["correct_index"] = c_idx
+                question_data["correct_answer"] = correct_ans
 
             final_grouped.setdefault(cat, []).append(question_data)
 
@@ -895,40 +889,35 @@ async def save_answers(payload: AnswerRequest,current_user: dict = Depends(get_c
 
     # Process each question + answer
     for qid, ans in zip(payload.question_ids, payload.answers):
-        question = await db.questions.find_one({"_id": ObjectId(qid)})
+        try:
+            q_oid = ObjectId(qid)
+        except Exception:
+            continue
+        question = await db.questions.find_one({"_id": q_oid})
         if not question:
             continue
 
-        q_type = question.get("type")
-        correct_index = question.get("correct_index")
-        options = question.get("options") or question.get("image_options") or []
-
-        correct_ans_val = question.get("correct_answer")
-        if not correct_ans_val and correct_index is not None and options:
-            try:
-                c_idx = int(correct_index)
-                if 0 <= c_idx < len(options):
-                    correct_ans_val = options[c_idx]
-                elif 1 <= c_idx <= len(options):
-                    correct_ans_val = options[c_idx - 1]
-            except (ValueError, TypeError):
-                pass
+        eval_result = evaluate_question_answer(question, ans)
+        q_type = eval_result["q_type"]
+        is_correct = eval_result["is_correct"]
+        verified_ci = eval_result["verified_correct_index"]
+        verified_ca = eval_result["verified_correct_answer"]
 
         if q_type == "rating":
-            rating_values.append(ans)
+            try:
+                rating_values.append(float(ans))
+            except (ValueError, TypeError):
+                pass
             mark = 0
         else:
-            ans_s = str(ans).strip() if ans is not None else None
-            ci_s = str(correct_index).strip() if correct_index is not None else None
-            is_correct = (ans_s == ci_s) or (ans_s is not None and ans_s == str(correct_ans_val))
             mark = 1 if is_correct else 0
             total_marks += mark
 
         answers_list.append({
             "question_id": qid,
             "answer_value": ans,
-            "correct_index": correct_index,
-            "correct_answer": correct_ans_val,
+            "correct_index": verified_ci,
+            "correct_answer": verified_ca,
             "type": q_type,
             "mark": mark
         })
@@ -1681,16 +1670,24 @@ async def get_career_history(student_id: str,
 
         for cat in attempt.get("categories", []):
             answers_detailed = []
+            cat_recalculated_marks = 0
+            cat_rating_values = []
 
             for ans in cat.get("answers", []):
-                qid = ans["question_id"]
+                qid = ans.get("question_id")
+                student_answer = ans.get("answer_value")
+
+                try:
+                    q_oid = ObjectId(qid)
+                except Exception:
+                    q_oid = None
 
                 # Fetch question details
                 question = await db.questions.find_one(
-                    {"_id": ObjectId(qid)},
+                    {"_id": q_oid},
                     {"text": 1, "type": 1, "options": 1, "image_options": 1,
                      "correct_index": 1, "correct_answer": 1}
-                )
+                ) if q_oid else None
 
                 if not question:
                     # Provide fallback if question was deleted
@@ -1698,7 +1695,7 @@ async def get_career_history(student_id: str,
                         "question_id": qid,
                         "question_text": "[Deleted Question]",
                         "options": [],
-                        "student_answer": ans.get("answer_value"),
+                        "student_answer": student_answer,
                         "type": "deleted",
                         "correct_index": None,
                         "correct_answer": None,
@@ -1706,33 +1703,20 @@ async def get_career_history(student_id: str,
                     })
                     continue
 
-                # Extract data
-                qtype = question.get("type")
-                student_answer = ans.get("answer_value")
-                correct_index = question.get("correct_index")
-                options = question.get("options") or question.get("image_options") or []
+                eval_result = evaluate_question_answer(question, student_answer)
+                is_correct = eval_result["is_correct"]
+                verified_ci = eval_result["verified_correct_index"]
+                verified_ca = eval_result["verified_correct_answer"]
+                q_type = eval_result["q_type"]
+                options = eval_result["options"]
 
-                # Convert both to string for robust matching ("2" vs 2)
-                student_answer_s = str(student_answer).strip() if student_answer is not None else None
-                correct_index_s = str(correct_index).strip() if correct_index is not None else None
-
-                # Compute correct answer text/url if missing
-                correct_ans_val = question.get("correct_answer")
-                if not correct_ans_val and correct_index is not None and options:
+                if q_type == "rating":
                     try:
-                        c_idx = int(correct_index)
-                        if 0 <= c_idx < len(options):
-                            correct_ans_val = options[c_idx]
-                        elif 1 <= c_idx <= len(options):
-                            correct_ans_val = options[c_idx - 1]
+                        cat_rating_values.append(float(student_answer))
                     except (ValueError, TypeError):
                         pass
-
-                # Determine correctness
-                if qtype == "rating":
-                    is_correct = True
-                else:
-                    is_correct = (student_answer_s == correct_index_s) or (student_answer_s is not None and student_answer_s == str(correct_ans_val))
+                elif is_correct:
+                    cat_recalculated_marks += 1
 
                 # Append detailed answer
                 answers_detailed.append({
@@ -1740,16 +1724,22 @@ async def get_career_history(student_id: str,
                     "question_text": question.get("text"),
                     "options": options,
                     "student_answer": student_answer,
-                    "type": qtype,
-                    "correct_index": correct_index,
-                    "correct_answer": correct_ans_val,
+                    "type": q_type,
+                    "correct_index": verified_ci,
+                    "correct_answer": verified_ca,
                     "is_correct": is_correct
                 })
+
+            if cat_rating_values:
+                cat_recalculated_marks += sum(cat_rating_values) / len(cat_rating_values)
+
+            # Dynamically recalculate marks to prevent returning stale or inflated marks
+            cat_total = cat_recalculated_marks if cat.get("answers") else cat.get("total_marks", 0)
 
             # Append category-level details
             categories_detailed.append({
                 "category": cat["category"],
-                "total_marks": cat["total_marks"],
+                "total_marks": cat_total,
                 "answers": answers_detailed
             })
 

@@ -449,7 +449,8 @@
             const res = await fetch("/admin-panel/textbooks", { headers: { "Authorization": "Bearer " + token } });
             if (!res.ok) throw new Error("Failed to load textbooks");
             const data = await res.json();
-            allTextbooks = data.textbooks || [];
+            // Filter strictly to regular school textbooks (excluding competitive exams)
+            allTextbooks = (data.textbooks || []).filter(tb => tb.module_type !== 'competitive_exam' && !tb.exam_name);
             populateFilterOptions();
             renderTextbooks(allTextbooks);
         } catch (err) {
@@ -463,14 +464,14 @@
     }
 
     function populateFilterOptions() {
-        const boards = [...new Set(allTextbooks.map(tb => tb.board || (tb.module_type === 'competitive_exam' ? 'Competitive Exams' : '')))].filter(Boolean).sort();
+        const boards = [...new Set(allTextbooks.map(tb => tb.board))].filter(b => b && b !== 'Competitive Exams').sort();
         const defaultStds = Array.from({length: 12}, (_, i) => String(i + 1));
-        const tbStds = allTextbooks.map(tb => String(tb.standard || tb.exam_name || '')).filter(Boolean);
-        const standards = [...new Set([...defaultStds, ...tbStds])].sort();
+        const tbStds = allTextbooks.map(tb => String(tb.standard || '')).filter(Boolean);
+        const standards = [...new Set([...defaultStds, ...tbStds])].sort((a,b) => parseInt(a) - parseInt(b));
         const subjects = [...new Set(allTextbooks.map(tb => tb.subject))].filter(Boolean).sort();
-        const years = [...new Set(allTextbooks.map(tb => tb.publication_year || tb.exam_year).filter(Boolean))].sort((a, b) => parseInt(b) - parseInt(a));
+        const years = [...new Set(allTextbooks.map(tb => tb.publication_year).filter(Boolean))].sort((a, b) => parseInt(b) - parseInt(a));
         updateSelect("filter-board", boards, "All Boards");
-        updateSelect("filter-standard", standards, "All Standards / Exams");
+        updateSelect("filter-standard", standards, "All Standards");
         updateSelect("filter-subject", subjects, "All Subjects");
         updateSelect("filter-year", years, "All Years");
     }
@@ -488,13 +489,10 @@
         const subject = document.getElementById("filter-subject").value;
         const year = document.getElementById("filter-year").value;
         const filtered = allTextbooks.filter(tb => {
-            const tbBoard = tb.board || (tb.module_type === 'competitive_exam' ? 'Competitive Exams' : '');
-            const tbStd = tb.standard || tb.exam_name || '';
-            const tbYear = tb.publication_year || tb.exam_year || '';
-            return (!board || String(tbBoard) === String(board)) && 
-                   (!standard || String(tbStd) === String(standard)) && 
+            return (!board || String(tb.board) === String(board)) && 
+                   (!standard || String(tb.standard) === String(standard)) && 
                    (!subject || String(tb.subject) === String(subject)) &&
-                   (!year || String(tbYear) === String(year));
+                   (!year || String(tb.publication_year) === String(year));
         });
         renderTextbooks(filtered);
     }
@@ -518,7 +516,7 @@
         // Calculate standard-wise counts
         const stdCounts = {};
         textbooks.forEach(tb => {
-            const std = tb.standard || tb.exam_name || "N/A";
+            const std = tb.standard || "N/A";
             stdCounts[std] = (stdCounts[std] || 0) + 1;
         });
         
@@ -529,7 +527,7 @@
             breakdownContainer.innerHTML = '<span class="text-muted f-12">No data</span>';
         } else {
             breakdownContainer.innerHTML = sortedStds.map(std => {
-                return `<span class="badge bg-light-primary text-primary border border-primary f-12" style="background-color: rgba(69, 43, 144, 0.1); border-color: rgba(69, 43, 144, 0.3) !important;">${escapeHtml(std)}: ${stdCounts[std]}</span>`;
+                return `<span class="badge bg-light-primary text-primary border border-primary f-12" style="background-color: rgba(69, 43, 144, 0.1); border-color: rgba(69, 43, 144, 0.3) !important;">Class ${escapeHtml(std)}: ${stdCounts[std]}</span>`;
             }).join('');
         }
         
@@ -542,48 +540,17 @@
         }
         let html = '<div class="accordion border-0" id="textbookAccordion">';
         textbooks.forEach((tb, index) => {
-            const isComp = tb.module_type === 'competitive_exam' || !!tb.exam_name;
-            let titleHtml = '';
-            let plainTitle = '';
-            if (isComp) {
-                const exName = tb.exam_name || tb.standard || 'Competitive Exam';
-                const exCat = tb.exam_category || tb.board || '';
-                const tbName = tb.textbook_title || tb.textbook_name || tb.subject || 'Textbook';
-                const yr = tb.exam_year || tb.publication_year || '';
-                titleHtml = `<span class="badge bg-primary text-white me-2" style="font-size: 0.72rem; padding: 4px 8px;"><i class="fa fa-graduation-cap me-1"></i> Competitive</span> <span class="fw-bold text-dark">${escapeHtml(exName)}</span> — <span class="text-primary fw-semibold">${escapeHtml(tbName)}</span> <span class="text-muted small">(${escapeHtml(tb.subject || '')}${exCat ? ' | ' + escapeHtml(exCat) : ''}${yr ? ' ' + escapeHtml(yr) : ''})</span>`;
-                plainTitle = `${exName} - ${tbName}`;
-            } else {
-                titleHtml = `<span class="f-16">${tb.standard} Std - ${tb.subject}${tb.textbook_name ? ' (' + tb.textbook_name + ')' : ''} (${tb.board} - ${tb.state})${tb.category ? ' [' + tb.category + ']' : ''}${tb.publication_year ? ' [' + tb.publication_year + ']' : ''}</span>`;
-                plainTitle = `${tb.standard} Std - ${tb.subject}`;
-            }
+            const titleHtml = `<span class="f-16">${escapeHtml(tb.standard)} Std - ${escapeHtml(tb.subject)}${tb.textbook_name ? ' (' + escapeHtml(tb.textbook_name) + ')' : ''} (${escapeHtml(tb.board || '')} - ${escapeHtml(tb.state || '')})${tb.category ? ' [' + escapeHtml(tb.category) + ']' : ''}${tb.publication_year ? ' [' + escapeHtml(tb.publication_year) + ']' : ''}</span>`;
+            const plainTitle = `${tb.standard} Std - ${tb.subject}`;
 
             const chapters = tb.chapters || [];
             let statusBadge = tb.status === 'completed' ? '<span class="badge rounded-pill badge-success text-white py-2 px-3"><i class="icofont icofont-check-circled me-1"></i> Completed</span>' : (tb.status === 'extracting' || tb.status === 'embedding' ? `<span class="badge rounded-pill bg-warning text-dark py-2 px-3"><i class="icofont icofont-spinner fa-spin me-1"></i> ${tb.status}</span>` : `<span class="badge rounded-pill bg-info text-white py-2 px-3">${tb.status}</span>`);
 
-            let infoBarContent = '';
-            if (isComp) {
-                infoBarContent = `
-                    <div class="row align-items-center g-2">
-                        <div class="col-md-9 d-flex flex-wrap align-items-center gap-2">
-                            <span class="text-muted fw-bold small">ID:</span> <span class="badge badge-id-box font-monospace">${tb._id}</span>
-                            <span class="badge bg-light-primary text-primary border"><i class="fa fa-graduation-cap me-1"></i> ${escapeHtml(tb.exam_name || 'Competitive')}</span>
-                            ${tb.exam_category ? `<span class="badge bg-light text-secondary border"><i class="fa fa-tag me-1"></i> ${escapeHtml(tb.exam_category)}</span>` : ''}
-                            <span class="badge bg-light text-dark border"><i class="fa fa-book me-1"></i> ${escapeHtml(tb.subject || 'Subject')}</span>
-                            ${tb.stored_chunk_count ? `<span class="badge bg-light-success text-success border"><i class="fa fa-database me-1"></i> ${tb.stored_chunk_count} Chunks Vectorized</span>` : ''}
-                            <span class="badge ${tb.pdf_deleted ? 'bg-light text-danger border border-danger' : 'bg-light text-muted border'}"><i class="fa ${tb.pdf_deleted ? 'fa-trash' : 'fa-file-pdf-o'} me-1"></i> ${tb.pdf_deleted ? 'Source PDF Purged' : 'PDF Retained'}</span>
-                        </div>
-                        <div class="col-md-3 text-end">
-                            <span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span>
-                        </div>
-                    </div>
-                `;
-            } else {
-                infoBarContent = `
-                    <div class="row align-items-center"><div class="col-8"><span class="text-muted fw-bold me-2">ID:</span> <span class="badge badge-id-box font-monospace">${tb._id}</span>${tb.textbook_name ? `<span class="text-muted fw-bold ms-3 me-2">Textbook:</span> <span class="badge bg-light-primary text-primary">${escapeHtml(tb.textbook_name)}</span>` : ''}</div><div class="col-4 text-end"><span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span></div></div>
-                `;
-            }
+            const infoBarContent = `
+                <div class="row align-items-center"><div class="col-8"><span class="text-muted fw-bold me-2">ID:</span> <span class="badge badge-id-box font-monospace">${tb._id}</span>${tb.textbook_name ? `<span class="text-muted fw-bold ms-3 me-2">Textbook:</span> <span class="badge bg-light-primary text-primary">${escapeHtml(tb.textbook_name)}</span>` : ''}</div><div class="col-4 text-end"><span class="badge bg-light-primary text-primary border border-primary"><i class="icofont icofont-list me-1"></i> ${chapters.length} Chapters</span></div></div>
+            `;
 
-            html += `<div class="accordion-item mb-3 rounded border shadow-sm overflow-hidden"><h2 class="accordion-header" id="heading${index}"><div class="accordion-button fw-bold collapsed" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}" style="cursor: pointer;"><div class="d-flex justify-content-between align-items-center w-100 pe-3"><div class="d-flex align-items-center flex-wrap"><div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book"></i></div>${titleHtml}</div><div class="d-flex align-items-center gap-3"><span class="text-muted f-12 fw-normal"><i class="icofont icofont-clock-time"></i> ${new Date(tb.created_at).toLocaleDateString()}</span>${statusBadge}${!isComp ? `<button class="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation(); openEditTextbookModal('${tb._id}')"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i> Edit</button>` : ''}<button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="event.stopPropagation(); deleteTextbook('${tb._id}', '${plainTitle.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></div></div></div></h2><div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#textbookAccordion"><div class="accordion-body border-top p-0"><div class="p-3 border-bottom custom-info-bar">${infoBarContent}</div>`;
+            html += `<div class="accordion-item mb-3 rounded border shadow-sm overflow-hidden"><h2 class="accordion-header" id="heading${index}"><div class="accordion-button fw-bold collapsed" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}" style="cursor: pointer;"><div class="d-flex justify-content-between align-items-center w-100 pe-3"><div class="d-flex align-items-center flex-wrap"><div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book"></i></div>${titleHtml}</div><div class="d-flex align-items-center gap-3"><span class="text-muted f-12 fw-normal"><i class="icofont icofont-clock-time"></i> ${new Date(tb.created_at).toLocaleDateString()}</span>${statusBadge}<button class="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation(); openEditTextbookModal('${tb._id}')"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i> Edit</button><button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="event.stopPropagation(); deleteTextbook('${tb._id}', '${plainTitle.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></div></div></div></h2><div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#textbookAccordion"><div class="accordion-body border-top p-0"><div class="p-3 border-bottom custom-info-bar">${infoBarContent}</div>`;
             if (chapters.length === 0) { html += `<div class="text-center p-5"><i data-feather="file-text" class="text-muted mb-3" style="width: 32px; height: 32px;"></i><p class="text-muted mb-0">No chapters found.</p></div>`; }
             else { html += `<ul class="list-group list-group-flush">`; chapters.forEach((chap, cIdx) => { html += `<li class="list-group-item chapter-row-item d-flex justify-content-between align-items-center py-3 hover-light"><div class="d-flex align-items-center"><span class="badge bg-primary rounded-circle text-white me-3" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;">${cIdx + 1}</span><span class="fw-medium chapter-title-text f-14">${chap}</span></div><button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="deleteChapter('${tb._id}', '${chap.replace(/'/g, "\\'")}')"><i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete</button></li>`; }); html += `</ul>`; }
             html += `</div></div></div>`;

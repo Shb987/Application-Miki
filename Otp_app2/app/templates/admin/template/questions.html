@@ -1677,7 +1677,6 @@
         const correct_index = parseInt(document.getElementById("edit-correct-index").value);
         if (!isNaN(correct_index)) {
           formData.append("correct_index", correct_index - 1);
-          formData.append("correct_answer", String(correct_index));
         }
         for (let i = 1; i <= 4; i++) {
           const file = document.getElementById(`edit-img${i}`).files[0];

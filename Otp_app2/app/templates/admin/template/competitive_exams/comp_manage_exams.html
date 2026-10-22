@@ -1,0 +1,761 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Competitive Exams - Miki Assessment Portal{% endblock %}
+
+{% block head %}
+<style>
+    .hover-light:hover {
+        background-color: #f8f9fa !important;
+    }
+
+    body.dark-only .hover-light:hover {
+        background-color: #282d3c !important;
+    }
+
+    .hover-danger-filled:hover {
+        background-color: #dc3545;
+        color: white !important;
+    }
+
+    .bg-light-primary {
+        background-color: rgba(69, 43, 144, 0.1);
+    }
+
+    body.dark-only .bg-light-primary {
+        background-color: rgba(115, 102, 255, 0.2) !important;
+        color: #a594ff !important;
+    }
+
+    .custom-info-bar {
+        background: #fafbfc;
+    }
+
+    body.dark-only .custom-info-bar {
+        background: #1a1d26 !important;
+        border-color: #2d3243 !important;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(69, 43, 144, 0.2);
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: #ffffff;
+        color: #452b90;
+        box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .125);
+    }
+
+    body.dark-only .accordion-button {
+        background-color: #1e222d !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .accordion-button:not(.collapsed) {
+        background-color: #242937 !important;
+        color: #a594ff !important;
+    }
+
+    body.dark-only .accordion-item {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+    }
+
+    body.dark-only .accordion-body {
+        background-color: #161925 !important;
+    }
+
+    .filter-container-glass {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(69, 43, 144, 0.08);
+        border-radius: 12px;
+    }
+
+    body.dark-only .filter-container-glass {
+        background: rgba(30, 34, 45, 0.95) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    body.dark-only .filter-container-glass h6 {
+        color: #f8fafc !important;
+    }
+
+    .input-group-text {
+        border-radius: 8px 0 0 8px !important;
+        border-color: #dee2e6;
+    }
+
+    .form-select, .form-control {
+        border-radius: 0 8px 8px 0 !important;
+        border-color: #dee2e6;
+    }
+
+    body.dark-only .input-group-text,
+    body.dark-only .form-select,
+    body.dark-only .form-control {
+        background-color: #252936 !important;
+        color: #f8fafc !important;
+        border-color: #373d52 !important;
+    }
+
+    body.dark-only .form-select option {
+        background-color: #252936 !important;
+        color: #f8fafc !important;
+    }
+
+    .badge-id-box {
+        background-color: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    body.dark-only .badge-id-box {
+        background-color: #2a2e3d !important;
+        color: #cbd5e1 !important;
+        border-color: #3b4256 !important;
+    }
+
+    .chapter-title-text {
+        color: #1e293b;
+    }
+
+    body.dark-only .chapter-title-text {
+        color: #f8fafc !important;
+    }
+
+    .chapter-row-item {
+        background-color: #ffffff;
+        border-color: #e2e8f0;
+    }
+
+    body.dark-only .chapter-row-item {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .card {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+    }
+
+    body.dark-only .card-header,
+    body.dark-only .card-body {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .modal-content {
+        background-color: #1e222d !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .modal-header,
+    body.dark-only .modal-footer {
+        background-color: #252936 !important;
+        border-color: #2d3243 !important;
+    }
+
+    body.dark-only .modal-title,
+    body.dark-only .form-label {
+        color: #f8fafc !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row align-items-center">
+            <div class="col-md-6 col-12">
+                <h4 class="fw-bold mb-1">Manage Competitive Exams</h4>
+                <small class="text-muted">Manage ingested competitive exam textbooks, vector chunks, and chapters</small>
+            </div>
+            <div class="col-md-6 col-12 text-md-end mt-2 mt-md-0">
+                <ol class="breadcrumb mb-2 justify-content-md-end">
+                    <li class="breadcrumb-item"><a href="/admin-panel/user-management-page">
+                        <svg class="stroke-icon">
+                            <use href="/assets/svg/icon-sprite.svg#stroke-home"></use>
+                        </svg></a></li>
+                    <li class="breadcrumb-item">Competitive Exams</li>
+                    <li class="breadcrumb-item active">Manage Exams</li>
+                </ol>
+                <div class="d-inline-flex gap-2">
+                    <a href="/admin-panel/competitive-exams/upload-textbook" class="btn btn-primary btn-sm rounded-pill shadow-sm px-3">
+                        <i class="fa fa-cloud-upload me-1"></i> Upload Textbook
+                    </a>
+                    <a href="/admin-panel/competitive-exams/generate-questions" class="btn btn-outline-primary btn-sm rounded-pill shadow-sm px-3">
+                        <i class="fa fa-bolt me-1"></i> Generate Papers
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Filter Bar -->
+    <div class="card shadow-sm border-0 mb-4 filter-container-glass">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-primary p-2 rounded shadow-sm me-3 text-white">
+                    <i data-feather="filter" style="width: 18px; height: 18px;"></i>
+                </div>
+                <h6 class="mb-0 text-dark fw-bold">Quick Search & Filter</h6>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i data-feather="tag" class="text-muted" style="width: 14px;"></i></span>
+                        <select id="filter-category" class="form-select border-start-0 ps-0" onchange="applyFilters()">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i data-feather="award" class="text-muted" style="width: 14px;"></i></span>
+                        <select id="filter-exam" class="form-select border-start-0 ps-0" onchange="applyFilters()">
+                            <option value="">All Exams</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i data-feather="book-open" class="text-muted" style="width: 14px;"></i></span>
+                        <select id="filter-subject" class="form-select border-start-0 ps-0" onchange="applyFilters()">
+                            <option value="">All Subjects</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i data-feather="calendar" class="text-muted" style="width: 14px;"></i></span>
+                        <select id="filter-year" class="form-select border-start-0 ps-0" onchange="applyFilters()">
+                            <option value="">All Years</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <div class="input-group input-group-sm flex-grow-1">
+                        <span class="input-group-text bg-white border-end-0"><i data-feather="search" class="text-muted" style="width: 14px;"></i></span>
+                        <input type="text" id="filter-search" class="form-control border-start-0 ps-0" placeholder="Search..." oninput="applyFilters()">
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm shadow-sm d-flex align-items-center justify-content-center" onclick="resetFilters()" title="Reset Filters" style="min-width: 36px; border-radius: 8px;">
+                        <i data-feather="refresh-ccw" style="width: 14px;"></i> 
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div id="stats-overview" class="row g-3 mb-4" style="display: none;">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="bg-light-primary p-3 rounded-circle me-3 text-primary" style="background-color: rgba(69, 43, 144, 0.1); display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;">
+                        <i data-feather="book-open" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark" id="stat-total-textbooks">0</h4>
+                        <small class="text-muted">Competitive Textbooks</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="bg-light-success p-3 rounded-circle me-3 text-success" style="background-color: rgba(40, 167, 69, 0.1); display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;">
+                        <i data-feather="file-text" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark" id="stat-total-chapters">0</h4>
+                        <small class="text-muted">Total Chapters</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="p-3 rounded-circle me-3 text-info" style="background-color: rgba(23, 162, 184, 0.1); display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;">
+                        <i data-feather="database" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-dark" id="stat-total-chunks">0</h4>
+                        <small class="text-muted">Vectorized Chunks</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                    <small class="text-muted fw-bold mb-2 d-block">Textbooks per Exam</small>
+                    <div id="stat-exams-breakdown" class="d-flex flex-wrap gap-2 overflow-auto" style="max-height: 48px;">
+                        <!-- dynamic pills -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Uploaded Competitive Textbooks Section -->
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 text-primary fw-bold d-flex align-items-center">
+                <i class="fa fa-graduation-cap me-2"></i> Ingested Competitive Exams & Textbooks
+            </h5>
+            <button class="btn btn-primary btn-sm rounded-pill shadow-sm px-3" onclick="loadTextbooks()">
+                <i data-feather="refresh-cw" style="width: 14px; height: 14px;" class="me-1"></i> Refresh
+            </button>
+        </div>
+        <div class="card-body p-4">
+            <div id="textbooks-container">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Textbook Modal -->
+<div class="modal fade" id="editTextbookModal" tabindex="-1" aria-labelledby="editTextbookModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="editTextbookModalLabel"><i data-feather="edit-2" class="me-2"></i> Edit Competitive Textbook</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="edit-tb-id">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Textbook Title <span class="text-danger">*</span></label>
+                    <input type="text" id="edit-tb-title" class="form-control rounded-3" placeholder="e.g. Modern India History">
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Exam Category</label>
+                        <input type="text" id="edit-tb-category" class="form-control rounded-3" placeholder="e.g. UPSC, SSC">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Exam Name</label>
+                        <input type="text" id="edit-tb-exam" class="form-control rounded-3" placeholder="e.g. UPSC Civil Services">
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Subject</label>
+                        <input type="text" id="edit-tb-subject" class="form-control rounded-3" placeholder="e.g. Social Science">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Exam Year</label>
+                        <input type="text" id="edit-tb-year" class="form-control rounded-3" placeholder="e.g. 2026">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4" onclick="saveTextbookEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center p-4">
+                <div class="text-danger mb-3">
+                    <i data-feather="alert-triangle" style="width: 48px; height: 48px;"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Confirm Action</h5>
+                <p id="customConfirmMessage" class="text-muted mb-4"></p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4" id="customConfirmBtn">Confirm Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = window.token || localStorage.getItem("admin_token") || localStorage.getItem("access_token");
+    let allTextbooks = [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadTextbooks();
+    });
+
+    function showToast(message, type = "success") {
+        const toast = document.createElement("div");
+        toast.className = `alert alert-${type} shadow-lg position-fixed top-0 end-0 m-4`;
+        toast.style.zIndex = 99999;
+        toast.style.borderRadius = "12px";
+        toast.innerHTML = `<i class="fa ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i> ${message}`;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.transition = "opacity 0.5s ease";
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
+    }
+
+    function safeFeatherReplace() {
+        if (typeof feather !== 'undefined' && feather.replace) {
+            try {
+                feather.replace();
+            } catch (e) {
+                console.warn("Feather replace warning:", e);
+            }
+        }
+    }
+
+    function showCustomConfirm(message, onConfirm) {
+        document.getElementById("customConfirmMessage").innerHTML = message;
+        const confirmBtn = document.getElementById("customConfirmBtn");
+        const modalEl = document.getElementById("customConfirmModal");
+        const modal = new bootstrap.Modal(modalEl);
+        
+        confirmBtn.onclick = () => {
+            modal.hide();
+            if(onConfirm) onConfirm();
+        };
+        modal.show();
+        safeFeatherReplace();
+    }
+
+    async function loadTextbooks() {
+        const container = document.getElementById("textbooks-container");
+        container.innerHTML = `<div class="text-center text-muted py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-primary fw-medium">Fetching competitive exams...</div></div>`;
+        try {
+            const res = await fetch("/admin-panel/competitive-exams/textbooks", { 
+                headers: { "Authorization": "Bearer " + token } 
+            });
+            if (!res.ok) throw new Error("Failed to load competitive textbooks");
+            const data = await res.json();
+            allTextbooks = data.textbooks || [];
+            populateFilterOptions();
+            renderTextbooks(allTextbooks);
+        } catch (err) {
+            container.innerHTML = `<div class="alert alert-danger shadow-sm"><i class="fa fa-exclamation-circle me-2"></i> Error: ${err.message}</div>`;
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function populateFilterOptions() {
+        const categories = [...new Set(allTextbooks.map(tb => tb.exam_category).filter(Boolean))].sort();
+        const exams = [...new Set(allTextbooks.map(tb => tb.exam_name).filter(Boolean))].sort();
+        const subjects = [...new Set(allTextbooks.map(tb => tb.subject).filter(Boolean))].sort();
+        const years = [...new Set(allTextbooks.map(tb => tb.exam_year).filter(Boolean))].sort((a, b) => parseInt(b) - parseInt(a));
+        
+        updateSelect("filter-category", categories, "All Categories");
+        updateSelect("filter-exam", exams, "All Exams");
+        updateSelect("filter-subject", subjects, "All Subjects");
+        updateSelect("filter-year", years, "All Years");
+    }
+
+    function updateSelect(id, items, defaultText) {
+        const sel = document.getElementById(id);
+        const currentVal = sel.value;
+        sel.innerHTML = `<option value="">${defaultText}</option>` +
+            items.map(item => `<option value="${escapeHtml(item)}" ${item === currentVal ? 'selected' : ''}>${escapeHtml(item)}</option>`).join('');
+    }
+
+    window.applyFilters = function () {
+        const category = document.getElementById("filter-category").value;
+        const exam = document.getElementById("filter-exam").value;
+        const subject = document.getElementById("filter-subject").value;
+        const year = document.getElementById("filter-year").value;
+        const search = (document.getElementById("filter-search").value || "").trim().toLowerCase();
+
+        const filtered = allTextbooks.filter(tb => {
+            const matchCategory = !category || String(tb.exam_category) === String(category);
+            const matchExam = !exam || String(tb.exam_name) === String(exam);
+            const matchSubject = !subject || String(tb.subject) === String(subject);
+            const matchYear = !year || String(tb.exam_year) === String(year);
+            
+            let matchSearch = true;
+            if (search) {
+                const titleStr = (tb.textbook_title || tb.textbook_name || "").toLowerCase();
+                const examStr = (tb.exam_name || "").toLowerCase();
+                const catStr = (tb.exam_category || "").toLowerCase();
+                const subStr = (tb.subject || "").toLowerCase();
+                const chapStr = (tb.chapters || []).join(" ").toLowerCase();
+                matchSearch = titleStr.includes(search) || examStr.includes(search) || catStr.includes(search) || subStr.includes(search) || chapStr.includes(search);
+            }
+
+            return matchCategory && matchExam && matchSubject && matchYear && matchSearch;
+        });
+
+        renderTextbooks(filtered);
+    };
+
+    window.resetFilters = function () {
+        document.getElementById("filter-category").value = "";
+        document.getElementById("filter-exam").value = "";
+        document.getElementById("filter-subject").value = "";
+        document.getElementById("filter-year").value = "";
+        document.getElementById("filter-search").value = "";
+        renderTextbooks(allTextbooks);
+    };
+
+    function renderTextbooks(textbooks) {
+        const totalTbs = textbooks.length;
+        const totalChs = textbooks.reduce((acc, tb) => acc + (tb.chapters || []).length, 0);
+        const totalChunks = textbooks.reduce((acc, tb) => acc + (tb.stored_chunk_count || 0), 0);
+        
+        document.getElementById("stat-total-textbooks").innerText = totalTbs;
+        document.getElementById("stat-total-chapters").innerText = totalChs;
+        document.getElementById("stat-total-chunks").innerText = totalChunks;
+        
+        const examCounts = {};
+        textbooks.forEach(tb => {
+            const ex = tb.exam_name || tb.exam_category || "General";
+            examCounts[ex] = (examCounts[ex] || 0) + 1;
+        });
+        
+        const breakdownContainer = document.getElementById("stat-exams-breakdown");
+        const sortedExams = Object.keys(examCounts).sort();
+        
+        if (sortedExams.length === 0) {
+            breakdownContainer.innerHTML = '<span class="text-muted f-12">No data</span>';
+        } else {
+            breakdownContainer.innerHTML = sortedExams.map(ex => {
+                return `<span class="badge bg-light-primary text-primary border border-primary f-12" style="background-color: rgba(69, 43, 144, 0.1); border-color: rgba(69, 43, 144, 0.3) !important;">${escapeHtml(ex)}: ${examCounts[ex]}</span>`;
+            }).join('');
+        }
+        
+        document.getElementById("stats-overview").style.display = "flex";
+
+        const container = document.getElementById("textbooks-container");
+        if (textbooks.length === 0) {
+            container.innerHTML = `
+                <div class="alert alert-light text-center border p-5 bg-white rounded-3">
+                    <i data-feather="search" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
+                    <h5 class="text-muted fw-bold">No competitive exam textbooks found</h5>
+                    <p class="text-muted small">Upload textbooks using the competitive exam ingestion pipeline to get started.</p>
+                    <div class="d-flex justify-content-center gap-2 mt-3">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="resetFilters()">Clear Filters</button>
+                        <a href="/admin-panel/competitive-exams/upload-textbook" class="btn btn-primary btn-sm rounded-pill px-4">
+                            <i class="fa fa-cloud-upload me-1"></i> Upload Textbook
+                        </a>
+                    </div>
+                </div>`;
+            safeFeatherReplace();
+            return;
+        }
+
+        let html = '<div class="accordion border-0" id="competitiveAccordion">';
+        textbooks.forEach((tb, index) => {
+            const exName = tb.exam_name || 'Competitive Exam';
+            const exCat = tb.exam_category || '';
+            const tbName = tb.textbook_title || tb.textbook_name || tb.subject || 'Textbook';
+            const yr = tb.exam_year || '';
+            const plainTitle = `${exName} - ${tbName}`;
+
+            const titleHtml = `
+                <span class="badge bg-primary text-white me-2" style="font-size: 0.72rem; padding: 4px 8px;">
+                    <i class="fa fa-graduation-cap me-1"></i> Competitive
+                </span>
+                <span class="fw-bold text-dark">${escapeHtml(exName)}</span> — 
+                <span class="text-primary fw-semibold">${escapeHtml(tbName)}</span> 
+                <span class="text-muted small">(${escapeHtml(tb.subject || '')}${exCat ? ' | ' + escapeHtml(exCat) : ''}${yr ? ' ' + escapeHtml(yr) : ''})</span>
+            `;
+
+            const chapters = tb.chapters || [];
+            let statusBadge = tb.status === 'completed' 
+                ? '<span class="badge rounded-pill badge-success text-white py-2 px-3"><i class="fa fa-check-circle me-1"></i> Completed</span>' 
+                : (tb.status === 'extracting' || tb.status === 'embedding' 
+                    ? `<span class="badge rounded-pill bg-warning text-dark py-2 px-3"><i class="fa fa-spinner fa-spin me-1"></i> ${tb.status}</span>` 
+                    : `<span class="badge rounded-pill bg-info text-white py-2 px-3">${tb.status}</span>`);
+
+            const infoBarContent = `
+                <div class="row align-items-center g-2">
+                    <div class="col-md-9 d-flex flex-wrap align-items-center gap-2">
+                        <span class="text-muted fw-bold small">ID:</span> 
+                        <span class="badge badge-id-box font-monospace">${tb._id}</span>
+                        <span class="badge bg-light-primary text-primary border"><i class="fa fa-graduation-cap me-1"></i> ${escapeHtml(tb.exam_name || 'Competitive')}</span>
+                        ${tb.exam_category ? `<span class="badge bg-light text-secondary border"><i class="fa fa-tag me-1"></i> ${escapeHtml(tb.exam_category)}</span>` : ''}
+                        <span class="badge bg-light text-dark border"><i class="fa fa-book me-1"></i> ${escapeHtml(tb.subject || 'Subject')}</span>
+                        ${tb.stored_chunk_count ? `<span class="badge bg-light-success text-success border"><i class="fa fa-database me-1"></i> ${tb.stored_chunk_count} Chunks Vectorized</span>` : ''}
+                        <span class="badge ${tb.pdf_deleted ? 'bg-light text-danger border border-danger' : 'bg-light text-muted border'}">
+                            <i class="fa ${tb.pdf_deleted ? 'fa-trash' : 'fa-file-pdf-o'} me-1"></i> ${tb.pdf_deleted ? 'Source PDF Purged' : 'PDF Retained'}
+                        </span>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <span class="badge bg-light-primary text-primary border border-primary"><i class="fa fa-list me-1"></i> ${chapters.length} Chapters</span>
+                    </div>
+                </div>
+            `;
+
+            const genUrl = `/admin-panel/competitive-exams/generate-questions?exam_name=${encodeURIComponent(tb.exam_name || '')}&category=${encodeURIComponent(tb.exam_category || '')}&textbook_id=${tb._id}`;
+
+            html += `
+                <div class="accordion-item mb-3 rounded border shadow-sm overflow-hidden">
+                    <h2 class="accordion-header" id="heading${index}">
+                        <div class="accordion-button fw-bold collapsed" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}" style="cursor: pointer;">
+                            <div class="d-flex justify-content-between align-items-center w-100 pe-3 flex-wrap gap-2">
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <div class="bg-light-primary p-2 rounded me-3 text-primary">
+                                        <i data-feather="book"></i>
+                                    </div>
+                                    ${titleHtml}
+                                </div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="text-muted f-12 fw-normal me-2">
+                                        <i class="fa fa-clock-o me-1"></i> ${tb.created_at ? new Date(tb.created_at).toLocaleDateString() : 'Recent'}
+                                    </span>
+                                    ${statusBadge}
+                                    <a href="${genUrl}" class="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation()">
+                                        <i data-feather="zap" style="width: 14px; height: 14px;"></i> Generate Paper
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-secondary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation(); openEditModal('${tb._id}')">
+                                        <i data-feather="edit-2" style="width: 14px; height: 14px;"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="event.stopPropagation(); deleteTextbook('${tb._id}', '${plainTitle.replace(/'/g, "\\'")}')">
+                                        <i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </h2>
+                    <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#competitiveAccordion">
+                        <div class="accordion-body border-top p-0">
+                            <div class="p-3 border-bottom custom-info-bar">
+                                ${infoBarContent}
+                            </div>`;
+            
+            if (chapters.length === 0) { 
+                html += `
+                    <div class="text-center p-5">
+                        <i data-feather="file-text" class="text-muted mb-3" style="width: 32px; height: 32px;"></i>
+                        <p class="text-muted mb-0">No chapters detected in this textbook.</p>
+                    </div>`; 
+            } else { 
+                html += `<ul class="list-group list-group-flush">`; 
+                chapters.forEach((chap, cIdx) => { 
+                    html += `
+                        <li class="list-group-item chapter-row-item d-flex justify-content-between align-items-center py-3 hover-light">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-primary rounded-circle text-white me-3" style="width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;">
+                                    ${cIdx + 1}
+                                </span>
+                                <span class="fw-medium chapter-title-text f-14">${escapeHtml(chap)}</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center gap-1 hover-danger-filled" onclick="deleteChapter('${tb._id}', '${chap.replace(/'/g, "\\'")}')">
+                                <i data-feather="trash-2" style="width: 14px; height: 14px;"></i> Delete
+                            </button>
+                        </li>`; 
+                }); 
+                html += `</ul>`; 
+            }
+            
+            html += `</div></div></div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+        safeFeatherReplace();
+    }
+
+    window.deleteChapter = function (textbookId, chapterName) {
+        showCustomConfirm(`Delete chapter: "<strong>${chapterName}</strong>" from this competitive textbook?<br><small class='text-danger'>Vector chunks for this chapter will be permanently purged.</small>`, async () => {
+            try {
+                document.body.style.cursor = 'wait';
+                const res = await fetch(`/admin-panel/competitive-exams/textbook/${textbookId}/chapter/${encodeURIComponent(chapterName)}`, { 
+                    method: "DELETE", 
+                    headers: { "Authorization": "Bearer " + token } 
+                });
+                if (!res.ok) throw new Error("Delete failed");
+                document.body.style.cursor = 'default';
+                showToast("Chapter deleted successfully", "success"); 
+                loadTextbooks();
+            } catch (e) { 
+                document.body.style.cursor = 'default'; 
+                showToast(`Error: ${e.message}`, "danger"); 
+            }
+        });
+    };
+
+    window.deleteTextbook = function (textbookId, textbookTitle) {
+        showCustomConfirm(`Are you sure you want to delete the competitive exam material: "<strong>${textbookTitle}</strong>"?<br><small class='text-danger'>All vectorized passages, chunks, and chapter records will be permanently removed.</small>`, async () => {
+            try {
+                document.body.style.cursor = 'wait';
+                const res = await fetch(`/admin-panel/competitive-exams/textbook/${textbookId}`, { 
+                    method: "DELETE", 
+                    headers: { "Authorization": "Bearer " + token } 
+                });
+                if (!res.ok) throw new Error("Delete failed");
+                document.body.style.cursor = 'default';
+                showToast("Competitive exam textbook deleted successfully", "success"); 
+                loadTextbooks();
+            } catch (e) { 
+                document.body.style.cursor = 'default'; 
+                showToast(`Error: ${e.message}`, "danger"); 
+            }
+        });
+    };
+
+    window.openEditModal = function(id) {
+        const tb = allTextbooks.find(t => t._id === id);
+        if (!tb) return;
+        document.getElementById("edit-tb-id").value = tb._id;
+        document.getElementById("edit-tb-title").value = tb.textbook_title || tb.textbook_name || "";
+        document.getElementById("edit-tb-category").value = tb.exam_category || "";
+        document.getElementById("edit-tb-exam").value = tb.exam_name || "";
+        document.getElementById("edit-tb-subject").value = tb.subject || "";
+        document.getElementById("edit-tb-year").value = tb.exam_year || "";
+        
+        const modal = new bootstrap.Modal(document.getElementById("editTextbookModal"));
+        modal.show();
+        safeFeatherReplace();
+    };
+
+    window.saveTextbookEdit = async function() {
+        const id = document.getElementById("edit-tb-id").value;
+        const payload = {
+            textbook_title: document.getElementById("edit-tb-title").value.trim(),
+            exam_category: document.getElementById("edit-tb-category").value.trim(),
+            exam_name: document.getElementById("edit-tb-exam").value.trim(),
+            subject: document.getElementById("edit-tb-subject").value.trim(),
+            exam_year: document.getElementById("edit-tb-year").value.trim()
+        };
+
+        if (!payload.textbook_title) {
+            showToast("Textbook Title is required", "danger");
+            return;
+        }
+
+        try {
+            document.body.style.cursor = 'wait';
+            const res = await fetch(`/admin-panel/competitive-exams/textbook/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Update failed");
+            document.body.style.cursor = 'default';
+            bootstrap.Modal.getInstance(document.getElementById("editTextbookModal")).hide();
+            showToast("Textbook updated successfully", "success");
+            loadTextbooks();
+        } catch (e) {
+            document.body.style.cursor = 'default';
+            showToast(`Error: ${e.message}`, "danger");
+        }
+    };
+</script>
+{% endblock %}

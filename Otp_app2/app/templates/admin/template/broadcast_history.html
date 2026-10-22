@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+
+{% block title %}Miki - Broadcast History{% endblock %}
+
+{% block head %}
+<style>
+    .metric-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .metric-icon-bg {
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+    }
+
+    .metric-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        margin-bottom: 6px;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #212529;
+        margin: 0;
+        line-height: 1.1;
+    }
+
+    .history-card {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+    }
+
+    .history-table th {
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #495057;
+        padding: 14px 18px;
+        background: #f8fafc;
+        border-bottom: 2px solid #eef2f6;
+        white-space: nowrap;
+    }
+
+    .history-table td {
+        padding: 14px 18px;
+        vertical-align: middle;
+        font-size: 0.86rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+    .msg-preview {
+        max-width: 320px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        color: #6c757d;
+        font-size: 0.83rem;
+        vertical-align: middle;
+    }
+
+    .target-badge {
+        font-size: 0.76rem;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 20px;
+        letter-spacing: 0.3px;
+    }
+
+    .search-input-group {
+        position: relative;
+        min-width: 260px;
+    }
+
+    .search-input-group i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #adb5bd;
+        font-size: 0.9rem;
+    }
+
+    .search-input-group input {
+        padding-left: 36px;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        font-size: 0.86rem;
+        height: 38px;
+    }
+
+    .search-input-group input:focus {
+        border-color: #13c9ca;
+        box-shadow: 0 0 0 0.2rem rgba(19, 201, 202, 0.15);
+    }
+
+    .btn-gradient-primary {
+        background: linear-gradient(135deg, #3cdddd, #19a1a1);
+        color: #ffffff !important;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 8px 18px;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .btn-gradient-primary:hover {
+        opacity: 0.92;
+        transform: translateY(-1px);
+        color: #ffffff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb & Title -->
+    <div class="page-title mb-4">
+        <div class="row align-items-center">
+            <div class="col-sm-6">
+                <h4 class="mb-1 fw-bold text-dark">Broadcast History</h4>
+                <p class="text-muted small mb-0">Review past push notifications and audience delivery logs</p>
+            </div>
+            <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                <div class="d-inline-flex align-items-center gap-2">
+                    <a href="/admin-panel/notification-center-page" class="btn btn-gradient-primary btn-sm">
+                        <i class="fa fa-paper-plane me-2"></i>Send Broadcast
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-4">
+            <div class="metric-card">
+                <div class="metric-title">Broadcasts Today</div>
+                <div class="metric-value text-primary" id="stat-today">—</div>
+                <div class="metric-icon-bg" style="background: rgba(19, 201, 202, 0.12); color: #13c9ca;">
+                    <i class="fa fa-bullhorn"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <div class="metric-title">This Week</div>
+                <div class="metric-value" style="color: #6366f1;" id="stat-week">—</div>
+                <div class="metric-icon-bg" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">
+                    <i class="fa fa-calendar-check-o"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <div class="metric-title">Total Sent</div>
+                <div class="metric-value" style="color: #10b981;" id="stat-total">—</div>
+                <div class="metric-icon-bg" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                    <i class="fa fa-paper-plane"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table Card -->
+    <div class="history-card mb-4">
+        <!-- Controls Toolbar -->
+        <div class="p-3 border-bottom bg-white d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="search-input-group">
+                    <i class="fa fa-search"></i>
+                    <input type="text" id="history-search" class="form-control" placeholder="Search title, message, class..." oninput="onSearchChange()">
+                </div>
+                <select id="target-filter" class="form-select form-select-sm" style="border-radius:10px; width:160px; height:38px;" onchange="onFilterChange()">
+                    <option value="all_targets">All Targets</option>
+                    <option value="all">All Users Only</option>
+                    <option value="class">Class Specific</option>
+                </select>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-secondary btn-sm" style="border-radius:10px; height:38px; font-weight:600;" onclick="loadHistory()">
+                    <i class="fa fa-refresh me-1" id="refresh-icon"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-responsive">
+            <div id="history-loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted small mt-2 mb-0">Loading broadcast logs...</p>
+            </div>
+            <div id="history-empty" class="text-center py-5" style="display:none;">
+                <div class="mb-3 text-muted" style="font-size:2.5rem; opacity:0.5;"><i class="fa fa-inbox"></i></div>
+                <h6 class="text-dark fw-bold mb-1">No Broadcasts Found</h6>
+                <p class="text-muted small mb-3">No messages match your search or filter criteria.</p>
+                <a href="/admin-panel/notification-center-page" class="btn btn-gradient-primary btn-sm">
+                    <i class="fa fa-paper-plane me-1"></i> Compose First Broadcast
+                </a>
+            </div>
+            <table class="table history-table align-middle mb-0" id="history-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Message Preview</th>
+                        <th>Audience Target</th>
+                        <th>Recipients</th>
+                        <th>Sent By</th>
+                        <th>Date & Time</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody"></tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div class="card-footer bg-white border-top d-flex flex-wrap align-items-center justify-content-between py-3 px-4" id="history-pagination" style="display:none;">
+            <span class="text-muted small" id="page-info">Showing 0-0 of 0</span>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary" id="prev-btn" onclick="prevPage()">
+                    <i class="fa fa-chevron-left me-1"></i> Prev
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="next-btn" onclick="nextPage()">
+                    Next <i class="fa fa-chevron-right ms-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Broadcast Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:18px; overflow:hidden; border:none; box-shadow:0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #3cdddd, #19a1a1); border:none; padding:18px 24px;">
+                <h6 class="modal-title fw-bold mb-0" id="reviewModalLabel">
+                    <i class="fa fa-bullhorn me-2"></i>Broadcast Details
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="text-muted small fw-bold text-uppercase d-block mb-1">Title</label>
+                    <h5 class="fw-bold text-dark mb-0" id="modal-title">—</h5>
+                </div>
+                <div class="row mb-3 g-2">
+                    <div class="col-6">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Target Audience</label>
+                        <div id="modal-target"></div>
+                    </div>
+                    <div class="col-6">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Recipients Reached</label>
+                        <div><span class="badge bg-info px-2 py-1 fs-6" id="modal-recipients">0</span></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small fw-bold text-uppercase d-block mb-1">Broadcast Message</label>
+                    <div class="p-3 rounded-3 border" style="background:#f8f9fa; font-size:0.92rem; line-height:1.6; white-space:pre-wrap; word-break:break-word; max-height:240px; overflow-y:auto;" id="modal-message"></div>
+                </div>
+                <div class="d-flex justify-content-between text-muted small pt-2 border-top">
+                    <span><strong>Sent By:</strong> <span id="modal-sentby">—</span></span>
+                    <span><strong>Date:</strong> <span id="modal-date">—</span></span>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-2 px-4">
+                <button type="button" class="btn btn-secondary btn-sm" style="border-radius:8px;" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const token = window.token || localStorage.getItem("admin_token");
+    const API_BASE = window.API_BASE;
+
+    let allBroadcastLogs = [];
+    let filteredLogs = [];
+    let currentPage = 1;
+    const pageSize = 10;
+    let searchDebounceTimeout = null;
+
+    async function loadStats() {
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/notifications/stats`, {
+                headers: { Authorization: "Bearer " + token }
+            });
+            const json = await res.json();
+            if (json.data) {
+                document.getElementById("stat-today").textContent = json.data.today ?? "0";
+                document.getElementById("stat-week").textContent = json.data.this_week ?? "0";
+                document.getElementById("stat-total").textContent = (json.data.total ?? json.data.this_month) ?? "0";
+            }
+        } catch(e) {
+            console.error("Failed to load stats:", e);
+        }
+    }
+
+    async function loadHistory() {
+        const loadingEl = document.getElementById("history-loading");
+        const emptyEl = document.getElementById("history-empty");
+        const tableEl = document.getElementById("history-table");
+        const paginationEl = document.getElementById("history-pagination");
+        const refreshIcon = document.getElementById("refresh-icon");
+
+        if (refreshIcon) refreshIcon.classList.add("fa-spin");
+        loadingEl.style.display = "block";
+        emptyEl.style.display = "none";
+        tableEl.style.display = "none";
+        paginationEl.style.display = "none";
+
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/notifications/history?limit=300`, {
+                headers: { Authorization: "Bearer " + token }
+            });
+            const json = await res.json();
+            allBroadcastLogs = json.data || [];
+            applyFilters();
+        } catch(e) {
+            console.error("Failed to load broadcast history:", e);
+            loadingEl.style.display = "none";
+            emptyEl.style.display = "block";
+        } finally {
+            if (refreshIcon) refreshIcon.classList.remove("fa-spin");
+        }
+    }
+
+    function onSearchChange() {
+        clearTimeout(searchDebounceTimeout);
+        searchDebounceTimeout = setTimeout(() => {
+            applyFilters();
+        }, 200);
+    }
+
+    function onFilterChange() {
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const searchTerm = (document.getElementById("history-search").value || "").trim().toLowerCase();
+        const targetFilter = document.getElementById("target-filter").value;
+
+        filteredLogs = allBroadcastLogs.filter(log => {
+            // Target filter
+            if (targetFilter === "all" && log.target !== "all") return false;
+            if (targetFilter === "class" && log.target !== "class") return false;
+
+            // Search filter
+            if (searchTerm) {
+                const title = (log.title || "").toLowerCase();
+                const msg = (log.message || "").toLowerCase();
+                const cls = (log.target_class || "").toLowerCase();
+                const sender = (log.sent_by || "").toLowerCase();
+                if (!title.includes(searchTerm) && !msg.includes(searchTerm) && !cls.includes(searchTerm) && !sender.includes(searchTerm)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    function renderTable() {
+        const loadingEl = document.getElementById("history-loading");
+        const emptyEl = document.getElementById("history-empty");
+        const tableEl = document.getElementById("history-table");
+        const paginationEl = document.getElementById("history-pagination");
+        const tbody = document.getElementById("history-tbody");
+
+        loadingEl.style.display = "none";
+
+        if (!filteredLogs.length) {
+            emptyEl.style.display = "block";
+            tableEl.style.display = "none";
+            paginationEl.style.display = "none";
+            return;
+        }
+
+        emptyEl.style.display = "none";
+        tableEl.style.display = "table";
+
+        const totalItems = filteredLogs.length;
+        const totalPages = Math.ceil(totalItems / pageSize);
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = (currentPage - 1) * pageSize;
+        const pageItems = filteredLogs.slice(startIndex, startIndex + pageSize);
+
+        let rowsHtml = "";
+        pageItems.forEach(log => {
+            const dateStr = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
+            const isClass = log.target === "class";
+            const targetBadge = isClass 
+                ? `<span class="target-badge" style="background: rgba(19, 201, 202, 0.15); color: #0d8b8c; border: 1px solid rgba(19, 201, 202, 0.3);"><i class="fa fa-graduation-cap me-1"></i>Class ${log.target_class || ''}</span>`
+                : `<span class="target-badge" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3);"><i class="fa fa-globe me-1"></i>All Users</span>`;
+
+            const rawMsg = log.message || "";
+            const msgSnippet = rawMsg.length > 55 ? (rawMsg.slice(0, 55) + "…") : (rawMsg || "—");
+            const safeTitle = (log.title || "").replace(/"/g, "&quot;");
+            const safeMsg = rawMsg.replace(/"/g, "&quot;");
+
+            rowsHtml += `<tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px; background: rgba(19, 201, 202, 0.12); color:#13c9ca; flex-shrink:0;">
+                            <i class="fa fa-bullhorn" style="font-size:0.85rem;"></i>
+                        </div>
+                        <strong class="text-dark" title="${safeTitle}">${log.title || 'Untitled'}</strong>
+                    </div>
+                </td>
+                <td>
+                    <span class="msg-preview" title="${safeMsg}">${msgSnippet}</span>
+                </td>
+                <td>${targetBadge}</td>
+                <td>
+                    <span class="badge bg-light text-dark border px-2 py-1 font-monospace" style="font-size:0.82rem;">
+                        <i class="fa fa-users text-muted me-1"></i>${log.recipient_count ?? 0}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge bg-light text-secondary border px-2 py-1" style="font-size:0.78rem;">${log.sent_by || 'admin'}</span>
+                </td>
+                <td style="font-size:0.8rem; white-space:nowrap; color:#6c757d;">
+                    ${dateStr}
+                </td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-info" style="border-radius:8px; padding:4px 12px; font-weight:600; font-size:0.8rem;" onclick="reviewBroadcast('${log._id}')">
+                        <i class="fa fa-eye me-1"></i>Review
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = rowsHtml;
+
+        // Update pagination bar
+        paginationEl.style.display = "flex";
+        document.getElementById("page-info").textContent = `Showing ${startIndex + 1} to ${Math.min(startIndex + pageItems.length, totalItems)} of ${totalItems} broadcasts`;
+        document.getElementById("prev-btn").disabled = (currentPage <= 1);
+        document.getElementById("next-btn").disabled = (currentPage >= totalPages);
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            renderTable();
+        }
+    }
+
+    function nextPage() {
+        const totalPages = Math.ceil(filteredLogs.length / pageSize);
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderTable();
+        }
+    }
+
+    function reviewBroadcast(logId) {
+        const log = allBroadcastLogs.find(item => String(item._id) === String(logId));
+        if (!log) return;
+
+        document.getElementById("modal-title").textContent = log.title || "—";
+        document.getElementById("modal-message").textContent = log.message || "No message content.";
+        document.getElementById("modal-recipients").textContent = `${log.recipient_count ?? 0} Recipients`;
+        document.getElementById("modal-sentby").textContent = log.sent_by || "admin";
+        document.getElementById("modal-date").textContent = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
+
+        const targetDiv = document.getElementById("modal-target");
+        if (log.target === "class") {
+            targetDiv.innerHTML = `<span class="badge" style="background:#13c9ca; font-size:0.85rem;"><i class="fa fa-graduation-cap me-1"></i>Class ${log.target_class || ''}</span>`;
+        } else {
+            targetDiv.innerHTML = `<span class="badge bg-primary" style="font-size:0.85rem;"><i class="fa fa-globe me-1"></i>All Users</span>`;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById("reviewModal"));
+        modal.show();
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        loadStats();
+        loadHistory();
+    });
+</script>
+{% endblock %}

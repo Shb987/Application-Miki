@@ -212,6 +212,18 @@ async def notification_center_page(request: Request):
     return templates.TemplateResponse("notification_center.html", {"request": request})
 
 
+@router.get("/broadcast-history-page", response_class=HTMLResponse)
+async def broadcast_history_page(request: Request):
+    """Broadcast History page — view all previous broadcast notifications"""
+    return templates.TemplateResponse("broadcast_history.html", {"request": request})
+
+
+@router.get("/notification-history-page", response_class=HTMLResponse)
+async def notification_history_page(request: Request):
+    """Alias for Broadcast History page"""
+    return templates.TemplateResponse("broadcast_history.html", {"request": request})
+
+
 @router.get("/games-management-page", response_class=HTMLResponse)
 async def games_management_page(request: Request):
     """Games Management — Wordle & Squares admin UI"""

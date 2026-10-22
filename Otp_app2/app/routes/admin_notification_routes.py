@@ -123,14 +123,26 @@ async def broadcast_to_class(
 @router.get("/admin-panel/notifications/history")
 async def get_notification_history(
     skip: int = Query(0, ge=0),
-    limit: int = Query(30, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=500),
     notification_type: Optional[str] = Query(None),
+    target: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     current_admin: dict = Depends(require_permission("Notifications", "read"))
 ):
-    """Get paginated broadcast history from broadcast_logs collection."""
+    """Get paginated broadcast history from broadcast_logs collection with search & filter."""
     query: Dict[str, Any] = {}
     if notification_type:
         query["type"] = notification_type
+    if target and target in ("all", "class"):
+        query["target"] = target
+    if search and search.strip():
+        term = search.strip()
+        query["$or"] = [
+            {"title": {"$regex": term, "$options": "i"}},
+            {"message": {"$regex": term, "$options": "i"}},
+            {"target_class": {"$regex": term, "$options": "i"}},
+            {"sent_by": {"$regex": term, "$options": "i"}}
+        ]
 
     total = await db.broadcast_logs.count_documents(query)
     cursor = db.broadcast_logs.find(query).sort("created_at", -1).skip(skip).limit(limit)
@@ -154,7 +166,7 @@ async def get_notification_history(
 
 @router.get("/admin-panel/notifications/stats")
 async def get_notification_stats(current_admin: dict = Depends(require_permission("Notifications", "read"))):
-    """Returns count of broadcasts sent today, this week, and this month."""
+    """Returns count of broadcasts sent today, this week, this month, and all-time total."""
     from datetime import timedelta
 
     now = datetime.now(timezone.utc)
@@ -165,13 +177,15 @@ async def get_notification_stats(current_admin: dict = Depends(require_permissio
     today_count = await db.broadcast_logs.count_documents({"created_at": {"$gte": today_start}})
     week_count = await db.broadcast_logs.count_documents({"created_at": {"$gte": week_start}})
     month_count = await db.broadcast_logs.count_documents({"created_at": {"$gte": month_start}})
+    total_count = await db.broadcast_logs.count_documents({})
 
     return {
         "status": "success",
         "data": {
             "today": today_count,
             "this_week": week_count,
-            "this_month": month_count
+            "this_month": month_count,
+            "total": total_count
         }
     }
 

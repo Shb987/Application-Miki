@@ -886,15 +886,24 @@ async def delete_parent(
 
 
 # ──────────────────────────────────────────────────────────────
-# DISTINCT CLASS LIST (for filters)
-# ──────────────────────────────────────────────────────────────
+import re
+
+def sort_classes_naturally(classes_list):
+    def natural_key(c):
+        s = str(c).strip()
+        match = re.search(r'\d+', s)
+        num = int(match.group()) if match else 999999
+        return (num, s.lower())
+
+    cleaned = [str(c).strip() for c in classes_list if c is not None and str(c).strip()]
+    if not cleaned:
+        cleaned = [str(i) for i in range(1, 13)]
+    return sorted(list(set(cleaned)), key=natural_key)
 
 @router.get("/admin-panel/users/classes")
 async def get_available_classes(current_admin: dict = Depends(require_permission("User Management", "read"))):
     """Returns the distinct student classes present in DB (for filter dropdowns)."""
     classes = await db.students.distinct("student_class")
-    try:
-        classes_sorted = sorted(classes, key=lambda x: int(str(x)))
-    except Exception:
-        classes_sorted = sorted(classes)
+    classes_sorted = sort_classes_naturally(classes)
     return {"status": "success", "classes": classes_sorted}
+

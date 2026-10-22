@@ -8,16 +8,18 @@ from app.utils.admin_auth import require_permission
 
 router = APIRouter()
 
+from datetime import datetime, timezone
+
 @router.post("/schools", response_model=dict)
 async def create_school(school: SchoolCreate, current_admin: dict = Depends(require_permission("Schools", "create"))):
     school_dict = school.model_dump()
-    school_db = SchoolInDB(**school_dict)
     
     # Check if link already exists
     existing = await db.schools.find_one({"link": school.link})
     if existing:
         raise HTTPException(status_code=400, detail="School with this link already exists")
     
+    school_db = SchoolInDB(**school_dict, created_at=datetime.now(timezone.utc))
     result = await db.schools.insert_one(jsonable_encoder(school_db))
     return {"message": "School created successfully", "id": str(result.inserted_id)}
 
@@ -26,6 +28,8 @@ async def get_schools(current_admin: dict = Depends(require_permission("Schools"
     schools = await db.schools.find().to_list(length=None)
     for s in schools:
         s["_id"] = str(s["_id"])
+        if isinstance(s.get("created_at"), datetime):
+            s["created_at"] = s["created_at"].isoformat()
     return {"data": schools}
 
 @router.get("/schools/{school_id}", response_model=dict)
@@ -40,6 +44,8 @@ async def get_school(school_id: str, current_admin: dict = Depends(require_permi
         raise HTTPException(status_code=404, detail="School not found")
     
     school["_id"] = str(school["_id"])
+    if isinstance(school.get("created_at"), datetime):
+        school["created_at"] = school["created_at"].isoformat()
     return {"data": school}
 
 @router.put("/schools/{school_id}", response_model=dict)

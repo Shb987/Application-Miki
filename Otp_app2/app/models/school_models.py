@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 class SchoolCreate(BaseModel):
     name: str
@@ -11,4 +11,5 @@ class SchoolUpdate(BaseModel):
     link: Optional[str] = None
 
 class SchoolInDB(SchoolCreate):
-    created_at: datetime = datetime.utcnow()
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+

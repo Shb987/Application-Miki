@@ -22,6 +22,30 @@
         opacity: .85;
     }
 
+    #nc-history-wrapper {
+        max-height: 480px;
+        overflow-y: auto;
+    }
+
+    #nc-history-wrapper thead th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        z-index: 2;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .msg-snippet {
+        max-width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #6c757d;
+        font-size: 0.78rem;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
     #toast-nc {
         position: fixed;
         bottom: 24px;
@@ -100,7 +124,9 @@
                     </div>
                     <div class="mb-3" id="nc-class-row" style="display:none;">
                         <label class="form-label" style="font-size:.85rem;font-weight:600;">Class</label>
-                        <select id="nc-class" class="form-select" style="border-radius:8px;"></select>
+                        <select id="nc-class" class="form-select" style="border-radius:8px;">
+                            <option value="" disabled selected>-- Select Class --</option>
+                        </select>
                     </div>
                     <button class="btn btn-primary w-100" style="background:linear-gradient(135deg,#3cdddd,#19a1a1); color:#fff; border:none; border-radius:8px; font-weight:600;" onclick="openConfirm()">Send Notification</button>
                 </div>
@@ -113,13 +139,21 @@
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <h6 class="mb-0">Broadcast History</h6>
                     <button class="btn btn-sm btn-outline-primary" style="border-radius:8px;"
-                        onclick="loadHistory()">Refresh</button>
+                        onclick="loadHistory()"><i class="fa fa-refresh me-1"></i>Refresh</button>
                 </div>
                 <div class="card-body p-0">
                     <div id="nc-history-wrapper" class="table-responsive">
                         <div class="text-center py-4">
                             <div class="spinner-border text-primary"></div>
                         </div>
+                    </div>
+                </div>
+                <!-- Pagination Footer -->
+                <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between py-2 px-3" id="nc-pagination-bar" style="display:none !important; border-radius:0 0 16px 16px;">
+                    <span class="text-muted small" id="nc-page-info">Showing 0-0 of 0</span>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary" id="nc-prev-btn" onclick="prevHistoryPage()">&laquo; Prev</button>
+                        <button type="button" class="btn btn-outline-secondary" id="nc-next-btn" onclick="nextHistoryPage()">Next &raquo;</button>
                     </div>
                 </div>
             </div>
@@ -129,7 +163,7 @@
 
 <!-- Confirm Modal -->
 <div class="modal fade" id="confirmModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content" style="border-radius:16px;">
             <div class="modal-header bg-primary text-white" style="border-radius:16px 16px 0 0;">
                 <h6 class="modal-title">Confirm Send</h6>
@@ -139,6 +173,45 @@
             <div class="modal-footer">
                 <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button class="btn btn-sm btn-primary" onclick="doSend()" id="do-send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#56dfdf,#19a1a1);color:#fff;border-radius:16px 16px 0 0;">
+                <h6 class="modal-title mb-0" id="reviewModalLabel"><i class="fa fa-bullhorn me-2"></i>Broadcast Details</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="text-muted small fw-bold text-uppercase d-block mb-1">Title</label>
+                    <h5 class="fw-bold text-dark mb-0" id="review-title"></h5>
+                </div>
+                <div class="row mb-3 g-2">
+                    <div class="col-6">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Target Audience</label>
+                        <div id="review-target"></div>
+                    </div>
+                    <div class="col-6">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Recipients Reached</label>
+                        <div><span class="badge bg-info px-2 py-1 fs-6" id="review-recipients">0</span></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small fw-bold text-uppercase d-block mb-1">Broadcast Message</label>
+                    <div class="p-3 bg-light rounded-3 border" style="font-size:0.9rem; line-height:1.6; white-space:pre-wrap; word-break:break-word; max-height:220px; overflow-y:auto;" id="review-message"></div>
+                </div>
+                <div class="d-flex justify-content-between text-muted small pt-2 border-top">
+                    <span><strong>Sent By:</strong> <span id="review-sentby">—</span></span>
+                    <span><strong>Date:</strong> <span id="review-date">—</span></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -156,16 +229,34 @@
     const token = window.token || localStorage.getItem("admin_token");
     const API_BASE = window.API_BASE;
     let pendingPayload = null;
+    let broadcastHistory = [];
+    let currentHistoryPage = 1;
+    const historyPageSize = 7;
 
     function toggleClass() {
         document.getElementById("nc-class-row").style.display = document.getElementById("nc-target").value === "class" ? "" : "none";
     }
 
     async function loadClasses() {
-        const res = await fetch(`${API_BASE}/admin-panel/notifications/classes`, { headers: { Authorization: "Bearer " + token } });
-        const json = await res.json();
+        let classes = [];
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/notifications/classes`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            classes = json.classes || [];
+        } catch(e) {}
+
         const sel = document.getElementById("nc-class");
-        sel.innerHTML = (json.classes || []).map(c => `<option value="${c}">Class ${c}</option>`).join("");
+        // Ensure natural numeric order (1, 2, ... 10, 11, 12)
+        const defaultClasses = Array.from({length: 12}, (_, i) => String(i + 1));
+        const combined = Array.from(new Set([...defaultClasses, ...classes.map(String).filter(s => s && s.trim())]));
+        combined.sort((a, b) => {
+            const numA = parseInt(a.replace(/\D/g, "")) || 999999;
+            const numB = parseInt(b.replace(/\D/g, "")) || 999999;
+            return numA !== numB ? numA - numB : a.localeCompare(b);
+        });
+
+        sel.innerHTML = `<option value="" disabled selected>-- Select Class --</option>` +
+            combined.map(c => `<option value="${c}">Class ${c}</option>`).join("");
     }
 
     async function loadStats() {
@@ -180,22 +271,122 @@
 
     async function loadHistory() {
         document.getElementById("nc-history-wrapper").innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
-        const res = await fetch(`${API_BASE}/admin-panel/notifications/history?limit=30`, { headers: { Authorization: "Bearer " + token } });
-        const json = await res.json();
-        if (!json.data || !json.data.length) {
-            document.getElementById("nc-history-wrapper").innerHTML = `<div class="text-center text-muted py-4">No broadcasts sent yet</div>`;
+        const paginationBar = document.getElementById("nc-pagination-bar");
+        if (paginationBar) paginationBar.style.setProperty("display", "none", "important");
+
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/notifications/history?limit=100`, { headers: { Authorization: "Bearer " + token } });
+            const json = await res.json();
+            broadcastHistory = json.data || [];
+            currentHistoryPage = 1;
+            renderHistoryPage();
+        } catch(err) {
+            document.getElementById("nc-history-wrapper").innerHTML = `<div class="text-center text-danger py-4">Failed to load history</div>`;
+        }
+    }
+
+    function renderHistoryPage() {
+        const wrapper = document.getElementById("nc-history-wrapper");
+        const paginationBar = document.getElementById("nc-pagination-bar");
+
+        if (!broadcastHistory.length) {
+            wrapper.innerHTML = `<div class="text-center text-muted py-4">No broadcasts sent yet</div>`;
+            if (paginationBar) paginationBar.style.setProperty("display", "none", "important");
             return;
         }
-        let html = `<table class="table table-hover mb-0" style="font-size:.82rem;"><thead class="table-light"><tr><th>Title</th><th>Target</th><th>Recipients</th><th>Date</th></tr></thead><tbody>`;
-        json.data.forEach(log => {
+
+        const totalItems = broadcastHistory.length;
+        const totalPages = Math.ceil(totalItems / historyPageSize);
+        if (currentHistoryPage > totalPages) currentHistoryPage = totalPages;
+        if (currentHistoryPage < 1) currentHistoryPage = 1;
+
+        const startIndex = (currentHistoryPage - 1) * historyPageSize;
+        const pageItems = broadcastHistory.slice(startIndex, startIndex + historyPageSize);
+
+        let html = `<table class="table table-hover align-middle mb-0" style="font-size:.82rem;">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>Message</th>
+                    <th>Target</th>
+                    <th>Recipients</th>
+                    <th>Date</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        pageItems.forEach(log => {
             const date = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
-            html += `<tr><td><strong>${log.title}</strong></td>
-      <td>${log.target === "class" ? `<span class="badge" style="background:#13c9ca;">Class ${log.target_class}</span>` : `<span class="badge bg-primary">All</span>`}</td>
-      <td><span class="badge bg-info">${log.recipient_count || 0}</span></td>
-      <td style="font-size:.75rem;">${date}</td></tr>`;
+            const targetBadge = log.target === "class" 
+                ? `<span class="badge" style="background:#13c9ca;">Class ${log.target_class || ''}</span>` 
+                : `<span class="badge bg-primary">All</span>`;
+            
+            const rawMsg = log.message || '';
+            const msgSnippet = rawMsg.length > 35 ? (rawMsg.slice(0, 35) + '…') : (rawMsg || '—');
+            const safeTitle = (log.title || '').replace(/"/g, '&quot;');
+            const safeMsg = rawMsg.replace(/"/g, '&quot;');
+
+            html += `<tr>
+                <td><strong class="text-dark" title="${safeTitle}">${log.title}</strong></td>
+                <td><span class="msg-snippet" title="${safeMsg}">${msgSnippet}</span></td>
+                <td>${targetBadge}</td>
+                <td><span class="badge bg-info">${log.recipient_count || 0}</span></td>
+                <td style="font-size:.75rem; white-space:nowrap;">${date}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-info" style="border-radius:6px; padding:3px 8px; font-size:.75rem; font-weight:600;" onclick="reviewBroadcast('${log._id}')">
+                        <i class="fa fa-eye me-1"></i>Review
+                    </button>
+                </td>
+            </tr>`;
         });
+
         html += `</tbody></table>`;
-        document.getElementById("nc-history-wrapper").innerHTML = html;
+        wrapper.innerHTML = html;
+
+        // Update pagination bar
+        if (paginationBar) {
+            paginationBar.style.setProperty("display", "flex", "important");
+            document.getElementById("nc-page-info").textContent = `Showing ${startIndex + 1}-${Math.min(startIndex + pageItems.length, totalItems)} of ${totalItems}`;
+            document.getElementById("nc-prev-btn").disabled = (currentHistoryPage <= 1);
+            document.getElementById("nc-next-btn").disabled = (currentHistoryPage >= totalPages);
+        }
+    }
+
+    function prevHistoryPage() {
+        if (currentHistoryPage > 1) {
+            currentHistoryPage--;
+            renderHistoryPage();
+        }
+    }
+
+    function nextHistoryPage() {
+        const totalPages = Math.ceil(broadcastHistory.length / historyPageSize);
+        if (currentHistoryPage < totalPages) {
+            currentHistoryPage++;
+            renderHistoryPage();
+        }
+    }
+
+    function reviewBroadcast(logId) {
+        const log = broadcastHistory.find(item => String(item._id) === String(logId));
+        if (!log) return;
+
+        document.getElementById("review-title").textContent = log.title || "—";
+        document.getElementById("review-message").textContent = log.message || "No message content.";
+        document.getElementById("review-recipients").textContent = log.recipient_count || 0;
+        document.getElementById("review-sentby").textContent = log.sent_by || "admin";
+        document.getElementById("review-date").textContent = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
+        
+        const targetDiv = document.getElementById("review-target");
+        if (log.target === "class") {
+            targetDiv.innerHTML = `<span class="badge" style="background:#13c9ca; font-size:0.85rem;">Class ${log.target_class || ''}</span>`;
+        } else {
+            targetDiv.innerHTML = `<span class="badge bg-primary" style="font-size:0.85rem;">All Users</span>`;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById("reviewModal"));
+        modal.show();
     }
 
     function openConfirm() {
@@ -204,7 +395,7 @@
         const target = document.getElementById("nc-target").value;
         const cls = document.getElementById("nc-class").value;
         if (!title || !message) { showToast("Title and message are required", "danger"); return; }
-        if (target === "class" && !cls) { showToast("Select a class", "danger"); return; }
+        if (target === "class" && (!cls || cls === "")) { showToast("Please select a class", "danger"); return; }
         pendingPayload = { title, message, type: "announcement", _target: target };
         if (target === "class") pendingPayload.student_class = cls;
         const targetLabel = target === "class" ? `Class <strong>${cls}</strong>` : "<strong>All Users</strong>";
@@ -238,4 +429,5 @@
     loadClasses(); loadStats(); loadHistory();
 </script>
 {% endblock %}
+
 

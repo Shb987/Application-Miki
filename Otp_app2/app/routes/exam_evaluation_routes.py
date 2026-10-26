@@ -128,11 +128,11 @@ def is_invalid_or_unattempted_answer(student_answer: str) -> Tuple[bool, str]:
     if lower_cleaned in ["[unreadable]", "unreadable"]:
         return True, "The handwritten answer could not be deciphered. Please write clearly in pencil or pen."
 
-    if lower_cleaned in ["[not attempted]", "not attempted", "unanswered", "blank", "empty", "no answer", "nil", "null"]:
+    if lower_cleaned in ["[not attempted]", "not attempted", "unanswered", "blank", "empty", "no answer"]:
         return True, "This question was not attempted by the student."
 
     unattempted_tokens = {
-        "[invalid answersheet]", "invalid answersheet", "none", "n/a", "na",
+        "[invalid answersheet]", "invalid answersheet",
         "jpg", "jpeg", "png", "gif", "svg", "pdf", "image", "file", "icon",
         "thumbnail", "placeholder", "document"
     }
@@ -250,7 +250,11 @@ CRITICAL INSTRUCTIONS FOR READING STUDENT EXAM PAPERS:
    - School students often write with emergent, wobbly, faint pencil strokes, cursive curves, and phonetic spelling attempts.
    - As an experienced school teacher, you MUST decipher what the student wrote on the page.
    - If answers are typed or printed on a worksheet/text document, transcribe the student's answer text for each question.
-   - If a question was left completely blank with no student writing at all, set its value to "[Not Attempted]".
+   - 🚨 CRITICAL RULE FOR DIFFERENT CHAPTERS / TOPICS / FORMAT-MISMATCHED ANSWERS:
+     Sometimes a student uploads an answer sheet that belongs to a different chapter, worksheet, or test than the question paper (for example, writing "TRUE" or "FALSE" for a descriptive question, or writing answers to a different chapter).
+     You MUST ALWAYS transcribe whatever the student physically wrote on the page for that question number/slot (e.g. if the student wrote "TRUE" for Question 1, transcribe "TRUE").
+     NEVER mark an answer as "[Not Attempted]" if the student wrote ANY answer on the sheet, even if it is completely wrong, irrelevant, from a different chapter, or mismatched in format.
+   - ONLY output "[Not Attempted]" if the question slot or answer space is completely blank with zero student writing.
    - STRICT PROHIBITION ON "[Unreadable]":
      NEVER mark text as "[Unreadable]" if any letter strokes, characters, or words are discernible.
      You may ONLY output "[Unreadable]" if the writing area contains complete blacked-out scribbles or ink smudges with zero discernible letters.
@@ -258,6 +262,7 @@ CRITICAL INSTRUCTIONS FOR READING STUDENT EXAM PAPERS:
 3. DO NOT SOLVE THE QUESTIONS YOURSELF & DO NOT HALLUCINATE ANSWERS:
    - Only transcribe words or phrases the student physically attempted to write on the page. Do NOT invent multi-sentence answers that are not on the page.
    - CRITICAL: If the document or question space is blank or has no student writing, output "[Not Attempted]".
+   - If the student wrote ANY answer (even a single word like "TRUE", "FALSE", a number, or an answer to a different question), transcribe that exact text.
    - NEVER hallucinate, guess, or inject answers from the question context or previous tests if the page is blank.
    - NEVER copy an answer from Question 1 into Question 11 or any other question if the student did not write it.
 
@@ -344,8 +349,9 @@ Extract the student's answers for each of the following exam questions:
 
 TASK:
 1. Locate the answer or response corresponding to each question number (whether handwritten, typed, or printed on the page).
-2. If an answer is present, transcribe it accurately.
-3. If a question is not answered, or if the page is blank, output "[Not Attempted]". DO NOT solve or guess answers yourself.
+2. If an answer is present on the page (even if it belongs to a different chapter or is just "TRUE" / "FALSE"), transcribe it accurately as written.
+3. NEVER mark a question as "[Not Attempted]" if the student wrote any text on the page for that question slot.
+4. ONLY output "[Not Attempted]" if the question space is completely blank with no student writing. DO NOT solve or guess answers yourself.
 
 Return JSON:
 {{
@@ -598,6 +604,8 @@ EVALUATION RULES:
    - If completely correct, award {max_marks}.
    - If partially correct, award partial marks strictly proportional to the valid points.
    - If completely incorrect, contradictory, filler, or unattempted, award 0.
+   - OUT-OF-CONTEXT / DIFFERENT CHAPTER / FORMAT-MISMATCHED ANSWERS:
+     If the student wrote an answer that does not match the question, belongs to a different chapter, or has the wrong format (for example, writing "TRUE" or "FALSE" for a question asking "What did the cap-seller carry on his head?"), evaluate it objectively: award 0 marks and provide helpful feedback explaining that the answer does not address the question asked (e.g. "Incorrect. The student wrote 'TRUE', which does not answer what the cap-seller carried on his head."). This is an attempted answer, evaluated with a score of 0.
    - Score MUST be a numeric value between 0 and {max_marks}.
 
 2. FEEDBACK:
@@ -714,8 +722,20 @@ def _grade_from_pct(pct: float) -> str:
 
 
 def _question_status(score: float, max_marks: float, student_answer: str) -> str:
-    if not student_answer or "[Not Attempted" in student_answer or student_answer.strip() in ["[Not Attempted]", "Not Attempted", "[Unreadable]", "[Invalid Answersheet]"]:
+    ans_str = str(student_answer or "").strip()
+    ans_lower = ans_str.lower()
+
+    # Genuine unattempted checks (blank, missing, or explicit unattempted token):
+    if not ans_str or ans_lower in [
+        "[not attempted]", "not attempted",
+        "[not attempted - invalid image uploaded]", "not attempted - invalid image uploaded",
+        "[invalid answersheet]", "invalid answersheet",
+        "unanswered", "blank", "empty", "no answer"
+    ] or "[not attempted" in ans_lower:
         return "not_attempted"
+
+    # Any attempted answer (even if [Unreadable], score 0, from a different chapter, or wrong format)
+    # is evaluated: correct if full marks, partial if > 0, otherwise wrong.
     if score == max_marks and max_marks > 0:
         return "correct"
     if score > 0:
@@ -861,6 +881,134 @@ If all questions were "[Not Attempted]", reflect that honestly.
 # 4. MAIN API
 # ------------------------------
 
+ROMAN_TO_INT = {
+    "i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6, "vii": 7, "viii": 8, "ix": 9, "x": 10,
+    "xi": 11, "xii": 12, "xiii": 13, "xiv": 14, "xv": 15, "xvi": 16, "xvii": 17, "xviii": 18, "xix": 19, "xx": 20
+}
+
+def normalize_student_answers(raw_answers: Any) -> Dict[str, str]:
+    """
+    Normalizes raw answers extracted by OCR/Vision into a clean mapping from string question number to answer text.
+    Handles:
+    - Lists: ["TRUE", "FALSE"] -> {"1": "TRUE", "2": "FALSE"}
+    - Nested dicts: {"Section A": {"1": "TRUE"}} -> flattens to {"1": "TRUE"}
+    - Keys with prefixes: "Q1", "Question 1", "1.", "1)", "Ans 1" -> "1"
+    - Roman numerals: "I", "II", "III" -> "1", "2", "3"
+    - Non-string values: unwraps dicts/lists to text
+    """
+    normalized: Dict[str, str] = {}
+    if raw_answers is None:
+        return normalized
+
+    if isinstance(raw_answers, list):
+        for idx, val in enumerate(raw_answers, 1):
+            if val is not None:
+                normalized[str(idx)] = str(val).strip()
+        return normalized
+
+    if not isinstance(raw_answers, dict):
+        return normalized
+
+    flat_pairs: List[Tuple[str, Any]] = []
+
+    def _flatten(d: dict, prefix=""):
+        for k, v in d.items():
+            k_str = str(k).strip()
+            if isinstance(v, dict) and not any(subk in ["answer", "text", "student_answer", "val", "value"] for subk in v.keys()):
+                _flatten(v, prefix=f"{prefix}{k_str} ")
+            elif isinstance(v, list) and all(isinstance(elem, (str, int, float)) for elem in v):
+                flat_pairs.append((f"{prefix}{k_str}", ", ".join(str(elem) for elem in v)))
+            else:
+                flat_pairs.append((f"{prefix}{k_str}", v))
+
+    _flatten(raw_answers)
+
+    seq_counter = 1
+    for raw_k, raw_v in flat_pairs:
+        # Unwrap dict or list value
+        if isinstance(raw_v, dict):
+            val_text = str(raw_v.get("answer") or raw_v.get("text") or raw_v.get("student_answer") or raw_v.get("value") or "").strip()
+        elif isinstance(raw_v, list):
+            val_text = ", ".join(str(elem) for elem in raw_v).strip()
+        else:
+            val_text = str(raw_v or "").strip()
+
+        k_clean = raw_k.strip().lower()
+
+        # Try extract standard question number e.g. "Q1", "1.", "Question 1", "Ans 1", "Section A 1"
+        num_match = re.search(r'(?:q(?:uestion)?|ans(?:wer)?|no\.?|section\s*[a-z]\s*)?[\s\-_:#]*([0-9]+)\.?$', k_clean)
+        if not num_match:
+            num_match = re.search(r'\b([0-9]+)\b', k_clean)
+
+        if num_match:
+            std_key = str(int(num_match.group(1)))
+            normalized[std_key] = val_text
+        elif k_clean in ROMAN_TO_INT:
+            std_key = str(ROMAN_TO_INT[k_clean])
+            normalized[std_key] = val_text
+        else:
+            # Store verbatim key for question text / fuzzy fallback
+            normalized[k_clean] = val_text
+
+        # Also store under sequential order if not yet occupied
+        seq_key = str(seq_counter)
+        if seq_key not in normalized and val_text:
+            normalized[f"seq_{seq_counter}"] = val_text
+        seq_counter += 1
+
+    return normalized
+
+
+def get_student_answer_for_question(student_answers: Dict[str, str], q_number: int, q_text: str = "") -> str:
+    """
+    Retrieves the student answer for question `q_number` using robust fallback strategies:
+    1. Exact numeric key "1"
+    2. Normalized prefixes: "q1", "1.", "question 1"
+    3. Roman numeral key e.g. "i", "ii"
+    4. Fuzzy question text matching if the key contains words from the question text
+    5. Sequential position fallback "seq_{q_number}"
+    """
+    if not student_answers:
+        return "[Not Attempted]"
+
+    str_q = str(q_number)
+    # 1. Direct hit
+    if str_q in student_answers and student_answers[str_q]:
+        return student_answers[str_q]
+
+    # 2. Case variations and common aliases
+    aliases = [
+        f"q{q_number}", f"q_{q_number}", f"question {q_number}", f"question_{q_number}",
+        f"{q_number}.", f"{q_number})", f"ans {q_number}", f"answer {q_number}"
+    ]
+    for alias in aliases:
+        if alias in student_answers and student_answers[alias]:
+            return student_answers[alias]
+
+    # 3. Roman numerals
+    int_to_roman = {v: k for k, v in ROMAN_TO_INT.items()}
+    if q_number in int_to_roman:
+        rom = int_to_roman[q_number]
+        if rom in student_answers and student_answers[rom]:
+            return student_answers[rom]
+
+    # 4. Question text keyword matching
+    if q_text:
+        q_words = [w for w in re.findall(r'[a-zA-Z0-9]+', q_text.lower()) if len(w) > 3]
+        if q_words:
+            for k, val in student_answers.items():
+                k_low = k.lower()
+                if any(w in k_low for w in q_words) and val:
+                    return val
+
+    # 5. Sequential fallback if sequential answers exist
+    seq_key = f"seq_{q_number}"
+    if seq_key in student_answers and student_answers[seq_key]:
+        return student_answers[seq_key]
+
+    return "[Not Attempted]"
+
+
 async def process_evaluation_background(eval_oid: str, paper_id: str, student_id: str, saved_file_paths: List[str], model: str = "gpt-4o-mini"):
     evaluation_status = "FAILED"
     total_score = 0
@@ -905,19 +1053,22 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
         is_valid_paper = ocr_result.get("is_valid_answersheet", True) if isinstance(ocr_result, dict) else True
         invalid_reason = ocr_result.get("invalid_reason", "") if isinstance(ocr_result, dict) else ""
         raw_answers = ocr_result.get("answers", ocr_result) if isinstance(ocr_result, dict) else ocr_result
-        if not isinstance(raw_answers, dict):
-            raw_answers = {}
-        student_answers = {str(k): v for k, v in raw_answers.items()}
+        student_answers = normalize_student_answers(raw_answers)
 
-        # 🛡️ Safeguard: NEVER falsely invalidate academic text documents or worksheets
+        # 🛡️ Safeguard: NEVER falsely invalidate academic text documents, worksheets, or papers from different chapters
         if not is_valid_paper:
-            lower_reason = invalid_reason.lower()
-            is_truly_invalid = any(kw in lower_reason for kw in ["blank", "empty", "solid", "white", "black", "no answers", "zero text", "non-academic", "meme", "selfie", "pet", "vehicle"])
-            if not is_truly_invalid:
-                if any(kw in lower_reason for kw in ["text document", "printed", "typed", "worksheet", "content is a text document"]):
-                    print(f"[Evaluation] Overriding false invalid_answersheet flag in background task (Reason: '{invalid_reason}'). Proceeding with grading.")
-                    is_valid_paper = True
-                    invalid_reason = ""
+            if student_answers:
+                print(f"[Evaluation] Student uploaded answers ({len(student_answers)} extracted). Overriding invalid_answersheet flag (Reason was: '{invalid_reason}') so they are evaluated properly.")
+                is_valid_paper = True
+                invalid_reason = ""
+            else:
+                lower_reason = invalid_reason.lower()
+                is_truly_invalid = any(kw in lower_reason for kw in ["blank", "empty", "solid", "white", "black", "no answers", "zero text", "non-academic", "meme", "selfie", "pet", "vehicle"])
+                if not is_truly_invalid:
+                    if any(kw in lower_reason for kw in ["text document", "printed", "typed", "worksheet", "content is a text document", "different chapter", "chapter"]):
+                        print(f"[Evaluation] Overriding false invalid_answersheet flag in background task (Reason: '{invalid_reason}'). Proceeding with grading.")
+                        is_valid_paper = True
+                        invalid_reason = ""
 
         # 5. Context
         chapter_docs = await db.textbook_chapters.find({
@@ -994,8 +1145,8 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
             for section in paper.get("sections", []):
                 marks = section.get("marks_per_question", 1)
                 for q in section.get("questions", []):
-                    student_ans = student_answers.get(str(q_number), "[Not Attempted]")
                     q_text = (q.get("question") or q.get("text") or str(q)) if isinstance(q, dict) else str(q)
+                    student_ans = get_student_answer_for_question(student_answers, q_number, q_text)
                     q_marks = q.get("marks", marks) if isinstance(q, dict) else marks
                     ref_answer = (
                         q.get("answer")
@@ -1469,7 +1620,7 @@ async def enrich_evaluation_data(data: dict):
             or ans_clean in [
                 "[not attempted]", "not attempted",
                 "[not attempted - invalid image uploaded]", "not attempted - invalid image uploaded",
-                "unanswered", "blank", "empty", "no answer", "nil", "null", "none"
+                "unanswered", "blank", "empty", "no answer"
             ]
             or "[not attempted" in ans_clean
         )
@@ -1498,7 +1649,7 @@ async def enrich_evaluation_data(data: dict):
 
         # 🧹 CLEANUP CORRUPTED FORGED ANSWERS:
         # If Q11 "Explain why Anandi loves rainbows." was falsely injected with "To draw and paint":
-        if ("explain why anandi loves rainbow" in q_lower or ("anandi" in q_lower and "rainbow" in q_lower and ("why" in q_lower or "explain" in q_lower)) or r.get("q_no") == 11):
+        if ("explain why anandi loves rainbow" in q_lower or ("anandi" in q_lower and "rainbow" in q_lower and ("why" in q_lower or "explain" in q_lower))):
             if ans_clean in ["to draw and paint", "draw and paint", "to draw & paint", "draw & paint"] and r.get("score", 0) >= 2.0:
                 r["student_answer"] = "[Not Attempted]"
                 r["score"] = 0.0
@@ -1579,9 +1730,12 @@ async def enrich_evaluation_data(data: dict):
             has_healed = True
 
         # Always ensure status and pct are accurate for the current score
+        old_status = r.get("status")
         r["status"] = _question_status(r.get("score", score), max_m, r.get("student_answer", ans))
         if max_m:
             r["pct"] = round((r.get("score", score) / max_m * 100), 1)
+        if old_status != r.get("status"):
+            has_healed = True
 
         # 🩹 HEAL PLACEHOLDER OR BRACKETED IDEAL ANSWERS:
         ideal_val = str(r.get("ideal_answer") or "").strip()
@@ -1712,6 +1866,7 @@ async def auto_heal_unreadable_and_placeholder_evaluations():
                 {"status": "FAILED", "error": {"$regex": r"subject", "$options": "i"}},
                 {"detailed_results": {"$elemMatch": {"q_no": 11, "student_answer": {"$regex": r"to draw and paint", "$options": "i"}}}},
                 {"detailed_results": {"$elemMatch": {"question": {"$regex": r"explain why anandi", "$options": "i"}, "student_answer": {"$regex": r"to draw and paint", "$options": "i"}}}},
+                {"detailed_results": {"$elemMatch": {"status": "not_attempted", "student_answer": {"$nin": ["[Not Attempted]", "Not Attempted", "[Not Attempted - Invalid Image Uploaded]", "not attempted", ""]}}}},
                 {"_id": ObjectId("6adf1ddc62c75f16e29a0ac6")}
             ]
         })

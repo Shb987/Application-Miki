@@ -145,32 +145,26 @@ def save_scert_question_paper(json_paper: dict, filename: str):
 
   .section-hdr {{
     display: block;
-    clear: both;
     background-color: #eef2f5;
     color: #002B49;
     font-size: 13px;
     font-weight: bold;
-    padding: 8px 10px;
-    margin-top: 20px;
-    margin-bottom: 14px;
+    padding: 6px 10px;
+    margin-top: 16px;
+    margin-bottom: 10px;
     border-left: 4px solid #002B49;
     width: 100%;
     line-height: 1.4;
-    page-break-after: avoid;
-    break-after: avoid;
   }}
   .question {{
     display: block;
-    clear: both;
-    margin-bottom: 14px;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    margin-bottom: 12px;
     width: 100%;
   }}
   .q-text {{
     font-size: 13px;
-    margin-bottom: 6px;
-    line-height: 1.6;
+    margin-bottom: 4px;
+    line-height: 1.5;
     color: #111111;
     display: block;
     clear: both;
@@ -362,25 +356,49 @@ def save_scert_question_paper(json_paper: dict, filename: str):
         if fitz and hasattr(fitz, "Story") and hasattr(fitz, "Archive"):
             archive = fitz.Archive(base_dir)
             story = fitz.Story(full_html, archive=archive)
-            writer = fitz.DocumentWriter(filename)
 
             page_rect = fitz.Rect(0, 0, 595, 842)      # A4 Page Mediabox (0, 0, 595, 842)
             content_rect = fitz.Rect(36, 36, 559, 806) # Printable Content Area (36pt margins)
 
-            more = True
-            while more:
-                device = writer.begin_page(page_rect)
-                more, _ = story.place(content_rect)
-                story.draw(device)
-                writer.end_page()
+            doc = fitz.open()
+            more = 1
+            page_count = 0
+            max_pages = 50
 
-            writer.close()
-            print(f"[PyMuPDF-PDF] Saved unclipped SCERT PDF to {filename} ({os.path.getsize(filename)} bytes)")
+            while more and page_count < max_pages:
+                page = doc.new_page(width=595, height=842)
+                page_count += 1
+                more, _ = story.place(content_rect)
+                story.draw(page)
+
+            doc.save(filename)
+            doc.close()
+            print(f"[PyMuPDF-PDF] Saved unclipped SCERT PDF ({page_count} pages) to {filename} ({os.path.getsize(filename)} bytes)")
             return
         else:
             raise AttributeError("fitz module lacks Story or Archive")
     except Exception as err:
-        print(f"[PDF-GEN] PyMuPDF fitz.Story rendering failed/unavailable: {err}. Falling back...")
+        print(f"[PDF-GEN] PyMuPDF fitz.Story doc rendering failed: {err}. Trying DocumentWriter...")
+        try:
+            if fitz and hasattr(fitz, "Story") and hasattr(fitz, "DocumentWriter"):
+                archive = fitz.Archive(base_dir)
+                story = fitz.Story(full_html, archive=archive)
+                writer = fitz.DocumentWriter(filename)
+                page_rect = fitz.Rect(0, 0, 595, 842)
+                content_rect = fitz.Rect(36, 36, 559, 806)
+                more = 1
+                p_cnt = 0
+                while more and p_cnt < 50:
+                    device = writer.begin_page(page_rect)
+                    p_cnt += 1
+                    more, _ = story.place(content_rect)
+                    story.draw(device)
+                    writer.end_page()
+                writer.close()
+                print(f"[PyMuPDF-PDF] Saved via DocumentWriter fallback to {filename}")
+                return
+        except Exception as e2:
+            print(f"[PDF-GEN] DocumentWriter also failed: {e2}. Falling back to canvas...")
         _save_fallback_pdf(json_paper, filename)
 
 

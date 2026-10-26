@@ -100,24 +100,23 @@ def save_primary_question_paper(json_paper: dict, filename: str):
   .lang-hi {{ font-family: 'NotoDevanagari', sans-serif; }}
   .lang-hi-bold {{ font-family: 'NotoDevanagariBold', sans-serif; }}
   
-  .header {{ text-align: center; margin-bottom: 10px; width: 100%; }}
-  .title {{ font-size: 22px; font-weight: bold; color: #002B49; margin-bottom: 4px; letter-spacing: 0.5px; }}
-  .subtitle {{ font-size: 13px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }}
+  .header {{ text-align: center; margin-bottom: 8px; width: 100%; }}
+  .title {{ font-size: 20px; font-weight: bold; color: #002B49; margin-bottom: 3px; letter-spacing: 0.5px; }}
+  .subtitle {{ font-size: 12px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }}
   
   table.meta-header-table {{
     width: 100% !important;
     border-collapse: collapse;
     border-bottom: 2px solid #002B49;
-    margin-top: 10px;
-    margin-bottom: 18px;
-    clear: both;
+    margin-top: 8px;
+    margin-bottom: 14px;
   }}
   td.meta-left {{
     width: 50% !important;
     text-align: left !important;
     vertical-align: bottom;
-    padding-bottom: 6px;
-    font-size: 12px;
+    padding-bottom: 4px;
+    font-size: 11px;
     font-weight: bold;
     color: #111111;
   }}
@@ -125,70 +124,60 @@ def save_primary_question_paper(json_paper: dict, filename: str):
     width: 50% !important;
     text-align: right !important;
     vertical-align: bottom;
-    padding-bottom: 6px;
-    font-size: 12px;
+    padding-bottom: 4px;
+    font-size: 11px;
     font-weight: bold;
     color: #111111;
   }}
 
   .section-hdr {{
     display: block;
-    clear: both;
     background-color: #e0f2fe;
     color: #0369a1;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: bold;
-    padding: 8px 10px;
-    margin-top: 22px;
-    margin-bottom: 14px;
-    border-left: 5px solid #0284c7;
-    border-radius: 4px;
+    padding: 6px 10px;
+    margin-top: 14px;
+    margin-bottom: 10px;
+    border-left: 4px solid #0284c7;
     width: 100%;
     line-height: 1.4;
-    page-break-after: avoid;
-    break-after: avoid;
   }}
   .question {{
     display: block;
-    clear: both;
-    margin-bottom: 14px;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    margin-bottom: 10px;
     width: 100%;
   }}
   .q-text {{
-    font-size: 14px;
-    margin-bottom: 6px;
-    line-height: 1.6;
+    font-size: 13.5px;
+    margin-bottom: 4px;
+    line-height: 1.5;
     color: #111111;
     display: block;
-    clear: both;
   }}
   
   table.options-grid {{
     width: 100%;
-    margin-top: 6px;
-    margin-bottom: 10px;
+    margin-top: 4px;
+    margin-bottom: 8px;
     border-collapse: collapse;
-    clear: both;
   }}
   td.option-cell {{
     width: 50%;
-    padding: 3px 4px;
+    padding: 2px 4px;
     font-size: 13px;
     vertical-align: top;
-    line-height: 1.5;
+    line-height: 1.4;
   }}
   
   table.match-table {{
     width: 100%;
-    margin-top: 6px;
-    margin-bottom: 10px;
+    margin-top: 4px;
+    margin-bottom: 8px;
     border-collapse: collapse;
-    clear: both;
   }}
-  td.match-left {{ width: 50%; padding: 3px 4px; vertical-align: top; font-size: 13px; line-height: 1.5; }}
-  td.match-right {{ width: 50%; padding: 3px 4px; vertical-align: top; font-size: 13px; line-height: 1.5; }}
+  td.match-left {{ width: 50%; padding: 2px 4px; vertical-align: top; font-size: 13px; line-height: 1.4; }}
+  td.match-right {{ width: 50%; padding: 2px 4px; vertical-align: top; font-size: 13px; line-height: 1.4; }}
 </style>
 </head>
 <body>
@@ -212,7 +201,7 @@ def save_primary_question_paper(json_paper: dict, filename: str):
         sections = []
     num_sections = len(sections)
     html_parts.append(f"""
-  <div style="font-size:12px; border-bottom:1.5px solid #002B49; padding-bottom:8px; margin-bottom:16px; clear:both;">
+  <div style="font-size:12px; border-bottom:1.5px solid #002B49; padding-bottom:8px; margin-bottom:14px;">
     <div style="font-weight:bold; margin-bottom:4px;">GENERAL INSTRUCTIONS:</div>
     <ol style="margin:0; padding-left:20px;">
       <li>The Question Paper contains {num_sections} section{'s' if num_sections > 1 else ''}.</li>
@@ -247,7 +236,7 @@ def save_primary_question_paper(json_paper: dict, filename: str):
         html_parts.append(f"""<div class="section-hdr {bold_class}">{sec_name_display}{marks_info}</div>""")
         
         sec_instr = str(sec.get("instruction") or "Read the questions carefully and answer.")
-        html_parts.append(f"""<div style="font-style:italic; margin-bottom:10px; clear:both;" class="{lang_class}">{_escape_html(sec_instr)}</div>""")
+        html_parts.append(f"""<div style="font-style:italic; margin-bottom:8px;" class="{lang_class}">{_escape_html(sec_instr)}</div>""")
 
         for q in questions:
             if isinstance(q, str):
@@ -292,13 +281,13 @@ def save_primary_question_paper(json_paper: dict, filename: str):
 """)
                 elif len(cleaned_options) > 0:
                     for idx, opt in enumerate(cleaned_options):
-                        html_parts.append(f"""<div style="margin-left:18px; clear:both;" class="{lang_class}">({chr(65+idx)}) {opt}</div>""")
+                        html_parts.append(f"""<div style="margin-left:18px;" class="{lang_class}">({chr(65+idx)}) {opt}</div>""")
                 else:
-                    html_parts.append(f"""<div style="margin-left:18px; margin-top:6px; clear:both;" class="{lang_class}">Answer: ____________________________________</div>""")
+                    html_parts.append(f"""<div style="margin-left:18px; margin-top:4px;" class="{lang_class}">Answer: ____________________________________</div>""")
 
             elif qtype in ("TRUEFALSE", "TRUE/FALSE"):
                 tf_opts = "ശരി &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; തെറ്റ്" if is_ml else ("സത്യ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; असत्य" if is_hi else "(A) True &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (B) False")
-                html_parts.append(f"""<div style="margin-left:18px; clear:both;" class="{lang_class}">{tf_opts}</div>""")
+                html_parts.append(f"""<div style="margin-left:18px;" class="{lang_class}">{tf_opts}</div>""")
 
             elif qtype == "MATCHTHEFOLLOWING":
                 left_list = q.get("left")
@@ -321,10 +310,10 @@ def save_primary_question_paper(json_paper: dict, filename: str):
                 pass
 
             elif qtype in ("VERYSHORT", "SHORT"):
-                html_parts.append("""<div style="height:30px; clear:both;"></div>""")
+                html_parts.append("""<div style="height:20px;"></div>""")
 
             elif qtype in ("ESSAY", "LONG", "ANALYZE", "APPLY"):
-                html_parts.append("""<div style="height:60px; clear:both;"></div>""")
+                html_parts.append("""<div style="height:40px;"></div>""")
 
             # Render internal choice OR question if present
             or_q = q.get("or_question") or q.get("or_text")
@@ -350,25 +339,49 @@ def save_primary_question_paper(json_paper: dict, filename: str):
         if fitz and hasattr(fitz, "Story") and hasattr(fitz, "Archive"):
             archive = fitz.Archive(base_dir)
             story = fitz.Story(full_html, archive=archive)
-            writer = fitz.DocumentWriter(filename)
 
             page_rect = fitz.Rect(0, 0, 595, 842)      # A4 Page Mediabox (0, 0, 595, 842)
             content_rect = fitz.Rect(36, 36, 559, 806) # Printable Content Area (36pt margins)
 
-            more = True
-            while more:
-                device = writer.begin_page(page_rect)
-                more, _ = story.place(content_rect)
-                story.draw(device)
-                writer.end_page()
+            doc = fitz.open()
+            more = 1
+            page_count = 0
+            max_pages = 50
 
-            writer.close()
-            print(f"[PyMuPDF-PDF] Saved primary question paper PDF to {filename} ({os.path.getsize(filename)} bytes)")
+            while more and page_count < max_pages:
+                page = doc.new_page(width=595, height=842)
+                page_count += 1
+                more, _ = story.place(content_rect)
+                story.draw(page)
+
+            doc.save(filename)
+            doc.close()
+            print(f"[PyMuPDF-PDF] Saved primary question paper PDF ({page_count} pages) to {filename} ({os.path.getsize(filename)} bytes)")
             return
         else:
             raise AttributeError("fitz module lacks Story or Archive")
     except Exception as err:
-        print(f"[PDF-GEN] PyMuPDF fitz.Story rendering failed/unavailable: {err}. Falling back...")
+        print(f"[PDF-GEN] PyMuPDF fitz.Story doc rendering failed: {err}. Trying DocumentWriter...")
+        try:
+            if fitz and hasattr(fitz, "Story") and hasattr(fitz, "DocumentWriter"):
+                archive = fitz.Archive(base_dir)
+                story = fitz.Story(full_html, archive=archive)
+                writer = fitz.DocumentWriter(filename)
+                page_rect = fitz.Rect(0, 0, 595, 842)
+                content_rect = fitz.Rect(36, 36, 559, 806)
+                more = 1
+                p_cnt = 0
+                while more and p_cnt < 50:
+                    device = writer.begin_page(page_rect)
+                    p_cnt += 1
+                    more, _ = story.place(content_rect)
+                    story.draw(device)
+                    writer.end_page()
+                writer.close()
+                print(f"[PyMuPDF-PDF] Saved via DocumentWriter fallback to {filename}")
+                return
+        except Exception as e2:
+            print(f"[PDF-GEN] DocumentWriter also failed: {e2}. Falling back to canvas...")
         _save_fallback_pdf(json_paper, filename)
 
 

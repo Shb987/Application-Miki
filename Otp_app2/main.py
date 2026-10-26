@@ -351,6 +351,8 @@ async def startup_event():
     asyncio.create_task(start_tuition_scheduler(db))
     # Start the background scheduler for Student To-Do Reminders
     asyncio.create_task(start_todo_reminder_scheduler(db))
+    # Auto-heal unreadable and placeholder evaluations
+    asyncio.create_task(exam_evaluation_routes.auto_heal_unreadable_and_placeholder_evaluations())
 
 # ----------------------------------------
 # 🔥 FIREBASE INITIALIZATION

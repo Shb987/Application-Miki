@@ -14,9 +14,9 @@
         box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .125);
     }
     .filter-container-glass {
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
-        border: 1px solid #452b9011;
+        border: 1px solid rgba(69, 43, 144, 0.1);
         border-radius: 12px;
     }
     .topic-list-item {
@@ -25,6 +25,56 @@
     .edit-mode .static-view { display: none; }
     .edit-mode .edit-view { display: flex !important; }
     .edit-view { display: none; }
+
+    /* Dark Mode Support for Manage Syllabus */
+    body.dark-only .filter-container-glass,
+    html.dark-only .filter-container-glass {
+        background: rgba(30, 34, 45, 0.95) !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        color: #f1f5f9 !important;
+    }
+    body.dark-only .filter-container-glass h6,
+    html.dark-only .filter-container-glass h6 {
+        color: #f1f5f9 !important;
+    }
+    body.dark-only .accordion-item,
+    html.dark-only .accordion-item {
+        background-color: #1e222d !important;
+        border-color: #2b3040 !important;
+    }
+    body.dark-only .accordion-button,
+    html.dark-only .accordion-button {
+        background-color: #1e222d !important;
+        color: #f1f5f9 !important;
+    }
+    body.dark-only .accordion-button:not(.collapsed),
+    html.dark-only .accordion-button:not(.collapsed) {
+        background-color: #252936 !important;
+        color: #9084ff !important;
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05) !important;
+    }
+    body.dark-only .accordion-body,
+    html.dark-only .accordion-body {
+        background-color: #1a1d27 !important;
+        border-color: #2b3040 !important;
+    }
+    body.dark-only .topic-list-item,
+    html.dark-only .topic-list-item {
+        background-color: #252936 !important;
+        border-color: #373d52 !important;
+    }
+    body.dark-only .topic-list-item .text-dark,
+    html.dark-only .topic-list-item .text-dark {
+        color: #f1f5f9 !important;
+    }
+    body.dark-only .topic-title,
+    body.dark-only .topic-chapter,
+    body.dark-only .topic-duration,
+    body.dark-only .topic-desc {
+        background-color: #1e222d !important;
+        color: #f1f5f9 !important;
+        border-color: #373d52 !important;
+    }
 </style>
 {% endblock %}
 
@@ -60,16 +110,26 @@
                 <h6 class="mb-0 text-dark fw-bold">Generate New Syllabus with AI</h6>
             </div>
             <div class="row g-3 align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-3 col-sm-6">
+                    <label class="form-label text-muted f-12 fw-bold">Board / Curriculum</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i data-feather="award" style="width: 14px;"></i></span>
+                        <select id="gen-board" class="form-select border-start-0 ps-0" onchange="updateSubjectDropdown()">
+                            <option value="State" selected>State Board</option>
+                            <option value="CBSE">CBSE</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
                     <label class="form-label text-muted f-12 fw-bold">Student Class (Standard)</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i data-feather="monitor" style="width: 14px;"></i></span>
-                        <select id="gen-standard" class="form-select border-start-0 ps-0">
+                        <select id="gen-standard" class="form-select border-start-0 ps-0" onchange="updateSubjectDropdown()">
                             <option value="">Select Standard</option>
                         </select>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3 col-sm-6">
                     <label class="form-label text-muted f-12 fw-bold">Subject</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i data-feather="book-open" style="width: 14px;"></i></span>
@@ -78,7 +138,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3 col-sm-6">
                     <button id="btn-generate" class="btn btn-primary w-100 shadow-sm d-flex align-items-center justify-content-center gap-2" onclick="generateSyllabus()">
                         <i data-feather="cpu" style="width: 16px;"></i> Generate Syllabus
                     </button>
@@ -89,13 +149,23 @@
 
     <!-- Active Syllabuses Section -->
     <div class="card shadow-sm border-0 mt-4">
-        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center pb-3">
+        <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3">
             <h5 class="mb-0 text-primary fw-bold">
                 <i data-feather="layers" class="me-2 pb-1"></i> Available Curriculum Syllabuses
             </h5>
-            <button class="btn btn-outline-primary btn-sm rounded-pill shadow-sm px-3" onclick="loadSyllabuses()">
-                <i data-feather="refresh-cw" class="me-1" style="width: 14px; height: 14px;"></i> Refresh
-            </button>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <select id="filter-board" class="form-select form-select-sm" style="width: auto; min-width: 130px;" onchange="filterSyllabuses()">
+                    <option value="">All Boards</option>
+                    <option value="State">State Board</option>
+                    <option value="CBSE">CBSE</option>
+                </select>
+                <select id="filter-standard" class="form-select form-select-sm" style="width: auto; min-width: 130px;" onchange="filterSyllabuses()">
+                    <option value="">All Classes</option>
+                </select>
+                <button class="btn btn-outline-primary btn-sm rounded-pill shadow-sm px-3" onclick="loadSyllabuses()">
+                    <i data-feather="refresh-cw" class="me-1" style="width: 14px; height: 14px;"></i> Refresh
+                </button>
+            </div>
         </div>
         <div class="card-body bg-light">
             <div id="syllabuses-container">
@@ -167,38 +237,55 @@
         const standards = [...new Set([...defaultStds, ...tbStds])].sort((a,b) => parseInt(a) - parseInt(b));
         
         const stdSelect = document.getElementById("gen-standard");
-        const subSelect = document.getElementById("gen-subject");
+        const filterStdSelect = document.getElementById("filter-standard");
         
         stdSelect.innerHTML = `<option value="">Select Standard</option>` + standards.map(s => `<option value="${s}">Class ${s}</option>`).join('');
+        if (filterStdSelect) {
+            filterStdSelect.innerHTML = `<option value="">All Classes</option>` + standards.map(s => `<option value="${s}">Class ${s}</option>`).join('');
+        }
         
-        // Listen for Standard change to dynamically populate subjects
-        stdSelect.addEventListener("change", function() {
-            const selectedStd = String(this.value);
-            if(!selectedStd) {
-                subSelect.innerHTML = `<option value="">Select Subject</option>`;
-                return;
-            }
+        updateSubjectDropdown();
+    }
+
+    function updateSubjectDropdown() {
+        const boardEl = document.getElementById("gen-board");
+        const stdEl = document.getElementById("gen-standard");
+        const subSelect = document.getElementById("gen-subject");
+        if (!boardEl || !stdEl || !subSelect) return;
+
+        const selectedBoard = boardEl.value;
+        const selectedStd = stdEl.value;
+
+        if (!selectedStd) {
+            subSelect.innerHTML = `<option value="">Select Subject</option>`;
+            return;
+        }
+
+        const isCbse = selectedBoard.toLowerCase() === "cbse";
+        const filteredSubjects = textbooksData
+            .filter(tb => {
+                if (String(tb.standard) !== String(selectedStd)) return false;
+                if (!tb.board) return true;
+                const b = String(tb.board).toLowerCase();
+                return isCbse ? (b.includes("cbse") || b.includes("ncert")) : (b.includes("state") || b.includes("scert") || b.includes("kerala"));
+            })
+            .map(tb => tb.subject);
             
-            // Filter subjects that belong to this standard
-            const filteredSubjects = textbooksData
-                .filter(tb => String(tb.standard) === selectedStd)
-                .map(tb => tb.subject);
-                
-            let uniqueSubjects = [...new Set(filteredSubjects)].sort();
-            if (uniqueSubjects.length === 0) {
-                uniqueSubjects = ["Science", "Maths", "English", "Social Science", "Physics", "Chemistry", "Biology", "Malayalam"];
-            }
-            
-            subSelect.innerHTML = `<option value="">Select Subject</option>` + uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
-        });
+        let uniqueSubjects = [...new Set(filteredSubjects.filter(Boolean))].sort();
+        if (uniqueSubjects.length === 0) {
+            uniqueSubjects = ["Science", "Maths", "English", "Social Science", "Physics", "Chemistry", "Biology", "Malayalam", "Hindi"];
+        }
+        
+        subSelect.innerHTML = `<option value="">Select Subject</option>` + uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
     }
 
     async function generateSyllabus() {
+        const board = document.getElementById("gen-board").value || "State";
         const standard = document.getElementById("gen-standard").value;
         const subject = document.getElementById("gen-subject").value;
         
         if(!standard || !subject) {
-            showCenterPopup("Missing Fields", "Please select both Standard and Subject.", "error");
+            showCenterPopup("Missing Fields", "Please select Board, Standard, and Subject.", "error");
             return;
         }
 
@@ -213,7 +300,11 @@
                     "Content-Type": "application/json",
                     "Authorization": "Bearer " + token 
                 },
-                body: JSON.stringify({ student_class: standard, subject: subject })
+                body: JSON.stringify({ 
+                    student_class: standard, 
+                    subject: subject,
+                    board: board
+                })
             });
             const data = await res.json();
             
@@ -241,21 +332,41 @@
             if (!res.ok) throw new Error("Failed to load syllabuses");
             const data = await res.json();
             globalSyllabuses = data.data || [];
-            renderSyllabuses();
+            filterSyllabuses();
         } catch (err) {
             container.innerHTML = `<div class="alert alert-danger shadow-sm"><i class="icofont icofont-exclamation-circle"></i> Error: ${err.message}</div>`;
         }
     }
 
-    function renderSyllabuses() {
+    function filterSyllabuses() {
+        const boardFilter = (document.getElementById("filter-board")?.value || "").toLowerCase();
+        const stdFilter = (document.getElementById("filter-standard")?.value || "").toString();
+
+        const filtered = globalSyllabuses.filter(s => {
+            const sylBoard = (s.board || "State").toLowerCase();
+            const sylStd = (s.student_class || "").toString();
+
+            if (boardFilter && sylBoard !== boardFilter) return false;
+            if (stdFilter && sylStd !== stdFilter) return false;
+            return true;
+        });
+
+        renderSyllabuses(filtered);
+    }
+
+    function renderSyllabuses(list) {
+        const syllabuses = (list !== undefined) ? list : globalSyllabuses;
         const container = document.getElementById("syllabuses-container");
-        if (globalSyllabuses.length === 0) {
-            container.innerHTML = `<div class="alert alert-light text-center border p-5 bg-white"><div class="mb-3"><i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px; display: inline-block;"></i></div><h5 class="text-muted">No syllabuses generated yet.</h5><p class="text-muted mb-0">Use the form above to generate one via AI from existing textbooks.</p></div>`;
+        if (syllabuses.length === 0) {
+            container.innerHTML = `<div class="alert alert-light text-center border p-5 bg-white"><div class="mb-3"><i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px; display: inline-block;"></i></div><h5 class="text-muted">No syllabuses found.</h5><p class="text-muted mb-0">Use the form above to generate one via AI or adjust filters.</p></div>`;
             feather.replace(); return;
         }
         
         let html = '<div class="accordion border-0" id="syllabusAccordion">';
-        globalSyllabuses.forEach((syl, index) => {
+        syllabuses.forEach((syl, index) => {
+            const boardName = syl.board || "State";
+            const isCbse = boardName.toUpperCase() === "CBSE";
+            const boardBadge = `<span class="badge ${isCbse ? 'bg-info' : 'bg-primary'} text-white me-2 px-2 py-1" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">${boardName}</span>`;
             const title = `Class ${syl.student_class} - ${syl.subject}`;
             const topics = syl.topics || [];
             const syllabusId = syl._id;
@@ -264,9 +375,10 @@
             <div class="accordion-item mb-3 bg-white rounded border shadow-sm overflow-hidden" id="accordion-item-${syllabusId}">
                 <h2 class="accordion-header flex-grow-1" id="heading${index}">
                     <button class="accordion-button bg-white text-dark fw-bold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}">
-                        <div class="d-flex justify-content-between align-items-center w-100 pe-3">
+                        <div class="d-flex justify-content-between align-items-center w-100 pe-3 flex-wrap gap-2">
                             <div class="d-flex align-items-center">
                                 <div class="bg-light-primary p-2 rounded me-3 text-primary"><i data-feather="book-open"></i></div>
+                                ${boardBadge}
                                 <span class="f-16">${title}</span>
                             </div>
                             <div class="d-flex align-items-center gap-3">
@@ -277,8 +389,11 @@
                 </h2>
                 <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#syllabusAccordion">
                     <div class="accordion-body bg-light border-top p-0 px-3 py-3">
-                        <div class="d-flex justify-content-end mb-3 static-view">
-                            <button class="btn btn-sm btn-outline-primary" onclick="toggleEditMode('${syllabusId}', true)">
+                        <div class="d-flex justify-content-end gap-2 mb-3 static-view">
+                            <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onclick="deleteSyllabus('${syllabusId}', '${syl.student_class}', '${syl.subject}', '${boardName}')">
+                                <i data-feather="trash-2" style="width:14px; height: 14px;"></i> Delete
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" onclick="toggleEditMode('${syllabusId}', true)">
                                 <i data-feather="edit-2" style="width:14px; height: 14px;"></i> Edit Syllabus
                             </button>
                         </div>
@@ -339,6 +454,25 @@
         feather.replace();
     }
 
+    async function deleteSyllabus(syllabusId, std, subj, board) {
+        if (!confirm(`Are you sure you want to delete the ${board} syllabus for Class ${std} ${subj}?`)) return;
+        try {
+            document.body.style.cursor = 'wait';
+            const res = await fetch(`/admin/tuition/syllabus/${syllabusId}`, {
+                method: "DELETE",
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Failed to delete syllabus");
+            showCenterPopup("Deleted!", "Syllabus removed successfully.", "success");
+            loadSyllabuses();
+        } catch(e) {
+            showCenterPopup("Delete Error", e.message, "error");
+        } finally {
+            document.body.style.cursor = 'default';
+        }
+    }
+
     function toggleEditMode(syllabusId, enable) {
         const item = document.getElementById(`accordion-item-${syllabusId}`);
         if(enable) {
@@ -346,7 +480,7 @@
         } else {
             item.classList.remove('edit-mode');
             // Re-render essentially resets the unsaved changes
-            renderSyllabuses(); 
+            filterSyllabuses(); 
         }
     }
 

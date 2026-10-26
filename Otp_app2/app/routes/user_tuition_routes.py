@@ -37,22 +37,49 @@ def serialize_mongo(doc):
 async def admin_generate_syllabus(
     student_class: str = Body(...), 
     subject: str = Body(...),
+    board: str = Body("State"),
     admin=Depends(require_permission("Exams, Textbooks & Syllabus", "create"))
 ):
     try:
-        result = await generate_syllabus_with_ai(db, student_class, subject)
+        result = await generate_syllabus_with_ai(db, student_class, subject, board)
         return {"status_code": 200, "message": "Syllabus generated successfully", "data": serialize_mongo(result)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/admin/tuition/syllabuses")
-async def get_syllabuses(student_class: str = None, subject: str = None, admin=Depends(require_permission("Exams, Textbooks & Syllabus", "read"))):
+async def get_syllabuses(
+    student_class: str = None, 
+    subject: str = None, 
+    board: str = None,
+    admin=Depends(require_permission("Exams, Textbooks & Syllabus", "read"))
+):
     query = {}
-    if student_class: query["student_class"] = student_class
+    if student_class: query["student_class"] = str(student_class)
     if subject: query["subject"] = subject
+    if board:
+        if board.lower() in ["state", "scert"]:
+            query["board"] = {"$regex": "^(State|SCERT)$", "$options": "i"}
+        elif board.lower() in ["cbse", "ncert"]:
+            query["board"] = {"$regex": "^(CBSE|NCERT)$", "$options": "i"}
+        else:
+            query["board"] = {"$regex": f"^{board}$", "$options": "i"}
     
-    docs = await db.syllabuses.find(query).to_list(None)
+    docs = await db.syllabuses.find(query).sort([("student_class", 1), ("subject", 1)]).to_list(None)
     return {"status_code": 200, "data": serialize_mongo(docs)}
+
+@router.delete("/admin/tuition/syllabus/{syllabus_id}")
+async def admin_delete_syllabus(
+    syllabus_id: str,
+    admin=Depends(require_permission("Exams, Textbooks & Syllabus", "delete"))
+):
+    try:
+        s_oid = ObjectId(syllabus_id)
+        result = await db.syllabuses.delete_one({"_id": s_oid})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Syllabus not found")
+        return {"status_code": 200, "message": "Syllabus deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/admin/tuition/syllabus/{syllabus_id}")
 async def admin_edit_syllabus(

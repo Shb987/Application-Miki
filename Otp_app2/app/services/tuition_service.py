@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import re
 from datetime import datetime, timezone, timedelta
 import pytz
 from bson import ObjectId
@@ -12,17 +13,38 @@ from app.utils.ai_usage_logger import log_ai_usage
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 
-async def generate_syllabus_with_ai(db, student_class: str, subject: str) -> dict:
+async def generate_syllabus_with_ai(db, student_class: str, subject: str, board: str = "State") -> dict:
     """
-    Reads textbook chapters for a given class+subject and uses GPT-4o 
+    Reads textbook chapters for a given class+subject+board and uses GPT-4o 
     to chunk them into 45-minute logical teaching topics.
     """
-    # 1. Fetch Chapters
-    cursor = db.textbook_chapters.find({"standard": str(student_class), "subject": subject})
+    # Normalize board string: State vs CBSE
+    raw_board = str(board).strip() if board else "State"
+    if raw_board.upper() in ["CBSE", "NCERT"]:
+        norm_board = "CBSE"
+    elif raw_board.upper() in ["STATE", "SCERT"]:
+        norm_board = "State"
+    else:
+        norm_board = raw_board
+
+    # 1. Fetch Chapters with board filter
+    chapter_query = {"standard": str(student_class), "subject": subject}
+    if norm_board.lower() in ["state", "scert"]:
+        chapter_query["board"] = {"$regex": "^(State|SCERT|Kerala)$", "$options": "i"}
+    elif norm_board.lower() in ["cbse", "ncert"]:
+        chapter_query["board"] = {"$regex": "^(CBSE|NCERT)$", "$options": "i"}
+    elif norm_board:
+        chapter_query["board"] = {"$regex": f"^{re.escape(norm_board)}$", "$options": "i"}
+
+    cursor = db.textbook_chapters.find(chapter_query)
     chapters = await cursor.to_list(length=None)
     
+    # If not found with specific board regex, try general standard + subject
     if not chapters:
-        raise ValueError(f"No textbook chapters found for Class {student_class} {subject}")
+        chapters = await db.textbook_chapters.find({"standard": str(student_class), "subject": subject}).to_list(length=None)
+
+    if not chapters:
+        raise ValueError(f"No textbook chapters found for Class {student_class} {subject} ({norm_board} Board)")
 
     # Prepare summary for prompt
     chapter_summary = ""
@@ -34,11 +56,11 @@ async def generate_syllabus_with_ai(db, student_class: str, subject: str) -> dic
     # 2. Call OpenAI
     prompt = f"""
     You are an expert curriculum designer.
-    I have the following textbook chapters for Class {student_class} {subject}:
+    I have the following textbook chapters for Class {student_class} {subject} ({norm_board} Curriculum):
     {chapter_summary}
 
     TASK:
-    Design a COMPLETE, long-term curriculum syllabus by breaking these chapters down into individual "Class Sessions". 
+    Design a COMPLETE, long-term curriculum syllabus by breaking these chapters down into individual "Class Sessions" adhering to {norm_board} standards. 
     Each item in the list represents ONE FULL DAY'S TUITION CLASS. 
     There should be as many sessions as necessary to cover all the material. 
     Each class session should take roughly 45 minutes to complete.
@@ -75,15 +97,17 @@ async def generate_syllabus_with_ai(db, student_class: str, subject: str) -> dic
 
     # Save to MongoDB
     syllabus_doc = {
-        "student_class": student_class,
+        "student_class": str(student_class),
         "subject": subject,
+        "board": norm_board,
         "topics": topics,
-        "created_at": datetime.now(timezone.utc)
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc)
     }
 
-    # Upsert so we don't duplicate
+    # Upsert with board so State and CBSE can coexist
     await db.syllabuses.update_one(
-        {"student_class": student_class, "subject": subject},
+        {"student_class": str(student_class), "subject": subject, "board": norm_board},
         {"$set": syllabus_doc},
         upsert=True
     )
@@ -111,9 +135,26 @@ async def map_syllabus_to_timetable(db, student_id: str, student_class: str, sub
         raise ValueError(f"No slots reserved for {subject} in the user's timetable.")
 
     # 2. Fetch Master Syllabus & Filter out Completed Topics
-    syllabus = await db.syllabuses.find_one({"student_class": student_class, "subject": subject})
+    # Support student's preferred board if set
+    student_doc = None
+    try:
+        student_doc = await db.students.find_one({"_id": s_oid})
+    except:
+        pass
+    
+    board_pref = student_doc.get("board") or student_doc.get("syllabus") if student_doc else None
+    syl_query = {"student_class": str(student_class), "subject": subject}
+    if board_pref:
+        if str(board_pref).lower() in ["state", "scert"]:
+            syl_query["board"] = {"$regex": "^(State|SCERT)$", "$options": "i"}
+        elif str(board_pref).lower() in ["cbse", "ncert"]:
+            syl_query["board"] = {"$regex": "^(CBSE|NCERT)$", "$options": "i"}
+    
+    syllabus = await db.syllabuses.find_one(syl_query)
     if not syllabus:
-        raise ValueError("Master syllabus not found. Ensure Admin generates it first.")
+        syllabus = await db.syllabuses.find_one({"student_class": str(student_class), "subject": subject})
+    if not syllabus:
+        raise ValueError(f"Master syllabus not found for Class {student_class} {subject}. Ensure Admin generates it first.")
 
     all_topics = sorted(syllabus.get("topics", []), key=lambda x: x["order_index"])
     

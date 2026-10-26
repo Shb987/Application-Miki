@@ -424,6 +424,36 @@
             width: 100% !important;
             box-sizing: border-box !important;
         }
+
+        /* Sidebar Scroll Isolation: ensure scrolling on sidebar only affects sidebar */
+        .sidebar-wrapper,
+        .sidebar-wrapper .sidebar-main,
+        .sidebar-wrapper #sidebar-menu,
+        .sidebar-wrapper #simple-bar,
+        .sidebar-wrapper .sidebar-links,
+        .sidebar-wrapper .simplebar-wrapper,
+        .sidebar-wrapper .simplebar-mask,
+        .sidebar-wrapper .simplebar-offset,
+        .sidebar-wrapper .simplebar-content-wrapper {
+            overscroll-behavior: contain !important;
+            overscroll-behavior-y: contain !important;
+        }
+
+        /* Content Card & Quota Widget Global Dark Mode Support */
+        body.dark-only .content-card,
+        html.dark-only .content-card,
+        body.dark-only .quota-widget,
+        html.dark-only .quota-widget {
+            background-color: #1e222d !important;
+            border-color: #2b3040 !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-only .content-header,
+        html.dark-only .content-header {
+            background-color: #252936 !important;
+            border-color: #2b3040 !important;
+            color: #f1f5f9 !important;
+        }
     </style>
 
     {% block head %}{% endblock %}
@@ -535,6 +565,32 @@
     <!-- scrollbar js-->
     <script src="/assets/js/scrollbar/simplebar.js"></script>
     <script src="/assets/js/scrollbar/custom.js"></script>
+    <!-- Sidebar Scroll Containment: Mouse wheel on sidebar strictly scrolls sidebar only and never leaks to main interface -->
+    <script>
+        (function() {
+            function bindSidebarScrollIsolation() {
+                var sidebar = document.querySelector('.sidebar-wrapper');
+                if (!sidebar) return;
+                
+                sidebar.addEventListener('wheel', function(e) {
+                    var scrollEl = sidebar.querySelector('.simplebar-content-wrapper') 
+                                || document.getElementById('simple-bar')
+                                || sidebar.querySelector('.sidebar-links');
+                    if (scrollEl) {
+                        scrollEl.scrollTop += e.deltaY;
+                        // Always stop the wheel event from reaching window / body / main page
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                }, { passive: false });
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', bindSidebarScrollIsolation);
+            } else {
+                bindSidebarScrollIsolation();
+            }
+        })();
+    </script>
     <script src="/assets/js/config.js"></script>
     <script src="/assets/js/sidebar-pin.js"></script>
     <script src="/assets/js/script.js"></script>

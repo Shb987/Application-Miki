@@ -34,10 +34,66 @@ def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
+def is_placeholder_answer(text: str) -> bool:
+    """
+    Checks if an answer or ideal answer is empty, generic filler, template text,
+    evasion phrase (e.g. 'The correct answer based on the reference text', 'refer to textbook'),
+    or contains bracketed instructions like '[specific detail from the reference material]'.
+    """
+    if not text or not isinstance(text, str):
+        return True
+    
+    cleaned = text.strip()
+    lower = cleaned.lower()
+    
+    if not lower or lower in ["ideal answer", "correct answer", "n/a", "none", "null", "nil", "unreadable", "[unreadable]"]:
+        return True
+        
+    placeholder_phrases = [
+        "the correct answer based on",
+        "correct answer based on",
+        "refer to reference",
+        "refer to textbook",
+        "refer to chapter",
+        "based on the reference text",
+        "based on reference material",
+        "from the reference material",
+        "reference material",
+        "no valid answer submitted",
+        "no handwritten answersheet",
+        "the correct answer",
+        "model answer for:",
+        "specific detail",
+        "[specific detail",
+        "insert detail",
+        "fill in the blank",
+        "sample answer",
+        "as per reference",
+        "refer to the text",
+        "see textbook",
+        "as given in the passage"
+    ]
+    if any(ph in lower for ph in placeholder_phrases):
+        return True
+
+    # Detect any bracketed template text like [specific detail...], [insert...], [chapter...], [mention...]
+    if re.search(r'\[.*?(?:detail|reference|textbook|correct|answer|insert|specific|material|fill|chapter|fact).*?\]', cleaned, re.IGNORECASE):
+        return True
+
+    # Detect if text contains generic brackets with reference words
+    if re.search(r'\[.*?\]', cleaned) and any(kw in lower for kw in ["detail", "material", "reference", "specific", "text", "chapter"]):
+        return True
+
+    return False
+
+# Alias for backward compatibility
+is_placeholder_ideal_answer = is_placeholder_answer
+
+
 def is_invalid_or_unattempted_answer(student_answer: str) -> Tuple[bool, str]:
     """
     Checks if a student answer string is missing, unattempted, unreadable, 
-    or a non-academic placeholder (e.g. 'JPG', file name, random punctuation).
+    or a non-academic placeholder (e.g. 'JPG', file name, random punctuation, or generic filler like 'The correct answer based on...').
     """
     if student_answer is None or not isinstance(student_answer, str):
         return True, "No answer was provided for this question."
@@ -62,6 +118,10 @@ def is_invalid_or_unattempted_answer(student_answer: str) -> Tuple[bool, str]:
     if lower_cleaned in unattempted_tokens:
         return True, "No valid answer provided (unattempted or non-academic placeholder)."
 
+    # 🚫 Evasion & Placeholder Check: Never score generic placeholder phrases as valid answers!
+    if is_placeholder_answer(cleaned):
+        return True, f"Answer contains generic placeholder text ('{cleaned[:45]}...') and cannot be evaluated."
+
     # Check if there is at least one alphanumeric character (letter or number)
     alphanumeric = re.sub(r'[^a-zA-Z0-9]', '', lower_cleaned)
     if not alphanumeric:
@@ -72,52 +132,6 @@ def is_invalid_or_unattempted_answer(student_answer: str) -> Tuple[bool, str]:
         return True, "Answer is a file extension / placeholder label rather than student work."
 
     return False, ""
-
-
-def is_placeholder_ideal_answer(text: str) -> bool:
-    """
-    Checks if an ideal answer is empty, generic filler, template text,
-    or contains bracketed instructions like '[specific detail from the reference material]'.
-    """
-    if not text or not isinstance(text, str):
-        return True
-    
-    cleaned = text.strip()
-    lower = cleaned.lower()
-    
-    if not lower or lower in ["ideal answer", "correct answer", "n/a", "none", "null", "nil", "unreadable", "[unreadable]"]:
-        return True
-        
-    placeholder_phrases = [
-        "the correct answer based on",
-        "refer to reference",
-        "refer to textbook",
-        "based on the reference text",
-        "based on reference material",
-        "from the reference material",
-        "reference material",
-        "no valid answer submitted",
-        "no handwritten answersheet",
-        "the correct answer",
-        "model answer for:",
-        "specific detail",
-        "[specific detail",
-        "insert detail",
-        "fill in the blank",
-        "sample answer"
-    ]
-    if any(ph in lower for ph in placeholder_phrases):
-        return True
-
-    # Detect any bracketed template text like [specific detail...], [insert...], [chapter...], [mention...]
-    if re.search(r'\[.*?(?:detail|reference|textbook|correct|answer|insert|specific|material|fill|chapter|fact).*?\]', cleaned, re.IGNORECASE):
-        return True
-
-    # Detect if text contains generic brackets with reference words
-    if re.search(r'\[.*?\]', cleaned) and any(kw in lower for kw in ["detail", "material", "reference", "specific", "text", "chapter"]):
-        return True
-
-    return False
 
 
 CURRICULUM_ANSWER_FALLBACKS = [
@@ -531,6 +545,8 @@ EVALUATION RULES:
    - Recognize valid short answers, numbers, synonyms, and paraphrasing appropriate for the student's grade level.
    - Number and Word Equivalences: Digits like "7" and word form "Seven" or "seven" are 100% equivalent. For example, if the question asks "How many colors are in a rainbow?" and the student answers "7", "seven", or "7 colors", award full marks {max_marks}.
    - Single numbers, single option letters (A, B, C, D), short phrases, and one-word answers that are factually accurate MUST be awarded full marks {max_marks}.
+   - ZERO MARKS FOR PLACEHOLDER OR EVASIVE ANSWERS:
+     If the student's answer contains generic placeholder or evasion phrases like "The correct answer based on the reference text", "Refer to textbook", "Based on the reference material", or "[specific detail]", you MUST award strictly 0 marks and state in the feedback that no genuine student answer was provided. NEVER award credit for placeholder or evasive phrases.
    - If completely correct, award {max_marks}.
    - If partially correct, award partial marks strictly proportional to the valid points.
    - If completely incorrect, contradictory, filler, or unattempted, award 0.
@@ -579,8 +595,13 @@ Return JSON only in this exact structure:
             # Clamp score between 0 and max_marks
             parsed["score"] = max(0.0, min(float(max_marks), score_val))
 
+            # 🚫 ZERO SCORE OVERRIDE FOR PLACEHOLDER ANSWERS:
+            if is_placeholder_answer(student_answer):
+                parsed["score"] = 0.0
+                parsed["feedback"] = "Answer contains generic placeholder text ('The correct answer based on the reference text') rather than valid student work."
+
             # Guarantee full marks for correct rainbow colors answer if LLM erred
-            if ("rainbow" in q_low and ("how many" in q_low or "colors" in q_low)) and (ans_clean in ["7", "seven", "7 colors", "seven colors"]):
+            elif ("rainbow" in q_low and ("how many" in q_low or "colors" in q_low)) and (ans_clean in ["7", "seven", "7 colors", "seven colors"]):
                 parsed["score"] = float(max_marks)
                 parsed["feedback"] = "Correct! A rainbow has 7 colors."
                 if is_placeholder_ideal_answer(str(parsed.get("ideal_answer") or "")):
@@ -1322,7 +1343,7 @@ async def enrich_evaluation_data(data: dict):
         data["score_pct"] = round((total / max_t * 100) if max_t > 0 else 0.0, 1)
         data["grade"] = _grade_from_pct(data["score_pct"])
 
-    # Build reference answer map from paper if available
+    # Build reference answer map from paper if available (excluding placeholder filler)
     ref_answers = {}
     if paper and isinstance(paper.get("sections"), list):
         q_idx = 1
@@ -1332,10 +1353,17 @@ async def enrich_evaluation_data(data: dict):
                     if isinstance(q, dict):
                         q_ans = q.get("answer") or q.get("ideal_answer") or q.get("solution") or q.get("model_answer") or ""
                         q_t = (q.get("question") or q.get("text") or "").strip().lower()
-                        if q_ans:
+                        q_raw_text = (q.get("question") or q.get("text") or "").strip()
+                        if q_ans and not is_placeholder_answer(str(q_ans)):
                             ref_answers[q_idx] = str(q_ans).strip()
                             if q_t:
                                 ref_answers[q_t] = str(q_ans).strip()
+                        else:
+                            fallback = get_known_curriculum_answer(q_raw_text)
+                            if fallback:
+                                ref_answers[q_idx] = fallback
+                                if q_t:
+                                    ref_answers[q_t] = fallback
                     q_idx += 1
 
     placeholder_phrases = [
@@ -1357,7 +1385,33 @@ async def enrich_evaluation_data(data: dict):
         ans = str(r.get("student_answer") or "").strip()
         q_raw = str(r.get("question") or "").strip()
         q_lower = q_raw.lower()
-        
+        ans_clean = ans.strip().lower()
+        fb_raw = str(r.get("feedback") or "").strip()
+        fb_lower = fb_raw.lower()
+
+        # 🚫 ZERO SCORE FOR PLACEHOLDER / TEMPLATE / EVASION ANSWERS:
+        # If student_answer is a generic placeholder like "The correct answer based on the reference text.",
+        # DO NOT score it as correct under any circumstances!
+        if is_placeholder_answer(ans):
+            r["score"] = 0.0
+            r["pct"] = 0.0
+            r["status"] = "wrong"
+            r["feedback"] = "Answer is a generic placeholder phrase ('The correct answer based on the reference text') rather than valid student work."
+            ideal_candidate = ref_answers.get(r.get("q_no")) or get_known_curriculum_answer(q_raw) or str(r.get("ideal_answer") or "")
+            if is_placeholder_answer(ideal_candidate):
+                ideal_candidate = get_known_curriculum_answer(q_raw) or f"Model answer for: {q_raw}"
+            r["ideal_answer"] = ideal_candidate
+            r["grading_error"] = False
+            r["ai_tutor_context"] = (
+                f"Question: {q_raw}\n"
+                f"My Answer: {ans}\n"
+                f"Feedback received: Answer contains generic placeholder text rather than valid student work.\n"
+                f"Ideal Answer: {r.get('ideal_answer')}\n\n"
+                "Can you help me understand why my answer was wrong and explain the correct concept?"
+            )
+            has_healed = True
+            continue
+
         # 🩹 HEAL UNREADABLE OR FALSE INVALID IMAGE ANSWERS:
         # If the student wrote an answer that was prematurely tagged [Unreadable] or falsely marked invalid
         if ans.lower() in ["[unreadable]", "unreadable", "[not attempted - invalid image uploaded]", "not attempted - invalid image uploaded"]:
@@ -1409,27 +1463,6 @@ async def enrich_evaluation_data(data: dict):
                     r["status"] = "correct"
                     r["feedback"] = "Correct! Green is between blue and yellow in a rainbow."
                     has_healed = True
-                elif ans.lower() in ["[not attempted - invalid image uploaded]", "not attempted - invalid image uploaded"]:
-                    r["student_answer"] = ref_answers.get(r.get("q_no")) or known or "Attempted"
-                    r["score"] = float(max_m or 1.0)
-                    r["pct"] = 100.0
-                    r["status"] = "correct"
-                    r["feedback"] = "Evaluated against curriculum reference."
-                    has_healed = True
-            elif ans.lower() in ["[not attempted - invalid image uploaded]", "not attempted - invalid image uploaded"]:
-                ref = ref_answers.get(r.get("q_no")) or get_known_curriculum_answer(q_raw)
-                if ref:
-                    r["student_answer"] = ref
-                    r["ideal_answer"] = ref
-                    r["score"] = float(max_m or 1.0)
-                    r["pct"] = 100.0
-                    r["status"] = "correct"
-                    r["feedback"] = "Evaluated from submitted document."
-                    has_healed = True
-                else:
-                    if "impossible to evaluate" in str(r.get("feedback") or "").lower() or "invalid" in str(r.get("feedback") or "").lower():
-                        r["feedback"] = "Evaluated against reference curriculum."
-                        has_healed = True
             else:
                 if "impossible to evaluate" in str(r.get("feedback") or "").lower():
                     r["feedback"] = "The handwritten answer could not be deciphered. Please write clearly in pencil or pen."
@@ -1641,6 +1674,10 @@ async def auto_heal_unreadable_and_placeholder_evaluations():
     try:
         cursor = db.evaluations.find({
             "$or": [
+                {"detailed_results.student_answer": {"$regex": r"correct answer based on", "$options": "i"}},
+                {"detailed_results.student_answer": {"$regex": r"reference text", "$options": "i"}},
+                {"detailed_results.student_answer": {"$regex": r"refer to textbook", "$options": "i"}},
+                {"detailed_results.student_answer": {"$regex": r"based on the reference text", "$options": "i"}},
                 {"detailed_results.student_answer": "7", "detailed_results.score": 0},
                 {"detailed_results.student_answer": "7", "detailed_results.status": "wrong"},
                 {"detailed_results.feedback": {"$regex": r"too short to evaluate", "$options": "i"}},

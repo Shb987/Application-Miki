@@ -847,9 +847,17 @@ async def get_questions_by_age(age: int = Query(...)):
             c_idx = eval_meta["verified_correct_index"]
             correct_ans = eval_meta["verified_correct_answer"]
 
+            raw_image = q.get("question_image") or q.get("image")
+            if isinstance(raw_image, str):
+                cleaned_image = raw_image.strip()
+                question_image_val = cleaned_image if (cleaned_image and cleaned_image.lower() != "null") else None
+            else:
+                question_image_val = None
+
             question_data = {
                 "id": q["_id"],
                 "text": q.get("text"),
+                "question_image": question_image_val,
             }
 
             if q_type == "image":
@@ -1686,7 +1694,7 @@ async def get_career_history(student_id: str,
                 question = await db.questions.find_one(
                     {"_id": q_oid},
                     {"text": 1, "type": 1, "options": 1, "image_options": 1,
-                     "correct_index": 1, "correct_answer": 1}
+                     "question_image": 1, "correct_index": 1, "correct_answer": 1}
                 ) if q_oid else None
 
                 if not question:
@@ -1694,6 +1702,7 @@ async def get_career_history(student_id: str,
                     answers_detailed.append({
                         "question_id": qid,
                         "question_text": "[Deleted Question]",
+                        "question_image": None,
                         "options": [],
                         "student_answer": student_answer,
                         "type": "deleted",
@@ -1710,6 +1719,13 @@ async def get_career_history(student_id: str,
                 q_type = eval_result["q_type"]
                 options = eval_result["options"]
 
+                raw_image = question.get("question_image") or question.get("image") if question else None
+                if isinstance(raw_image, str):
+                    cleaned_image = raw_image.strip()
+                    q_img = cleaned_image if (cleaned_image and cleaned_image.lower() != "null") else None
+                else:
+                    q_img = None
+
                 if q_type == "rating":
                     try:
                         cat_rating_values.append(float(student_answer))
@@ -1722,6 +1738,7 @@ async def get_career_history(student_id: str,
                 answers_detailed.append({
                     "question_id": qid,
                     "question_text": question.get("text"),
+                    "question_image": q_img,
                     "options": options,
                     "student_answer": student_answer,
                     "type": q_type,

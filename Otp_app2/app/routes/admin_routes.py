@@ -267,6 +267,14 @@ async def create_question(
         is_image_question = type == "image" or any(file for file in image_files)
         image_options = []
 
+        question_image_path = None
+        if question_image and question_image.filename:
+            filename = f"{ObjectId()}_{question_image.filename}"
+            file_path = os.path.join(UPLOAD_DIR, filename)
+            with open(file_path, "wb") as buffer:
+                buffer.write(await question_image.read())
+            question_image_path = f"/uploads/{filename}"
+
         # 🖼️ IMAGE QUESTION
         if is_image_question:
             for file in image_files:
@@ -281,14 +289,6 @@ async def create_question(
 
             if correct_index is None:
                 raise HTTPException(status_code=400, detail="Missing correct_index for image question")
-
-            question_image_path = None
-            if question_image:
-                filename = f"{ObjectId()}_{question_image.filename}"
-                file_path = os.path.join(UPLOAD_DIR, filename)
-                with open(file_path, "wb") as buffer:
-                    buffer.write(await question_image.read())
-                question_image_path = f"/uploads/{filename}"
 
             correct_answer_val = None
             if 0 <= correct_index < len(image_options) and image_options[correct_index]:
@@ -315,6 +315,7 @@ async def create_question(
                 category=category,
                 text=text,
                 type="rating",
+                question_image=question_image_path,
                 age_min=age_min,
                 age_max=age_max,
             )
@@ -339,6 +340,7 @@ async def create_question(
                 text=text,
                 type="text",
                 options=options_list,
+                question_image=question_image_path,
                 correct_index=c_idx,
                 correct_answer=correct_answer_val,
                 age_min=age_min,

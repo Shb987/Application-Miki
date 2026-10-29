@@ -4,6 +4,21 @@
 
 {% block head %}
 <style>
+  /* Modal Title Styling for High Contrast in White & Dark Mode */
+  #oceanModalTitle,
+  #viewModalTitle,
+  .modal-header .modal-title,
+  .modal-header h5,
+  body:not(.dark-only) #oceanModalTitle,
+  body.light #oceanModalTitle,
+  body:not(.dark-only) #viewModalTitle,
+  body.light #viewModalTitle {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: -0.01em !important;
+  }
+
   /* Ocean Explorer Header Card - Deep Sea Theme */
   .ocean-header-card {
     background: linear-gradient(135deg, #001e3d 0%, #003566 50%, #0077b6 100%);
@@ -526,7 +541,7 @@
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
       <div class="modal-header text-white" style="background: linear-gradient(135deg, #001e3d 0%, #003566 100%);">
-        <h5 class="modal-title font-weight-bold" id="oceanModalTitle">
+        <h5 class="modal-title font-weight-bold text-white" id="oceanModalTitle" style="color: #ffffff !important; font-weight: 800; font-size: 1.25rem;">
           <i class="fa fa-tint me-2"></i> Add Ocean Entity
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -714,7 +729,9 @@
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
       <div class="modal-header text-white" style="background: linear-gradient(135deg, #001e3d 0%, #0077b6 100%);">
-        <h5 class="modal-title font-weight-bold" id="viewModalTitle">Ocean Entity Details</h5>
+        <h5 class="modal-title font-weight-bold text-white" id="viewModalTitle" style="color: #ffffff !important; font-weight: 800; font-size: 1.25rem;">
+          <i class="fa fa-info-circle me-2"></i> Ocean Entity Details
+        </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4 bg-light" id="viewModalBody">
@@ -911,7 +928,7 @@
     const item = oceanEntities.find(i => i.id === id);
     if (!item) return;
 
-    document.getElementById('oceanModalTitle').innerHTML = '<i class="fa fa-pencil me-2"></i> Edit Ocean Entity';
+    document.getElementById('oceanModalTitle').innerHTML = `<i class="fa fa-pencil me-2"></i> Edit ${item.name || 'Ocean Entity'}`;
     document.getElementById('ocean_id').value = item.id;
     document.getElementById('ocean_name').value = item.name || '';
     document.getElementById('ocean_order').value = item.order || 1;

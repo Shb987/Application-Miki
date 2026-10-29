@@ -4,6 +4,18 @@
 
 {% block head %}
 <style>
+  /* Modal Title Styling for High Contrast in White & Dark Mode */
+  #spaceModalTitle,
+  .modal-header .modal-title,
+  .modal-header h5,
+  body:not(.dark-only) #spaceModalTitle,
+  body.light #spaceModalTitle {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: -0.01em !important;
+  }
+
   /* Space Explorer Header Card */
   .space-header-card {
     background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);
@@ -487,7 +499,9 @@
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
       <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%);">
-        <h5 class="modal-title font-weight-bold" id="spaceModalTitle">Add Space Entity</h5>
+        <h5 class="modal-title font-weight-bold text-white" id="spaceModalTitle" style="color: #ffffff !important; font-weight: 800; font-size: 1.25rem;">
+          <i class="fa fa-plus-circle me-2"></i> Add Space Entity
+        </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4 bg-light">
@@ -1241,7 +1255,7 @@
   function openAddModal() {
     document.getElementById('spaceForm').reset();
     document.getElementById('entity-id').value = '';
-    document.getElementById('spaceModalTitle').innerText = 'Add Space Entity';
+    document.getElementById('spaceModalTitle').innerHTML = '<i class="fa fa-plus-circle me-2"></i> Add Space Entity';
     document.getElementById('entity-order').value = spaceEntities.length + 1;
     document.getElementById('entity-moons').value = '';
     document.getElementById('entity-active').checked = true;
@@ -1291,7 +1305,7 @@
     currentGalleryUrls = Array.isArray(item.gallery_images) ? [...item.gallery_images] : [];
     renderGalleryPreview();
 
-    document.getElementById('spaceModalTitle').innerText = `Edit ${item.name}`;
+    document.getElementById('spaceModalTitle').innerHTML = `<i class="fa fa-pencil me-2"></i> Edit ${item.name || 'Space Entity'}`;
     new bootstrap.Modal(document.getElementById('spaceModal')).show();
   }
 

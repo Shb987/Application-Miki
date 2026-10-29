@@ -60,11 +60,10 @@
               <label class="form-label fw-bold font-primary"><i class="icofont icofont-star-shape me-1"></i> Total Marks
                 per Paper</label>
               <select id="marks" class="form-select shadow-sm">
-                <option value="30">30 Marks</option>
                 <option value="40">40 Marks</option>
                 <option value="50" selected>50 Marks</option>
-                <option value="60">60 Marks</option>
                 <option value="80">80 Marks</option>
+                <option value="100">100 Marks</option>
               </select>
             </div>
             <div class="col-12 mt-4 text-center"><button id="generateBtn"
@@ -93,10 +92,10 @@
   let currentTaskPoll = null;
 
   const markOptions = { 
-    "1": [30, 50], "2": [30, 50], "3": [30, 50], "4": [30, 50], "5": [30, 50], 
-    "6": [50, 80], "7": [50, 80], "8": [50, 80], 
-    "9": [40, 80], "10": [40, 80], 
-    "11": [60, 80], "12": [60, 80] 
+    "1": [40, 50, 80, 100], "2": [40, 50, 80, 100], "3": [40, 50, 80, 100], "4": [40, 50, 80, 100], "5": [40, 50, 80, 100], 
+    "6": [40, 50, 80, 100], "7": [40, 50, 80, 100], "8": [40, 50, 80, 100], 
+    "9": [40, 50, 80, 100], "10": [40, 50, 80, 100], 
+    "11": [40, 50, 80, 100], "12": [40, 50, 80, 100] 
   };
 
   function setUIEnabled(e) {
@@ -124,9 +123,17 @@
 
   function updateMarksOptions(std) {
     marksSel.innerHTML = "";
-    if (!std || !markOptions[std]) { marksSel.disabled = true; return; }
-    markOptions[std].forEach((v, i) => { const o = document.createElement("option"); o.value = v; o.textContent = `${v} Marks`; if (i === 0) o.selected = true; marksSel.appendChild(o); });
-    marksSel.disabled = false; checkEnableGenerate();
+    if (!std) { marksSel.disabled = true; return; }
+    const allowed = markOptions[std] || [40, 50, 80, 100];
+    allowed.forEach((v) => {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = `${v} Marks`;
+      if (v === 50) o.selected = true;
+      marksSel.appendChild(o);
+    });
+    marksSel.disabled = false;
+    checkEnableGenerate();
   }
 
   async function loadStandards() {

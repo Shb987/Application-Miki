@@ -235,28 +235,44 @@ def _safe(obj, key, default=""):
 
 def get_exam_structure(standard: int, total: int):
     """
-    Blueprint mapping according to official grade standards and total marks:
-    - Primary (1-5): 30 Marks & 50 Marks
-    - Middle (6-8): 50 Marks & 80 Marks
-    - High School (9-10): 40 Marks & 80 Marks
-    - Plus Two (11-12): 60 Marks & 80 Marks
+    Blueprint mapping according to official grade standards and total marks (40, 50, 80, 100):
+    - Primary (1-5): 40, 50, 80, 100 Marks (plus legacy 30)
+    - Middle (6-8): 40, 50, 80, 100 Marks
+    - High School (9-10): 40, 50, 80, 100 Marks
+    - Plus Two (11-12): 40, 50, 80, 100 Marks (plus legacy 60)
     """
     # Primary Standards (1-5)
     if standard <= 5:
-        if total == 30:
-            allowed_types = ["FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"]
-            sections = {"A": (1, 10), "B": (2, 5), "C": (5, 2)}
+        allowed_types = ["FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort", "Short"]
+        if total == 40:
+            sections = {"A": (1, 10), "B": (2, 5), "C": (3, 4), "D": (4, 2)}
             return (allowed_types, sections)
+        elif total == 80:
+            sections = {"A": (1, 16), "B": (2, 10), "C": (3, 8), "D": (4, 5)}
+            return (allowed_types, sections)
+        elif total == 100:
+            sections = {"A": (1, 20), "B": (2, 15), "C": (3, 10), "D": (4, 5)}
+            return (allowed_types, sections)
+        elif total == 30:
+            sections = {"A": (1, 10), "B": (2, 5), "C": (5, 2)}
+            return (["FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort"], sections)
         else:  # Default 50 marks
-            allowed_types = ["FillInTheBlanks", "MatchTheFollowing", "TrueFalse", "PictureBased", "VeryShort", "Short"]
             sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 3)}
             return (allowed_types, sections)
 
     # Middle Standards (6-8)
     if standard <= 8:
-        if total == 80:
+        if total == 40:
+            allowed_types = ["FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "Reasoning"]
+            sections = {"A": (1, 8), "B": (2, 6), "C": (3, 4), "D": (4, 2)}
+            return (allowed_types, sections)
+        elif total == 80:
             allowed_types = ["FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "ShortEssay", "Reasoning"]
             sections = {"A": (1, 6), "B": (2, 6), "C": (3, 10), "D": (4, 8)}
+            return (allowed_types, sections)
+        elif total == 100:
+            allowed_types = ["FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "ShortEssay", "Reasoning"]
+            sections = {"A": (1, 10), "B": (2, 10), "C": (3, 10), "D": (4, 5), "E": (5, 4)}
             return (allowed_types, sections)
         else:  # Default 50 marks
             allowed_types = ["FillInTheBlanks", "TrueFalse", "VeryShort", "Short", "Reasoning"]
@@ -265,22 +281,35 @@ def get_exam_structure(standard: int, total: int):
 
     # High School Standards (9-10)
     if standard in [9, 10]:
+        allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy"]
         if total == 40:
-            allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze"]
             sections = {"A": (1, 8), "B": (2, 6), "C": (3, 4), "D": (4, 2)}
             return (allowed_types, sections)
+        elif total == 50:
+            sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 3)}
+            return (allowed_types, sections)
+        elif total == 100:
+            sections = {"A": (1, 10), "B": (2, 10), "C": (3, 10), "D": (4, 5), "E": (5, 4)}
+            return (allowed_types, sections)
         else:  # Default 80 marks
-            allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy"]
             sections = {"A": (1, 8), "B": (2, 6), "C": (3, 10), "D": (5, 6)}
             return (allowed_types, sections)
 
     # Plus Two Standards (11-12)
-    if total == 60:
-        allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
+    allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
+    if total == 40:
+        sections = {"A": (1, 8), "B": (2, 6), "C": (3, 4), "D": (4, 2)}
+        return (allowed_types, sections)
+    elif total == 50:
+        sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 3)}
+        return (allowed_types, sections)
+    elif total == 100:
+        sections = {"A": (1, 10), "B": (2, 10), "C": (3, 10), "D": (4, 5), "E": (5, 4)}
+        return (allowed_types, sections)
+    elif total == 60:
         sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (5, 5)}
         return (allowed_types, sections)
     else:  # Default 80 marks
-        allowed_types = ["VeryShort", "Short", "Essay", "Apply", "Analyze", "CaseStudy", "Diagram"]
         sections = {"A": (1, 10), "B": (2, 5), "C": (3, 5), "D": (4, 5), "E": (5, 5)}
         return (allowed_types, sections)
 
@@ -1520,7 +1549,14 @@ Respond with valid JSON only. No text outside JSON.
             if user_time:
                 paper_json["time"] = f"TIME - {user_time} MINUTES" if str(user_time).isdigit() else str(user_time)
             else:
-                paper_json["time"] = "TIME - 90 MINUTES" if total_marks >= 50 else "TIME - 45 MINUTES"
+                if total_marks >= 100:
+                    paper_json["time"] = "TIME - 180 MINUTES"
+                elif total_marks >= 80:
+                    paper_json["time"] = "TIME - 150 MINUTES"
+                elif total_marks >= 50:
+                    paper_json["time"] = "TIME - 90 MINUTES"
+                else:
+                    paper_json["time"] = "TIME - 60 MINUTES"
 
             paper_filename = f"{GENERATED_PDF_DIR}/{paper_id_val}.pdf"
             try:

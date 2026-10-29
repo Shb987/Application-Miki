@@ -13,6 +13,30 @@
         transform: scale(1.02);
         box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
+
+    /* Dark Mode Filter and Table Harmonization */
+    body.dark-only .card,
+    html.dark-only .card {
+        background-color: #1e222d !important;
+        border-color: #2b3040 !important;
+    }
+    body.dark-only .input-group-text,
+    html.dark-only .input-group-text,
+    body.dark-only .form-control,
+    html.dark-only .form-control,
+    body.dark-only .form-select,
+    html.dark-only .form-select {
+        background-color: #252936 !important;
+        color: #f1f5f9 !important;
+        border-color: #373d52 !important;
+    }
+    body.dark-only .table th,
+    body.dark-only .table td,
+    html.dark-only .table th,
+    html.dark-only .table td {
+        border-color: #2b3040 !important;
+        color: #f1f5f9 !important;
+    }
 </style>
 {% endblock %}
 
@@ -82,12 +106,48 @@
 
         <div class="col-sm-12 col-md-8">
             <div class="card">
-                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-                    <h5>Stored Tutorials</h5>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="loadTutorials()"><i
-                            class="fa fa-refresh"></i></button>
+                <div class="card-header pb-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0">Stored Tutorials</h5>
+                        <span id="tutorialCountBadge" class="badge bg-primary rounded-pill">0</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="loadTutorials()" title="Reload All Tutorials">
+                            <i class="fa fa-refresh me-1"></i> Refresh
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
+                    <!-- Filter Toolbar for Stored Tutorials Management -->
+                    <div class="row g-2 mb-3 pb-3 border-bottom align-items-center">
+                        <div class="col-md-5 col-sm-12">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="fa fa-search text-muted"></i></span>
+                                <input type="text" id="tutorialSearchInput" class="form-control border-start-0 ps-0" placeholder="Search by subject, topic..." oninput="filterTutorials()">
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <select class="form-select" id="filterClass" onchange="filterTutorials()">
+                                <option value="">All Classes</option>
+                                {% for c in range(1, 13) %}
+                                <option value="{{ c }}">Class {{ c }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <select class="form-select" id="filterBoard" onchange="filterTutorials()">
+                                <option value="">All Boards</option>
+                                <option value="NCERT">NCERT</option>
+                                <option value="SCERT">SCERT</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1 col-sm-12 text-end">
+                            <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="clearTutorialFilters()" title="Reset Filters">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0" id="tutorialTable">
                             <thead>
@@ -159,48 +219,138 @@
     const token = localStorage.getItem("admin_token");
     let pendingDeleteId = null;
     let deleteTutorialModalObj = null;
+    let allTutorials = [];
 
     async function loadTutorials() {
         try {
-            const res = await fetch(`${API_BASE}/admin/tutorials/`, { headers: { "Authorization": "Bearer " + token } });
-            const data = await res.json();
             const tbody = document.getElementById("tutorialBody");
-            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">No tutorials found</td></tr>'; return; }
-            tbody.innerHTML = data.map(t => {
-                let rawCls = String(t.student_class || "").replace(/\$\{c\}/gi, "").replace(/\{c\}/gi, "").trim();
-                let clsLabel = !rawCls ? "Class" : (rawCls.toLowerCase().startsWith("class") ? rawCls : "Class " + rawCls);
-                let boardLabel = (t.board || "NCERT").toUpperCase();
-                let boardBadgeClass = boardLabel === "SCERT" ? "badge-warning" : "badge-primary";
-                let escapedSubj = (t.subject || "").replace(/'/g, "\\'");
-                return `
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2 text-primary" role="status"></div>Loading tutorials...</td></tr>';
+            
+            const res = await fetch(`${API_BASE}/admin/tutorials/`, { headers: { "Authorization": "Bearer " + token } });
+            if (!res.ok) throw new Error("Failed to load tutorials");
+            allTutorials = await res.json() || [];
+            
+            updateTutorialCountBadge(allTutorials.length, allTutorials.length);
+            filterTutorials();
+        } catch (err) {
+            console.error(err);
+            const tbody = document.getElementById("tutorialBody");
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4"><i class="fa fa-exclamation-triangle me-1"></i> Failed to load tutorials</td></tr>';
+        }
+    }
+
+    function filterTutorials() {
+        const query = (document.getElementById("tutorialSearchInput")?.value || "").toLowerCase().trim();
+        const selectedClass = (document.getElementById("filterClass")?.value || "").trim().toLowerCase();
+        const selectedBoard = (document.getElementById("filterBoard")?.value || "").trim().toLowerCase();
+
+        const filtered = allTutorials.filter(t => {
+            // Match class
+            if (selectedClass) {
+                const rawCls = String(t.student_class || "").replace(/[^0-9]/g, "").trim();
+                const filterClsNum = selectedClass.replace(/[^0-9]/g, "").trim();
+                if (rawCls !== filterClsNum) return false;
+            }
+
+            // Match board
+            if (selectedBoard) {
+                const b = (t.board || "NCERT").toLowerCase().trim();
+                if (b !== selectedBoard) return false;
+            }
+
+            // Match search text (subject, topic, board, class)
+            if (query) {
+                const subj = (t.subject || "").toLowerCase();
+                const topic = (t.topic || "").toLowerCase();
+                const board = (t.board || "").toLowerCase();
+                const cls = `class ${t.student_class || ''}`.toLowerCase();
+                if (!subj.includes(query) && !topic.includes(query) && !board.includes(query) && !cls.includes(query)) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        updateTutorialCountBadge(filtered.length, allTutorials.length);
+        renderTutorialTable(filtered);
+    }
+
+    function clearTutorialFilters() {
+        if (document.getElementById("tutorialSearchInput")) document.getElementById("tutorialSearchInput").value = "";
+        if (document.getElementById("filterClass")) document.getElementById("filterClass").value = "";
+        if (document.getElementById("filterBoard")) document.getElementById("filterBoard").value = "";
+        filterTutorials();
+    }
+
+    function updateTutorialCountBadge(filteredCount, totalCount) {
+        const badge = document.getElementById("tutorialCountBadge");
+        if (!badge) return;
+        if (filteredCount === totalCount) {
+            badge.innerText = `${totalCount}`;
+            badge.className = "badge bg-primary rounded-pill";
+        } else {
+            badge.innerText = `${filteredCount} / ${totalCount}`;
+            badge.className = "badge bg-warning text-dark rounded-pill";
+        }
+    }
+
+    function renderTutorialTable(data) {
+        const tbody = document.getElementById("tutorialBody");
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `
                 <tr>
-                    <td class="align-middle"><span class="badge badge-info">${clsLabel}</span></td>
-                    <td class="align-middle"><span class="badge ${boardBadgeClass}">${boardLabel}</span></td>
-                    <td class="align-middle fw-medium">${t.subject}</td>
-                    <td class="align-middle">${t.topic || '-'}</td>
-                    <td class="align-middle"><span class="badge badge-secondary">${t.video_links.length} Videos</span></td>
-                    <td class="align-middle text-center" style="white-space: nowrap;">
-                        <div class="d-inline-flex gap-1">
-                            <button class="btn btn-sm btn-primary py-1 px-2" onclick="viewTutorial('${t._id}')" title="View Videos">
-                                <i class="fa fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger py-1 px-2" onclick="openDeleteTutorialModal('${t._id}', '${escapedSubj}', '${boardLabel}')" title="Delete Tutorial">
-                                <i class="fa fa-trash"></i>
-                            </button>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <i class="fa fa-filter fa-2x mb-2 d-block opacity-50"></i>
+                        No tutorials match the selected criteria.
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="clearTutorialFilters()">Reset Filters</button>
                         </div>
                     </td>
                 </tr>
-            `}).join('');
-        } catch (err) { console.error(err); }
+            `;
+            return;
+        }
+
+        tbody.innerHTML = data.map(t => {
+            let rawCls = String(t.student_class || "").replace(/\$\{c\}/gi, "").replace(/\{c\}/gi, "").trim();
+            let clsLabel = !rawCls ? "Class" : (rawCls.toLowerCase().startsWith("class") ? rawCls : "Class " + rawCls);
+            let boardLabel = (t.board || "NCERT").toUpperCase();
+            let boardBadgeClass = boardLabel === "SCERT" ? "badge-warning" : "badge-primary";
+            let escapedSubj = (t.subject || "").replace(/'/g, "\\'");
+            let videoCount = Array.isArray(t.video_links) ? t.video_links.length : 0;
+            return `
+            <tr>
+                <td class="align-middle"><span class="badge badge-info">${clsLabel}</span></td>
+                <td class="align-middle"><span class="badge ${boardBadgeClass}">${boardLabel}</span></td>
+                <td class="align-middle fw-medium">${t.subject}</td>
+                <td class="align-middle">${t.topic || '-'}</td>
+                <td class="align-middle"><span class="badge badge-secondary">${videoCount} Videos</span></td>
+                <td class="align-middle text-center" style="white-space: nowrap;">
+                    <div class="d-inline-flex gap-1">
+                        <button class="btn btn-sm btn-primary py-1 px-2" onclick="viewTutorial('${t._id}')" title="View Videos">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger py-1 px-2" onclick="openDeleteTutorialModal('${t._id}', '${escapedSubj}', '${boardLabel}')" title="Delete Tutorial">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `}).join('');
     }
 
     async function viewTutorial(id) {
-        const res = await fetch(`${API_BASE}/admin/tutorials/`, { headers: { "Authorization": "Bearer " + token } });
-        const data = await res.json(); const t = data.find(x => x._id === id);
+        let t = allTutorials.find(x => x._id === id);
+        if (!t) {
+            const res = await fetch(`${API_BASE}/admin/tutorials/`, { headers: { "Authorization": "Bearer " + token } });
+            const data = await res.json();
+            t = data.find(x => x._id === id);
+        }
         if (t) {
             let bLabel = (t.board || "NCERT").toUpperCase();
             document.getElementById("modalTitle").innerText = `[${bLabel}] ${t.subject} - ${t.topic || 'Videos'}`;
-            document.getElementById("videoContainer").innerHTML = t.video_links.map(v => `
+            document.getElementById("videoContainer").innerHTML = (t.video_links || []).map(v => `
                 <div class="col-md-4"><div class="card video-card h-100" onclick="window.open('${v.link}', '_blank')"><div class="card-body p-3"><h6 class="text-truncate" title="${v.title}">${v.title}</h6>
                 <p class="small text-muted mb-0">Published: ${new Date(v.published_at).toLocaleDateString()}</p><div class="mt-2 text-primary small"><i class="fa fa-youtube-play me-1"></i> Watch</div></div></div></div>
             `).join('');

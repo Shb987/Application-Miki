@@ -28,23 +28,100 @@
     pointer-events: none;
   }
 
-  /* High contrast top action buttons */
-  .btn-add-entity {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  /* High contrast top action buttons - Guaranteed 100% visible in White Mode & Dark Mode */
+  .btn-add-entity,
+  button.btn-add-entity,
+  .btn.btn-add-entity,
+  body:not(.dark-only) .btn-add-entity,
+  body.light .btn-add-entity,
+  html:not(.dark-only) .btn-add-entity {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    background-color: #0284c7 !important;
     color: #ffffff !important;
     font-weight: 700 !important;
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
     border-radius: 30px !important;
     padding: 10px 24px !important;
     font-size: 0.92rem !important;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 4px 15px rgba(2, 132, 199, 0.45) !important;
     transition: all 0.2s ease !important;
     cursor: pointer !important;
+    text-decoration: none !important;
+    position: relative !important;
+    z-index: 10 !important;
   }
-  .btn-add-entity:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5) !important;
+  .btn-add-entity:hover,
+  button.btn-add-entity:hover,
+  .btn.btn-add-entity:hover,
+  body:not(.dark-only) .btn-add-entity:hover,
+  body.light .btn-add-entity:hover {
+    background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+    background-color: #0369a1 !important;
     color: #ffffff !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.6) !important;
+  }
+  .btn-add-entity i,
+  .btn-add-entity span,
+  body:not(.dark-only) .btn-add-entity i,
+  body:not(.dark-only) .btn-add-entity span,
+  body.dark-only .btn-add-entity i,
+  body.dark-only .btn-add-entity span {
+    color: #ffffff !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: inline-block !important;
+  }
+
+  /* Table Card Add Ocean Entity Action Button (High Visibility in White Mode) */
+  .btn-add-ocean-table,
+  button.btn-add-ocean-table,
+  body:not(.dark-only) .btn-add-ocean-table,
+  body.light .btn-add-ocean-table,
+  body.dark-only .btn-add-ocean-table {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid #0284c7 !important;
+    border-radius: 30px !important;
+    padding: 8px 20px !important;
+    font-size: 0.88rem !important;
+    box-shadow: 0 3px 12px rgba(2, 132, 199, 0.35) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  .btn-add-ocean-table:hover {
+    background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.5) !important;
+  }
+  .btn-add-ocean-table i {
+    color: #ffffff !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Dark mode support */
+  body.dark-only .btn-add-entity,
+  html.dark-only .btn-add-entity {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    box-shadow: 0 4px 15px rgba(2, 132, 199, 0.5) !important;
   }
 
   .stat-pill {
@@ -259,6 +336,103 @@
     border-radius: 10px;
     border: 2px solid #0077b6;
   }
+
+  /* ========================================================================= */
+  /* 🌙 DARK MODE STYLING SUPPORT (body.dark-only / .dark-only)                */
+  /* ========================================================================= */
+  body.dark-only,
+  .dark-only {
+    background-color: #0b0f19 !important;
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .glass-table-card,
+  .dark-only .glass-table-card {
+    background: #14172b !important;
+    border-color: #242b3d !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  body.dark-only .table-light,
+  .dark-only .table-light,
+  body.dark-only .table thead th,
+  .dark-only .table thead th {
+    background-color: #1e2238 !important;
+    color: #f8fafc !important;
+    border-color: #2e354f !important;
+  }
+
+  body.dark-only .table tbody tr,
+  .dark-only .table tbody tr {
+    border-color: #242b3d !important;
+    color: #e2e8f0 !important;
+  }
+
+  body.dark-only .table tbody tr:hover,
+  .dark-only .table tbody tr:hover {
+    background-color: rgba(2, 132, 199, 0.08) !important;
+  }
+
+  body.dark-only .search-input-wrapper input,
+  .dark-only .search-input-wrapper input {
+    background-color: #1e2238 !important;
+    border-color: #2e354f !important;
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .search-input-wrapper input:focus,
+  .dark-only .search-input-wrapper input:focus {
+    border-color: #0284c7 !important;
+    background-color: #14172b !important;
+  }
+
+  body.dark-only .modal-content,
+  .dark-only .modal-content {
+    background-color: #14172b !important;
+    border-color: #242b3d !important;
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .modal-body,
+  .dark-only .modal-body {
+    background-color: #0f1222 !important;
+    color: #e2e8f0 !important;
+  }
+
+  body.dark-only .modal-footer,
+  .dark-only .modal-footer {
+    background-color: #14172b !important;
+    border-top: 1px solid #242b3d !important;
+  }
+
+  body.dark-only .form-section-title,
+  .dark-only .form-section-title {
+    color: #7dd3fc !important;
+    border-bottom-color: #2e354f !important;
+  }
+
+  body.dark-only .form-group-custom label,
+  .dark-only .form-group-custom label {
+    color: #94a3b8 !important;
+  }
+
+  body.dark-only .form-control-custom,
+  body.dark-only .form-select-custom,
+  .dark-only .form-control-custom,
+  .dark-only .form-select-custom {
+    background-color: #1e2238 !important;
+    border-color: #2e354f !important;
+    color: #f8fafc !important;
+  }
+
+  body.dark-only .form-control-custom:focus,
+  body.dark-only .form-select-custom:focus,
+  .dark-only .form-control-custom:focus,
+  .dark-only .form-select-custom:focus {
+    border-color: #0284c7 !important;
+    background-color: #14172b !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25) !important;
+  }
 </style>
 {% endblock %}
 
@@ -302,11 +476,14 @@
     <!-- Filter and Search Bar -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
       
-      <!-- Category Badge -->
+      <!-- Category Badge & Add Ocean Entity Quick Action -->
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.88rem; font-weight: 600;">
           <i class="fa fa-tint me-1"></i> Category: Ocean
         </span>
+        <button type="button" class="btn btn-add-ocean-table" onclick="openAddOceanModal()">
+          <i class="fa fa-plus-circle"></i> Add Ocean Entity
+        </button>
       </div>
 
       <!-- Prominent Search Bar -->
@@ -630,7 +807,7 @@
               <p class="text-muted mb-3" style="font-size: 0.9rem;">
                 ${oceanEntities.length === 0 ? 'No ocean data added yet. Click below to add an ocean entity.' : 'No entities match your search criteria.'}
               </p>
-              <button class="btn btn-add-entity shadow-sm" onclick="openAddOceanModal()">
+              <button class="btn btn-add-entity btn-add-ocean-table shadow-sm" onclick="openAddOceanModal()">
                 <i class="fa fa-plus-circle me-1"></i> Add Ocean Entity
               </button>
             </div>

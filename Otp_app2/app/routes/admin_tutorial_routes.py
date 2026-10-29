@@ -101,8 +101,8 @@ async def get_tutorials(
     if subject:
         query["subject"] = subject
         
-    cursor = db.tutorials.find(query)
-    tutorials = await cursor.to_list(length=100)
+    cursor = db.tutorials.find(query).sort("_id", -1)
+    tutorials = await cursor.to_list(length=1000)
     
     # Convert ObjectId to str
     for t in tutorials:

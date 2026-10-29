@@ -847,21 +847,21 @@ async def get_questions_by_age(age: int = Query(...)):
             c_idx = eval_meta["verified_correct_index"]
             correct_ans = eval_meta["verified_correct_answer"]
 
-            raw_image = q.get("question_image") or q.get("image")
-            if isinstance(raw_image, str):
-                cleaned_image = raw_image.strip()
-                question_image_val = cleaned_image if (cleaned_image and cleaned_image.lower() != "null") else None
-            else:
-                question_image_val = None
-
             question_data = {
                 "id": q["_id"],
                 "text": q.get("text"),
-                "question_image": question_image_val,
             }
 
             if q_type == "image":
+                raw_image = q.get("question_image") or q.get("image")
+                if isinstance(raw_image, str):
+                    cleaned_image = raw_image.strip()
+                    question_image_val = cleaned_image if (cleaned_image and cleaned_image.lower() != "null") else None
+                else:
+                    question_image_val = None
+
                 question_data["type"] = "image"
+                question_data["question_image"] = question_image_val
                 question_data["options"] = options
                 question_data["correct_index"] = c_idx
                 question_data["correct_answer"] = correct_ans
@@ -1702,7 +1702,6 @@ async def get_career_history(student_id: str,
                     answers_detailed.append({
                         "question_id": qid,
                         "question_text": "[Deleted Question]",
-                        "question_image": None,
                         "options": [],
                         "student_answer": student_answer,
                         "type": "deleted",
@@ -1719,13 +1718,6 @@ async def get_career_history(student_id: str,
                 q_type = eval_result["q_type"]
                 options = eval_result["options"]
 
-                raw_image = question.get("question_image") or question.get("image") if question else None
-                if isinstance(raw_image, str):
-                    cleaned_image = raw_image.strip()
-                    q_img = cleaned_image if (cleaned_image and cleaned_image.lower() != "null") else None
-                else:
-                    q_img = None
-
                 if q_type == "rating":
                     try:
                         cat_rating_values.append(float(student_answer))
@@ -1735,17 +1727,26 @@ async def get_career_history(student_id: str,
                     cat_recalculated_marks += 1
 
                 # Append detailed answer
-                answers_detailed.append({
+                answer_item = {
                     "question_id": qid,
                     "question_text": question.get("text"),
-                    "question_image": q_img,
                     "options": options,
                     "student_answer": student_answer,
                     "type": q_type,
                     "correct_index": verified_ci,
                     "correct_answer": verified_ca,
                     "is_correct": is_correct
-                })
+                }
+                if q_type == "image":
+                    raw_image = question.get("question_image") or question.get("image") if question else None
+                    if isinstance(raw_image, str):
+                        cleaned_image = raw_image.strip()
+                        q_img = cleaned_image if (cleaned_image and cleaned_image.lower() != "null") else None
+                    else:
+                        q_img = None
+                    answer_item["question_image"] = q_img
+
+                answers_detailed.append(answer_item)
 
             if cat_rating_values:
                 cat_recalculated_marks += sum(cat_rating_values) / len(cat_rating_values)

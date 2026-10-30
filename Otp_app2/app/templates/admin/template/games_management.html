@@ -700,6 +700,7 @@
     const PAGE_SIZE = 100;
     let wordleCurrentPage = 1;
     let squaresCurrentPage = 1;
+    let squaresAllLevels = [];
     let puzzleCurrentPage = 1;
 
     function renderPaginationControls(currentPage, totalItems, pageSize, changePageFnName) {
@@ -962,6 +963,7 @@
         const res = await fetch(`${API_BASE}/admin-panel/games/squares/levels?limit=2000${range ? `&class_range=${range}` : ''}`, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
         const allLevels = json.data || [];
+        squaresAllLevels = allLevels;
         const total = allLevels.length;
         document.getElementById("squares-count").textContent = `${total} levels`;
 
@@ -981,17 +983,13 @@
             <th style="width: 15%;" class="text-center">Actions</th>
         </tr></thead><tbody>`;
         pageLevels.forEach((lv, i) => {
-            const mWords = JSON.stringify(lv.main_words || []).replace(/'/g, "\\'");
-            const bWords = JSON.stringify(lv.bonus_words || []).replace(/'/g, "\\'");
-            const gridJson = JSON.stringify(lv.grid || []).replace(/'/g, "\\'");
-            const hint = (lv.hint || "").replace(/'/g, "\\'");
             const itemNumber = startIndex + i + 1;
 
             html += `<tr><td class="text-center"><strong>${itemNumber}</strong></td><td class="text-center"><strong>${lv.level}</strong></td><td class="text-center"><span class="range-badge">${lv.class_range}</span></td><td>${escapeHtml(lv.hint || "—")}</td>
             <td><small>Main: ${lv.main_words ? lv.main_words.length : 0}, Bonus: ${lv.bonus_words ? lv.bonus_words.length : 0}</small></td>
             <td class="text-center" style="white-space: nowrap;">
                 <div class="d-inline-flex align-items-center justify-content-center gap-1.5">
-                    <button class="btn btn-action-icon btn-action-icon-edit" onclick='editSquares("${lv.id}",${lv.level},"${lv.class_range}",${mWords},${bWords},${gridJson},"${hint}")' title="Edit Level">
+                    <button class="btn btn-action-icon btn-action-icon-edit" onclick='editSquares("${lv.id}")' title="Edit Level">
                         <i class="fa fa-pencil"></i>
                     </button>
                     <button class="btn btn-action-icon btn-action-icon-delete" onclick='deleteSquares("${lv.id}",${lv.level})' title="Delete Level">
@@ -1042,15 +1040,15 @@
     }
 
     function openSquaresModal(id = "", lv = "", rg = "", mw = [], bw = [], grid = [], hint = "") {
-        document.getElementById("squares-edit-id").value = id;
-        document.getElementById("sq-level").value = lv;
-        document.getElementById("sq-range").value = rg;
-        document.getElementById("sq-hint").value = hint;
-        document.getElementById("sq-main-words").value = mw.join(", ");
-        document.getElementById("sq-bonus-words").value = bw.join(", ");
+        document.getElementById("squares-edit-id").value = id || "";
+        document.getElementById("sq-level").value = (lv !== undefined && lv !== null) ? lv : "";
+        document.getElementById("sq-range").value = rg || "";
+        document.getElementById("sq-hint").value = hint || "";
+        document.getElementById("sq-main-words").value = Array.isArray(mw) ? mw.join(", ") : (mw || "");
+        document.getElementById("sq-bonus-words").value = Array.isArray(bw) ? bw.join(", ") : (bw || "");
 
         const cells = document.querySelectorAll(".sq-grid-cell");
-        const flatGrid = grid.flat();
+        const flatGrid = (Array.isArray(grid) ? grid : []).flat();
         cells.forEach((cell, i) => {
             cell.value = flatGrid[i] || "";
         });
@@ -1058,7 +1056,17 @@
         document.getElementById("squares-modal-title").innerText = id ? "Edit Squares Level" : "Add Squares Level";
         new bootstrap.Modal(document.getElementById("squaresModal")).show();
     }
-    function editSquares(id, lv, rg, mw, bw, grid, hint) { openSquaresModal(id, lv, rg, mw, bw, grid, hint); }
+
+    function editSquares(id, lv, rg, mw, bw, grid, hint) {
+        if (arguments.length === 1 && typeof id === "string") {
+            const found = squaresAllLevels.find(item => item.id === id);
+            if (found) {
+                openSquaresModal(found.id, found.level, found.class_range, found.main_words || [], found.bonus_words || [], found.grid || [], found.hint || "");
+                return;
+            }
+        }
+        openSquaresModal(id, lv, rg, mw, bw, grid, hint);
+    }
 
     async function saveSquares() {
         const id = document.getElementById("squares-edit-id").value;
@@ -1068,28 +1076,44 @@
         const grid = [];
         for (let i = 0; i < 16; i += 4) grid.push(cells.slice(i, i + 4));
 
+        const rawMain = document.getElementById("sq-main-words").value;
+        const rawBonus = document.getElementById("sq-bonus-words").value;
+
+        const mainWords = rawMain.split(/[\s,]+/).map(w => w.trim().toUpperCase()).filter(v => v);
+        const bonusWords = rawBonus.split(/[\s,]+/).map(w => w.trim().toUpperCase()).filter(v => v);
+
         const body = {
             level: parseInt(document.getElementById("sq-level").value),
             class_range: document.getElementById("sq-range").value,
             hint: document.getElementById("sq-hint").value.trim(),
-            main_words: document.getElementById("sq-main-words").value.split(",").map(w => w.trim().toUpperCase()).filter(v => v),
-            bonus_words: document.getElementById("sq-bonus-words").value.split(",").map(w => w.trim().toUpperCase()).filter(v => v),
+            main_words: mainWords,
+            bonus_words: bonusWords,
             grid: grid
         };
 
         if (!body.level || !body.class_range || body.main_words.length === 0 || cells.some(c => !c)) {
-            alert("Please fill all required fields and the entire 4x4 grid.");
+            showToastGm("Please fill all required fields (Level, Range, Main Words) and all 16 grid cells.", "danger");
             return;
         }
 
-        const res = await fetch(id ? `${API_BASE}/admin-panel/games/squares/levels/${id}` : `${API_BASE}/admin-panel/games/squares/levels`, {
-            method: id ? "PUT" : "POST",
-            headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
-        if (res.ok) {
-            bootstrap.Modal.getInstance(document.getElementById("squaresModal")).hide();
-            loadSquares(); loadSquaresStats();
+        try {
+            const res = await fetch(id ? `${API_BASE}/admin-panel/games/squares/levels/${id}` : `${API_BASE}/admin-panel/games/squares/levels`, {
+                method: id ? "PUT" : "POST",
+                headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                const modalEl = document.getElementById("squaresModal");
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+                showToastGm(id ? "Squares level updated successfully." : "Squares level added successfully.");
+                loadSquares(); loadSquaresStats();
+            } else {
+                const errJson = await res.json().catch(() => ({}));
+                showToastGm(errJson.detail || "Failed to save Squares level.", "danger");
+            }
+        } catch (err) {
+            showToastGm("Network error: " + err.message, "danger");
         }
     }
 

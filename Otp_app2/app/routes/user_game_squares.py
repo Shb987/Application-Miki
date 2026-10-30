@@ -30,7 +30,8 @@ async def start_game(student_id: str, level: int = Query(..., description="Level
 @router.post("/submit", response_model=SquaresWordResponse)
 async def submit_word(payload: SquaresWordSubmission, current_user: dict = Depends(get_current_user)):
     """Submit a word for the active session"""
-    result = await SquaresService.process_words(payload.session_id, payload.words)
+    words = payload.words if payload.words is not None else ([payload.word] if payload.word else [])
+    result = await SquaresService.process_words(payload.session_id, words)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result

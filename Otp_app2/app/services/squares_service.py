@@ -9,7 +9,7 @@ class SquaresService:
     @staticmethod
     def get_class_range(std: int) -> str:
         if 1 <= std <= 3: return "1-3"
-        elif 4 <= std <= 5: return "4-5"
+        elif 4 <= std <= 5: return "3-5"
         elif 6 <= std <= 8: return "6-8"
         elif 9 <= std <= 10: return "9-10"
         elif 11 <= std <= 12: return "11-12"
@@ -27,6 +27,31 @@ class SquaresService:
             return 8
 
     @staticmethod
+    async def get_total_levels(class_range: str, min_level: int = 1) -> int:
+        """
+        Dynamically determine total levels for a class range based on questions uploaded in admin.
+        Falls back to default config if no questions are found.
+        Ensures total_levels is at least min_level.
+        """
+        default_config = {
+            "1-3": 20, "3-5": 30, "6-8": 50, "9-10": 50, "11-12": 50
+        }
+        fallback = default_config.get(class_range, 50)
+
+        try:
+            levels = await db.squares_questions.distinct("level", {"class_range": class_range})
+            int_levels = [
+                int(l) for l in levels
+                if isinstance(l, (int, float)) or (isinstance(l, str) and str(l).strip().isdigit())
+            ]
+            uploaded_max = max(int_levels) if int_levels else 0
+        except Exception:
+            uploaded_max = 0
+
+        total = uploaded_max if uploaded_max > 0 else fallback
+        return max(total, min_level, 1)
+
+    @staticmethod
     async def get_available_levels(student_id: str) -> Dict[str, Any]:
         try:
             student = await db.students.find_one({"_id": ObjectId(student_id)})
@@ -39,9 +64,8 @@ class SquaresService:
             progress = await db.squares_progress.find_one({"student_id": student_id, "class_range": class_range})
             highest_level = progress.get("highest_level", 1) if progress else 1
             
-            # Map total levels
-            level_config = {"1-3": 20, "4-5": 30, "6-8": 50, "9-10": 50, "11-12": 50}
-            total_levels = level_config.get(class_range, 50)
+            # Map total levels dynamically
+            total_levels = await SquaresService.get_total_levels(class_range, highest_level)
             
             levels = []
             for i in range(1, total_levels + 1):
@@ -105,14 +129,17 @@ class SquaresService:
                     "hint": "Default dummy puzzle"
                 }
             
+            main_words = [w.strip().upper() for w in (puzzle.get("main_words") or []) if w]
+            bonus_words = [w.strip().upper() for w in (puzzle.get("bonus_words") or []) if w]
+
             # Create/Update session
             active_session = {
                 "student_id": student_id,
                 "class_range": class_range,
                 "level": level,
                 "grid": puzzle["grid"],
-                "main_words": puzzle["main_words"],
-                "bonus_words": puzzle.get("bonus_words", []),
+                "main_words": main_words,
+                "bonus_words": bonus_words,
                 "found_words": [],
                 "found_bonus_words": [],
                 "status": "playing",
@@ -132,10 +159,10 @@ class SquaresService:
                 "grid": puzzle["grid"],
                 "found_words": [],
                 "found_bonus_words": [],
-                "main_words": puzzle["main_words"],
-                "bonus_words": puzzle.get("bonus_words", []),
-                "main_words_count": len(puzzle["main_words"]),
-                "bonus_words_count": len(puzzle.get("bonus_words", [])),
+                "main_words": main_words,
+                "bonus_words": bonus_words,
+                "main_words_count": len(main_words),
+                "bonus_words_count": len(bonus_words),
                 "status": "playing",
                 "mode": active_session["mode"]
             }
@@ -148,27 +175,28 @@ class SquaresService:
             s_oid = ObjectId(session_id)
             session = await db.squares_sessions.find_one({"_id": s_oid})
             if not session: return {"error": "Session not found"}
-            if session["status"] != "playing": return {"error": "Game already finished"}
-            
+
             # Clean words
-            input_words = [w.strip().upper() for w in words_list if w.strip()]
+            input_words = [w.strip().upper() for w in words_list if isinstance(w, str) and w.strip()]
             if not input_words:
                 return {"error": "No words provided"}
-            
-            main_words = [w.upper() for w in session["main_words"]]
-            bonus_words = [w.upper() for w in session["bonus_words"]]
-            found_words = list(session["found_words"])
-            found_bonus_words = list(session["found_bonus_words"])
-            
+
+            main_words = [w.strip().upper() for w in (session.get("main_words") or []) if w]
+            bonus_words = [w.strip().upper() for w in (session.get("bonus_words") or []) if w]
+            found_words = list(session.get("found_words") or [])
+            found_bonus_words = list(session.get("found_bonus_words") or [])
+
+            # Allow session if playing, or if level was cleared but student is still finding bonus words
+            is_completed = session.get("status") == "completed"
+            if session.get("status") != "playing" and not (is_completed and len(found_bonus_words) < len(bonus_words)):
+                return {"error": "Game already finished"}
+
             any_valid = False
             any_new = False
             new_main_count = 0
             new_bonus_count = 0
-            
+
             for word in input_words:
-                if len(word) < 4:
-                    continue
-                
                 if word in main_words:
                     any_valid = True
                     if word not in found_words:
@@ -181,7 +209,7 @@ class SquaresService:
                         any_new = True
                         new_bonus_count += 1
                         found_bonus_words.append(word)
-            
+
             # Message logic
             if new_main_count > 0 or new_bonus_count > 0:
                 msg_parts = []
@@ -192,13 +220,16 @@ class SquaresService:
                 message = "Words already found."
             else:
                 message = "No new valid words found in this batch."
-            
+
             # Update session
             status = "playing"
             if len(found_words) == len(main_words):
                 status = "level_cleared"
-                message = "Congratulations! Level Cleared!"
-            
+                if new_bonus_count > 0 and new_main_count == 0:
+                    message = f"Found {new_bonus_count} bonus word(s)!"
+                elif not message or message == "Keep going!":
+                    message = "Congratulations! Level Cleared!"
+
             await db.squares_sessions.update_one(
                 {"_id": s_oid},
                 {
@@ -210,14 +241,14 @@ class SquaresService:
                     }
                 }
             )
-            
+
             # Progression logic
             next_unlocked = False
-            if status == "level_cleared" and session["mode"] == "progression":
+            if status == "level_cleared" and session.get("mode") == "progression":
                 current_level = session["level"]
                 class_range = session["class_range"]
                 student_id = session["student_id"]
-                
+
                 # Increment highest level
                 await db.squares_progress.update_one(
                     {"student_id": student_id, "class_range": class_range},
@@ -225,16 +256,16 @@ class SquaresService:
                     upsert=True
                 )
                 next_unlocked = True
- 
+
             return {
                 "is_valid": any_valid,
-                "is_main": new_main_count > 0, # True if at least one new main word was found
-                "is_bonus": new_bonus_count > 0,
+                "is_main": (new_main_count > 0) or any(w in main_words for w in input_words),
+                "is_bonus": (new_bonus_count > 0) or any(w in bonus_words for w in input_words),
                 "is_new": any_new,
                 "message": message,
                 "found_words": found_words,
                 "found_bonus_words": found_bonus_words,
-                "main_words_remaining": len(main_words) - len(found_words),
+                "main_words_remaining": max(0, len(main_words) - len(found_words)),
                 "status": status,
                 "level": session["level"],
                 "next_level_unlocked": next_unlocked
@@ -256,21 +287,25 @@ class SquaresService:
                     "level": session["level"]
                 })
                 hint = puzzle.get("hint") if puzzle else None
-                
+                main_words = [w.strip().upper() for w in (session.get("main_words") or []) if w]
+                bonus_words = [w.strip().upper() for w in (session.get("bonus_words") or []) if w]
+                found_words = list(session.get("found_words") or [])
+                found_bonus_words = list(session.get("found_bonus_words") or [])
+
                 return {
                     "session_id": str(session["_id"]),
                     "level": session["level"],
                     "class_range": session["class_range"],
                     "hint": hint,
                     "grid": session["grid"],
-                    "found_words": session["found_words"],
-                    "found_bonus_words": session["found_bonus_words"],
-                    "main_words": session["main_words"],
-                    "bonus_words": session.get("bonus_words", []),
-                    "main_words_count": len(session["main_words"]),
-                    "bonus_words_count": len(session["bonus_words"]),
-                    "status": "playing",
-                    "mode": session["mode"]
+                    "found_words": found_words,
+                    "found_bonus_words": found_bonus_words,
+                    "main_words": main_words,
+                    "bonus_words": bonus_words,
+                    "main_words_count": len(main_words),
+                    "bonus_words_count": len(bonus_words),
+                    "status": session.get("status", "playing"),
+                    "mode": session.get("mode", "progression")
                 }
             return {"status": "idle"}
         except Exception as e:

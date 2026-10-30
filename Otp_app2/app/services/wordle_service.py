@@ -16,6 +16,31 @@ class WordleService:
         return "6-8" # Default to Middle School if unknown
 
     @staticmethod
+    async def get_total_levels(class_range: str, min_level: int = 1) -> int:
+        """
+        Dynamically determine total levels for a class range based on questions uploaded in admin.
+        Falls back to default config if no questions are found.
+        Ensures total_levels is at least min_level.
+        """
+        default_config = {
+            "1-3": 15, "3-5": 25, "6-8": 50, "9-10": 50, "11-12": 50
+        }
+        fallback = default_config.get(class_range, 50)
+
+        try:
+            levels = await db.wordle_questions.distinct("level", {"class_range": class_range})
+            int_levels = [
+                int(l) for l in levels
+                if isinstance(l, (int, float)) or (isinstance(l, str) and str(l).strip().isdigit())
+            ]
+            uploaded_max = max(int_levels) if int_levels else 0
+        except Exception:
+            uploaded_max = 0
+
+        total = uploaded_max if uploaded_max > 0 else fallback
+        return max(total, min_level, 1)
+
+    @staticmethod
     async def get_available_levels(student_id: str) -> Dict[str, Any]:
         """Get list of all levels with their status (locked/unlocked/completed)"""
         try:
@@ -37,24 +62,34 @@ class WordleService:
         
         # Determine highest level reached
         latest_session = await db.wordle_sessions.find_one(
-            {"student_id": student_id},
-            sort=[("updated_at", -1)]
+            {"student_id": student_id, "class_range": class_range},
+            sort=[("current_level", -1), ("updated_at", -1)]
         )
+        if not latest_session:
+            latest_session = await db.wordle_sessions.find_one(
+                {"student_id": student_id},
+                sort=[("current_level", -1), ("updated_at", -1)]
+            )
         
         highest_level_reached = 1
         if latest_session:
             highest_level_reached = latest_session.get("current_level", 1)
         
-        # Get total levels for this class range
-        level_config = {
-            "1-3": 15, "3-5": 25, "6-8": 50, "9-10": 50, "11-12": 50
-        }
-        total_levels = level_config.get(class_range, 50)
+        # Get total levels for this class range based on questions uploaded in admin
+        total_levels = await WordleService.get_total_levels(class_range, min_level=highest_level_reached)
+
+        # Check if student completed all levels
+        all_completed = False
+        if latest_session and latest_session.get("status") == "completed":
+            results = latest_session.get("results", [])
+            last_result_won = bool(results and results[-1].get("status") == "won")
+            if highest_level_reached >= total_levels and last_result_won:
+                all_completed = True
         
         # Build level list
         levels = []
         for level_num in range(1, total_levels + 1):
-            if level_num < highest_level_reached:
+            if level_num < highest_level_reached or (level_num == highest_level_reached and all_completed):
                 status = "completed"
                 playable = True
             elif level_num == highest_level_reached:
@@ -99,19 +134,21 @@ class WordleService:
         
         # 2. Determine Level from Session History
         latest_session = await db.wordle_sessions.find_one(
-            {"student_id": student_id},
-            sort=[("updated_at", -1)]
+            {"student_id": student_id, "class_range": class_range},
+            sort=[("current_level", -1), ("updated_at", -1)]
         )
+        if not latest_session:
+            latest_session = await db.wordle_sessions.find_one(
+                {"student_id": student_id},
+                sort=[("current_level", -1), ("updated_at", -1)]
+            )
         
         current_student_level = 1
         if latest_session:
             current_student_level = latest_session.get("current_level", 1)
         
-        # 3. Determine Total Max Levels
-        level_config = {
-            "1-3": 15, "3-5": 25, "6-8": 50, "9-10": 50, "11-12": 50
-        }
-        total_max_levels = level_config.get(class_range, 50)
+        # 3. Determine Total Max Levels based on questions uploaded in admin
+        total_max_levels = await WordleService.get_total_levels(class_range, min_level=current_student_level)
         
         # 4. Handle Level Selection (Practice vs Progression Mode)
         mode = "progression"
@@ -246,7 +283,8 @@ class WordleService:
         status_response = "playing"
         
         current_level = session["current_level"]
-        total_max_levels = session["total_levels"]
+        dynamic_total = await WordleService.get_total_levels(session.get("class_range", "6-8"))
+        total_max_levels = max(session.get("total_levels", 0), dynamic_total)
         levels_passed = session.get("levels_passed", 0)
         mode = session.get("mode", "progression")
         selected_level = session.get("selected_level", current_level)
@@ -395,19 +433,19 @@ class WordleService:
             {"student_id": student_id, "status": "playing"},
             sort=[("updated_at", -1)]
         )
-        print('check1')
         if session:
-            print('check2')
             # Active Session Found
             hint_index = len(session["guesses"])
             hints = session["hints"]
             current_hint = hints[hint_index] if hint_index < len(hints) else hints[-1]
-            
+            dynamic_total = await WordleService.get_total_levels(session.get("class_range", "6-8"))
+            total_rounds = max(session.get("total_levels", 0), dynamic_total)
+
             return {
                 "session_id": str(session["_id"]),
                 "current_round": session["current_level"],
                 "level": session["current_level"],
-                "total_rounds": session["total_levels"],
+                "total_rounds": total_rounds,
                 "current_word_length": len(session["secret_word"]),
                 "revealed_pattern": session["revealed_pattern"],
                 "hint": current_hint,
@@ -417,22 +455,6 @@ class WordleService:
             }
         
         # 2. No Active Session: Fallback to History
-        latest_session = await db.wordle_sessions.find_one(
-            {"student_id": student_id},
-            sort=[("updated_at", -1)]
-        )
-        
-        current_student_level = 1
-        lifetime_passed = 0
-        
-        if latest_session:
-            current_student_level = latest_session.get("current_level", 1)
-            # Rough estimate of passed levels from history
-            lifetime_passed = current_student_level - 1
-            if current_student_level > latest_session.get("total_levels", 50):
-                lifetime_passed = latest_session.get("total_levels", 50)
-
-        # Still need class for total_rounds
         try:
             s_oid = ObjectId(student_id)
             student = await db.students.find_one({"_id": s_oid})
@@ -441,8 +463,29 @@ class WordleService:
             student_class = 8
             
         class_range = WordleService.get_class_range(student_class)
-        level_config = {"1-3": 15, "3-5": 25, "6-8": 50, "9-10": 50, "11-12": 50}
-        total_max_levels = level_config.get(class_range, 50)
+
+        latest_session = await db.wordle_sessions.find_one(
+            {"student_id": student_id, "class_range": class_range},
+            sort=[("current_level", -1), ("updated_at", -1)]
+        )
+        if not latest_session:
+            latest_session = await db.wordle_sessions.find_one(
+                {"student_id": student_id},
+                sort=[("current_level", -1), ("updated_at", -1)]
+            )
+        
+        current_student_level = 1
+        lifetime_passed = 0
+
+        total_max_levels = await WordleService.get_total_levels(class_range, min_level=current_student_level)
+
+        if latest_session:
+            current_student_level = latest_session.get("current_level", 1)
+            total_max_levels = max(total_max_levels, current_student_level)
+            # Rough estimate of passed levels from history
+            lifetime_passed = current_student_level - 1
+            if current_student_level > total_max_levels:
+                lifetime_passed = total_max_levels
 
         return {
             "session_id": None,

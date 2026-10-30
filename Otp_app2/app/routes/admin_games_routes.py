@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import Optional, Dict, Any, List
 from bson import ObjectId
 from datetime import datetime
+import re
 
 from app.core.database import db
 from app.utils.admin_auth import require_permission
@@ -19,6 +20,30 @@ def serialize_doc(doc: dict) -> dict:
         if isinstance(v, datetime):
             doc[k] = v.isoformat() + "Z"
     return doc
+
+
+def _parse_word_list(raw_input: Any) -> List[str]:
+    """Parse list, comma/newline/space separated string, or None into a list of uppercase words."""
+    if not raw_input:
+        return []
+    if isinstance(raw_input, str):
+        words = re.split(r'[\s,]+', raw_input.strip())
+        return [w.upper() for w in words if w]
+    if isinstance(raw_input, list):
+        result = []
+        for item in raw_input:
+            if isinstance(item, str):
+                parts = re.split(r'[\s,]+', item.strip())
+                for p in parts:
+                    if p:
+                        result.append(p.upper())
+            elif item is not None:
+                cleaned = str(item).strip().upper()
+                if cleaned:
+                    result.append(cleaned)
+        # Deduplicate while preserving order
+        return list(dict.fromkeys(result))
+    return []
 
 
 # ══════════════════════════════════════════════
@@ -221,7 +246,9 @@ async def list_squares_levels(
     for lv in levels:
         d = serialize_doc(lv)
         # Add word count for quick overview
-        d["word_count"] = len(d.get("words", []))
+        main_w = d.get("main_words") or []
+        bonus_w = d.get("bonus_words") or []
+        d["word_count"] = len(main_w) + len(bonus_w)
         result.append(d)
 
     return {"status": "success", "total": total, "data": result}
@@ -238,8 +265,8 @@ async def add_squares_level(
     """
     level = payload.get("level")
     class_range = payload.get("class_range", "").strip()
-    main_words = payload.get("main_words", [])
-    bonus_words = payload.get("bonus_words", [])
+    main_words = _parse_word_list(payload.get("main_words"))
+    bonus_words = _parse_word_list(payload.get("bonus_words"))
     grid = payload.get("grid", [])
     hint = payload.get("hint", "").strip()
 
@@ -256,8 +283,8 @@ async def add_squares_level(
     doc = {
         "level": int(level),
         "class_range": class_range,
-        "main_words": [w.strip().upper() for w in main_words if w.strip()],
-        "bonus_words": [w.strip().upper() for w in bonus_words if w.strip()],
+        "main_words": main_words,
+        "bonus_words": bonus_words,
         "grid": grid,
         "hint": hint,
         "created_at": datetime.utcnow(),
@@ -290,9 +317,9 @@ async def update_squares_level(
 
     update_data: Dict[str, Any] = {}
     if "main_words" in payload:
-        update_data["main_words"] = [w.strip().upper() for w in payload["main_words"] if w.strip()]
+        update_data["main_words"] = _parse_word_list(payload["main_words"])
     if "bonus_words" in payload:
-        update_data["bonus_words"] = [w.strip().upper() for w in payload["bonus_words"] if w.strip()]
+        update_data["bonus_words"] = _parse_word_list(payload["bonus_words"])
     if "grid" in payload:
         update_data["grid"] = payload["grid"]
     if "level" in payload:

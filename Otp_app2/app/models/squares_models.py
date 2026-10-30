@@ -31,7 +31,8 @@ class SquaresSessionResponse(BaseModel):
 
 class SquaresWordSubmission(BaseModel):
     session_id: str
-    words: List[str]
+    words: Optional[List[str]] = None
+    word: Optional[str] = None
 
 class SquaresWordResponse(BaseModel):
     is_valid: bool

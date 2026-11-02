@@ -1016,13 +1016,26 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
 
     try:
         # 2. Fetch paper
-        paper_doc = await db.generated_papers.find_one({"paper.paper_id": paper_id})
+        p_str = str(paper_id).strip()
+        paper_doc = await db.generated_papers.find_one({"paper.paper_id": p_str})
+        if not paper_doc and ObjectId.is_valid(p_str):
+            try:
+                paper_doc = await db.generated_papers.find_one({"_id": ObjectId(p_str)})
+            except Exception:
+                pass
+        if not paper_doc:
+            paper_doc = await db.generated_papers.find_one({"paper_id": p_str})
+        if not paper_doc:
+            paper_doc = await db.generated_papers.find_one({"task_id": p_str})
+        if not paper_doc and "-" in p_str:
+            paper_doc = await db.generated_papers.find_one({"task_id": p_str.split("-")[0]})
+
         if not paper_doc:
             raise Exception("Question paper not found")
 
-        paper = paper_doc["paper"]
-        subject = str(paper.get("subject") or "General")
-        standard = str(paper.get("standard") or "")
+        paper = paper_doc.get("paper") if isinstance(paper_doc.get("paper"), dict) else {}
+        subject = str(paper.get("subject") or paper_doc.get("subject") or paper_doc.get("exam_name") or "General")
+        standard = str(paper.get("standard") or paper_doc.get("standard") or "")
         chapters_used = paper.get("chapters_used") or []
         section_performance = {}
         topic_analysis = {
@@ -1507,29 +1520,281 @@ async def get_exam_history(
         "data": enriched_data
     }
 
+
+async def resolve_evaluation_subject_and_standard(data: dict) -> Tuple[str, str]:
+    """
+    Robustly resolves the subject name and standard for an evaluation record.
+    Recovers subject and standard from:
+    1. Direct fields in evaluation document
+    2. db.generated_papers (matching paper.paper_id, _id, paper_id, task_id, base task_id, comp_ task_id)
+    3. db.question_tasks (matching task_id or base task_id)
+    4. db.competitive_exams (matching exam_id / paper_id)
+    5. db.textbook_chapters and db.textbook (matching chapters_used, chapter_performance, weak_areas, strong_areas)
+    6. Reverse question matching in db.generated_papers from detailed_results
+    7. Fallback standard from db.students via student_id
+    8. Fallback subject from student's other completed evaluations or 'General'
+    """
+    curr_subj = str(data.get("subject") or "").strip()
+    curr_std = str(data.get("standard") or "").strip()
+
+    is_subj_invalid = (
+        not curr_subj or 
+        curr_subj.lower() in ["", "unknown", "none", "null", "general", "undefined"]
+    )
+    is_std_invalid = not curr_std or curr_std.lower() in ["", "none", "null", "undefined"]
+
+    # 1. Check alternative direct fields in data
+    if is_subj_invalid:
+        for field in ["subject_name", "exam_name", "topic", "paper_title", "title"]:
+            val = str(data.get(field) or "").strip()
+            if val and val.lower() not in ["", "unknown", "none", "null", "general", "undefined"]:
+                curr_subj = val
+                is_subj_invalid = False
+                break
+
+    # 2. Lookup in db.generated_papers
+    paper_id = data.get("paper_id")
+    paper_doc = None
+    if paper_id:
+        p_str = str(paper_id).strip()
+        paper_doc = await db.generated_papers.find_one({"paper.paper_id": p_str})
+        
+        if not paper_doc and ObjectId.is_valid(p_str):
+            try:
+                paper_doc = await db.generated_papers.find_one({"_id": ObjectId(p_str)})
+            except Exception:
+                pass
+
+        if not paper_doc:
+            paper_doc = await db.generated_papers.find_one({"paper_id": p_str})
+
+        if not paper_doc:
+            paper_doc = await db.generated_papers.find_one({"task_id": p_str})
+
+        if not paper_doc and "-" in p_str:
+            base_task = p_str.split("-")[0]
+            paper_doc = await db.generated_papers.find_one({"task_id": base_task})
+            if not paper_doc and ObjectId.is_valid(base_task):
+                try:
+                    paper_doc = await db.generated_papers.find_one({"_id": ObjectId(base_task)})
+                except Exception:
+                    pass
+
+        if not paper_doc and p_str.startswith("comp_"):
+            parts = p_str.split("_")
+            if len(parts) >= 2:
+                paper_doc = await db.generated_papers.find_one({"task_id": parts[1]})
+
+    if paper_doc:
+        p_obj = paper_doc.get("paper") if isinstance(paper_doc.get("paper"), dict) else {}
+        extracted_subj = (
+            p_obj.get("subject") or 
+            paper_doc.get("subject") or 
+            p_obj.get("subject_name") or 
+            paper_doc.get("subject_name") or 
+            paper_doc.get("exam_name") or 
+            p_obj.get("exam_name") or
+            p_obj.get("paper_title") or
+            p_obj.get("title")
+        )
+        if extracted_subj:
+            clean_s = str(extracted_subj).strip()
+            if is_subj_invalid and clean_s.lower() not in ["", "unknown", "none", "null", "undefined"]:
+                curr_subj = clean_s
+                is_subj_invalid = clean_s.lower() == "general"
+
+        extracted_std = p_obj.get("standard") or paper_doc.get("standard") or p_obj.get("class")
+        if extracted_std and is_std_invalid:
+            curr_std = str(extracted_std).strip()
+            is_std_invalid = False
+
+    # 3. Lookup in db.question_tasks
+    if (is_subj_invalid or is_std_invalid) and paper_id:
+        p_str = str(paper_id).strip()
+        task_ids_to_try = [p_str]
+        if "-" in p_str:
+            task_ids_to_try.append(p_str.split("-")[0])
+        if p_str.startswith("comp_"):
+            parts = p_str.split("_")
+            if len(parts) >= 2:
+                task_ids_to_try.append(parts[1])
+
+        for tid in task_ids_to_try:
+            if ObjectId.is_valid(tid):
+                try:
+                    task_doc = await db.question_tasks.find_one({"_id": ObjectId(tid)})
+                    if task_doc:
+                        if is_subj_invalid and task_doc.get("subject"):
+                            curr_subj = str(task_doc.get("subject")).strip()
+                            is_subj_invalid = False
+                        if is_std_invalid and task_doc.get("standard"):
+                            curr_std = str(task_doc.get("standard")).strip()
+                            is_std_invalid = False
+                        break
+                except Exception:
+                    pass
+
+    # 4. Lookup in db.competitive_exams
+    if is_subj_invalid and paper_id:
+        p_str = str(paper_id).strip()
+        comp_queries = []
+        if ObjectId.is_valid(p_str):
+            comp_queries.append({"_id": ObjectId(p_str)})
+        comp_queries.append({"exam_name": p_str})
+        for cq in comp_queries:
+            try:
+                comp_doc = await db.competitive_exams.find_one(cq)
+                if comp_doc:
+                    cand = comp_doc.get("exam_name") or comp_doc.get("category_name")
+                    if cand:
+                        curr_subj = str(cand).strip()
+                        is_subj_invalid = False
+                        break
+            except Exception:
+                pass
+
+    # 5. Lookup via chapters in db.textbook_chapters & db.textbook
+    if is_subj_invalid or is_std_invalid:
+        ch_candidates = []
+        if isinstance(data.get("chapters_used"), list):
+            ch_candidates.extend(data["chapters_used"])
+        ta = data.get("topic_analysis") or {}
+        if isinstance(ta, dict):
+            cp = ta.get("chapter_performance") or {}
+            if isinstance(cp, dict):
+                ch_candidates.extend(cp.keys())
+            wa = ta.get("weak_areas") or []
+            if isinstance(wa, list):
+                ch_candidates.extend(wa)
+            sa = ta.get("strong_areas") or []
+            if isinstance(sa, list):
+                ch_candidates.extend(sa)
+
+        ch_candidates = [str(c).strip() for c in ch_candidates if str(c).strip() and len(str(c).strip()) > 2]
+        if ch_candidates:
+            ch_doc = await db.textbook_chapters.find_one({"chapter_title": {"$in": ch_candidates}})
+            if ch_doc:
+                if is_subj_invalid and ch_doc.get("subject"):
+                    curr_subj = str(ch_doc.get("subject")).strip()
+                    is_subj_invalid = False
+                if is_std_invalid and ch_doc.get("standard"):
+                    curr_std = str(ch_doc.get("standard")).strip()
+                    is_std_invalid = False
+            else:
+                tb_doc = await db.textbook.find_one({"chapters": {"$in": ch_candidates}})
+                if tb_doc:
+                    if is_subj_invalid and tb_doc.get("subject"):
+                        curr_subj = str(tb_doc.get("subject")).strip()
+                        is_subj_invalid = False
+                    if is_std_invalid and tb_doc.get("standard"):
+                        curr_std = str(tb_doc.get("standard")).strip()
+                        is_std_invalid = False
+
+    # 6. Reverse matching from detailed_results questions in db.generated_papers
+    if is_subj_invalid or is_std_invalid:
+        for r in (data.get("detailed_results") or []):
+            if isinstance(r, dict):
+                q_text = str(r.get("question") or "").strip()
+                if len(q_text) >= 15:
+                    p_match = await db.generated_papers.find_one({"paper.sections.questions.question": q_text})
+                    if p_match:
+                        p_obj = p_match.get("paper") if isinstance(p_match.get("paper"), dict) else {}
+                        matched_s = p_obj.get("subject") or p_match.get("subject")
+                        if is_subj_invalid and matched_s:
+                            curr_subj = str(matched_s).strip()
+                            is_subj_invalid = False
+                        matched_std = p_obj.get("standard") or p_match.get("standard")
+                        if is_std_invalid and matched_std:
+                            curr_std = str(matched_std).strip()
+                            is_std_invalid = False
+                        break
+
+    # 7. Student profile fallback for standard
+    if is_std_invalid:
+        student_id = data.get("student_id")
+        if student_id:
+            try:
+                s_oid = ObjectId(str(student_id))
+                student_doc = await db.students.find_one({"_id": s_oid})
+                if student_doc and student_doc.get("student_class"):
+                    curr_std = str(student_doc.get("student_class")).strip()
+                    is_std_invalid = False
+            except Exception:
+                pass
+
+    # 8. Student's other evaluations fallback for subject
+    if is_subj_invalid:
+        student_id = data.get("student_id")
+        if student_id:
+            try:
+                s_oid = ObjectId(str(student_id))
+                other_ev = await db.evaluations.find_one({
+                    "student_id": s_oid,
+                    "subject": {"$nin": [None, "", "Unknown", "unknown", "None", "null", "undefined", "General", "general"]}
+                }, sort=[("created_at", -1)])
+                if other_ev and other_ev.get("subject"):
+                    curr_subj = str(other_ev.get("subject")).strip()
+                    is_subj_invalid = False
+            except Exception:
+                pass
+
+    # Final safe fallback if nothing was matched
+    if not curr_subj or curr_subj.lower() in ["", "unknown", "none", "null", "undefined"]:
+        curr_subj = "General"
+
+    return curr_subj, curr_std
+
+
 async def enrich_evaluation_data(data: dict):
     """
     Shared enrichment logic for evaluation records (Detail & History).
     Ensures legacy records have subject, scores, per-question status/prompts,
     and heals any placeholder ideal_answers with genuine reference answers.
     """
+    # 0. Robustly resolve subject and standard if missing or placeholder
+    curr_s = data.get("subject")
+    curr_std = data.get("standard")
+    if not curr_s or str(curr_s).strip().lower() in ["", "unknown", "none", "null", "undefined"] or not curr_std:
+        resolved_subj, resolved_std = await resolve_evaluation_subject_and_standard(data)
+        data["subject"] = resolved_subj
+        if not data.get("standard") and resolved_std:
+            data["standard"] = resolved_std
+        if data.get("_id"):
+            try:
+                raw_id = data["_id"]
+                oid = ObjectId(str(raw_id)) if not isinstance(raw_id, ObjectId) else raw_id
+                await db.evaluations.update_one(
+                    {"_id": oid},
+                    {"$set": {"subject": resolved_subj, "standard": data.get("standard", "")}}
+                )
+            except Exception:
+                pass
+
     paper_id = data.get("paper_id")
     paper = {}
     if paper_id:
-        paper_doc = await db.generated_papers.find_one({"paper.paper_id": paper_id})
-        if not paper_doc:
+        p_str = str(paper_id).strip()
+        paper_doc = await db.generated_papers.find_one({"paper.paper_id": p_str})
+        if not paper_doc and ObjectId.is_valid(p_str):
             try:
-                paper_doc = await db.generated_papers.find_one({"_id": ObjectId(paper_id)})
+                paper_doc = await db.generated_papers.find_one({"_id": ObjectId(p_str)})
             except:
                 pass
+        if not paper_doc:
+            paper_doc = await db.generated_papers.find_one({"paper_id": p_str})
+        if not paper_doc:
+            paper_doc = await db.generated_papers.find_one({"task_id": p_str})
+        if not paper_doc and "-" in p_str:
+            paper_doc = await db.generated_papers.find_one({"task_id": p_str.split("-")[0]})
+
         if paper_doc:
             paper = paper_doc.get("paper", {})
 
     # 1. Enrich from generated_papers if subject or section_performance is missing
     if paper:
-        if not data.get("subject"):
-            data["subject"] = paper.get("subject", "")
-            data["standard"] = paper.get("standard", "")
+        if not data.get("subject") or str(data.get("subject")).strip().lower() in ["", "unknown", "none", "null", "undefined"]:
+            data["subject"] = paper.get("subject") or paper.get("subject_name") or data.get("subject") or "General"
+            data["standard"] = paper.get("standard") or data.get("standard") or ""
             data["chapters_used"] = paper.get("chapters_used", [])
         
         if not data.get("section_performance") and data.get("detailed_results"):
@@ -1827,7 +2092,9 @@ async def enrich_evaluation_data(data: dict):
                         "max_total": data["max_total"],
                         "score_pct": data["score_pct"],
                         "grade": data["grade"],
-                        "section_performance": data.get("section_performance")
+                        "section_performance": data.get("section_performance"),
+                        "subject": data.get("subject"),
+                        "standard": data.get("standard")
                     }}
                 )
             except Exception as ex:
@@ -1960,6 +2227,22 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
     all_score_pcts = []
 
     for ev in evaluations:
+        subj = ev.get("subject")
+        std = ev.get("standard")
+        if not subj or str(subj).strip().lower() in ["", "unknown", "none", "null", "undefined"] or not std:
+            resolved_subj, resolved_std = await resolve_evaluation_subject_and_standard(ev)
+            ev["subject"] = resolved_subj
+            if not ev.get("standard") and resolved_std:
+                ev["standard"] = resolved_std
+            if ev.get("_id"):
+                try:
+                    await db.evaluations.update_one(
+                        {"_id": ev["_id"]},
+                        {"$set": {"subject": resolved_subj, "standard": ev.get("standard", "")}}
+                    )
+                except Exception as ex:
+                    print(f"[Insights] Failed to persist healed evaluation {ev['_id']}: {ex}")
+
         total = ev.get("total_score", 0)
         max_t = ev.get("max_total", 0)
         pct = round((total / max_t * 100) if max_t > 0 else 0.0, 1)
@@ -1967,7 +2250,7 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
         all_score_pcts.append(pct)
         score_trend.append({
             "date": ev.get("created_at", ""),
-            "subject": ev.get("subject", "Unknown"),
+            "subject": ev.get("subject") or "General",
             "standard": ev.get("standard", ""),
             "score_pct": pct,
             "grade": ev.get("grade") or _grade_from_pct(pct),
@@ -1977,7 +2260,9 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
     # ── 2. Subject Performance ──────────────────────────────────────
     subject_map = {}
     for ev in evaluations:
-        subj = ev.get("subject", "Unknown")
+        subj = ev.get("subject") or "General"
+        if str(subj).strip().lower() in ["unknown", "none", "null", "undefined", ""]:
+            subj = "General"
         pct = ev["_score_pct"]
         if subj not in subject_map:
             subject_map[subj] = {"scores": [], "best": 0.0}

@@ -60,15 +60,19 @@ async def generate_future_study_guidance(student_id: str, current_user: dict = D
         raise HTTPException(status_code=400, detail="Invalid student_id format")
 
     # 1. Fetch latest career analysis for student
-    record = await db.career_analyzer.find_one({"student_id": s_oid}, sort=[("timestamp", -1)])
+    record = await db.career_analyzer.find_one(
+        {"student_id": {"$in": [s_oid, str(s_oid)]}},
+        sort=[("timestamp", -1)]
+    )
     if not record:
         raise HTTPException(status_code=404, detail="Career analysis not found")
 
-    top_category = record.get("top_category")
-    recommended_career = record.get("recommended_career")
-    if not recommended_career or recommended_career == "No career mapped":
-        from app.routes.user_routes import get_recommended_career
-        recommended_career = get_recommended_career(top_category)
+    scores = record.get("scores", {})
+    percentages = record.get("percentages", {})
+    from app.routes.user_routes import get_top_5_careers_with_scores, resolve_top_categories, get_recommended_career
+    resolved_cats, top_category = resolve_top_categories(scores, percentages, record.get("top_category"))
+    top_5_items, top_5_str, _ = get_top_5_careers_with_scores(scores, percentages, top_categories=resolved_cats)
+    recommended_career = top_5_str or record.get("recommended_career") or get_recommended_career(top_category)
 
     if not recommended_career or not top_category:
         raise HTTPException(status_code=400, detail="Career data incomplete")

@@ -384,14 +384,12 @@ async def get_student_profile(
     if career:
         scores = career.get("scores", {})
         percentages = career.get("percentages", {})
-        top_5_items = career.get("top_5_careers")
-        top_5_str = career.get("recommended_career")
-        if not top_5_items or not top_5_str:
-            from app.routes.user_routes import get_top_5_careers_with_scores
-            top_5_items, top_5_str, _ = get_top_5_careers_with_scores(scores, percentages)
+        from app.routes.user_routes import get_top_5_careers_with_scores, resolve_top_categories
+        resolved_cats, top_cat_str = resolve_top_categories(scores, percentages, career.get("top_category"))
+        top_5_items, top_5_str, _ = get_top_5_careers_with_scores(scores, percentages, top_categories=resolved_cats)
 
         career_data = {
-            "top_category": career.get("top_category"),
+            "top_category": top_cat_str,
             "recommended_career": top_5_str,
             "top_5_careers": top_5_items,
             "percentages": percentages,

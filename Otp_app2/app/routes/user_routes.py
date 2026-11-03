@@ -1161,10 +1161,8 @@ async def get_logins(admin=Depends(require_permission("User Management", "read")
 
 # --------------------- Career Analyzer Logic -------------------------
 
-
-# --------------------- Career Analyzer Logic -------------------------
-
 CAREER_PROFILES = [
+    # Logical-Mathematical
     {
         "career": "Scientist",
         "primary_category": "Logical-Mathematical",
@@ -1186,6 +1184,13 @@ CAREER_PROFILES = [
         "weights": {"logical-mathematical": 0.50, "verbal-linguistic": 0.30, "visual-spatial": 0.20}
     },
     {
+        "career": "Software Developer",
+        "primary_category": "Logical-Mathematical",
+        "weights": {"logical-mathematical": 0.55, "visual-spatial": 0.25, "intrapersonal": 0.20}
+    },
+
+    # Visual-Spatial
+    {
         "career": "Architect",
         "primary_category": "Visual-Spatial",
         "weights": {"visual-spatial": 0.55, "logical-mathematical": 0.30, "bodily-kinesthetic": 0.15}
@@ -1206,6 +1211,13 @@ CAREER_PROFILES = [
         "weights": {"visual-spatial": 0.50, "bodily-kinesthetic": 0.35, "logical-mathematical": 0.15}
     },
     {
+        "career": "Animator",
+        "primary_category": "Visual-Spatial",
+        "weights": {"visual-spatial": 0.60, "logical-mathematical": 0.20, "intrapersonal": 0.20}
+    },
+
+    # Bodily-Kinesthetic
+    {
         "career": "Surgeon",
         "primary_category": "Bodily-Kinesthetic",
         "weights": {"bodily-kinesthetic": 0.50, "logical-mathematical": 0.30, "visual-spatial": 0.20}
@@ -1220,6 +1232,18 @@ CAREER_PROFILES = [
         "primary_category": "Bodily-Kinesthetic",
         "weights": {"bodily-kinesthetic": 0.45, "interpersonal": 0.35, "logical-mathematical": 0.20}
     },
+    {
+        "career": "Dancer",
+        "primary_category": "Bodily-Kinesthetic",
+        "weights": {"bodily-kinesthetic": 0.65, "musical": 0.20, "visual-spatial": 0.15}
+    },
+    {
+        "career": "Fitness Trainer",
+        "primary_category": "Bodily-Kinesthetic",
+        "weights": {"bodily-kinesthetic": 0.55, "interpersonal": 0.30, "intrapersonal": 0.15}
+    },
+
+    # Verbal-Linguistic
     {
         "career": "Writer",
         "primary_category": "Verbal-Linguistic",
@@ -1236,6 +1260,18 @@ CAREER_PROFILES = [
         "weights": {"verbal-linguistic": 0.55, "logical-mathematical": 0.25, "interpersonal": 0.20}
     },
     {
+        "career": "Editor",
+        "primary_category": "Verbal-Linguistic",
+        "weights": {"verbal-linguistic": 0.60, "intrapersonal": 0.25, "logical-mathematical": 0.15}
+    },
+    {
+        "career": "Translator",
+        "primary_category": "Verbal-Linguistic",
+        "weights": {"verbal-linguistic": 0.65, "interpersonal": 0.20, "intrapersonal": 0.15}
+    },
+
+    # Interpersonal
+    {
         "career": "Teacher",
         "primary_category": "Interpersonal",
         "weights": {"interpersonal": 0.50, "verbal-linguistic": 0.30, "intrapersonal": 0.20}
@@ -1251,6 +1287,18 @@ CAREER_PROFILES = [
         "weights": {"interpersonal": 0.50, "logical-mathematical": 0.30, "verbal-linguistic": 0.20}
     },
     {
+        "career": "Public Relations Specialist",
+        "primary_category": "Interpersonal",
+        "weights": {"interpersonal": 0.55, "verbal-linguistic": 0.30, "visual-spatial": 0.15}
+    },
+    {
+        "career": "Human Resources Specialist",
+        "primary_category": "Interpersonal",
+        "weights": {"interpersonal": 0.55, "verbal-linguistic": 0.25, "logical-mathematical": 0.20}
+    },
+
+    # Intrapersonal
+    {
         "career": "Psychologist",
         "primary_category": "Intrapersonal",
         "weights": {"intrapersonal": 0.45, "interpersonal": 0.35, "verbal-linguistic": 0.20}
@@ -1260,6 +1308,23 @@ CAREER_PROFILES = [
         "primary_category": "Intrapersonal",
         "weights": {"intrapersonal": 0.60, "verbal-linguistic": 0.25, "logical-mathematical": 0.15}
     },
+    {
+        "career": "Life Coach",
+        "primary_category": "Intrapersonal",
+        "weights": {"intrapersonal": 0.50, "interpersonal": 0.35, "verbal-linguistic": 0.15}
+    },
+    {
+        "career": "Author",
+        "primary_category": "Intrapersonal",
+        "weights": {"intrapersonal": 0.55, "verbal-linguistic": 0.30, "logical-mathematical": 0.15}
+    },
+    {
+        "career": "Research Scholar",
+        "primary_category": "Intrapersonal",
+        "weights": {"intrapersonal": 0.50, "logical-mathematical": 0.30, "verbal-linguistic": 0.20}
+    },
+
+    # Naturalist
     {
         "career": "Biologist",
         "primary_category": "Naturalist",
@@ -1271,6 +1336,28 @@ CAREER_PROFILES = [
         "weights": {"naturalist": 0.55, "interpersonal": 0.25, "logical-mathematical": 0.20}
     },
     {
+        "career": "Veterinarian",
+        "primary_category": "Naturalist",
+        "weights": {"naturalist": 0.55, "bodily-kinesthetic": 0.25, "logical-mathematical": 0.20}
+    },
+    {
+        "career": "Farmer",
+        "primary_category": "Naturalist",
+        "weights": {"naturalist": 0.60, "bodily-kinesthetic": 0.25, "logical-mathematical": 0.15}
+    },
+    {
+        "career": "Wildlife Conservationist",
+        "primary_category": "Naturalist",
+        "weights": {"naturalist": 0.55, "interpersonal": 0.25, "bodily-kinesthetic": 0.20}
+    },
+    {
+        "career": "Marine Biologist",
+        "primary_category": "Naturalist",
+        "weights": {"naturalist": 0.55, "logical-mathematical": 0.25, "visual-spatial": 0.20}
+    },
+
+    # Musical
+    {
         "career": "Musician",
         "primary_category": "Musical",
         "weights": {"musical": 0.65, "intrapersonal": 0.20, "bodily-kinesthetic": 0.15}
@@ -1279,6 +1366,21 @@ CAREER_PROFILES = [
         "career": "Sound Engineer",
         "primary_category": "Musical",
         "weights": {"musical": 0.45, "logical-mathematical": 0.40, "visual-spatial": 0.15}
+    },
+    {
+        "career": "Composer",
+        "primary_category": "Musical",
+        "weights": {"musical": 0.65, "logical-mathematical": 0.20, "intrapersonal": 0.15}
+    },
+    {
+        "career": "Singer",
+        "primary_category": "Musical",
+        "weights": {"musical": 0.65, "bodily-kinesthetic": 0.20, "interpersonal": 0.15}
+    },
+    {
+        "career": "Music Producer",
+        "primary_category": "Musical",
+        "weights": {"musical": 0.50, "logical-mathematical": 0.30, "interpersonal": 0.20}
     }
 ]
 
@@ -1310,6 +1412,23 @@ career_map = {
     "intra_personal": "Psychologist, Philosopher, Writer",
     "naturalist": "Biologist, Environmentalist, Farmer, Veterinarian"
 }
+
+CATEGORY_DISPLAY_MAP = {
+    "logical-mathematical": "Logical-Mathematical",
+    "verbal-linguistic": "Verbal-Linguistic",
+    "bodily-kinesthetic": "Bodily-Kinesthetic",
+    "visual-spatial": "Visual-Spatial",
+    "interpersonal": "Interpersonal",
+    "intrapersonal": "Intrapersonal",
+    "musical": "Musical",
+    "naturalist": "Naturalist"
+}
+
+def format_category_display(cat: str) -> str:
+    if not cat:
+        return ""
+    norm = norm_cat_key(cat)
+    return CATEGORY_DISPLAY_MAP.get(norm, cat.replace("_", " ").title())
 
 def get_recommended_career(category_name: str) -> str:
     if not category_name:
@@ -1365,7 +1484,72 @@ def norm_cat_key(k: str) -> str:
     return ck
 
 
-def get_top_5_careers_with_scores(scores: dict, percentages: dict = None):
+def resolve_top_categories(scores: dict = None, percentages: dict = None, existing_top_cat: str = None):
+    """
+    Resolves top categories, accurately detecting ties.
+    Returns: (list_of_normalized_category_keys, display_string)
+    e.g. (['bodily-kinesthetic', 'naturalist'], 'Bodily-Kinesthetic & Naturalist')
+    """
+    scores = scores or {}
+    percentages = percentages or {}
+
+    norm_scores = {}
+    for k, v in scores.items():
+        nk = norm_cat_key(k)
+        try:
+            val = float(v)
+        except (ValueError, TypeError):
+            val = 0.0
+        norm_scores[nk] = max(norm_scores.get(nk, 0.0), val)
+
+    norm_pcts = {}
+    for k, v in percentages.items():
+        nk = norm_cat_key(k)
+        try:
+            val = float(v)
+        except (ValueError, TypeError):
+            val = 0.0
+        norm_pcts[nk] = max(norm_pcts.get(nk, 0.0), val)
+
+    tied_keys = []
+    # 1. Check scores for ties
+    if norm_scores:
+        max_score = max(norm_scores.values())
+        if max_score > 0:
+            tied_keys = [k for k, v in norm_scores.items() if abs(v - max_score) < 1e-5]
+
+    # 2. If no tie in scores, check percentages
+    if not tied_keys and norm_pcts:
+        max_pct = max(norm_pcts.values())
+        if max_pct > 0:
+            tied_keys = [k for k, v in norm_pcts.items() if abs(v - max_pct) < 1e-5]
+
+    # 3. If existing_top_cat has multiple tied categories (e.g. with '&'), preserve/include them
+    if existing_top_cat and "&" in existing_top_cat:
+        existing_parts = [norm_cat_key(p.strip()) for p in existing_top_cat.split("&") if p.strip()]
+        for p in existing_parts:
+            if p and p not in tied_keys:
+                tied_keys.append(p)
+
+    # 4. If existing_top_cat was single and scores/pcts had no positive values, fallback to it
+    if not tied_keys and existing_top_cat:
+        norm_single = norm_cat_key(existing_top_cat.strip())
+        if norm_single:
+            tied_keys = [norm_single]
+
+    if not tied_keys:
+        tied_keys = ["logical-mathematical"]
+
+    display_parts = [format_category_display(k) for k in tied_keys]
+    display_str = " & ".join(display_parts)
+    return tied_keys, display_str
+
+
+def get_top_5_careers_with_scores(scores: dict, percentages: dict = None, top_categories = None):
+    """
+    Returns top 5 career recommendations strictly belonging to the student's
+    top category / tied top categories.
+    """
     if not scores:
         scores = {"logical-mathematical": 100}
     if not percentages:
@@ -1374,14 +1558,32 @@ def get_top_5_careers_with_scores(scores: dict, percentages: dict = None):
     norm_pcts = {}
     for k, v in percentages.items():
         norm_key = norm_cat_key(k)
-        norm_pcts[norm_key] = max(norm_pcts.get(norm_key, 0.0), float(v))
+        try:
+            val = float(v)
+        except (ValueError, TypeError):
+            val = 0.0
+        norm_pcts[norm_key] = max(norm_pcts.get(norm_key, 0.0), val)
+
+    if top_categories:
+        if isinstance(top_categories, str):
+            target_cats = [norm_cat_key(p.strip()) for p in top_categories.split("&") if p.strip()]
+        else:
+            target_cats = [norm_cat_key(c) for c in top_categories if c]
+    else:
+        target_cats, _ = resolve_top_categories(scores, percentages)
+
+    if not target_cats:
+        target_cats = ["logical-mathematical"]
 
     top_cat_val = max(norm_pcts.values()) if norm_pcts else 100.0
     if top_cat_val <= 0:
         top_cat_val = 100.0
 
-    career_scores = []
+    category_career_scores = {cat: [] for cat in target_cats}
+    fallback_career_scores = []
+
     for profile in CAREER_PROFILES:
+        prof_cat_key = norm_cat_key(profile["primary_category"])
         raw_weighted_score = 0.0
         for domain, weight in profile["weights"].items():
             domain_pct = norm_pcts.get(domain, 0.0)
@@ -1392,29 +1594,63 @@ def get_top_5_careers_with_scores(scores: dict, percentages: dict = None):
         if isinstance(fit_pct, float) and fit_pct.is_integer():
             fit_pct = int(fit_pct)
 
-        career_scores.append({
+        item = {
             "career": profile["career"],
             "category": profile["primary_category"],
             "confidence_score": fit_pct,
             "confidence_percentage": f"{fit_pct}%",
             "raw_weighted_score": raw_weighted_score
-        })
+        }
 
-    career_scores.sort(key=lambda x: (x["confidence_score"], x["raw_weighted_score"]), reverse=True)
+        if prof_cat_key in category_career_scores:
+            category_career_scores[prof_cat_key].append(item)
+        else:
+            fallback_career_scores.append(item)
+
+    for cat in target_cats:
+        category_career_scores[cat].sort(
+            key=lambda x: (x["confidence_score"], x["raw_weighted_score"]),
+            reverse=True
+        )
 
     top_5_items = []
     seen = set()
-    for item in career_scores:
-        if item["career"] not in seen:
-            seen.add(item["career"])
-            top_5_items.append({
-                "career": item["career"],
-                "category": item["category"],
-                "confidence_score": item["confidence_score"],
-                "confidence_percentage": item["confidence_percentage"]
-            })
-            if len(top_5_items) == 5:
-                break
+
+    max_len = max((len(category_career_scores[cat]) for cat in target_cats), default=0)
+    for idx in range(max_len):
+        for cat in target_cats:
+            cat_list = category_career_scores[cat]
+            if idx < len(cat_list):
+                cand = cat_list[idx]
+                if cand["career"] not in seen:
+                    seen.add(cand["career"])
+                    top_5_items.append({
+                        "career": cand["career"],
+                        "category": cand["category"],
+                        "confidence_score": cand["confidence_score"],
+                        "confidence_percentage": cand["confidence_percentage"]
+                    })
+                    if len(top_5_items) == 5:
+                        break
+        if len(top_5_items) == 5:
+            break
+
+    if len(top_5_items) < 5:
+        fallback_career_scores.sort(
+            key=lambda x: (x["confidence_score"], x["raw_weighted_score"]),
+            reverse=True
+        )
+        for cand in fallback_career_scores:
+            if cand["career"] not in seen:
+                seen.add(cand["career"])
+                top_5_items.append({
+                    "career": cand["career"],
+                    "category": cand["category"],
+                    "confidence_score": cand["confidence_score"],
+                    "confidence_percentage": cand["confidence_percentage"]
+                })
+                if len(top_5_items) == 5:
+                    break
 
     top_5_str = ", ".join([f"{item['career']} ({item['confidence_percentage']})" for item in top_5_items])
     career_suggestions = [
@@ -1425,10 +1661,10 @@ def get_top_5_careers_with_scores(scores: dict, percentages: dict = None):
     return top_5_items, top_5_str, career_suggestions
 
 
-def generate_insights_and_suggestions(scores: dict, percentages: dict = None):
+def generate_insights_and_suggestions(scores: dict, percentages: dict = None, top_categories = None):
     if not scores:
         return [], [], [], ""
-    top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages)
+    top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages, top_categories=top_categories)
 
     sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     top_3 = sorted_cats[:3]
@@ -1505,19 +1741,10 @@ async def analyze_career(
     scores = {c["category"]: c.get("total_marks", 0) for c in categories}
     percentages = normalize_percentages(scores)
 
-    top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages)
-
-    sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    if sorted_cats:
-        max_score = sorted_cats[0][1]
-        tied_top_cats = [cat for cat, val in sorted_cats if val == max_score and max_score > 0]
-        if not tied_top_cats:
-            tied_top_cats = [sorted_cats[0][0]]
-    else:
-        tied_top_cats = ["logical-mathematical"]
-
-    top_cat = " & ".join(cat.title() for cat in tied_top_cats)
+    tied_top_cats, top_cat = resolve_top_categories(scores, percentages)
+    top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages, top_categories=tied_top_cats)
     recommended_career = top_5_str
+    sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
     top_3 = sorted_cats[:3]
     insights = [
@@ -1635,12 +1862,17 @@ async def get_career_analysis(student_id: str, attempt: int,
         )
     record = serialize_mongo_doc(record)
 
-    if not record.get("personality_insights") or not record.get("career_suggestions") or not record.get("top_5_careers"):
-        gen_insights, gen_suggestions, top_5_items, top_5_str = generate_insights_and_suggestions(record.get("scores", {}), record.get("percentages", {}))
-        record["personality_insights"] = record.get("personality_insights") or gen_insights
-        record["career_suggestions"] = gen_suggestions
-        record["top_5_careers"] = record.get("top_5_careers") or top_5_items
-        record["recommended_career"] = top_5_str
+    scores = record.get("scores", {})
+    percentages = record.get("percentages", {})
+    resolved_cats, top_cat_str = resolve_top_categories(scores, percentages, record.get("top_category"))
+    top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages, top_categories=resolved_cats)
+    record["top_category"] = top_cat_str
+    record["recommended_career"] = top_5_str
+    record["top_5_careers"] = top_5_items
+    record["career_suggestions"] = career_suggestions
+    if not record.get("personality_insights"):
+        gen_insights, _, _, _ = generate_insights_and_suggestions(scores, percentages, top_categories=resolved_cats)
+        record["personality_insights"] = gen_insights
 
     return {
         "status_code": 200,
@@ -1777,17 +2009,22 @@ async def get_career_history(student_id: str,
         matching_attempt = next((a for a in full_attempts if a["attempt"] == attempt_no), None)
         scores = record.get("scores", {})
         percentages = record.get("percentages", {})
-        top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages)
+        if matching_attempt and (not scores or len(scores) < len(matching_attempt.get("categories", []))):
+            scores = {c["category"]: c.get("total_marks", 0) for c in matching_attempt.get("categories", [])}
+            percentages = normalize_percentages(scores)
+
+        resolved_cats, top_cat_str = resolve_top_categories(scores, percentages, record.get("top_category"))
+        top_5_items, top_5_str, career_suggestions = get_top_5_careers_with_scores(scores, percentages, top_categories=resolved_cats)
         insights = record.get("personality_insights")
         if not insights:
-            insights, _, _, _ = generate_insights_and_suggestions(scores, percentages)
+            insights, _, _, _ = generate_insights_and_suggestions(scores, percentages, top_categories=resolved_cats)
 
         combined_history.append({
             "attempt": attempt_no,
             "timestamp": record.get("timestamp"),
-            "top_category": record.get("top_category"),
+            "top_category": top_cat_str,
             "recommended_career": top_5_str,
-            "top_5_careers": record.get("top_5_careers") or top_5_items,
+            "top_5_careers": top_5_items,
             "personality_insights": insights,
             "career_suggestions": career_suggestions,
             "scores": scores,

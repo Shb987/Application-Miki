@@ -28,18 +28,10 @@ class AnalysisService:
                 CareerScoreItem(label=k, value=float(v)) 
                 for k, v in scores_dict.items()
             ]
-            top_cat = career_doc.get("top_category", "")
-
-            # Detect ties in scores_dict if top_cat doesn't already contain '&'
-            if scores_dict and "&" not in top_cat:
-                max_val = max(scores_dict.values())
-                tied_cats = [k for k, v in scores_dict.items() if v == max_val and max_val > 0]
-                if len(tied_cats) > 1:
-                    top_cat = " & ".join(k.title() for k in tied_cats)
-
             percentages_dict = career_doc.get("percentages", {})
-            from app.routes.user_routes import get_top_5_careers_with_scores
-            top_5_raw, top_5_str, _ = get_top_5_careers_with_scores(scores_dict, percentages_dict)
+            from app.routes.user_routes import get_top_5_careers_with_scores, resolve_top_categories
+            resolved_cats, top_cat = resolve_top_categories(scores_dict, percentages_dict, career_doc.get("top_category", ""))
+            top_5_raw, top_5_str, _ = get_top_5_careers_with_scores(scores_dict, percentages_dict, top_categories=resolved_cats)
 
             top_5_careers = [
                 CareerConfidenceItem(

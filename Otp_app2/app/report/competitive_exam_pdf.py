@@ -106,10 +106,13 @@ def save_competitive_exam_paper(paper_json: dict, filename: str):
     margin-bottom: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    page-break-after: avoid;
+    break-after: avoid;
   }}
   .question-item {{
-    margin-bottom: 11px;
+    margin-bottom: 12px;
     page-break-inside: avoid;
+    break-inside: avoid;
   }}
   .q-head {{
     font-weight: bold;
@@ -277,26 +280,23 @@ def save_competitive_exam_paper(paper_json: dict, filename: str):
     # 1. Try PyMuPDF fitz.Story rendering
     if fitz is not None and hasattr(fitz, "Story") and hasattr(fitz, "DocumentWriter"):
         try:
-            MEDIABOX = fitz.paper_rect("a4")
-            MARGIN_TOP = 36
-            MARGIN_BOTTOM = 36
-            MARGIN_LEFT = 36
-            MARGIN_RIGHT = 36
-            WHERE = fitz.Rect(MARGIN_LEFT, MARGIN_TOP, MEDIABOX.width - MARGIN_RIGHT, MEDIABOX.height - MARGIN_BOTTOM)
+            page_rect = fitz.paper_rect("a4")
+            MARGIN = 36
+            content_rect = fitz.Rect(MARGIN, MARGIN, page_rect.width - MARGIN, page_rect.height - MARGIN)
 
             story = fitz.Story(html=full_html)
             writer = fitz.DocumentWriter(filename)
-            more = 1
-            p_cnt = 0
-            while more and p_cnt < 50:
-                device = writer.begin_page(MEDIABOX)
-                p_cnt += 1
-                more, _ = story.place(WHERE)
-                story.draw(device)
-                writer.end_page()
 
+            def rectfn(rect_num, filled):
+                return page_rect, content_rect, fitz.Identity
+
+            story.write(writer, rectfn)
             writer.close()
-            print(f"[CompExamPDF] Successfully generated PDF with PyMuPDF fitz.Story: {filename} ({p_cnt} pages)")
+
+            chk = fitz.open(filename)
+            p_cnt = len(chk)
+            chk.close()
+            print(f"[CompExamPDF] Successfully generated PDF with PyMuPDF story.write: {filename} ({p_cnt} pages)")
             return
         except Exception as e:
             print(f"[CompExamPDF] PyMuPDF fitz.Story rendering warning: {e}. Falling back to ReportLab...")

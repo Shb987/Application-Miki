@@ -155,11 +155,15 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     border-left: 4px solid #002B49;
     width: 100%;
     line-height: 1.4;
+    page-break-after: avoid;
+    break-after: avoid;
   }}
   .question {{
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }}
   .q-text {{
     font-size: 13px;
@@ -168,6 +172,16 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     color: #111111;
     display: block;
     clear: both;
+  }}
+  .q-spacer {{
+    height: 16px;
+    line-height: 16px;
+    margin-bottom: 4px;
+  }}
+  .q-spacer-lg {{
+    height: 32px;
+    line-height: 32px;
+    margin-bottom: 6px;
   }}
   
   table.options-grid {{
@@ -327,10 +341,10 @@ def save_scert_question_paper(json_paper: dict, filename: str):
                 html_parts.append("""<div style="border:1px dashed #666; height:100px; text-align:center; line-height:100px; color:#666; margin-top:6px; margin-bottom:6px;">[ DIAGRAM / VISUAL ]</div>""")
 
             elif qtype in ("VERYSHORT", "SHORT"):
-                html_parts.append("""<div style="height:25px;"></div>""")
+                html_parts.append("""<div class="q-spacer">&nbsp;</div>""")
 
             elif qtype in ("ESSAY", "LONG", "ANALYZE", "APPLY"):
-                html_parts.append("""<div style="height:50px;"></div>""")
+                html_parts.append("""<div class="q-spacer-lg">&nbsp;</div>""")
 
             # Render internal choice OR question if present
             or_q = q.get("or_question") or q.get("or_text")
@@ -361,19 +375,17 @@ def save_scert_question_paper(json_paper: dict, filename: str):
             content_rect = fitz.Rect(36, 36, 559, 806) # Printable Content Area (36pt margins)
 
             writer = fitz.DocumentWriter(filename)
-            more = 1
-            page_count = 0
-            max_pages = 50
 
-            while more and page_count < max_pages:
-                device = writer.begin_page(page_rect)
-                page_count += 1
-                more, _ = story.place(content_rect)
-                story.draw(device)
-                writer.end_page()
+            def rectfn(rect_num, filled):
+                return page_rect, content_rect, fitz.Identity
 
+            story.write(writer, rectfn)
             writer.close()
-            print(f"[PyMuPDF-PDF] Saved SCERT PDF ({page_count} pages) to {filename} ({os.path.getsize(filename)} bytes)")
+
+            chk = fitz.open(filename)
+            page_count = len(chk)
+            chk.close()
+            print(f"[PyMuPDF-PDF] Saved SCERT PDF ({page_count} pages) via story.write to {filename} ({os.path.getsize(filename)} bytes)")
             return
         else:
             raise AttributeError("fitz module lacks Story or DocumentWriter")
@@ -427,16 +439,33 @@ def _save_fallback_pdf(json_paper: dict, filename: str):
                     qs = sec.get("questions", [])
                     if isinstance(qs, list):
                         for q in qs:
-                            if y > 780:
-                                page = doc.new_page(width=595, height=842)
-                                y = 50
                             qtext = q.get("question") if isinstance(q, dict) else str(q)
                             clean_t = "".join([c if ord(c) < 128 else " " for c in str(qtext or "")])
-                            try:
-                                page.insert_text((50, y), f"{qnum}. {clean_t}", fontsize=10, fontname="helv")
-                            except Exception:
-                                pass
-                            y += 18
+                            qmarks = q.get("marks", "") if isinstance(q, dict) else ""
+                            m_str = f" [{qmarks} Marks]" if qmarks else ""
+                            full_q_line = f"{qnum}. {clean_t}{m_str}"
+
+                            words = full_q_line.split()
+                            cur_line = ""
+                            for w in words:
+                                test_line = (cur_line + " " + w).strip()
+                                if fitz.get_text_length(test_line, fontname="helv", fontsize=10) > 480:
+                                    if y > 780:
+                                        page = doc.new_page(width=595, height=842)
+                                        y = 50
+                                    page.insert_text((50, y), cur_line, fontsize=10, fontname="helv")
+                                    y += 15
+                                    cur_line = "   " + w
+                                else:
+                                    cur_line = test_line
+
+                            if cur_line:
+                                if y > 780:
+                                    page = doc.new_page(width=595, height=842)
+                                    y = 50
+                                page.insert_text((50, y), cur_line, fontsize=10, fontname="helv")
+                                y += 18
+
                             qnum += 1
                     y += 10
                     

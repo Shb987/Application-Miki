@@ -142,11 +142,15 @@ def save_primary_question_paper(json_paper: dict, filename: str):
     border-left: 4px solid #0284c7;
     width: 100%;
     line-height: 1.4;
+    page-break-after: avoid;
+    break-after: avoid;
   }}
   .question {{
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }}
   .q-text {{
     font-size: 13.5px;
@@ -154,6 +158,16 @@ def save_primary_question_paper(json_paper: dict, filename: str):
     line-height: 1.5;
     color: #111111;
     display: block;
+  }}
+  .q-spacer {{
+    height: 16px;
+    line-height: 16px;
+    margin-bottom: 4px;
+  }}
+  .q-spacer-lg {{
+    height: 32px;
+    line-height: 32px;
+    margin-bottom: 6px;
   }}
   
   table.options-grid {{
@@ -310,10 +324,10 @@ def save_primary_question_paper(json_paper: dict, filename: str):
                 pass
 
             elif qtype in ("VERYSHORT", "SHORT"):
-                html_parts.append("""<div style="height:20px;"></div>""")
+                html_parts.append("""<div class="q-spacer">&nbsp;</div>""")
 
             elif qtype in ("ESSAY", "LONG", "ANALYZE", "APPLY"):
-                html_parts.append("""<div style="height:40px;"></div>""")
+                html_parts.append("""<div class="q-spacer-lg">&nbsp;</div>""")
 
             # Render internal choice OR question if present
             or_q = q.get("or_question") or q.get("or_text")
@@ -344,19 +358,17 @@ def save_primary_question_paper(json_paper: dict, filename: str):
             content_rect = fitz.Rect(36, 36, 559, 806) # Printable Content Area (36pt margins)
 
             writer = fitz.DocumentWriter(filename)
-            more = 1
-            page_count = 0
-            max_pages = 50
 
-            while more and page_count < max_pages:
-                device = writer.begin_page(page_rect)
-                page_count += 1
-                more, _ = story.place(content_rect)
-                story.draw(device)
-                writer.end_page()
+            def rectfn(rect_num, filled):
+                return page_rect, content_rect, fitz.Identity
 
+            story.write(writer, rectfn)
             writer.close()
-            print(f"[PyMuPDF-PDF] Saved primary question paper PDF ({page_count} pages) to {filename} ({os.path.getsize(filename)} bytes)")
+
+            chk = fitz.open(filename)
+            page_count = len(chk)
+            chk.close()
+            print(f"[PyMuPDF-PDF] Saved primary question paper PDF ({page_count} pages) via story.write to {filename} ({os.path.getsize(filename)} bytes)")
             return
         else:
             raise AttributeError("fitz module lacks Story or DocumentWriter")

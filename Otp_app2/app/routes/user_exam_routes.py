@@ -420,7 +420,7 @@ async def get_generated_question_paper(
 
 
 @router.get("/download-paper/{paper_id}")
-async def download_paper(paper_id: str, current_user: dict = Depends(get_current_user)):
+async def download_paper(paper_id: str, rerender: bool = False, current_user: dict = Depends(get_current_user)):
 
     # UPDATED: Find by MongoDB _id
     try:
@@ -449,9 +449,9 @@ async def download_paper(paper_id: str, current_user: dict = Depends(get_current
     db_pdf_path = paper_doc.get("pdf_path")
     full_path = None
 
-    if os.path.isfile(canonical_path):
+    if not rerender and os.path.isfile(canonical_path):
         full_path = canonical_path
-    elif db_pdf_path and os.path.isfile(os.path.abspath(db_pdf_path)):
+    elif not rerender and db_pdf_path and os.path.isfile(os.path.abspath(db_pdf_path)):
         full_path = os.path.abspath(db_pdf_path)
     else:
         # Re-render on the fly if missing

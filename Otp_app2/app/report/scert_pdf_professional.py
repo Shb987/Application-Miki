@@ -353,52 +353,32 @@ def save_scert_question_paper(json_paper: dict, filename: str):
     full_html = "".join(html_parts)
     
     try:
-        if fitz and hasattr(fitz, "Story") and hasattr(fitz, "Archive"):
-            archive = fitz.Archive(base_dir)
-            story = fitz.Story(full_html, archive=archive)
+        if fitz and hasattr(fitz, "Story") and hasattr(fitz, "DocumentWriter"):
+            archive = fitz.Archive(base_dir) if hasattr(fitz, "Archive") else None
+            story = fitz.Story(full_html, archive=archive) if archive else fitz.Story(full_html)
 
             page_rect = fitz.Rect(0, 0, 595, 842)      # A4 Page Mediabox (0, 0, 595, 842)
             content_rect = fitz.Rect(36, 36, 559, 806) # Printable Content Area (36pt margins)
 
-            doc = fitz.open()
+            writer = fitz.DocumentWriter(filename)
             more = 1
             page_count = 0
             max_pages = 50
 
             while more and page_count < max_pages:
-                page = doc.new_page(width=595, height=842)
+                device = writer.begin_page(page_rect)
                 page_count += 1
                 more, _ = story.place(content_rect)
-                story.draw(page)
+                story.draw(device)
+                writer.end_page()
 
-            doc.save(filename)
-            doc.close()
-            print(f"[PyMuPDF-PDF] Saved unclipped SCERT PDF ({page_count} pages) to {filename} ({os.path.getsize(filename)} bytes)")
+            writer.close()
+            print(f"[PyMuPDF-PDF] Saved SCERT PDF ({page_count} pages) to {filename} ({os.path.getsize(filename)} bytes)")
             return
         else:
-            raise AttributeError("fitz module lacks Story or Archive")
+            raise AttributeError("fitz module lacks Story or DocumentWriter")
     except Exception as err:
-        print(f"[PDF-GEN] PyMuPDF fitz.Story doc rendering failed: {err}. Trying DocumentWriter...")
-        try:
-            if fitz and hasattr(fitz, "Story") and hasattr(fitz, "DocumentWriter"):
-                archive = fitz.Archive(base_dir)
-                story = fitz.Story(full_html, archive=archive)
-                writer = fitz.DocumentWriter(filename)
-                page_rect = fitz.Rect(0, 0, 595, 842)
-                content_rect = fitz.Rect(36, 36, 559, 806)
-                more = 1
-                p_cnt = 0
-                while more and p_cnt < 50:
-                    device = writer.begin_page(page_rect)
-                    p_cnt += 1
-                    more, _ = story.place(content_rect)
-                    story.draw(device)
-                    writer.end_page()
-                writer.close()
-                print(f"[PyMuPDF-PDF] Saved via DocumentWriter fallback to {filename}")
-                return
-        except Exception as e2:
-            print(f"[PDF-GEN] DocumentWriter also failed: {e2}. Falling back to canvas...")
+        print(f"[PDF-GEN] PyMuPDF fitz.Story rendering failed: {err}. Falling back to canvas...")
         _save_fallback_pdf(json_paper, filename)
 
 

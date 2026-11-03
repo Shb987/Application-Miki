@@ -275,9 +275,8 @@ def save_competitive_exam_paper(paper_json: dict, filename: str):
     full_html = "".join(html_parts)
 
     # 1. Try PyMuPDF fitz.Story rendering
-    if fitz is not None:
+    if fitz is not None and hasattr(fitz, "Story") and hasattr(fitz, "DocumentWriter"):
         try:
-            doc = fitz.open()
             MEDIABOX = fitz.paper_rect("a4")
             MARGIN_TOP = 36
             MARGIN_BOTTOM = 36
@@ -286,15 +285,18 @@ def save_competitive_exam_paper(paper_json: dict, filename: str):
             WHERE = fitz.Rect(MARGIN_LEFT, MARGIN_TOP, MEDIABOX.width - MARGIN_RIGHT, MEDIABOX.height - MARGIN_BOTTOM)
 
             story = fitz.Story(html=full_html)
+            writer = fitz.DocumentWriter(filename)
             more = 1
-            while more:
-                page = doc.new_page(width=MEDIABOX.width, height=MEDIABOX.height)
+            p_cnt = 0
+            while more and p_cnt < 50:
+                device = writer.begin_page(MEDIABOX)
+                p_cnt += 1
                 more, _ = story.place(WHERE)
-                story.draw(page)
+                story.draw(device)
+                writer.end_page()
 
-            doc.save(filename)
-            doc.close()
-            print(f"[CompExamPDF] Successfully generated PDF with PyMuPDF fitz.Story: {filename}")
+            writer.close()
+            print(f"[CompExamPDF] Successfully generated PDF with PyMuPDF fitz.Story: {filename} ({p_cnt} pages)")
             return
         except Exception as e:
             print(f"[CompExamPDF] PyMuPDF fitz.Story rendering warning: {e}. Falling back to ReportLab...")

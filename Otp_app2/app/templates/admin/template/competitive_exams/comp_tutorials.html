@@ -257,7 +257,7 @@
           </div>
         </div>
         <h4 class="fw-bold mb-2" id="statusModalTitle">Success!</h4>
-        <p class="text-muted mb-4 fs-6" id="statusModalBody">Tutorial has been saved successfully.</p>
+        <p class="text-muted mb-4 fs-6" id="statusModalBody">Competitive exam tutorial created successfully</p>
         <button type="button" class="btn btn-primary rounded-pill px-5 py-2 fw-semibold shadow-sm" data-bs-dismiss="modal">
           OK
         </button>
@@ -552,8 +552,8 @@
 
       if (res.ok) {
         document.getElementById("tutorialForm").reset();
-        const successMsg = data.message || `Tutorial saved successfully with ${data.count || 0} video(s)!`;
-        showStatusPopup("Tutorial Added Successfully!", successMsg, true);
+        const successMsg = "Competitive exam tutorial created successfully";
+        showStatusPopup("Success!", successMsg, true);
         showToast(successMsg, "success");
         loadTutorials();
       } else {

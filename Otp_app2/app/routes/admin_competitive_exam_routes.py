@@ -1391,14 +1391,14 @@ async def admin_save_competitive_tutorial(
     }
 
 
-@router.get("/competitive-exams/tutorials")
+@router.get("/competitive-exams/api/tutorials")
+@router.get("/competitive-exams/tutorials/list")
 async def admin_get_competitive_tutorials(
     category: Optional[str] = Query(None),
     exam_name: Optional[str] = Query(None),
     subject: Optional[str] = Query(None),
     topic: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
-    current_admin: dict = Depends(require_permission("Competitive Exams", "read"))
+    search: Optional[str] = Query(None)
 ):
     """
     Get all competitive exam tutorials for admin.

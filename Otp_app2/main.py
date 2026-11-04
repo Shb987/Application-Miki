@@ -276,6 +276,9 @@ app.mount("/generated_papers", StaticFiles(directory="app/static/generated_paper
 app.mount("/app/static/generated_papers", StaticFiles(directory="app/static/generated_papers"), name="app_static_generated_papers")
 app.mount("/static/generated_papers", StaticFiles(directory="app/static/generated_papers"), name="static_generated_papers")
 app.mount("/static/games", StaticFiles(directory="app/static/games"), name="games")
+# Admin Panel page routes (Jinja templates) - Registered first to prevent any route shadowing
+app.include_router(admin_pages.router, prefix="/admin-panel", tags=["Admin Pages"])
+
 # API routers
 app.include_router(admin_routes.router, prefix="/admin-panel", tags=["Admin"])
 app.include_router(admin_roles_routes.router, prefix="/admin-panel", tags=["Admin Roles"])
@@ -298,8 +301,7 @@ app.include_router(companion_routes.router, tags=["AI Student Companion"])
 app.include_router(chat_routes.router, prefix="/user")
 app.include_router(ai_tutor_routes.router, prefix="/user")
 
-# Admin Panel page routes (Jinja) - MUST come before admin_quiz_routes to avoid conflicts
-app.include_router(admin_pages.router,prefix="/admin-panel",tags=["Admin Pages"])
+# Admin Panel page routes mounted above
 
 # Quiz API routes - comes after pages to avoid shadowing
 app.include_router(admin_quiz_routes.router, prefix="/admin-panel", tags=["Quiz Module - Admin"])

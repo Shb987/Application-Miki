@@ -277,7 +277,7 @@
     tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="fa fa-spinner fa-spin fa-2x mb-2 text-primary"></i><br>Loading tutorials...</td></tr>`;
 
     try {
-      const res = await fetch("/admin-panel/competitive-exams/tutorials", {
+      const res = await fetch("/admin-panel/competitive-exams/api/tutorials", {
         headers: getHeaders()
       });
       if (!res.ok) {
@@ -506,3 +506,4 @@
   });
 </script>
 {% endblock %}
+

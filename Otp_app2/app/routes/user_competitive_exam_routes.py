@@ -10,10 +10,11 @@ import json
 from app.core.database import db
 from app.utils.user_auth import get_current_user
 from app.report.competitive_exam_pdf import save_competitive_exam_paper
+from app.services.youtube_service import youtube_service
 from app.models.competitive_exam_models import (
-    ExamSubmitRequest, ExamAnswerSubmission,
-    ExamResultResponse, ExamSubmissionSummary, QuestionReviewItem,
-    ExamAttemptItem, CompetitiveAnalyticsResponse
+    CompetitiveVideoLink,
+    CompetitiveTutorialCreateRequest,
+    CompetitiveTutorialResponse
 )
 
 router = APIRouter(tags=["Competitive Exams - User"])
@@ -45,51 +46,6 @@ def natural_sort_key(s):
         return []
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', str(s))]
 
-async def resolve_student(current_user: dict, explicit_student_id: Optional[str] = None) -> Optional[dict]:
-    """
-    Intelligently resolves the student record from:
-    1. Explicit student_id param
-    2. current_user token payload ('student_id')
-    3. current_user mobile number / sub via usertable or students collection
-    """
-    target_id = explicit_student_id or current_user.get("student_id")
-    if target_id and str(target_id).strip():
-        s_clean = str(target_id).strip()
-        try:
-            if ObjectId.is_valid(s_clean):
-                st = await db.students.find_one({"_id": ObjectId(s_clean)})
-                if st: return st
-        except Exception:
-            pass
-        st = await db.students.find_one({"_id": s_clean})
-        if st: return st
-        st = await db.students.find_one({"student_id": s_clean})
-        if st: return st
-        st = await db.students.find_one({"id": s_clean})
-        if st: return st
-
-    # Fallback to mobile lookup
-    mobile = current_user.get("sub")
-    if mobile:
-        user_doc = await db.usertable.find_one({"mobile_number": mobile})
-        if user_doc and user_doc.get("student_ids"):
-            first_sid = user_doc["student_ids"][0]
-            try:
-                if ObjectId.is_valid(str(first_sid)):
-                    st = await db.students.find_one({"_id": ObjectId(str(first_sid))})
-                    if st: return st
-            except Exception:
-                pass
-            st = await db.students.find_one({"_id": str(first_sid)})
-            if st: return st
-
-        st = await db.students.find_one({"parent_mobile": mobile})
-        if st: return st
-        st = await db.students.find_one({"mobile_number": mobile})
-        if st: return st
-
-    return None
-
 def ensure_pdf_file(paper_doc: dict) -> str:
     """
     Checks if PDF exists on disk; if missing, re-renders via save_competitive_exam_paper.
@@ -106,10 +62,85 @@ def ensure_pdf_file(paper_doc: dict) -> str:
     if not os.path.exists(disk_path):
         try:
             save_competitive_exam_paper(paper_data, disk_path)
+            print(f"[USER-COMP-PDF] Generated on-the-fly PDF: {disk_path}")
         except Exception as e:
             print(f"[USER-COMP-PDF] PDF render warning: {e}")
 
     return f"/generated_papers/{pdf_filename}"
+
+def fetch_youtube_videos_for_tutorial(youtube_url: str, title: Optional[str] = None) -> List[dict]:
+    """
+    Fetches videos from YouTube URL (supports playlist, channel, and single video links).
+    Falls back gracefully if YouTube API key is missing or quota exceeded.
+    """
+    if not youtube_url or not youtube_url.strip():
+        return []
+
+    url = youtube_url.strip()
+
+    # 1. Single Video Link (e.g., watch?v=..., youtu.be/..., /embed/...)
+    v_match = re.search(r"(?:v=|youtu\.be/|embed/|shorts/)([a-zA-Z0-9_-]{11})", url)
+    if v_match and "list=" not in url:
+        vid = v_match.group(1)
+        video_link = f"https://www.youtube.com/watch?v={vid}"
+        fallback_item = {
+            "title": title or "Video Tutorial",
+            "published_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "link": video_link,
+            "thumbnail": f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+        }
+        try:
+            if hasattr(youtube_service, "youtube") and youtube_service.youtube:
+                res = youtube_service.youtube.videos().list(part="snippet", id=vid).execute()
+                items = res.get("items", [])
+                if items:
+                    snip = items[0].get("snippet", {})
+                    thumb = (snip.get("thumbnails", {}).get("high", {}).get("url")
+                             or snip.get("thumbnails", {}).get("default", {}).get("url")
+                             or fallback_item["thumbnail"])
+                    return [{
+                        "title": snip.get("title") or title or "Video Tutorial",
+                        "published_at": snip.get("publishedAt", "")[:10],
+                        "link": video_link,
+                        "thumbnail": thumb
+                    }]
+        except Exception as e:
+            print(f"[Tutorial] Single video fetch warning: {e}")
+        return [fallback_item]
+
+    # 2. Playlist / Channel / Search
+    try:
+        extracted_id, id_type = youtube_service.extract_id(url)
+        target_playlist_id = None
+        if id_type == "playlist":
+            target_playlist_id = extracted_id
+        elif id_type == "channel":
+            target_playlist_id = youtube_service.get_uploads_id(extracted_id)
+        else:
+            target_playlist_id, _ = youtube_service.search_playlist_by_name(url)
+
+        if target_playlist_id:
+            videos = youtube_service.fetch_videos(target_playlist_id)
+            if videos:
+                results = []
+                for v in videos:
+                    results.append({
+                        "title": v.get("title") or "Tutorial Video",
+                        "published_at": v.get("published_at", ""),
+                        "link": v.get("link", ""),
+                        "thumbnail": v.get("thumbnail") or ""
+                    })
+                return results
+    except Exception as e:
+        print(f"[Tutorial] YouTube playlist/channel fetch warning: {e}")
+
+    # Fallback to single entry
+    return [{
+        "title": title or "Video Tutorial",
+        "published_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "link": url,
+        "thumbnail": ""
+    }]
 
 
 # ===========================================================================
@@ -213,102 +244,86 @@ async def list_exams(
     }
 
 
-@router.get("/competitive-exams/exams/{exam_id}")
-async def get_exam_details(exam_id: str = Path(..., description="Competitive Exam ID or Name")):
-    """
-    Get detailed blueprint and syllabus specifications for a specific competitive exam.
-    """
-    exam = None
-    if ObjectId.is_valid(exam_id):
-        exam = await db.competitive_exams.find_one({"_id": ObjectId(exam_id)})
-    if not exam:
-        exam = await db.competitive_exams.find_one({"exam_name": exam_id})
-
-    if not exam:
-        raise HTTPException(status_code=404, detail="Competitive Exam not found")
-
-    exam["_id"] = str(exam["_id"])
-    e_name = exam.get("exam_name")
-
-    # Fetch available question papers count
-    paper_count = await db.generated_papers.count_documents({
-        "module_type": "competitive_exam",
-        "$or": [{"exam_id": exam["_id"]}, {"exam_name": e_name}, {"paper.exam_name": e_name}]
-    })
-    exam["available_papers_count"] = paper_count
-
-    # Fetch available textbooks
-    textbooks = await db.textbook.find({
-        "$or": [{"exam_name": e_name}, {"standard": e_name}],
-        "status": {"$in": ["completed", "cleanup_failed"]}
-    }).to_list(None)
-
-    for tb in textbooks:
-        tb["_id"] = str(tb["_id"])
-        if isinstance(tb.get("chapters"), list):
-            tb["chapters"] = sorted(tb["chapters"], key=natural_sort_key)
-
-    exam["textbooks"] = textbooks
-
-    return {
-        "status": "success",
-        "exam": exam
-    }
-
-
 # ===========================================================================
-# 2. TEXTBOOKS & CHAPTERS (STUDY MATERIALS)
+# 2. TEXTBOOKS (STUDY MATERIALS)
 # ===========================================================================
 
 @router.get("/competitive-exams/textbooks")
 async def list_textbooks(
     category: Optional[str] = Query(None, description="Category filter"),
-    exam_name: Optional[str] = Query(None, description="Exam Name filter"),
-    subject: Optional[str] = Query(None, description="Subject filter")
+    exam_name: Optional[str] = Query(None, description="Exam filter (e.g., 'KAS', 'UPSC Prelims')"),
+    subject: Optional[str] = Query(None, description="Subject filter"),
+    search: Optional[str] = Query(None, description="Search keyword for title, subject, or exam")
 ):
     """
-    Retrieve ingested competitive exam textbooks and chapter syllabi.
+    Browse ingested textbooks and study materials tailored for competitive exam prep.
     """
     query: Dict[str, Any] = {
         "$or": [
             {"module_type": "competitive_exam"},
-            {"exam_name": {"$exists": True, "$ne": None, "$ne": ""}},
-            {"exam_category": {"$exists": True, "$ne": None, "$ne": ""}}
-        ]
+            {"board": "Competitive Exams"},
+            {"exam_name": {"$exists": True, "$ne": None, "$ne": ""}}
+        ],
+        "status": {"$in": ["completed", "cleanup_failed"]}
     }
-    and_clauses = []
-    if category:
-        and_clauses.append({"$or": [{"exam_category": category}, {"board": category}, {"state": category}]})
-    if exam_name:
-        and_clauses.append({"$or": [{"exam_name": exam_name}, {"standard": exam_name}]})
-    if subject:
-        and_clauses.append({"subject": subject})
-    if and_clauses:
-        query = {"$and": [query] + and_clauses}
 
-    textbooks = await db.textbook.find(query).sort("created_at", -1).to_list(None)
+    if category and category.strip():
+        cat_term = category.strip()
+        query["$and"] = query.get("$and", []) + [{
+            "$or": [
+                {"exam_category": {"$regex": re.escape(cat_term), "$options": "i"}},
+                {"category": {"$regex": re.escape(cat_term), "$options": "i"}}
+            ]
+        }]
+
+    if exam_name and exam_name.strip():
+        exam_term = exam_name.strip()
+        query["$and"] = query.get("$and", []) + [{
+            "$or": [
+                {"exam_name": {"$regex": re.escape(exam_term), "$options": "i"}},
+                {"standard": {"$regex": re.escape(exam_term), "$options": "i"}}
+            ]
+        }]
+
+    if subject and subject.strip():
+        query["subject"] = {"$regex": re.escape(subject.strip()), "$options": "i"}
+
+    if search and search.strip():
+        s_term = re.escape(search.strip())
+        query["$and"] = query.get("$and", []) + [{
+            "$or": [
+                {"textbook_title": {"$regex": s_term, "$options": "i"}},
+                {"textbook_name": {"$regex": s_term, "$options": "i"}},
+                {"subject": {"$regex": s_term, "$options": "i"}},
+                {"exam_name": {"$regex": s_term, "$options": "i"}}
+            ]
+        }]
+
+    textbooks = await db.textbook.find(query).sort("created_at", -1).to_list(100)
 
     clean_tbs = []
-    for t in textbooks:
-        t_id = str(t["_id"])
-        ch_list = t.get("chapters", [])
-        if isinstance(ch_list, list):
-            ch_list = sorted(ch_list, key=natural_sort_key)
+    for tb in textbooks:
+        tb_id = str(tb["_id"])
+        raw_chapters = tb.get("chapters", [])
+        if isinstance(raw_chapters, list):
+            sorted_chapters = sorted(raw_chapters, key=natural_sort_key)
         else:
-            ch_list = []
+            sorted_chapters = []
+
+        total_pages = tb.get("total_pages", 0)
+        chunks_count = await db.textbook_chunks.count_documents({"textbook_id": tb_id})
 
         clean_tbs.append({
-            "_id": t_id,
-            "textbook_id": t_id,
-            "textbook_title": t.get("textbook_title") or t.get("textbook_name") or f"{t.get('subject', 'General')} Textbook",
-            "exam_name": t.get("exam_name") or t.get("standard") or "Competitive Exam",
-            "exam_category": t.get("exam_category") or t.get("board") or "Competitive Exams",
-            "subject": t.get("subject", "General"),
-            "language": t.get("language", "en"),
-            "chapters_count": len(ch_list),
-            "chapters": ch_list,
-            "stored_chunk_count": t.get("stored_chunk_count", 0),
-            "created_at": t.get("created_at").isoformat() if isinstance(t.get("created_at"), datetime) else str(t.get("created_at", ""))
+            "textbook_id": tb_id,
+            "textbook_title": tb.get("textbook_title") or tb.get("textbook_name", "Competitive Textbook"),
+            "exam_category": tb.get("exam_category") or tb.get("board", "Competitive Exams"),
+            "exam_name": tb.get("exam_name") or tb.get("standard", "Competitive Exam"),
+            "subject": tb.get("subject", "General Studies"),
+            "total_pages": total_pages,
+            "chapters_count": len(sorted_chapters),
+            "chapters": sorted_chapters,
+            "vector_chunks_indexed": chunks_count,
+            "uploaded_at": tb.get("created_at").isoformat() if isinstance(tb.get("created_at"), datetime) else str(tb.get("created_at", ""))
         })
 
     return {
@@ -318,39 +333,8 @@ async def list_textbooks(
     }
 
 
-@router.get("/competitive-exams/textbooks/{textbook_id}/chapters")
-async def get_textbook_chapters(textbook_id: str = Path(..., description="Textbook ID")):
-    """
-    Get detailed chapter syllabus, page ranges, and detected topic metadata for a textbook.
-    """
-    if not ObjectId.is_valid(textbook_id):
-        raise HTTPException(status_code=400, detail="Invalid textbook ID format")
-
-    tb = await db.textbook.find_one({"_id": ObjectId(textbook_id)})
-    if not tb:
-        raise HTTPException(status_code=404, detail="Textbook not found")
-
-    chapter_metadata = tb.get("chapter_metadata", [])
-    raw_chapters = tb.get("chapters", [])
-    if isinstance(raw_chapters, list):
-        sorted_chapters = sorted(raw_chapters, key=natural_sort_key)
-    else:
-        sorted_chapters = []
-
-    return {
-        "status": "success",
-        "textbook_id": textbook_id,
-        "textbook_title": tb.get("textbook_title") or tb.get("textbook_name"),
-        "exam_name": tb.get("exam_name") or tb.get("standard"),
-        "subject": tb.get("subject"),
-        "chapters_count": len(sorted_chapters),
-        "chapters": sorted_chapters,
-        "chapter_metadata": chapter_metadata
-    }
-
-
 # ===========================================================================
-# 3. QUESTION PAPERS & MOCK TESTS
+# 3. QUESTION PAPERS
 # ===========================================================================
 
 @router.get("/competitive-exams/papers")
@@ -420,85 +404,6 @@ async def list_papers(
     }
 
 
-@router.get("/competitive-exams/papers/{paper_id}")
-async def get_paper_detail(
-    paper_id: str = Path(..., description="Question Paper ID"),
-    mode: str = Query("test", description="'test' hides answers and explanations; 'practice' returns answers & explanations")
-):
-    """
-    Retrieve question paper for test taking or practice study.
-    - When `mode=test`: Omits `correct_answer`, `answer_key`, and `explanation` so students can take the exam securely.
-    - When `mode=practice`: Includes complete solutions, answer key, and chapter citations.
-    """
-    if not ObjectId.is_valid(paper_id):
-        raise HTTPException(status_code=400, detail="Invalid paper ID format")
-
-    paper_doc = await db.generated_papers.find_one({"_id": ObjectId(paper_id)})
-    if not paper_doc:
-        raise HTTPException(status_code=404, detail="Question paper not found")
-
-    paper_obj = paper_doc.get("paper", {})
-    raw_sections = paper_obj.get("sections", [])
-
-    is_test_mode = (mode.lower() == "test")
-    sanitized_sections = []
-    total_q = 0
-
-    for sec in raw_sections:
-        sanitized_questions = []
-        for q in sec.get("questions", []):
-            total_q += 1
-            q_clean = {
-                "question_number": q.get("question_number", total_q),
-                "question": q.get("question", ""),
-                "type": q.get("type", "MCQ"),
-                "options": q.get("options", {}),
-                "marks": q.get("marks", 1.0),
-                "negative_marks": q.get("negative_marks", 0.33),
-                "difficulty": q.get("difficulty", "Medium"),
-                "chapter_reference": q.get("chapter_reference")
-            }
-
-            if not is_test_mode:
-                # In practice mode, include answers and explanations
-                q_clean["correct_answer"] = q.get("correct_answer")
-                q_clean["explanation"] = q.get("explanation")
-
-            sanitized_questions.append(q_clean)
-
-        sanitized_sections.append({
-            "section_title": sec.get("section_title", "Section"),
-            "questions": sanitized_questions
-        })
-
-    # Ensure PDF exists on disk
-    pdf_url = ensure_pdf_file(paper_doc)
-
-    response_data = {
-        "paper_id": str(paper_doc["_id"]),
-        "exam_id": paper_doc.get("exam_id"),
-        "exam_name": paper_doc.get("exam_name") or paper_obj.get("exam_name", "Competitive Exam"),
-        "subject": paper_obj.get("subject", "General Studies"),
-        "paper_title": paper_obj.get("paper_title", "Competitive Exam Practice Paper"),
-        "total_marks": paper_obj.get("total_marks", 100),
-        "time_limit": paper_obj.get("time_limit", "120 MINUTES"),
-        "negative_marking_rule": paper_obj.get("negative_marking_rule", "0.33 mark deducted for each incorrect response"),
-        "total_questions": total_q,
-        "mode": "test" if is_test_mode else "practice",
-        "sections": sanitized_sections,
-        "pdf_url": pdf_url,
-        "download_url": f"/user/competitive-exams/papers/{paper_id}/download"
-    }
-
-    if not is_test_mode:
-        response_data["answer_key"] = paper_obj.get("answer_key", {})
-
-    return {
-        "status": "success",
-        "paper": response_data
-    }
-
-
 @router.get("/competitive-exams/papers/{paper_id}/download")
 async def download_paper_pdf(paper_id: str = Path(..., description="Question Paper ID")):
     """
@@ -529,349 +434,195 @@ async def download_paper_pdf(paper_id: str = Path(..., description="Question Pap
 
 
 # ===========================================================================
-# 4. EXAM SUBMISSION & AUTO-EVALUATION
+# 4. COMPETITIVE EXAMS TUTORIALS
 # ===========================================================================
 
-@router.post("/competitive-exams/papers/{paper_id}/submit", response_model=ExamResultResponse)
-async def submit_exam_paper(
-    paper_id: str = Path(..., description="Question Paper ID"),
-    payload: ExamSubmitRequest = Body(...),
-    current_user: dict = Depends(get_current_user)
+@router.post("/competitive-exams/tutorials/add", response_model=CompetitiveTutorialResponse)
+@router.post("/competitive-exams/tutorials", response_model=CompetitiveTutorialResponse)
+async def add_competitive_tutorial(
+    payload: CompetitiveTutorialCreateRequest = Body(...),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     """
-    Submit answers for a competitive exam paper.
-    Calculates instant marks with negative marking penalty, stores attempt,
-    and returns comprehensive score breakdown with question explanations.
+    Add a tutorial module for Competitive Exams.
+    Accepts YouTube URL (playlist, channel, or video) to auto-fetch video links,
+    or an explicit video links list.
     """
-    if not ObjectId.is_valid(paper_id):
-        raise HTTPException(status_code=400, detail="Invalid paper ID format")
+    final_videos = []
 
-    paper_doc = await db.generated_papers.find_one({"_id": ObjectId(paper_id)})
-    if not paper_doc:
-        raise HTTPException(status_code=404, detail="Question paper not found")
+    # 1. Explicit video links if provided
+    if payload.video_links:
+        for v in payload.video_links:
+            final_videos.append(v.dict() if hasattr(v, "dict") else dict(v))
 
-    # Resolve student
-    student = await resolve_student(current_user, payload.student_id)
-    student_id_str = str(student["_id"]) if student else str(payload.student_id or current_user.get("sub", "student"))
-    student_name_str = student.get("student_name", "Learner") if student else "Learner"
+    # 2. Fetch from YouTube URL if provided
+    if payload.youtube_url and payload.youtube_url.strip():
+        fetched = fetch_youtube_videos_for_tutorial(payload.youtube_url, title=payload.title)
+        existing_urls = {v.get("link") for v in final_videos}
+        for f in fetched:
+            if f.get("link") not in existing_urls:
+                final_videos.append(f)
+                existing_urls.add(f.get("link"))
 
-    paper_obj = paper_doc.get("paper", {})
-    raw_sections = paper_obj.get("sections", [])
-
-    # Index paper questions by question_number
-    questions_map: Dict[int, dict] = {}
-    for sec in raw_sections:
-        for q in sec.get("questions", []):
-            q_num = int(q.get("question_number", 0))
-            if q_num:
-                questions_map[q_num] = q
-
-    # Index user's answers
-    user_answers_map: Dict[int, str] = {}
-    for ans in payload.answers:
-        if ans.selected_option and str(ans.selected_option).strip():
-            user_answers_map[ans.question_number] = str(ans.selected_option).strip().upper()
-
-    # Evaluation variables
-    total_q = len(questions_map)
-    attempted_count = 0
-    correct_count = 0
-    incorrect_count = 0
-    unattempted_count = 0
-
-    total_possible_marks = 0.0
-    positive_marks = 0.0
-    negative_marks_deducted = 0.0
-    evaluated_results: List[QuestionReviewItem] = []
-
-    for q_num in sorted(questions_map.keys()):
-        q = questions_map[q_num]
-        q_marks = float(q.get("marks", 1.0))
-        q_negative = float(q.get("negative_marks", 0.33))
-        total_possible_marks += q_marks
-
-        correct_opt = str(q.get("correct_answer", "")).strip().upper()
-        user_opt = user_answers_map.get(q_num)
-
-        if not user_opt:
-            # Unattempted question
-            unattempted_count += 1
-            status = "unattempted"
-            marks_awarded = 0.0
-        else:
-            attempted_count += 1
-            if user_opt == correct_opt:
-                correct_count += 1
-                status = "correct"
-                marks_awarded = q_marks
-                positive_marks += q_marks
-            else:
-                incorrect_count += 1
-                status = "incorrect"
-                marks_awarded = -q_negative
-                negative_marks_deducted += q_negative
-
-        evaluated_results.append(QuestionReviewItem(
-            question_number=q_num,
-            question=q.get("question", ""),
-            options=q.get("options"),
-            selected_option=user_opt,
-            correct_answer=correct_opt,
-            status=status,
-            marks_awarded=round(marks_awarded, 2),
-            explanation=q.get("explanation"),
-            chapter_reference=q.get("chapter_reference")
-        ))
-
-    net_score = max(0.0, round(positive_marks - negative_marks_deducted, 2))
-    total_possible_marks = round(total_possible_marks, 2) if total_possible_marks > 0 else 100.0
-    percentage = round((net_score / total_possible_marks) * 100, 2)
-    accuracy = round((correct_count / attempted_count) * 100, 2) if attempted_count > 0 else 0.0
-
-    now_utc = datetime.now(timezone.utc)
-
-    # Persist submission document
-    submission_doc = {
-        "user_id": current_user.get("sub"),
-        "student_id": student_id_str,
-        "student_name": student_name_str,
-        "paper_id": str(paper_doc["_id"]),
-        "task_id": paper_doc.get("task_id"),
-        "paper_title": paper_obj.get("paper_title") or f"{paper_doc.get('exam_name')} Paper",
-        "exam_name": paper_doc.get("exam_name") or paper_obj.get("exam_name", "Competitive Exam"),
-        "subject": paper_obj.get("subject", "General Studies"),
-        "total_questions": total_q,
-        "attempted_count": attempted_count,
-        "correct_count": correct_count,
-        "incorrect_count": incorrect_count,
-        "unattempted_count": unattempted_count,
-        "total_marks": total_possible_marks,
-        "score": net_score,
-        "positive_marks": round(positive_marks, 2),
-        "negative_marks_deducted": round(negative_marks_deducted, 2),
-        "percentage": percentage,
-        "accuracy": accuracy,
-        "time_taken_seconds": payload.time_taken_seconds,
-        "submitted_at": now_utc,
-        "user_answers": {str(k): v for k, v in user_answers_map.items()},
-        "results": [r.model_dump() if hasattr(r, "model_dump") else r.dict() for r in evaluated_results]
-    }
-
-    sub_res = await db.competitive_exam_submissions.insert_one(submission_doc)
-    submission_id = str(sub_res.inserted_id)
-
-    summary = ExamSubmissionSummary(
-        submission_id=submission_id,
-        paper_id=str(paper_doc["_id"]),
-        paper_title=submission_doc["paper_title"],
-        exam_name=submission_doc["exam_name"],
-        subject=submission_doc["subject"],
-        total_questions=total_q,
-        attempted_count=attempted_count,
-        correct_count=correct_count,
-        incorrect_count=incorrect_count,
-        unattempted_count=unattempted_count,
-        total_marks=total_possible_marks,
-        net_score=net_score,
-        positive_marks=round(positive_marks, 2),
-        negative_marks_deducted=round(negative_marks_deducted, 2),
-        percentage=percentage,
-        accuracy=accuracy,
-        time_taken_seconds=payload.time_taken_seconds,
-        submitted_at=now_utc.isoformat()
-    )
-
-    return ExamResultResponse(
-        status="success",
-        message="Exam submitted and evaluated successfully.",
-        summary=summary,
-        results=evaluated_results
-    )
-
-
-# ===========================================================================
-# 5. ATTEMPT HISTORY & ANALYTICS
-# ===========================================================================
-
-@router.get("/competitive-exams/attempts")
-async def get_user_attempts(
-    student_id: Optional[str] = Query(None, description="Optional target Student ID"),
-    exam_name: Optional[str] = Query(None, description="Filter by Exam Name"),
-    limit: int = Query(20, ge=1, le=50),
-    skip: int = Query(0, ge=0),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Get list of past exam attempts for the student.
-    """
-    student = await resolve_student(current_user, student_id)
-    sid = str(student["_id"]) if student else str(student_id or current_user.get("sub", ""))
-
-    query: Dict[str, Any] = {
-        "$or": [
-            {"student_id": sid},
-            {"user_id": current_user.get("sub")}
-        ]
-    }
-    if exam_name and exam_name.strip():
-        query["exam_name"] = exam_name.strip()
-
-    total_count = await db.competitive_exam_submissions.count_documents(query)
-    submissions = await db.competitive_exam_submissions.find(
-        query,
-        {"results": 0}  # Exclude heavy question arrays in list view
-    ).sort("submitted_at", -1).skip(skip).limit(limit).to_list(None)
-
-    clean_attempts = []
-    for s in submissions:
-        clean_attempts.append({
-            "submission_id": str(s["_id"]),
-            "paper_id": s.get("paper_id"),
-            "paper_title": s.get("paper_title"),
-            "exam_name": s.get("exam_name"),
-            "subject": s.get("subject"),
-            "score": s.get("score", 0.0),
-            "total_marks": s.get("total_marks", 100),
-            "percentage": s.get("percentage", 0.0),
-            "accuracy": s.get("accuracy", 0.0),
-            "attempted_count": s.get("attempted_count", 0),
-            "total_questions": s.get("total_questions", 0),
-            "time_taken_seconds": s.get("time_taken_seconds"),
-            "submitted_at": s.get("submitted_at").isoformat() if isinstance(s.get("submitted_at"), datetime) else str(s.get("submitted_at", ""))
-        })
-
-    return {
-        "status": "success",
-        "total_attempts": total_count,
-        "returned_count": len(clean_attempts),
-        "attempts": clean_attempts
-    }
-
-
-@router.get("/competitive-exams/attempts/{submission_id}")
-async def get_attempt_detail(
-    submission_id: str = Path(..., description="Submission ID"),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Retrieve full question-by-question review of a previously completed test attempt.
-    """
-    if not ObjectId.is_valid(submission_id):
-        raise HTTPException(status_code=400, detail="Invalid submission ID format")
-
-    sub = await db.competitive_exam_submissions.find_one({"_id": ObjectId(submission_id)})
-    if not sub:
-        raise HTTPException(status_code=404, detail="Exam submission attempt not found")
-
-    sub["_id"] = str(sub["_id"])
-    if isinstance(sub.get("submitted_at"), datetime):
-        sub["submitted_at"] = sub["submitted_at"].isoformat()
-
-    return {
-        "status": "success",
-        "attempt": sub
-    }
-
-
-@router.get("/competitive-exams/analytics", response_model=CompetitiveAnalyticsResponse)
-async def get_competitive_analytics(
-    student_id: Optional[str] = Query(None, description="Optional target Student ID"),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Aggregated performance analytics for the student across all competitive exams.
-    Includes average scores, accuracy rate, subject-wise strengths, and recent progress.
-    """
-    student = await resolve_student(current_user, student_id)
-    sid = str(student["_id"]) if student else str(student_id or current_user.get("sub", "learner"))
-    sname = student.get("student_name", "Learner") if student else "Learner"
-
-    query = {
-        "$or": [
-            {"student_id": sid},
-            {"user_id": current_user.get("sub")}
-        ]
-    }
-
-    submissions = await db.competitive_exam_submissions.find(query).sort("submitted_at", -1).to_list(100)
-
-    total_tests = len(submissions)
-    if total_tests == 0:
-        return CompetitiveAnalyticsResponse(
-            status="success",
-            student_id=sid,
-            student_name=sname,
-            total_tests_taken=0,
-            average_score=0.0,
-            average_percentage=0.0,
-            average_accuracy=0.0,
-            total_questions_attempted=0,
-            total_correct=0,
-            total_incorrect=0,
-            subject_performance={},
-            recent_attempts=[]
+    if not final_videos:
+        raise HTTPException(
+            status_code=400,
+            detail="Either a valid youtube_url or at least one video_link must be provided."
         )
 
-    total_score = sum(s.get("score", 0.0) for s in submissions)
-    total_percentage = sum(s.get("percentage", 0.0) for s in submissions)
-    total_accuracy = sum(s.get("accuracy", 0.0) for s in submissions)
-    total_attempted_q = sum(s.get("attempted_count", 0) for s in submissions)
-    total_correct_q = sum(s.get("correct_count", 0) for s in submissions)
-    total_incorrect_q = sum(s.get("incorrect_count", 0) for s in submissions)
+    # Resolve category if omitted
+    cat_name = payload.category_name
+    if not cat_name or not cat_name.strip():
+        exam_doc = await db.competitive_exams.find_one({"exam_name": payload.exam_name})
+        if exam_doc:
+            cat_name = exam_doc.get("category_name")
+        else:
+            cat_name = "Competitive Exams"
 
-    # Subject-wise analysis
-    subject_map: Dict[str, Dict[str, Any]] = {}
-    for s in submissions:
-        subj = s.get("subject", "General Studies")
-        if subj not in subject_map:
-            subject_map[subj] = {
-                "tests_taken": 0,
-                "total_score": 0.0,
-                "total_possible": 0.0,
-                "correct": 0,
-                "attempted": 0
-            }
-        subject_map[subj]["tests_taken"] += 1
-        subject_map[subj]["total_score"] += s.get("score", 0.0)
-        subject_map[subj]["total_possible"] += s.get("total_marks", 100.0)
-        subject_map[subj]["correct"] += s.get("correct_count", 0)
-        subject_map[subj]["attempted"] += s.get("attempted_count", 0)
+    now = datetime.now(timezone.utc)
+    query = {
+        "exam_name": payload.exam_name.strip(),
+        "subject": payload.subject.strip(),
+    }
+    if payload.topic:
+        query["topic"] = payload.topic.strip()
+    if payload.youtube_url:
+        query["youtube_url"] = payload.youtube_url.strip()
 
-    clean_subj_perf = {}
-    for subj, data in subject_map.items():
-        avg_pct = round((data["total_score"] / data["total_possible"] * 100), 2) if data["total_possible"] > 0 else 0.0
-        acc = round((data["correct"] / data["attempted"] * 100), 2) if data["attempted"] > 0 else 0.0
-        clean_subj_perf[subj] = {
-            "tests_taken": data["tests_taken"],
-            "average_percentage": avg_pct,
-            "accuracy": acc
-        }
+    existing = await db.competitive_tutorials.find_one(query)
 
-    recent_summary = []
-    for s in submissions[:10]:
-        recent_summary.append({
-            "submission_id": str(s["_id"]),
-            "paper_title": s.get("paper_title"),
-            "exam_name": s.get("exam_name"),
-            "subject": s.get("subject"),
-            "score": s.get("score"),
-            "total_marks": s.get("total_marks"),
-            "percentage": s.get("percentage"),
-            "accuracy": s.get("accuracy"),
-            "submitted_at": s.get("submitted_at").isoformat() if isinstance(s.get("submitted_at"), datetime) else str(s.get("submitted_at", ""))
-        })
+    tutorial_doc = {
+        "category_name": cat_name,
+        "exam_name": payload.exam_name.strip(),
+        "subject": payload.subject.strip(),
+        "topic": payload.topic.strip() if payload.topic else "",
+        "title": payload.title.strip() if payload.title else f"{payload.exam_name} - {payload.subject}",
+        "description": payload.description.strip() if payload.description else "",
+        "youtube_url": payload.youtube_url.strip() if payload.youtube_url else "",
+        "video_links": final_videos,
+        "is_active": True,
+        "updated_at": now
+    }
 
-    return CompetitiveAnalyticsResponse(
+    if existing:
+        await db.competitive_tutorials.update_one(
+            {"_id": existing["_id"]},
+            {"$set": tutorial_doc}
+        )
+        t_id = str(existing["_id"])
+        message = "Competitive exam tutorial updated successfully"
+    else:
+        tutorial_doc["created_at"] = now
+        res = await db.competitive_tutorials.insert_one(tutorial_doc)
+        t_id = str(res.inserted_id)
+        message = "Competitive exam tutorial created successfully"
+
+    return CompetitiveTutorialResponse(
         status="success",
-        student_id=sid,
-        student_name=sname,
-        total_tests_taken=total_tests,
-        average_score=round(total_score / total_tests, 2),
-        average_percentage=round(total_percentage / total_tests, 2),
-        average_accuracy=round(total_accuracy / total_tests, 2),
-        total_questions_attempted=total_attempted_q,
-        total_correct=total_correct_q,
-        total_incorrect=total_incorrect_q,
-        subject_performance=clean_subj_perf,
-        recent_attempts=recent_summary
+        message=message,
+        tutorial_id=t_id,
+        count=len(final_videos)
     )
+
+
+@router.get("/competitive-exams/tutorials")
+async def get_competitive_tutorials(
+    category: Optional[str] = Query(None, description="Filter by Category"),
+    exam_name: Optional[str] = Query(None, description="Filter by Exam Name"),
+    subject: Optional[str] = Query(None, description="Filter by Subject"),
+    topic: Optional[str] = Query(None, description="Filter by Topic"),
+    search: Optional[str] = Query(None, description="Keyword search in title/topic/subject"),
+    limit: int = Query(50, ge=1, le=200),
+    skip: int = Query(0, ge=0)
+):
+    """
+    Get tutorials for competitive exams with flexible filtering.
+    """
+    query: Dict[str, Any] = {"is_active": {"$ne": False}}
+
+    if category and category.strip():
+        query["$or"] = [
+            {"category_name": {"$regex": re.escape(category.strip()), "$options": "i"}},
+            {"exam_category": {"$regex": re.escape(category.strip()), "$options": "i"}}
+        ]
+    if exam_name and exam_name.strip():
+        query["exam_name"] = {"$regex": re.escape(exam_name.strip()), "$options": "i"}
+    if subject and subject.strip():
+        query["subject"] = {"$regex": re.escape(subject.strip()), "$options": "i"}
+    if topic and topic.strip():
+        query["topic"] = {"$regex": re.escape(topic.strip()), "$options": "i"}
+    if search and search.strip():
+        s = re.escape(search.strip())
+        query["$or"] = [
+            {"title": {"$regex": s, "$options": "i"}},
+            {"subject": {"$regex": s, "$options": "i"}},
+            {"topic": {"$regex": s, "$options": "i"}},
+            {"exam_name": {"$regex": s, "$options": "i"}}
+        ]
+
+    total = await db.competitive_tutorials.count_documents(query)
+    cursor = db.competitive_tutorials.find(query).sort("_id", -1).skip(skip).limit(limit)
+    items = await cursor.to_list(length=limit)
+
+    for item in items:
+        item["_id"] = str(item["_id"])
+        if isinstance(item.get("created_at"), datetime):
+            item["created_at"] = item["created_at"].isoformat()
+        if isinstance(item.get("updated_at"), datetime):
+            item["updated_at"] = item["updated_at"].isoformat()
+        item["videos_count"] = len(item.get("video_links", []))
+
+    return {
+        "status": "success",
+        "total_count": total,
+        "returned_count": len(items),
+        "tutorials": items
+    }
+
+
+@router.get("/competitive-exams/tutorials/{tutorial_id}")
+async def get_competitive_tutorial_detail(
+    tutorial_id: str = Path(..., description="Tutorial ID")
+):
+    """
+    Get details and video playlist for a specific competitive exam tutorial.
+    """
+    if not ObjectId.is_valid(tutorial_id):
+        raise HTTPException(status_code=400, detail="Invalid tutorial ID format")
+
+    tutorial = await db.competitive_tutorials.find_one({"_id": ObjectId(tutorial_id)})
+    if not tutorial:
+        raise HTTPException(status_code=404, detail="Tutorial not found")
+
+    tutorial["_id"] = str(tutorial["_id"])
+    if isinstance(tutorial.get("created_at"), datetime):
+        tutorial["created_at"] = tutorial["created_at"].isoformat()
+    if isinstance(tutorial.get("updated_at"), datetime):
+        tutorial["updated_at"] = tutorial["updated_at"].isoformat()
+    tutorial["videos_count"] = len(tutorial.get("video_links", []))
+
+    return {
+        "status": "success",
+        "tutorial": tutorial
+    }
+
+
+@router.delete("/competitive-exams/tutorials/{tutorial_id}")
+async def delete_competitive_tutorial(
+    tutorial_id: str = Path(..., description="Tutorial ID"),
+    current_user: Optional[dict] = Depends(get_current_user)
+):
+    """
+    Delete a competitive exam tutorial module.
+    """
+    if not ObjectId.is_valid(tutorial_id):
+        raise HTTPException(status_code=400, detail="Invalid tutorial ID format")
+
+    res = await db.competitive_tutorials.delete_one({"_id": ObjectId(tutorial_id)})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Tutorial not found")
+
+    return {
+        "status": "success",
+        "message": "Competitive exam tutorial deleted successfully"
+    }

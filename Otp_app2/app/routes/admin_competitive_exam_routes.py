@@ -15,6 +15,8 @@ import numpy as np
 from app.core.database import db
 from app.utils.admin_auth import require_permission, log_admin_activity
 from app.report.competitive_exam_pdf import save_competitive_exam_paper
+from app.models.competitive_exam_models import CompetitiveTutorialCreateRequest, CompetitiveTutorialResponse, CompetitiveVideoLink
+from app.routes.user_competitive_exam_routes import fetch_youtube_videos_for_tutorial
 from openai import AsyncOpenAI
 
 # --------------------------
@@ -1300,5 +1302,161 @@ async def delete_generated_paper(paper_id: str, current_admin: dict = Depends(re
         
     await db.generated_papers.delete_one({"_id": oid})
     return {"status": "success", "message": "Question paper deleted successfully."}
+
+
+# --------------------------
+# COMPETITIVE EXAMS TUTORIALS (ADMIN)
+# --------------------------
+
+@router.post("/competitive-exams/tutorials/add")
+@router.post("/competitive-exams/tutorials/fetch-and-save")
+async def admin_save_competitive_tutorial(
+    payload: CompetitiveTutorialCreateRequest = Body(...),
+    current_admin: dict = Depends(require_permission("Competitive Exams", "create"))
+):
+    """
+    Fetch and save YouTube playlist/channel/video or explicit videos for a competitive exam.
+    """
+    final_videos = []
+
+    if payload.video_links:
+        for v in payload.video_links:
+            final_videos.append(v.dict() if hasattr(v, "dict") else dict(v))
+
+    if payload.youtube_url and payload.youtube_url.strip():
+        fetched = fetch_youtube_videos_for_tutorial(payload.youtube_url, title=payload.title)
+        existing_urls = {v.get("link") for v in final_videos}
+        for f in fetched:
+            if f.get("link") not in existing_urls:
+                final_videos.append(f)
+                existing_urls.add(f.get("link"))
+
+    if not final_videos:
+        raise HTTPException(
+            status_code=400,
+            detail="Either a valid youtube_url or at least one video_link must be provided."
+        )
+
+    cat_name = payload.category_name
+    if not cat_name or not cat_name.strip():
+        exam_doc = await db.competitive_exams.find_one({"exam_name": payload.exam_name})
+        if exam_doc:
+            cat_name = exam_doc.get("category_name")
+        else:
+            cat_name = "Competitive Exams"
+
+    now = datetime.now(timezone.utc)
+    query = {
+        "exam_name": payload.exam_name.strip(),
+        "subject": payload.subject.strip(),
+    }
+    if payload.topic:
+        query["topic"] = payload.topic.strip()
+    if payload.youtube_url:
+        query["youtube_url"] = payload.youtube_url.strip()
+
+    existing = await db.competitive_tutorials.find_one(query)
+
+    tutorial_doc = {
+        "category_name": cat_name,
+        "exam_name": payload.exam_name.strip(),
+        "subject": payload.subject.strip(),
+        "topic": payload.topic.strip() if payload.topic else "",
+        "title": payload.title.strip() if payload.title else f"{payload.exam_name} - {payload.subject}",
+        "description": payload.description.strip() if payload.description else "",
+        "youtube_url": payload.youtube_url.strip() if payload.youtube_url else "",
+        "video_links": final_videos,
+        "is_active": True,
+        "updated_at": now
+    }
+
+    if existing:
+        await db.competitive_tutorials.update_one(
+            {"_id": existing["_id"]},
+            {"$set": tutorial_doc}
+        )
+        t_id = str(existing["_id"])
+        message = "Competitive exam tutorial updated successfully"
+    else:
+        tutorial_doc["created_at"] = now
+        res = await db.competitive_tutorials.insert_one(tutorial_doc)
+        t_id = str(res.inserted_id)
+        message = "Competitive exam tutorial created successfully"
+
+    return {
+        "status": "success",
+        "message": message,
+        "tutorial_id": t_id,
+        "count": len(final_videos)
+    }
+
+
+@router.get("/competitive-exams/tutorials")
+async def admin_get_competitive_tutorials(
+    category: Optional[str] = Query(None),
+    exam_name: Optional[str] = Query(None),
+    subject: Optional[str] = Query(None),
+    topic: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    current_admin: dict = Depends(require_permission("Competitive Exams", "read"))
+):
+    """
+    Get all competitive exam tutorials for admin.
+    """
+    query: Dict[str, Any] = {}
+
+    if category and category.strip():
+        query["$or"] = [
+            {"category_name": {"$regex": re.escape(category.strip()), "$options": "i"}},
+            {"exam_category": {"$regex": re.escape(category.strip()), "$options": "i"}}
+        ]
+    if exam_name and exam_name.strip():
+        query["exam_name"] = {"$regex": re.escape(exam_name.strip()), "$options": "i"}
+    if subject and subject.strip():
+        query["subject"] = {"$regex": re.escape(subject.strip()), "$options": "i"}
+    if topic and topic.strip():
+        query["topic"] = {"$regex": re.escape(topic.strip()), "$options": "i"}
+    if search and search.strip():
+        s = re.escape(search.strip())
+        query["$or"] = [
+            {"title": {"$regex": s, "$options": "i"}},
+            {"subject": {"$regex": s, "$options": "i"}},
+            {"topic": {"$regex": s, "$options": "i"}},
+            {"exam_name": {"$regex": s, "$options": "i"}}
+        ]
+
+    cursor = db.competitive_tutorials.find(query).sort("_id", -1)
+    items = await cursor.to_list(length=1000)
+
+    for item in items:
+        item["_id"] = str(item["_id"])
+        if isinstance(item.get("created_at"), datetime):
+            item["created_at"] = item["created_at"].isoformat()
+        if isinstance(item.get("updated_at"), datetime):
+            item["updated_at"] = item["updated_at"].isoformat()
+        item["videos_count"] = len(item.get("video_links", []))
+
+    return items
+
+
+@router.delete("/competitive-exams/tutorials/{tutorial_id}")
+async def admin_delete_competitive_tutorial(
+    tutorial_id: str,
+    current_admin: dict = Depends(require_permission("Competitive Exams", "delete"))
+):
+    """
+    Delete a competitive exam tutorial module.
+    """
+    if not ObjectId.is_valid(tutorial_id):
+        raise HTTPException(status_code=400, detail="Invalid tutorial ID format")
+
+    res = await db.competitive_tutorials.delete_one({"_id": ObjectId(tutorial_id)})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Tutorial not found")
+
+    return {
+        "status": "success",
+        "message": "Competitive exam tutorial deleted successfully"
+    }
 
 

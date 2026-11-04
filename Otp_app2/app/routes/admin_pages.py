@@ -94,6 +94,10 @@ async def competitive_exams_manage_exams_page(request: Request):
 async def competitive_exams_generate_questions_page(request: Request):
     return templates.TemplateResponse("competitive_exams/comp_generate_questions.html", {"request": request})
 
+@router.get("/competitive-exams/tutorials", response_class=HTMLResponse)
+async def competitive_exams_tutorials_page(request: Request):
+    return templates.TemplateResponse("competitive_exams/comp_tutorials.html", {"request": request})
+
 
 @router.get("/questions/{category}", response_class=HTMLResponse)
 async def questions_category_page(request: Request, category: str):

@@ -3,6 +3,32 @@ from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 
 # -------------------------------------------------------------
+# Competitive Exam Tutorial Models
+# -------------------------------------------------------------
+class CompetitiveVideoLink(BaseModel):
+    title: str
+    published_at: Optional[str] = ""
+    link: str
+    thumbnail: Optional[str] = None
+    duration: Optional[str] = None
+
+class CompetitiveTutorialCreateRequest(BaseModel):
+    category_name: Optional[str] = Field(None, description="Competitive exam category, e.g. 'Kerala PSC', 'UPSC'")
+    exam_name: str = Field(..., description="Exam name, e.g. 'KAS', 'Civil Services', 'SSC CGL'")
+    subject: str = Field(..., description="Subject name, e.g. 'General Studies', 'Maths'")
+    topic: Optional[str] = Field(None, description="Topic or chapter name")
+    title: Optional[str] = Field(None, description="Tutorial Title")
+    description: Optional[str] = Field(None, description="Description of the tutorial")
+    youtube_url: Optional[str] = Field(None, description="YouTube playlist, channel, or video URL")
+    video_links: Optional[List[CompetitiveVideoLink]] = Field(default_factory=list, description="Explicit video items")
+
+class CompetitiveTutorialResponse(BaseModel):
+    status: str = "success"
+    message: str
+    tutorial_id: Optional[str] = None
+    count: int = 0
+
+# -------------------------------------------------------------
 # Submission Request Models
 # -------------------------------------------------------------
 class ExamAnswerSubmission(BaseModel):

@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+
+{% block title %}Competitive Exam Tutorials - Miki Admin Panel{% endblock %}
+
+{% block head %}
+<style>
+  .video-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .video-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  }
+  body.dark-only .card,
+  html.dark-only .card {
+    background-color: #1e222d !important;
+    border-color: #2b3040 !important;
+  }
+  body.dark-only .input-group-text,
+  html.dark-only .input-group-text,
+  body.dark-only .form-control,
+  html.dark-only .form-control,
+  body.dark-only .form-select,
+  html.dark-only .form-select {
+    background-color: #252936 !important;
+    color: #f1f5f9 !important;
+    border-color: #373d52 !important;
+  }
+  body.dark-only .table th,
+  body.dark-only .table td,
+  html.dark-only .table th,
+  html.dark-only .table td {
+    border-color: #2b3040 !important;
+    color: #f1f5f9 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="page-title">
+    <div class="row align-items-center">
+      <div class="col-6">
+        <h4 class="fw-bold mb-0"><i class="fa fa-graduation-cap text-primary me-2"></i>Competitive Exam Tutorials</h4>
+      </div>
+      <div class="col-6">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="/admin-panel/user-management-page"><svg class="stroke-icon"><use href="/assets/svg/icon-sprite.svg#stroke-home"></use></svg></a></li>
+          <li class="breadcrumb-item">Competitive Exams</li>
+          <li class="breadcrumb-item active">Tutorials</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <!-- Left Column: Add / Import Tutorial Form -->
+    <div class="col-xl-4 col-lg-5 col-md-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white py-3">
+          <h5 class="mb-0 fw-bold"><i class="fa fa-plus-circle me-2"></i>Add / Import Tutorial</h5>
+          <small class="text-white-50">Save YouTube playlist/video or custom links for competitive exams</small>
+        </div>
+        <div class="card-body p-4">
+          <form id="tutorialForm" class="theme-form">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Category <span class="text-danger">*</span></label>
+              <select class="form-select" id="tutCategory" required>
+                <option value="">Select Category</option>
+                <option value="UPSC Civil Services">UPSC Civil Services</option>
+                <option value="Kerala PSC">Kerala PSC</option>
+                <option value="SSC">SSC</option>
+                <option value="Banking & Insurance">Banking & Insurance</option>
+                <option value="Railway Recruitment">Railway Recruitment</option>
+                <option value="Other State PSCs">Other State PSCs</option>
+                <option value="Defence Examinations">Defence Examinations</option>
+                <option value="Teaching & Eligibility">Teaching & Eligibility</option>
+                <option value="NEET / JEE & Entrance">NEET / JEE & Entrance</option>
+                <option value="Other Competitive Exams">Other Competitive Exams</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Exam Name <span class="text-danger">*</span></label>
+              <input class="form-control" type="text" id="tutExamName" placeholder="e.g. KAS, IAS Prelims, SSC CGL" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Subject <span class="text-danger">*</span></label>
+              <input class="form-control" type="text" id="tutSubject" placeholder="e.g. General Studies, Quantitative Aptitude" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Topic / Module (Optional)</label>
+              <input class="form-control" type="text" id="tutTopic" placeholder="e.g. Modern Indian History, Percentage">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Tutorial Title (Optional)</label>
+              <input class="form-control" type="text" id="tutTitle" placeholder="e.g. Complete Crash Course 2026">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">YouTube URL (Channel, Playlist, or Video) <span class="text-danger">*</span></label>
+              <input class="form-control" type="text" id="tutYoutubeUrl" placeholder="https://www.youtube.com/playlist?list=... or watch?v=..." required>
+              <small class="text-muted">Accepts playlist URLs, channel URLs, or single video links.</small>
+            </div>
+
+            <div class="mt-4">
+              <button class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm" type="submit" id="saveTutBtn">
+                <i class="fa fa-download me-2"></i> Fetch & Save Tutorial
+              </button>
+            </div>
+          </form>
+
+          <div id="saveTutStatus" class="mt-3" style="display: none;">
+            <div class="progress mb-2" style="height: 10px;">
+              <div class="progress-bar progress-bar-striped progress-bar-animated w-100" role="progressbar"></div>
+            </div>
+            <p class="text-center text-muted small mb-0"><i class="fa fa-spinner fa-spin me-1"></i> Processing YouTube content...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Tutorials List & Filters -->
+    <div class="col-xl-8 col-lg-7 col-md-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center py-3">
+          <h5 class="mb-0 fw-bold"><i class="fa fa-list-alt me-2 text-primary"></i>Competitive Exam Tutorials</h5>
+          <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="loadTutorials()">
+            <i class="fa fa-refresh me-1"></i> Refresh
+          </button>
+        </div>
+        <div class="card-body p-3">
+          <!-- Filters Row -->
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <select class="form-select form-select-sm" id="filterCategory" onchange="filterTutorials()">
+                <option value="">All Categories</option>
+                <option value="UPSC Civil Services">UPSC Civil Services</option>
+                <option value="Kerala PSC">Kerala PSC</option>
+                <option value="SSC">SSC</option>
+                <option value="Banking & Insurance">Banking & Insurance</option>
+                <option value="Railway Recruitment">Railway Recruitment</option>
+                <option value="Other State PSCs">Other State PSCs</option>
+                <option value="Defence Examinations">Defence Examinations</option>
+                <option value="Teaching & Eligibility">Teaching & Eligibility</option>
+                <option value="NEET / JEE & Entrance">NEET / JEE & Entrance</option>
+                <option value="Other Competitive Exams">Other Competitive Exams</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control form-control-sm" id="filterExam" placeholder="Filter by Exam..." oninput="filterTutorials()">
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control form-control-sm" id="filterSearch" placeholder="Search keywords..." oninput="filterTutorials()">
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 45px;">#</th>
+                  <th>Title &amp; Topic</th>
+                  <th>Exam &amp; Category</th>
+                  <th>Subject</th>
+                  <th class="text-center" style="width: 80px;">Videos</th>
+                  <th class="text-end" style="width: 130px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tutorialsTbody">
+                <tr>
+                  <td colspan="6" class="text-center py-4 text-muted">
+                    <i class="fa fa-spinner fa-spin fa-2x mb-2 text-primary"></i><br>Loading competitive exam tutorials...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: View Tutorial Videos -->
+<div class="modal fade" id="viewTutorialModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="viewTutorialTitle"><i class="fa fa-play-circle me-2"></i>Tutorial Playlist</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <!-- Player Container -->
+        <div id="playerContainer" class="ratio ratio-16x9 mb-4 rounded overflow-hidden shadow-sm d-none">
+          <iframe id="videoIframe" src="" allowfullscreen allow="autoplay"></iframe>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0" id="viewVideoCount">0 Videos Available</h6>
+          <a id="viewSourceUrl" href="#" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+            <i class="fa fa-youtube-play me-1"></i> Open on YouTube
+          </a>
+        </div>
+
+        <div class="row g-3" id="videosGrid">
+          <!-- Dynamic video cards -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Delete Confirmation -->
+<div class="modal fade" id="deleteTutorialModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold"><i class="fa fa-trash me-2"></i>Delete Tutorial</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <i class="fa fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+        <h5 class="fw-bold">Are you sure?</h5>
+        <p class="text-muted" id="deleteTutDesc">Do you really want to delete this tutorial? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger rounded-pill px-4" id="confirmDeleteTutBtn">
+          <i class="fa fa-trash me-1"></i> Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let allTutorials = [];
+  let pendingDeleteId = null;
+  let viewModalObj = null;
+  let deleteModalObj = null;
+
+  function getToken() {
+    return localStorage.getItem("access_token") || localStorage.getItem("token") || "";
+  }
+
+  function getHeaders() {
+    const token = getToken();
+    const h = { "Content-Type": "application/json" };
+    if (token) h["Authorization"] = "Bearer " + token;
+    return h;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return text.toString()
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  async function loadTutorials() {
+    const tbody = document.getElementById("tutorialsTbody");
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="fa fa-spinner fa-spin fa-2x mb-2 text-primary"></i><br>Loading tutorials...</td></tr>`;
+
+    try {
+      const res = await fetch("/admin-panel/competitive-exams/tutorials", {
+        headers: getHeaders()
+      });
+      if (!res.ok) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger"><i class="fa fa-exclamation-circle me-1"></i> Failed to load tutorials (${res.status}).</td></tr>`;
+        return;
+      }
+      allTutorials = await res.json();
+      renderTutorials(allTutorials);
+    } catch (e) {
+      console.error("Error loading tutorials:", e);
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger"><i class="fa fa-exclamation-circle me-1"></i> Network error loading tutorials.</td></tr>`;
+    }
+  }
+
+  function filterTutorials() {
+    const cat = (document.getElementById("filterCategory").value || "").toLowerCase().trim();
+    const exam = (document.getElementById("filterExam").value || "").toLowerCase().trim();
+    const search = (document.getElementById("filterSearch").value || "").toLowerCase().trim();
+
+    const filtered = allTutorials.filter(t => {
+      const tCat = (t.category_name || t.exam_category || "").toLowerCase();
+      const tExam = (t.exam_name || "").toLowerCase();
+      const tSubj = (t.subject || "").toLowerCase();
+      const tTopic = (t.topic || "").toLowerCase();
+      const tTitle = (t.title || "").toLowerCase();
+
+      if (cat && !tCat.includes(cat)) return false;
+      if (exam && !tExam.includes(exam)) return false;
+      if (search) {
+        const full = `${tTitle} ${tTopic} ${tSubj} ${tExam} ${tCat}`;
+        if (!full.includes(search)) return false;
+      }
+      return true;
+    });
+
+    renderTutorials(filtered);
+  }
+
+  function renderTutorials(list) {
+    const tbody = document.getElementById("tutorialsTbody");
+    if (!list || list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="fa fa-info-circle me-1"></i> No competitive exam tutorials found.</td></tr>`;
+      return;
+    }
+
+    let html = "";
+    list.forEach((t, i) => {
+      const vCount = (t.video_links || []).length;
+      html += `
+        <tr>
+          <td class="fw-bold text-muted">${i + 1}</td>
+          <td>
+            <div class="fw-bold text-dark">${escapeHtml(t.title || t.exam_name + ' - ' + t.subject)}</div>
+            ${t.topic ? `<small class="text-muted"><i class="fa fa-bookmark-o me-1"></i>${escapeHtml(t.topic)}</small>` : ''}
+          </td>
+          <td>
+            <span class="badge bg-light-primary text-primary fw-semibold">${escapeHtml(t.exam_name)}</span>
+            <div class="small text-muted mt-1">${escapeHtml(t.category_name || 'Competitive Exams')}</div>
+          </td>
+          <td>
+            <span class="text-dark fw-medium">${escapeHtml(t.subject)}</span>
+          </td>
+          <td class="text-center">
+            <span class="badge bg-secondary rounded-pill px-3">${vCount}</span>
+          </td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-primary rounded-pill me-1" onclick="viewTutorial('${t._id}')" title="View Videos">
+              <i class="fa fa-play-circle"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="openDeleteModal('${t._id}', '${escapeHtml(t.title || t.exam_name)}')" title="Delete">
+              <i class="fa fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
+  }
+
+  function viewTutorial(id) {
+    const t = allTutorials.find(x => x._id === id);
+    if (!t) return;
+
+    document.getElementById("viewTutorialTitle").innerText = t.title || `${t.exam_name} - ${t.subject}`;
+    document.getElementById("viewVideoCount").innerText = `${(t.video_links || []).length} Videos Available`;
+
+    const sourceBtn = document.getElementById("viewSourceUrl");
+    if (t.youtube_url) {
+      sourceBtn.href = t.youtube_url;
+      sourceBtn.style.display = "inline-block";
+    } else {
+      sourceBtn.style.display = "none";
+    }
+
+    // Hide iframe initially
+    const pContainer = document.getElementById("playerContainer");
+    pContainer.classList.add("d-none");
+    document.getElementById("videoIframe").src = "";
+
+    const grid = document.getElementById("videosGrid");
+    grid.innerHTML = "";
+
+    (t.video_links || []).forEach((v, idx) => {
+      const col = document.createElement("div");
+      col.className = "col-md-6 col-lg-4";
+      col.innerHTML = `
+        <div class="card video-card h-100 shadow-sm border" onclick="playVideo('${v.link}')">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center mb-2">
+              <span class="badge bg-danger me-2"><i class="fa fa-youtube-play"></i> #${idx + 1}</span>
+              ${v.published_at ? `<small class="text-muted ms-auto">${escapeHtml(v.published_at)}</small>` : ''}
+            </div>
+            <h6 class="fw-bold mb-1 text-truncate-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px;">
+              ${escapeHtml(v.title || 'Video ' + (idx + 1))}
+            </h6>
+            <a href="${v.link}" target="_blank" class="small text-primary text-decoration-none" onclick="event.stopPropagation()">
+              <i class="fa fa-external-link me-1"></i> Open link
+            </a>
+          </div>
+        </div>
+      `;
+      grid.appendChild(col);
+    });
+
+    if (!viewModalObj) {
+      viewModalObj = new bootstrap.Modal(document.getElementById("viewTutorialModal"));
+    }
+    viewModalObj.show();
+  }
+
+  function playVideo(link) {
+    if (!link) return;
+    const match = link.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (match) {
+      const vid = match[1];
+      const pContainer = document.getElementById("playerContainer");
+      const iframe = document.getElementById("videoIframe");
+      iframe.src = `https://www.youtube.com/embed/${vid}?autoplay=1`;
+      pContainer.classList.remove("d-none");
+      pContainer.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.open(link, "_blank");
+    }
+  }
+
+  function openDeleteModal(id, title) {
+    pendingDeleteId = id;
+    document.getElementById("deleteTutDesc").innerText = `Do you really want to delete "${title}"? All associated video records will be removed.`;
+    if (!deleteModalObj) {
+      deleteModalObj = new bootstrap.Modal(document.getElementById("deleteTutorialModal"));
+    }
+    deleteModalObj.show();
+  }
+
+  document.getElementById("confirmDeleteTutBtn").addEventListener("click", async () => {
+    if (!pendingDeleteId) return;
+    const btn = document.getElementById("confirmDeleteTutBtn");
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa fa-spinner fa-spin me-1"></i> Deleting...`;
+
+    try {
+      const res = await fetch(`/admin-panel/competitive-exams/tutorials/${pendingDeleteId}`, {
+        method: "DELETE",
+        headers: getHeaders()
+      });
+      if (res.ok) {
+        if (deleteModalObj) deleteModalObj.hide();
+        loadTutorials();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.detail || "Failed to delete tutorial.");
+      }
+    } catch (e) {
+      alert("Error deleting tutorial: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa fa-trash me-1"></i> Delete`;
+    }
+  });
+
+  // Handle Form Submission
+  document.getElementById("tutorialForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("saveTutBtn");
+    const statusBox = document.getElementById("saveTutStatus");
+
+    const payload = {
+      category_name: document.getElementById("tutCategory").value.trim(),
+      exam_name: document.getElementById("tutExamName").value.trim(),
+      subject: document.getElementById("tutSubject").value.trim(),
+      topic: document.getElementById("tutTopic").value.trim() || null,
+      title: document.getElementById("tutTitle").value.trim() || null,
+      youtube_url: document.getElementById("tutYoutubeUrl").value.trim()
+    };
+
+    btn.disabled = true;
+    statusBox.style.display = "block";
+
+    try {
+      const res = await fetch("/admin-panel/competitive-exams/tutorials/add", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        document.getElementById("tutorialForm").reset();
+        alert(data.message || `Tutorial saved successfully with ${data.count || 0} videos!`);
+        loadTutorials();
+      } else {
+        alert(data.detail || "Failed to save tutorial.");
+      }
+    } catch (err) {
+      alert("Network error: " + err.message);
+    } finally {
+      btn.disabled = false;
+      statusBox.style.display = "none";
+    }
+  });
+
+  // Initialize
+  document.addEventListener("DOMContentLoaded", () => {
+    loadTutorials();
+  });
+</script>
+{% endblock %}

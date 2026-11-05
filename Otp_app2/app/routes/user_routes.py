@@ -1817,6 +1817,54 @@ async def get_future_study(
         sort=[("created_at", -1)]
     )
 
+    # Check if record has old fabricated YouTube URLs or is missing
+    has_fake_links = False
+    if record:
+        resources = record.get("resources") or {}
+        videos = resources.get("youtube_videos") or []
+        for v in videos:
+            link = v.get("link", "")
+            if "watch?v=" in link or "youtu.be" in link:
+                has_fake_links = True
+                break
+
+    if not record or has_fake_links:
+        s_oid = None
+        try:
+            s_oid = ObjectId(student_id)
+        except Exception:
+            pass
+
+        student = await db.students.find_one(
+            {"$or": [{"student_id": student_id}, {"_id": s_oid}]} if s_oid else {"student_id": student_id}
+        )
+        student_class = (student.get("student_class") if student else None) or (record.get("student_class") if record else None)
+
+        career_rec = await db.career_analyzer.find_one(
+            {"student_id": {"$in": [student_id, str(s_oid), s_oid] if s_oid else [student_id]}},
+            sort=[("timestamp", -1)]
+        )
+
+        if career_rec and student_class:
+            scores = career_rec.get("scores", {})
+            percentages = career_rec.get("percentages", {})
+            resolved_cats, top_cat = resolve_top_categories(scores, percentages, career_rec.get("top_category"))
+            top_5_items, top_5_str, _ = get_top_5_careers_with_scores(scores, percentages, top_categories=resolved_cats)
+            rec_career = top_5_str or career_rec.get("recommended_career") or get_recommended_career(top_cat)
+
+            clean_resources = await generate_and_store_future_study(
+                db, student_id, str(student_class), rec_career, top_cat
+            )
+            return {
+                "status_code": 200,
+                "student_id": student_id,
+                "recommended_career": rec_career,
+                "top_category": top_cat,
+                "student_class": str(student_class),
+                "future_study": clean_resources,
+                "created_at": datetime.now(timezone.utc)
+            }
+
     if not record:
         raise HTTPException(
             status_code=200,

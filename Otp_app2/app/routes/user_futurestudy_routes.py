@@ -1,14 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
-from openai import AsyncOpenAI
 from bson import ObjectId
 from dotenv import load_dotenv
 from app.core.database import db
-import os
-import json
-from datetime import datetime, timezone
-from app.utils.ai_usage_logger import log_ai_usage
 from app.utils.user_auth import get_current_user
 from app.utils.usage_guard import has_premium_access
+from app.services.future_study_service import generate_and_store_future_study
 
 # Load environment variables
 load_dotenv()
@@ -21,25 +17,8 @@ router = APIRouter(
     tags=["User_Futurestudy Module"]
 )
 
-# OpenAI client (Async)
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
-
-# ---------- Helper function ----------
-def extract_json(text: str):
-    try:
-        text = text.strip()
-        if text.startswith("```"):
-            text = text.replace("```json", "").replace("```", "").strip()
-
-        start = text.find("{")
-        end = text.rfind("}") + 1
-        if start == -1 or end == -1: return None
-        return json.loads(text[start:end])
-    except Exception:
-        return None
-
-# ---------- API ----------
 @router.get("/{student_id}")
+@router.get("/future-study/{student_id}")
 async def generate_future_study_guidance(student_id: str, current_user: dict = Depends(get_current_user)):
     if not ObjectId.is_valid(student_id):
         raise HTTPException(status_code=404, detail="Invalid student_id format")
@@ -56,7 +35,7 @@ async def generate_future_study_guidance(student_id: str, current_user: dict = D
 
     try:
         s_oid = ObjectId(student_id)
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid student_id format")
 
     # 1. Fetch latest career analysis for student
@@ -77,122 +56,21 @@ async def generate_future_study_guidance(student_id: str, current_user: dict = D
     if not recommended_career or not top_category:
         raise HTTPException(status_code=400, detail="Career data incomplete")
 
-    # ---------- PROMPT (AGE-AWARE & CAREER-AWARE) ----------
-    prompt = f"""
-You are an educational career guidance assistant for Indian school students.
-
-STUDENT PROFILE:
-- Current class: {student_class}
-- Top intelligence category: {top_category}
-- Recommended career: {recommended_career}
-
-CORE REQUIREMENT:
-Provide DETAILED, AGE-APPROPRIATE, and DIVERSE recommendations.
-
-CLASS GUIDELINES:
-- Class 1–5 → curiosity, awareness, basic concepts, fun learning
-- Class 6–8 → foundations, skill exposure
-- Class 9–10 → structured basics and entry-level exams
-- Class 11–12 → subject depth and competitive exams
-
-STRICT CONTENT RULES:
-- NO advanced professional topics for junior classes
-- NO medical/engineering syllabus for Class ≤7
-- Content must be understandable at the student's level
-
-RESOURCE QUANTITY (MANDATORY):
-- YouTube videos → EXACTLY 5 items
-- Tutorial links → EXACTLY 5 items
-- Competitive exams → EXACTLY 5 items
-- Study centers → EXACTLY 5 items
-
-DIVERSITY RULES:
-- Each YouTube video must focus on a DIFFERENT concept
-- Tutorials must come from DIFFERENT platforms
-- Exams must be beginner-friendly and India-based
-- Study centers must support early-stage career exposure
-
-RESOURCE RULES:
-- Videos → ONLY YouTube links
-- Tutorials → ONLY learning/tutorial websites
-- Study centers → India-based institutions or programs
-- NO explanations
-- NO markdown
-- NO extra text
-
-RETURN STRICT JSON ONLY:
-
-{{
-  "youtube_videos": [
-    {{
-      "title": "",
-      "link": ""
-    }}
-  ],
-  "tutorial_links": [
-    {{
-      "title": "",
-      "link": ""
-    }}
-  ],
-  "competitive_exams": [
-    {{
-      "exam_name": "",
-      "eligibility": "",
-      "age_group": "",
-      "description": ""
-    }}
-  ],
-  "study_centers": [
-    {{
-      "center_name": "",
-      "location": "",
-      "career_focus": "",
-      "description": ""
-    }}
-  ]
-}}
-"""
-
-    # ---------- OpenAI Call (Async) ----------
-    try:
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.4
-        )
-        
-        # Log usage
-        if hasattr(response, 'usage') and response.usage:
-            await log_ai_usage(student_id, "Career - Future Study", "gpt-4o-mini", response.usage)
-
-        ai_content = response.choices[0].message.content
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
-
-    # ---------- Parse JSON ----------
-    ai_data = extract_json(ai_content)
-    if not ai_data:
-        raise HTTPException(status_code=500, detail="AI returned invalid JSON format")
-
-    # ---------- Save to DB ----------
-    future_study_doc = {
-        "student_id": student_id,
-        "student_class": student_class,
-        "recommended_career": recommended_career,
-        "top_category": top_category,
-        "resources": ai_data,
-        "created_at": datetime.now(timezone.utc)
-    }
-
-    try:
-        await db.future_study.insert_one(future_study_doc)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database insert failed: {str(e)}")
+    # 2. Generate/retrieve clean resources via future_study_service (No hallucinated URLs)
+    resources = await generate_and_store_future_study(
+        db=db,
+        student_id=student_id,
+        student_class=str(student_class),
+        recommended_career=recommended_career,
+        top_category=top_category
+    )
 
     return {
+        "status_code": 200,
         "message": "Class-appropriate future study guidance generated",
         "student_id": student_id,
-        "student_class": student_class,
-        "future_study": ai_data
+        "student_class": str(student_class),
+        "top_category": top_category,
+        "recommended_career": recommended_career,
+        "future_study": resources
     }

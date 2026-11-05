@@ -4,6 +4,7 @@ import re
 import json
 import urllib.parse
 from datetime import datetime, timezone
+from app.utils.timezone_utils import get_ist_now
 from concurrent.futures import ThreadPoolExecutor
 import requests
 import urllib3
@@ -630,10 +631,10 @@ async def get_or_create_future_study_resources(
                         "student_class": norm_cls,
                         "recommended_career": recommended_career,
                         "resources": resources,
-                        "updated_at": datetime.now(timezone.utc),
+                        "updated_at": get_ist_now(),
                     },
                     "$setOnInsert": {
-                        "created_at": datetime.now(timezone.utc),
+                        "created_at": get_ist_now(),
                     },
                 },
                 upsert=True,
@@ -674,10 +675,10 @@ async def generate_and_store_future_study(
                         "recommended_career": recommended_career,
                         "top_category": top_category,
                         "resources": resources,
-                        "updated_at": datetime.now(timezone.utc),
+                        "updated_at": get_ist_now(),
                     },
                     "$setOnInsert": {
-                        "created_at": datetime.now(timezone.utc),
+                        "created_at": get_ist_now(),
                     },
                 },
                 upsert=True,

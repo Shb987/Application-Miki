@@ -2043,8 +2043,8 @@
           </div>
 
           <div class="col-12 text-muted" style="font-size: 0.75rem;">
-            <span>Created: ${d.created_at ? new Date(d.created_at).toLocaleString() : '—'}</span> &bull;
-            <span>Updated: ${d.updated_at ? new Date(d.updated_at).toLocaleString() : '—'}</span>
+            <span>Created: ${d.created_at ? new Date(d.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—'}</span> &bull;
+            <span>Updated: ${d.updated_at ? new Date(d.updated_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—'}</span>
           </div>
         </div>`;
 

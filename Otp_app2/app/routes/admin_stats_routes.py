@@ -5,6 +5,7 @@ import asyncio
 
 from app.core.database import db
 from app.utils.admin_auth import require_permission
+from app.utils.timezone_utils import to_ist_iso
 from bson import ObjectId
 
 router = APIRouter(tags=["Admin Stats"])
@@ -13,12 +14,7 @@ router = APIRouter(tags=["Admin Stats"])
 def format_iso_timestamp(dt):
     if dt is None:
         return None
-    if hasattr(dt, "isoformat"):
-        s = dt.isoformat()
-        if hasattr(dt, "tzinfo") and dt.tzinfo is None:
-            return s + "Z"
-        return s.replace("+00:00", "Z")
-    return str(dt)
+    return to_ist_iso(dt)
 
 
 @router.get("/stats/summary", response_model=Dict[str, Any])

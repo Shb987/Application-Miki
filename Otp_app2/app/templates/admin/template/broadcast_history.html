@@ -513,7 +513,7 @@
 
         let rowsHtml = "";
         pageItems.forEach(log => {
-            const dateStr = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
+            const dateStr = log.created_at ? new Date(log.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—';
             const isClass = log.target === "class";
             const targetBadge = isClass 
                 ? `<span class="target-badge" style="background: rgba(19, 201, 202, 0.15); color: #0d8b8c; border: 1px solid rgba(19, 201, 202, 0.3);"><i class="fa fa-graduation-cap me-1"></i>Class ${log.target_class || ''}</span>`
@@ -588,7 +588,7 @@
         document.getElementById("modal-message").textContent = log.message || "No message content.";
         document.getElementById("modal-recipients").textContent = `${log.recipient_count ?? 0} Recipients`;
         document.getElementById("modal-sentby").textContent = log.sent_by || "admin";
-        document.getElementById("modal-date").textContent = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
+        document.getElementById('modal-date').textContent = log.created_at ? new Date(log.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—';
 
         const targetDiv = document.getElementById("modal-target");
         if (log.target === "class") {

@@ -344,7 +344,7 @@
                 }
                 
                 json.transactions.forEach(t => {
-                    const date = new Date(t.created_at).toLocaleString();
+                    const date = new Date(t.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
                     const amount = t.amount.toLocaleString('en-IN'); // Already in INR
                     
                     let tierBadge = "badge-tier-basic";

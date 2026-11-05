@@ -17,6 +17,7 @@ from typing import List, Tuple, Dict, Any, Optional
 from app.utils.user_auth import get_current_user
 from app.services.notification_service import create_notification
 from app.utils.usage_guard import check_and_use_quota
+from app.utils.timezone_utils import get_ist_now, to_ist_iso
 
 
 # Load environment variables
@@ -692,24 +693,41 @@ Return JSON only in this exact structure:
 # 3. UTILS
 # ------------------------------
 def serialize_mongo(document):
-    """Convert ObjectId → str recursively"""
+    """Convert ObjectId → str and datetime/timestamps to IST recursively"""
     if isinstance(document, dict):
-        return {k: serialize_mongo(v) for k, v in document.items()}
+        res = {}
+        for k, v in document.items():
+            if k in ("created_at", "completed_at", "evaluated_at", "timestamp", "date") and v:
+                res[k] = to_ist_iso(v)
+            else:
+                res[k] = serialize_mongo(v)
+        return res
     elif isinstance(document, list):
         return [serialize_mongo(i) for i in document]
     elif isinstance(document, ObjectId):
         return str(document)
+    elif isinstance(document, (datetime.datetime, datetime.date)):
+        return to_ist_iso(document)
     else:
         return document
 
 
 def clean_mongo(data):
+    """Convert ObjectId and ensure exam evaluation timestamps are in IST"""
     if isinstance(data, dict):
-        return {k: clean_mongo(v) for k, v in data.items()}
+        res = {}
+        for k, v in data.items():
+            if k in ("created_at", "completed_at", "evaluated_at", "timestamp", "date") and v:
+                res[k] = to_ist_iso(v)
+            else:
+                res[k] = clean_mongo(v)
+        return res
     elif isinstance(data, list):
         return [clean_mongo(v) for v in data]
     elif isinstance(data, ObjectId):
         return str(data)
+    elif isinstance(data, (datetime.datetime, datetime.date)):
+        return to_ist_iso(data)
     else:
         return data
 
@@ -1258,7 +1276,7 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
                     "detailed_results": detailed_results,
                     "section_performance": section_performance,
                     "topic_analysis": topic_analysis,
-                    "completed_at": datetime.datetime.utcnow().isoformat()
+                    "completed_at": get_ist_now().isoformat()
                 }
             }
         )
@@ -1273,7 +1291,7 @@ async def process_evaluation_background(eval_oid: str, paper_id: str, student_id
                 "$set": {
                     "status": "FAILED",
                     "error": error_message,
-                    "completed_at": datetime.datetime.utcnow().isoformat()
+                    "completed_at": get_ist_now().isoformat()
                 }
             }
         )
@@ -1350,7 +1368,7 @@ async def evaluate_answersheet(
             "paper_id": paper_id,
             "student_id": s_oid,
             "status": "PROCESSING",
-            "created_at": datetime.datetime.utcnow().isoformat()
+            "created_at": get_ist_now().isoformat()
         }
         result = await db.evaluations.insert_one(initial_evaluation_data)
         eval_oid = str(result.inserted_id)
@@ -1751,7 +1769,12 @@ async def enrich_evaluation_data(data: dict):
     Ensures legacy records have subject, scores, per-question status/prompts,
     and heals any placeholder ideal_answers with genuine reference answers.
     """
-    # 0. Robustly resolve subject and standard if missing or placeholder
+    # 0. Convert timestamps to IST
+    for tf in ["created_at", "completed_at", "evaluated_at", "timestamp"]:
+        if tf in data and data[tf]:
+            data[tf] = to_ist_iso(data[tf])
+
+    # Robustly resolve subject and standard if missing or placeholder
     curr_s = data.get("subject")
     curr_std = data.get("standard")
     if not curr_s or str(curr_s).strip().lower() in ["", "unknown", "none", "null", "undefined"] or not curr_std:
@@ -2249,7 +2272,7 @@ async def get_evaluation_insights(student_id: str, current_user: dict = Depends(
         ev["_score_pct"] = pct  # cache for later use
         all_score_pcts.append(pct)
         score_trend.append({
-            "date": ev.get("created_at", ""),
+            "date": to_ist_iso(ev.get("created_at") or ev.get("completed_at")),
             "subject": ev.get("subject") or "General",
             "standard": ev.get("standard", ""),
             "score_pct": pct,

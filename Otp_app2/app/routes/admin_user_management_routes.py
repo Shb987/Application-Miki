@@ -6,12 +6,13 @@ from datetime import datetime, timezone
 
 from app.core.database import db
 from app.utils.admin_auth import require_permission
+from app.utils.timezone_utils import to_ist_iso
 
 router = APIRouter(tags=["User Management - Admin"])
 
 
 def serialize(doc: dict) -> dict:
-    """Convert MongoDB ObjectId and datetime fields to JSON-safe types."""
+    """Convert MongoDB ObjectId and datetime fields to JSON-safe types in IST."""
     if not doc:
         return {}
     result = {}
@@ -21,7 +22,9 @@ def serialize(doc: dict) -> dict:
         elif isinstance(v, list):
             result[k] = [str(i) if isinstance(i, ObjectId) else i for i in v]
         elif isinstance(v, datetime):
-            result[k] = v.isoformat() + "Z" if v.tzinfo is None else v.isoformat()
+            result[k] = to_ist_iso(v)
+        elif k in ("created_at", "completed_at", "evaluated_at", "timestamp", "date") and v:
+            result[k] = to_ist_iso(v)
         else:
             result[k] = v
     return result

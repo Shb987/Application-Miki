@@ -615,7 +615,7 @@
                                 </div>
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="text-muted f-12 fw-normal me-2">
-                                        <i class="fa fa-clock-o me-1"></i> ${tb.created_at ? new Date(tb.created_at).toLocaleDateString() : 'Recent'}
+                                        <i class="fa fa-clock-o me-1"></i> ${tb.created_at ? new Date(tb.created_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'Recent'}
                                     </span>
                                     ${statusBadge}
                                     <a href="${genUrl}" class="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation()">

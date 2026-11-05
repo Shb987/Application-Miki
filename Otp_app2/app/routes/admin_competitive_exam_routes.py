@@ -13,6 +13,7 @@ import base64
 import numpy as np
 
 from app.core.database import db
+from app.utils.timezone_utils import get_ist_now, to_ist_iso
 from app.utils.admin_auth import require_permission, log_admin_activity
 from app.report.competitive_exam_pdf import save_competitive_exam_paper
 from app.models.competitive_exam_models import CompetitiveTutorialCreateRequest, CompetitiveTutorialResponse, CompetitiveVideoLink
@@ -370,7 +371,7 @@ async def get_categories():
     """Retrieve all competitive exam categories. Seeds default categories if collection is empty."""
     count = await db.competitive_exam_categories.count_documents({})
     if count == 0:
-        now = datetime.now(timezone.utc)
+        now = get_ist_now()
         docs = [{**cat, "created_at": now, "updated_at": now} for cat in DEFAULT_CATEGORIES]
         await db.competitive_exam_categories.insert_many(docs)
     
@@ -387,7 +388,7 @@ async def get_exams(category_id: Optional[str] = None):
     """Retrieve all competitive exam configurations. Seeds defaults if collection is empty."""
     count = await db.competitive_exams.count_documents({})
     if count == 0:
-        now = datetime.now(timezone.utc)
+        now = get_ist_now()
         docs = [{**e, "created_at": now, "updated_at": now} for e in DEFAULT_EXAMS]
         await db.competitive_exams.insert_many(docs)
 
@@ -438,7 +439,7 @@ async def upload_full_textbook(
     with open(file_path, "wb") as f:
         f.write(await file.read())
         
-    now = datetime.now(timezone.utc)
+    now = get_ist_now()
     textbook_doc = {
         "module_type": "competitive_exam",
         "exam_category": exam_category.strip(),
@@ -868,8 +869,8 @@ async def list_competitive_textbooks(
             t["chapters"] = sorted(t["chapters"], key=natural_sort_key)
         else:
             t["chapters"] = []
-        if "created_at" in t and isinstance(t["created_at"], datetime):
-            t["created_at"] = t["created_at"].isoformat()
+        if "created_at" in t:
+            t["created_at"] = to_ist_iso(t["created_at"])
     return {"textbooks": textbooks}
 
 
@@ -1359,7 +1360,7 @@ async def admin_save_competitive_tutorial(
         else:
             cat_name = "Competitive Exams"
 
-    now = datetime.now(timezone.utc)
+    now = get_ist_now()
     query = {
         "exam_name": payload.exam_name.strip(),
         "subject": payload.subject.strip(),
@@ -1444,10 +1445,10 @@ async def admin_get_competitive_tutorials(
 
     for item in items:
         item["_id"] = str(item["_id"])
-        if isinstance(item.get("created_at"), datetime):
-            item["created_at"] = item["created_at"].isoformat()
-        if isinstance(item.get("updated_at"), datetime):
-            item["updated_at"] = item["updated_at"].isoformat()
+        if "created_at" in item:
+            item["created_at"] = to_ist_iso(item["created_at"])
+        if "updated_at" in item:
+            item["updated_at"] = to_ist_iso(item["updated_at"])
         item["videos_count"] = len(item.get("video_links", []))
 
     return items

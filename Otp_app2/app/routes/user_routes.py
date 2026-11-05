@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from fastapi import BackgroundTasks
 from app.services.future_study_service import generate_and_store_future_study
 from app.utils.question_evaluator import evaluate_question_answer
+from app.utils.timezone_utils import get_ist_now, to_ist_iso
 
 
 router = APIRouter(tags=["User"])
@@ -474,21 +475,23 @@ async def update_student(
 
 def serialize_mongo_doc(doc):
     """
-    Recursively convert ObjectId to str in a document (dict) or list.
+    Recursively convert ObjectId to str in a document (dict) or list,
+    and convert datetimes and timestamps to Indian Standard Time (IST).
     """
     if isinstance(doc, list):
         return [serialize_mongo_doc(item) for item in doc]
     if isinstance(doc, dict):
-        return {k: serialize_mongo_doc(v) for k, v in doc.items()}
+        res = {}
+        for k, v in doc.items():
+            if k in ("created_at", "completed_at", "evaluated_at", "timestamp", "timestamp_utc", "date") and v:
+                res[k] = to_ist_iso(v)
+            else:
+                res[k] = serialize_mongo_doc(v)
+        return res
     if isinstance(doc, ObjectId):
         return str(doc)
-    if isinstance(doc, datetime):
-        # 🕒 Ensure aware datetimes are serialized with UTC indicator 'Z'
-        if doc.tzinfo:
-            return doc.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-        else:
-            # 🕒 If naive, assume it was intended as UTC and add 'Z'
-            return doc.isoformat() + "Z"
+    if isinstance(doc, (datetime, )):
+        return to_ist_iso(doc)
     return doc
 
 # --------------------- Fetch Parent Details -------------------------
@@ -1765,7 +1768,7 @@ async def analyze_career(
                 "top_5_careers": top_5_items,
                 "personality_insights": insights,
                 "career_suggestions": career_suggestions,
-                "timestamp": datetime.now(timezone.utc)
+                "timestamp": get_ist_now()
             }
         },
         upsert=True
@@ -1866,7 +1869,7 @@ async def get_future_study(
                 "top_category": top_cat,
                 "student_class": str(student_class),
                 "future_study": clean_resources,
-                "created_at": datetime.now(timezone.utc)
+                "created_at": to_ist_iso(get_ist_now())
             }
 
     if not record:
@@ -1882,7 +1885,7 @@ async def get_future_study(
         "top_category": record.get("top_category"),
         "student_class": record.get("student_class"),
         "future_study": record.get("resources"),
-        "created_at": record.get("created_at")
+        "created_at": to_ist_iso(record.get("created_at") or get_ist_now())
     }
 
  
@@ -2073,7 +2076,7 @@ async def get_career_history(student_id: str,
 
         combined_history.append({
             "attempt": attempt_no,
-            "timestamp": record.get("timestamp"),
+            "timestamp": to_ist_iso(record.get("timestamp")),
             "top_category": top_cat_str,
             "recommended_career": top_5_str,
             "top_5_careers": top_5_items,

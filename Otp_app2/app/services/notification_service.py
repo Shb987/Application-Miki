@@ -3,6 +3,7 @@ import datetime
 import httpx
 from bson import ObjectId
 from app.core.settings import settings
+from app.utils.timezone_utils import get_ist_now
 
 
 # OneSignal Credentials
@@ -21,7 +22,7 @@ async def create_notification(db, user_id: str, title: str, message: str, notifi
         "message": message,
         "type": notification_type,
         "is_read": False,
-        "created_at": datetime.datetime.utcnow()
+        "created_at": get_ist_now()
     }
 
     if extra_data:

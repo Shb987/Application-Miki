@@ -14,6 +14,7 @@ from app.report.primary_pdf_layout import save_primary_question_paper
 from app.utils.admin_auth import require_permission
 from fastapi import Depends
 from app.core.database import db
+from app.utils.timezone_utils import get_ist_now, to_ist_iso
 from openai import AsyncOpenAI
 import base64
 import io
@@ -1014,6 +1015,8 @@ async def get_all_textbooks(include_competitive: bool = Query(False)):
     textbooks = await db.textbook.find(query).sort("created_at", -1).to_list(None)
     for t in textbooks:
         t["_id"] = str(t["_id"])
+        if "created_at" in t:
+            t["created_at"] = to_ist_iso(t["created_at"])
         if isinstance(t.get("chapters"), list):
             t["chapters"] = sorted(t["chapters"], key=natural_sort_key)
     return {"textbooks": textbooks}
@@ -1573,7 +1576,7 @@ Respond with valid JSON only. No text outside JSON.
                 "paper_index": p + 1,
                 "paper": paper_json,
                 "pdf_path": paper_filename,
-                "created_at": datetime.utcnow(),
+                "created_at": get_ist_now(),
             })
             generated_ids.append(str(result.inserted_id))
 
@@ -1723,6 +1726,8 @@ async def get_generated_papers(task_id: Optional[str] = None):
     docs = await db.generated_papers.find(q).sort([("created_at", -1), ("_id", -1)]).to_list(None)
     for d in docs:
         d["_id"] = str(d["_id"])
+        if "created_at" in d:
+            d["created_at"] = to_ist_iso(d["created_at"])
         paper_info = d.get("paper", {})
         pdf_url = _ensure_pdf_exists(d, force_rerender=True)
 
@@ -1764,6 +1769,8 @@ async def get_generated_papers_filter(standard: str, subject: str):
 
     for d in docs:
         d["_id"] = str(d["_id"])
+        if "created_at" in d:
+            d["created_at"] = to_ist_iso(d["created_at"])
         paper_info = d.get("paper", {})
         pdf_url = _ensure_pdf_exists(d, force_rerender=True)
 

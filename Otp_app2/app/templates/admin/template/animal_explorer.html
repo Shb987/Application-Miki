@@ -1507,11 +1507,11 @@
 
     if (item.created_at) {
       document.getElementById('meta_created_at_wrap').style.display = 'block';
-      document.getElementById('meta_created_at').innerText = new Date(item.created_at).toLocaleString();
+      document.getElementById('meta_created_at').innerText = new Date(item.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     }
     if (item.updated_at) {
       document.getElementById('meta_updated_at_wrap').style.display = 'block';
-      document.getElementById('meta_updated_at').innerText = new Date(item.updated_at).toLocaleString();
+      document.getElementById('meta_updated_at').innerText = new Date(item.updated_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     }
 
     new bootstrap.Modal(document.getElementById('animalEntityModal')).show();

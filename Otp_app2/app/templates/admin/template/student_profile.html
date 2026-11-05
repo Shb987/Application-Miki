@@ -557,7 +557,7 @@
                             <span><i data-feather="home" style="width:14px;height:14px;margin-right:4px;"></i> ${s.school_name || "No School Assigned"}</span>
                             <span><i data-feather="phone" style="width:14px;height:14px;margin-right:4px;"></i> ${currentStudentPhone || "N/A"}</span>
                             <span><i data-feather="book-open" style="width:14px;height:14px;margin-right:4px;"></i> Class ${s.student_class || "N/A"}</span>
-                            <span><i data-feather="calendar" style="width:14px;height:14px;margin-right:4px;"></i> Joined: ${new Date(s.created_at).toLocaleDateString()}</span>
+                            <span><i data-feather="calendar" style="width:14px;height:14px;margin-right:4px;"></i> Joined: ${new Date(s.created_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
                         </div>
                     </div>
                 </div>
@@ -922,7 +922,7 @@
                 }
                 
                 json.transactions.forEach(t => {
-                    const date = new Date(t.created_at).toLocaleString();
+                    const date = new Date(t.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
                     const amount = t.amount.toLocaleString('en-IN');
                     let statusBadge = "bg-warning";
                     if (t.status === "success" || t.status === "paid") statusBadge = "bg-success";

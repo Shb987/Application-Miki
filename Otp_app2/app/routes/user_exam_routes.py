@@ -18,6 +18,7 @@ import os
 from app.core.database import db
 
 from app.utils.user_auth import get_current_user
+from app.utils.timezone_utils import to_ist_iso
 from fastapi import Depends
 
 router = APIRouter(tags=["User_Exam Module"])
@@ -414,7 +415,7 @@ async def get_generated_question_paper(
             "pdf_url": pdf_url,
             "download_url": pdf_url,
             "pdf_path": paper_doc.get("pdf_path"),
-            "created_at": paper_doc.get("created_at")
+            "created_at": to_ist_iso(paper_doc.get("created_at"))
         }
     }
 

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from bson import ObjectId
 from app.core.database import db
+from app.utils.timezone_utils import to_ist, get_ist_now
 from app.models.analysis_models import (
     VisualCareerAnalytics, CareerScoreItem, CareerConfidenceItem,
     VisualExamAnalytics, ExamHistoryItem,
@@ -82,13 +83,9 @@ class AnalysisService:
                 pct = (score / marks) * 100
                 total_pct += pct
                 
-                # completed_at is usually more accurate for "when it was graded"
-                date_val = e.get("completed_at") or e.get("created_at") or datetime.now(timezone.utc)
-                if isinstance(date_val, str):
-                    try:
-                        date_val = datetime.fromisoformat(date_val.replace("Z", "+00:00"))
-                    except Exception:
-                        date_val = datetime.now(timezone.utc)
+                # completed_at is usually more accurate for "when it was graded", in IST
+                raw_date = e.get("completed_at") or e.get("created_at")
+                date_val = to_ist(raw_date) or get_ist_now()
                 
                 history.append(ExamHistoryItem(
                     date=date_val,
@@ -163,17 +160,12 @@ class AnalysisService:
             recent_10 = quizzes[-10:]
             history = []
             for q in recent_10:
-                dt = q.get("submitted_at")
-                if dt:
-                    if isinstance(dt, str):
-                        try:
-                            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
-                        except Exception:
-                            dt = datetime.now(timezone.utc)
-                    history.append(QuizHistoryItem(
-                        date=dt,
-                        percentage=float(q.get("percentage", 0))
-                    ))
+                raw_dt = q.get("submitted_at") or q.get("created_at")
+                dt = to_ist(raw_dt) or get_ist_now()
+                history.append(QuizHistoryItem(
+                    date=dt,
+                    percentage=float(q.get("percentage", 0))
+                ))
 
             return VisualQuizAnalytics(
                 difficulty_breakdown=breakdown,
@@ -190,7 +182,7 @@ class AnalysisService:
         s_oid = ObjectId(student_id) if ObjectId.is_valid(student_id) else None
         if not s_oid:
             return VisualCoreDashboard(
-                student_id=student_id, student_name=student_name, generated_at=datetime.now(timezone.utc)
+                student_id=student_id, student_name=student_name, generated_at=get_ist_now()
             )
 
         career = await AnalysisService.get_visual_career_stats(s_oid)
@@ -200,7 +192,7 @@ class AnalysisService:
         return VisualCoreDashboard(
             student_id=student_id,
             student_name=student_name,
-            generated_at=datetime.now(timezone.utc),
+            generated_at=get_ist_now(),
             career=career,
             exams=exams,
             quizzes=quizzes

@@ -1807,7 +1807,11 @@ async def analyze_career(
 
 
 
-@router.get("/future-study/{student_id}")
+@router.get(
+    "/future-study/{student_id}",
+    summary="Get Future Study",
+    description="Generate Future Study Guidance"
+)
 async def get_future_study(
     student_id: str,
     current=Depends(admin_or_user)

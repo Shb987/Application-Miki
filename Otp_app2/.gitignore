@@ -22,6 +22,7 @@ test_jwt_gen.py
 temp/
 test_onesignal_config.py
 tests/
+!tests/test_future_study_resources.py
 verify_companion_module.py
 intelligence_questions.json
 scripts/

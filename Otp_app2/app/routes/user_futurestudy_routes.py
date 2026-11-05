@@ -13,12 +13,13 @@ async def check_premium(student_id: str):
     if not await has_premium_access(student_id):
         raise HTTPException(status_code=403, detail="Career & Study Roadmap is a Premium feature. Please upgrade to Plus or Pro.")
 
-router = APIRouter(
-    tags=["User_Futurestudy Module"]
-)
+router = APIRouter()
 
-@router.get("/{student_id}")
-@router.get("/future-study/{student_id}")
+@router.get(
+    "/future-study/{student_id}",
+    summary="Get Future Study",
+    description="Generate Future Study Guidance"
+)
 async def generate_future_study_guidance(student_id: str, current_user: dict = Depends(get_current_user)):
     if not ObjectId.is_valid(student_id):
         raise HTTPException(status_code=404, detail="Invalid student_id format")

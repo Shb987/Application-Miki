@@ -296,7 +296,7 @@ app.include_router(user_ocean_explorer_routes.router, prefix="/user", tags=["Oce
 app.include_router(user_plant_explorer_routes.router, prefix="/user", tags=["Plant Explorer - User"])
 app.include_router(user_animal_explorer_routes.router, prefix="/user", tags=["Animal Explorer - User"])
 app.include_router(user_indian_explorer_routes.router, prefix="/user", tags=["Indian Explorer - User"])
-app.include_router(user_futurestudy_routes.router,prefix="/user", tags=["User_Futurestudy Module"])
+
 app.include_router(companion_routes.router, tags=["AI Student Companion"])
 app.include_router(chat_routes.router, prefix="/user")
 app.include_router(ai_tutor_routes.router, prefix="/user")

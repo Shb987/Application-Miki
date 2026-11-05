@@ -442,3 +442,45 @@ class TestAPIEndpointsIntegration:
             assert resp["student_class"] == "12"
             assert resp["future_study"] == clean_resources
 
+
+class TestOpenAPISwaggerDocumentation:
+    def test_future_study_swagger_display_and_no_duplicate_routes(self):
+        """
+        Verify OpenAPI/Swagger schema requirements:
+        1. 'User_Futurestudy Module' heading is removed completely.
+        2. Obsolete duplicate '/user/{student_id}' endpoint is removed from schema & routing.
+        3. Only 'GET /user/future-study/{student_id}' exists with summary 'Get Future Study'
+           and description 'Generate Future Study Guidance'.
+        """
+        import os
+        from unittest.mock import patch
+        # Import app while ensuring static dirs don't throw if running from outside Otp_app2
+        with patch.dict(os.environ, {}):
+            from main import app
+
+        schema = app.openapi()
+        paths = schema.get("paths", {})
+
+        # 1. Verify User_Futurestudy Module heading is removed
+        all_tags = []
+        for tag_def in schema.get("tags", []):
+            all_tags.append(tag_def.get("name", ""))
+        for path_item in paths.values():
+            for operation in path_item.values():
+                all_tags.extend(operation.get("tags", []))
+
+        assert "User_Futurestudy Module" not in all_tags, "'User_Futurestudy Module' heading must not exist in Swagger"
+
+        # 2. Verify duplicate /user/{student_id} is removed
+        assert "/user/{student_id}" not in paths, "'/user/{student_id}' duplicate endpoint must not be present"
+
+        # 3. Verify required endpoint exists with exact summary and description
+        assert "/user/future-study/{student_id}" in paths, "'/user/future-study/{student_id}' must be registered"
+        endpoint_methods = paths["/user/future-study/{student_id}"]
+        assert "get" in endpoint_methods, "'/user/future-study/{student_id}' must support GET method"
+
+        get_op = endpoint_methods["get"]
+        assert get_op.get("summary") == "Get Future Study", "Summary must be 'Get Future Study'"
+        assert get_op.get("description") == "Generate Future Study Guidance", "Description must be 'Generate Future Study Guidance'"
+
+

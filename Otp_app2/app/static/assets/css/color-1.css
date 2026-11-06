@@ -178,49 +178,96 @@ html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrap
   background-size: cover !important;
 }
 
-/* Page Header - In Natural Flow Above Page Body */
+/* Page Header - Fixed at Top (Sticky with frosted glass to prevent overlap on scroll) */
 .page-wrapper.compact-wrapper .page-header {
-  position: relative !important;
-  top: auto !important;
-  left: auto !important;
-  margin-left: 265px !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 265px !important;
   width: calc(100% - 265px) !important;
-  min-height: 75px !important;
-  z-index: 10 !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  height: 80px !important;
+  z-index: 990 !important;
+  background: rgba(247, 246, 252, 0.95) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-bottom: 1px solid rgba(196, 78, 204, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(96, 60, 216, 0.04) !important;
+  margin: 0 !important;
   padding: 0 !important;
+  transition: left 0.3s ease, width 0.3s ease !important;
+}
+
+body.dark-only .page-wrapper.compact-wrapper .page-header,
+html.dark-only .page-wrapper.compact-wrapper .page-header {
+  background: rgba(17, 19, 30, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
 .page-wrapper.compact-wrapper .page-header .header-wrapper {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  padding: 16px 28px 8px 28px !important;
-  height: auto !important;
+  padding: 14px 28px !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
 }
 
-/* Page Body - Sits directly below page header in natural flow */
+/* Page Body - Starts cleanly below the fixed header */
 .page-wrapper.compact-wrapper .page-body-wrapper .page-body {
   margin-left: 265px !important;
-  margin-top: 0 !important;
-  min-height: calc(100vh - 85px) !important;
-  padding: 0 28px 28px 28px !important;
+  margin-top: 80px !important;
+  min-height: calc(100vh - 80px) !important;
+  padding: 16px 28px 28px 28px !important;
   background: transparent !important;
   position: relative !important;
+  transition: margin-left 0.3s ease, width 0.3s ease !important;
 }
 
-/* Collapsed Sidebar Support */
-.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon ~ .page-body {
-  margin-left: 0 !important;
-  width: 100% !important;
+/* Collapsed Sidebar Support (close_icon) */
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon {
+  width: 80px !important;
+  transition: width 0.3s ease !important;
+  overflow: hidden !important;
 }
+
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon:hover {
+  width: 80px !important;
+}
+
 .page-wrapper.compact-wrapper .page-header.close_icon {
-  margin-left: 0 !important;
-  width: 100% !important;
+  left: 80px !important;
+  width: calc(100% - 80px) !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon ~ .page-body {
+  margin-left: 80px !important;
+  width: calc(100% - 80px) !important;
+}
+
+/* Hide text, submenus, according-menus, and titles when sidebar is collapsed */
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon .sidebar-main-title,
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon .logo-wrapper,
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon ul.sidebar-submenu,
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon .according-menu,
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon .sidebar-main .sidebar-links .sidebar-list > a span {
+  display: none !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon .logo-icon-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px 0 !important;
+  cursor: pointer !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon .sidebar-main .sidebar-links .sidebar-list > a {
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 12px 0 !important;
+  margin: 4px 10px !important;
 }
 
 /* Hide Section Title to match screenshot */

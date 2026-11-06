@@ -511,24 +511,53 @@
             background: transparent !important;
         }
 
-        /* Clean Header */
+        /* Fixed Header with Frosted Glass (Never moves on scroll, no content overlap) */
         .page-header {
-            background: transparent !important;
-            box-shadow: none !important;
-            border-bottom: none !important;
-            position: relative !important;
-            top: auto !important;
-            margin-top: 0 !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 265px !important;
+            width: calc(100% - 265px) !important;
+            height: 80px !important;
+            z-index: 990 !important;
+            background: rgba(247, 246, 252, 0.95) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+            border-bottom: 1px solid rgba(196, 78, 204, 0.08) !important;
+            box-shadow: 0 4px 20px rgba(96, 60, 216, 0.04) !important;
+            margin: 0 !important;
+            transition: left 0.3s ease, width 0.3s ease !important;
+        }
+        body.dark-only .page-header,
+        html.dark-only .page-header {
+            background: rgba(17, 19, 30, 0.95) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
         }
         .header-wrapper {
             background: transparent !important;
             border-bottom: none !important;
             box-shadow: none !important;
+            padding: 14px 28px !important;
+            height: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
         }
         .page-wrapper.compact-wrapper .page-body-wrapper .page-body,
         .page-body {
             background: transparent !important;
-            margin-top: 0 !important;
+            margin-left: 265px !important;
+            margin-top: 80px !important;
+            min-height: calc(100vh - 80px) !important;
+            padding: 16px 28px 28px 28px !important;
+            transition: margin-left 0.3s ease, width 0.3s ease !important;
+        }
+        /* Hide redundant toggle artifacts in header */
+        .header-logo-wrapper {
+            display: none !important;
+        }
+        .left-header .toggle-sidebar {
+            display: none !important;
         }
         .left-header h4 {
             color: #0f172a !important;
@@ -626,53 +655,69 @@
             color: #ffffff !important;
         }
 
-        /* Tree Hierarchy for Submenus */
+        /* Tree Hierarchy for Submenus - Smooth Curved Branches (Image 3 match) */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu {
             position: relative !important;
-            padding: 6px 0 6px 0 !important;
-            margin: 4px 0 6px 30px !important;
-            border-left: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+            padding: 2px 0 6px 0 !important;
+            margin: 2px 0 6px 30px !important;
             background: transparent !important;
+            border: none !important;
+        }
+        /* Continuous Vertical Stem */
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu::before {
+            content: "" !important;
+            position: absolute !important;
+            left: 8px !important;
+            top: 0 !important;
+            bottom: 14px !important;
+            width: 1.5px !important;
+            background: rgba(255, 255, 255, 0.4) !important;
+            border-radius: 1px !important;
         }
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li {
             position: relative !important;
             padding: 4px 0 !important;
             margin: 0 !important;
         }
-        /* Branch horizontal line */
+        /* Smooth Curved branch: vertical stem turning 90deg into horizontal branch */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
             content: "" !important;
             position: absolute !important;
-            left: 0 !important;
-            top: 50% !important;
-            width: 13px !important;
-            height: 1.5px !important;
-            background: rgba(255, 255, 255, 0.4) !important;
-            display: block !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            border-radius: 0 !important;
-        }
-        /* Branch node circular dot */
-        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::after {
-            content: "" !important;
-            position: absolute !important;
-            left: 11px !important;
-            top: calc(50% - 3.5px) !important;
-            width: 7px !important;
-            height: 7px !important;
-            border-radius: 50% !important;
-            border: 1.5px solid rgba(255, 255, 255, 0.8) !important;
+            left: 8px !important;
+            top: -3px !important;
+            width: 14px !important;
+            height: calc(50% + 3px) !important;
+            border-left: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+            border-bottom: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+            border-bottom-left-radius: 9px !important;
+            border-top: none !important;
+            border-right: none !important;
             background: transparent !important;
             display: block !important;
             opacity: 1 !important;
             visibility: visible !important;
+        }
+        /* Solid Circular Node Dot at the tip of the curved branch */
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::after {
+            content: "" !important;
+            position: absolute !important;
+            left: 20px !important;
+            top: calc(50% - 2.5px) !important;
+            width: 5.5px !important;
+            height: 5.5px !important;
+            border-radius: 50% !important;
+            border: none !important;
+            background: rgba(255, 255, 255, 0.7) !important;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
             z-index: 2 !important;
+            transition: all 0.2s ease !important;
         }
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a {
-            padding: 4px 8px 4px 26px !important;
+            padding: 4px 8px 4px 34px !important;
             font-size: 0.88rem !important;
-            color: rgba(255, 255, 255, 0.72) !important;
+            color: rgba(255, 255, 255, 0.75) !important;
             font-weight: 500 !important;
             letter-spacing: 0.3px !important;
             display: inline-block !important;
@@ -687,12 +732,19 @@
             color: #ffffff !important;
             font-weight: 700 !important;
         }
-        /* Active dot filled white */
+        /* Active glowing dot and highlighted branch curve */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::after,
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::after {
             background: #ffffff !important;
-            border-color: #ffffff !important;
-            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8) !important;
+            width: 7px !important;
+            height: 7px !important;
+            left: 19.5px !important;
+            top: calc(50% - 3.5px) !important;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 14px rgba(255, 255, 255, 0.6) !important;
+        }
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::before,
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::before {
+            border-color: rgba(255, 255, 255, 0.85) !important;
         }
 
         /* Sidebar - Dark Mode */
@@ -724,23 +776,23 @@
             border-left: 4px solid #7c3aed !important;
             color: #ffffff !important;
         }
-        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu {
-            border-left-color: rgba(255, 255, 255, 0.4) !important;
-        }
-        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu::before {
             background: rgba(255, 255, 255, 0.4) !important;
         }
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
+            border-left-color: rgba(255, 255, 255, 0.4) !important;
+            border-bottom-color: rgba(255, 255, 255, 0.4) !important;
+        }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::after {
-            border-color: rgba(255, 255, 255, 0.8) !important;
+            background: rgba(255, 255, 255, 0.7) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::after,
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::after {
             background: #ffffff !important;
-            border-color: #ffffff !important;
-            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8) !important;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 14px rgba(255, 255, 255, 0.6) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a {
-            color: rgba(255, 255, 255, 0.72) !important;
+            color: rgba(255, 255, 255, 0.75) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active {
             color: #ffffff !important;
@@ -802,7 +854,7 @@
                     </div>
                 </div>
                 <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
-                    <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
+                    <div>
                         <div class="d-flex align-items-center gap-2">
                             <h4 class="f-w-600" style="margin-bottom:0; font-size:1.45rem;">Welcome <span id="admin-name">admin</span> &#128075;</h4>
                         </div>

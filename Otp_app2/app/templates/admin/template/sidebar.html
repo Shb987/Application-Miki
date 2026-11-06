@@ -6,7 +6,7 @@
         <img class="img-fluid" src="/assets/images/logo/miki_logo.png" alt="Miki Logo"
           style="height: 24px; object-fit: contain;">
       </div>
-      <span style="font-family: \'Montserrat\', sans-serif; font-weight: 800; font-size: 1.45rem; color: #ffffff; letter-spacing: 0.5px; text-transform: uppercase;">MIKI</span>
+      <span style="font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.45rem; color: #ffffff; letter-spacing: 0.5px; text-transform: uppercase;">MIKI</span>
     </a>
     <div class="back-btn"><i class="fa fa-angle-left"></i></div>
     <div class="toggle-sidebar">
@@ -352,6 +352,10 @@
       </ul>
     </div>
   </nav>
+  <svg class="sidebar-bottom-wave" viewBox="0 0 265 110" preserveAspectRatio="none">
+    <path d="M0,45 C80,95 180,15 265,65 L265,110 L0,110 Z" fill="rgba(255,255,255,0.08)"></path>
+    <path d="M0,75 C90,35 170,100 265,55 L265,110 L0,110 Z" fill="rgba(255,255,255,0.06)"></path>
+  </svg>
 </div>
 
 <!-- Corrected Active Menu Script with Query Param & Popstate Support -->
@@ -390,6 +394,9 @@
     const targetLink = exactMatch || fallbackMatch;
     if (targetLink) {
       targetLink.classList.add("active");
+      if (targetLink.parentElement) {
+        targetLink.parentElement.classList.add("active");
+      }
       const parentMenu = targetLink.closest(".sidebar-list");
       if (parentMenu) {
         parentMenu.classList.add("active");

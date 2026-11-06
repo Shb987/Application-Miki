@@ -548,7 +548,11 @@
                         <p class="banner-subtitle">Monitoring active users, exam performance, and registration trends.</p>
                     </div>
                     <div class="banner-watermark-icon">
-                        <i data-feather="user-check"></i>
+                        <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <polyline points="16 11 18 13 22 9"></polyline>
+                        </svg>
                     </div>
                     <svg class="banner-ambient-wave" viewBox="0 0 500 150" preserveAspectRatio="none">
                         <path d="M0,80 C150,140 320,10 500,70 L500,150 L0,150 Z" fill="rgba(255,255,255,0.08)"></path>
@@ -645,56 +649,50 @@
             </div>
         </div>
 
-        <!-- Quick Operations -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card quick-ops-container-card">
-                    <div class="card-body p-4">
-                        <h5 class="quick-ops-title">Quick Operations</h5>
-                        <div class="row g-3">
-                            <div class="col-lg-4 col-sm-6">
-                                <div class="quick-op-tile" onclick="switchTab('students')">
-                                    <div class="quick-op-icon" style="background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);">
-                                        <i data-feather="user"></i>
-                                    </div>
-                                    <div class="quick-op-text">
-                                        <h6 class="quick-op-heading">Browse Students</h6>
-                                        <p class="quick-op-sub">Search or profiling students</p>
-                                    </div>
-                                    <svg class="tile-wave-accent text-purple" viewBox="0 0 100 50" preserveAspectRatio="none">
-                                        <path d="M0,35 C30,15 65,45 100,20 L100,50 L0,50 Z" fill="currentColor"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="col-lg-4 col-sm-6">
-                                <div class="quick-op-tile" onclick="location.href='/admin-panel/notification-center-page'">
-                                    <div class="quick-op-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);">
-                                        <i data-feather="send"></i>
-                                    </div>
-                                    <div class="quick-op-text">
-                                        <h6 class="quick-op-heading">Push Notifications</h6>
-                                        <p class="quick-op-sub">Send broadcasts to users</p>
-                                    </div>
-                                    <svg class="tile-wave-accent text-indigo" viewBox="0 0 100 50" preserveAspectRatio="none">
-                                        <path d="M0,35 C30,15 65,45 100,20 L100,50 L0,50 Z" fill="currentColor"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="col-lg-4 col-sm-6">
-                                <div class="quick-op-tile" onclick="location.href='/admin-panel/games-management-page'">
-                                    <div class="quick-op-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                                        <i data-feather="grid"></i>
-                                    </div>
-                                    <div class="quick-op-text">
-                                        <h6 class="quick-op-heading">Game Hub</h6>
-                                        <p class="quick-op-sub">Manage levels & questions</p>
-                                    </div>
-                                    <svg class="tile-wave-accent text-amber" viewBox="0 0 100 50" preserveAspectRatio="none">
-                                        <path d="M0,35 C30,15 65,45 100,20 L100,50 L0,50 Z" fill="currentColor"></path>
-                                    </svg>
-                                </div>
-                            </div>
+        <!-- Quick Operations (Standalone Grid) -->
+        <div class="mb-4">
+            <h5 class="quick-ops-title" style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 16px;">Quick Operations</h5>
+            <div class="row g-4">
+                <div class="col-lg-4 col-sm-6">
+                    <div class="quick-op-tile" onclick="switchTab('students')">
+                        <div class="quick-op-icon" style="background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);">
+                            <i data-feather="user"></i>
                         </div>
+                        <div class="quick-op-text">
+                            <h6 class="quick-op-heading">Browse Students</h6>
+                            <p class="quick-op-sub">Search or profiling students</p>
+                        </div>
+                        <svg class="tile-wave-accent text-purple" viewBox="0 0 100 50" preserveAspectRatio="none">
+                            <path d="M0,35 C30,15 65,45 100,20 L100,50 L0,50 Z" fill="currentColor"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-sm-6">
+                    <div class="quick-op-tile" onclick="location.href='/admin-panel/notification-center-page'">
+                        <div class="quick-op-icon" style="background: linear-gradient(135deg, #603cd8 0%, #4f46e5 100%);">
+                            <i data-feather="send"></i>
+                        </div>
+                        <div class="quick-op-text">
+                            <h6 class="quick-op-heading">Push Notifications</h6>
+                            <p class="quick-op-sub">Send broadcasts to users</p>
+                        </div>
+                        <svg class="tile-wave-accent text-indigo" viewBox="0 0 100 50" preserveAspectRatio="none">
+                            <path d="M0,35 C30,15 65,45 100,20 L100,50 L0,50 Z" fill="currentColor"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-sm-6">
+                    <div class="quick-op-tile" onclick="location.href='/admin-panel/games-management-page'">
+                        <div class="quick-op-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);">
+                            <i data-feather="grid"></i>
+                        </div>
+                        <div class="quick-op-text">
+                            <h6 class="quick-op-heading">Game Hub</h6>
+                            <p class="quick-op-sub">Manage levels & questions</p>
+                        </div>
+                        <svg class="tile-wave-accent text-amber" viewBox="0 0 100 50" preserveAspectRatio="none">
+                            <path d="M0,35 C30,15 65,45 100,20 L100,50 L0,50 Z" fill="currentColor"></path>
+                        </svg>
                     </div>
                 </div>
             </div>

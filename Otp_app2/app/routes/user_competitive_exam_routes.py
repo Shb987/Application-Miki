@@ -33,6 +33,20 @@ DEFAULT_CATEGORIES = [
 # ---------------------------------------------------------------------------
 # HELPER FUNCTIONS
 # ---------------------------------------------------------------------------
+def serialize_mongo(data: Any) -> Any:
+    """
+    Recursively converts BSON ObjectId, datetime, or any non-JSON-serializable
+    Mongo structures into clean serializable primitives (strings/dicts/lists).
+    """
+    if isinstance(data, ObjectId):
+        return str(data)
+    if isinstance(data, dict):
+        return {k: serialize_mongo(v) for k, v in data.items()}
+    if isinstance(data, (list, tuple, set)):
+        return [serialize_mongo(item) for item in data]
+    return data
+
+
 def natural_sort_key(s):
     if not s:
         return []
@@ -168,11 +182,11 @@ async def list_categories():
         if "updated_at" in cat:
             cat["updated_at"] = to_ist_iso(cat["updated_at"])
 
-    return {
+    return serialize_mongo({
         "status": "success",
         "total_categories": len(categories),
         "categories": categories
-    }
+    })
 
 
 # ===========================================================================
@@ -361,10 +375,10 @@ async def get_competitive_tutorials(
             "created_at": to_ist_iso(tb.get("created_at"))
         })
 
-    return {
+    return serialize_mongo({
         "status": "success",
         "category": target_category_name or cat_param or "All",
-        "category_id": target_category_id,
+        "category_id": str(target_category_id) if target_category_id else None,
         "category_name": target_category_name or cat_param,
         "total_tutorials": len(clean_tutorials),
         "total_textbooks": len(clean_textbooks),
@@ -372,4 +386,4 @@ async def get_competitive_tutorials(
         "returned_count": len(clean_tutorials),
         "tutorials": clean_tutorials,
         "textbooks": clean_textbooks
-    }
+    })

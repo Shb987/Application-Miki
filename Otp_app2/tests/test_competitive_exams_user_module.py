@@ -195,3 +195,31 @@ def test_openapi_schema_only_two_competitive_user_endpoints():
     assert ("/user/competitive-exams/textbooks") not in [p for _, p, _ in comp_endpoints]
     assert ("/user/competitive-exams/papers") not in [p for _, p, _ in comp_endpoints]
 
+
+def test_objectid_serialization_in_fastapi():
+    """
+    Verify that bson.ObjectId objects anywhere in responses or nested structures
+    serialize cleanly to strings via jsonable_encoder without throwing:
+    ValueError: [TypeError("'ObjectId' object is not iterable"), TypeError('vars() argument must have __dict__ attribute')]
+    """
+    import fastapi.encoders
+    from bson import ObjectId
+
+    sample_response = {
+        "_id": ObjectId("6ad5e500b34330eed859acf5"),
+        "category_id": ObjectId("6ad5e500b34330eed859acf6"),
+        "tutorials": [
+            {
+                "_id": ObjectId("6aeaf1c3627ae009c2f48b47"),
+                "video_links": [{"vid_id": ObjectId("6aeaf1c3627ae009c2f48b48")}]
+            }
+        ]
+    }
+
+    encoded = fastapi.encoders.jsonable_encoder(sample_response)
+    assert encoded["_id"] == "6ad5e500b34330eed859acf5"
+    assert encoded["category_id"] == "6ad5e500b34330eed859acf6"
+    assert encoded["tutorials"][0]["_id"] == "6aeaf1c3627ae009c2f48b47"
+    assert encoded["tutorials"][0]["video_links"][0]["vid_id"] == "6aeaf1c3627ae009c2f48b48"
+
+

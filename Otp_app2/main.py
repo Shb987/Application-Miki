@@ -35,6 +35,11 @@ from fastapi.exception_handlers import request_validation_exception_handler
 from app.core.database import db
 from app.services.scheduler_service import start_special_day_scheduler, start_tuition_scheduler, start_todo_reminder_scheduler
 import asyncio
+from bson import ObjectId
+import fastapi.encoders
+
+# Register ObjectId encoder globally so FastAPI serialize_response encodes ObjectId as str
+fastapi.encoders.ENCODERS_BY_TYPE[ObjectId] = str
 
 
 

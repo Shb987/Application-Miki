@@ -36,6 +36,14 @@
     <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
     <script>
       (function() {
+        var p = localStorage.getItem("primary");
+        if (!p || p.toLowerCase() === "#006666" || p === "#1D5B79") {
+          localStorage.setItem("primary", "#C44ECC");
+        }
+        var s = localStorage.getItem("secondary");
+        if (!s || s.toLowerCase() === "#fe6a49" || s === "#468B97") {
+          localStorage.setItem("secondary", "#603CD8");
+        }
         var savedMode = localStorage.getItem("mode") || localStorage.getItem("dark");
         if (savedMode === "dark-only") {
           document.documentElement.classList.add("dark-only");
@@ -81,14 +89,14 @@
             padding: 0 !important;
         }
         .btn-view {
-            color: #19a1a1;
-            background: rgba(25, 161, 161, 0.1);
+            color: #C44ECC !important;
+            background: rgba(196, 78, 204, 0.12) !important;
         }
         .btn-view:hover {
-            background: #19a1a1;
-            color: white;
+            background: #C44ECC !important;
+            color: white !important;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(25, 161, 161, 0.3);
+            box-shadow: 0 4px 8px rgba(196, 78, 204, 0.35) !important;
         }
         .btn-edit {
             color: #f39c12;
@@ -207,7 +215,7 @@
         body.dark-only .parent-row:hover,
         html.dark-only .parent-row:hover {
             background-color: #252936 !important;
-            border-color: #006666 !important;
+            border-color: #C44ECC !important;
         }
         body.dark-only .parent-mobile-text,
         html.dark-only .parent-mobile-text {
@@ -219,9 +227,9 @@
         }
         body.dark-only .student-pill,
         html.dark-only .student-pill {
-            background-color: rgba(0, 102, 102, 0.25) !important;
-            color: #56dfdf !important;
-            border-color: rgba(0, 102, 102, 0.4) !important;
+            background-color: rgba(196, 78, 204, 0.25) !important;
+            color: #f3a8f8 !important;
+            border-color: rgba(196, 78, 204, 0.4) !important;
         }
         body.dark-only .glass-card,
         html.dark-only .glass-card {
@@ -314,7 +322,7 @@
         body.dark-only .search-input-premium:focus,
         html.dark-only .search-input-premium:focus {
             background-color: #1e222d !important;
-            border-color: #006666 !important;
+            border-color: #C44ECC !important;
             color: #f1f5f9 !important;
         }
         body.dark-only .list-group-item,
@@ -475,6 +483,127 @@
             border-color: #2b3040 !important;
             color: #f1f5f9 !important;
         }
+
+        /* Primary & Secondary Theme Enforcement (White & Dark Modes) */
+        :root {
+            --theme-deafult: #C44ECC;
+            --theme-default: #C44ECC;
+            --theme-secondary: #603CD8;
+            --primary-color: #C44ECC;
+            --secondary-color: #603CD8;
+        }
+        .btn-primary,
+        .btn-gradient {
+            background: linear-gradient(135deg, #C44ECC 0%, #603CD8 100%) !important;
+            border-color: #C44ECC !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(196, 78, 204, 0.28) !important;
+        }
+        .btn-primary:hover,
+        .btn-gradient:hover {
+            background: linear-gradient(135deg, #b83ec0 0%, #522ec4 100%) !important;
+            border-color: #b83ec0 !important;
+            color: #ffffff !important;
+            box-shadow: 0 6px 16px rgba(196, 78, 204, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #603CD8 !important;
+            border-color: #603CD8 !important;
+            color: #ffffff !important;
+        }
+        .btn-outline-primary {
+            color: #C44ECC !important;
+            border-color: #C44ECC !important;
+        }
+        .btn-outline-primary:hover {
+            background: linear-gradient(135deg, #C44ECC 0%, #603CD8 100%) !important;
+            color: #ffffff !important;
+        }
+        .badge.bg-primary,
+        .badge-primary {
+            background-color: #C44ECC !important;
+            color: #ffffff !important;
+        }
+        .text-primary {
+            color: #C44ECC !important;
+        }
+        .border-primary {
+            border-color: #C44ECC !important;
+        }
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #C44ECC !important;
+            box-shadow: 0 0 0 0.2rem rgba(196, 78, 204, 0.25) !important;
+        }
+
+        /* Sidebar - White / Light Mode */
+        body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
+        body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
+            background: linear-gradient(180deg, #C44ECC 0%, #603CD8 100%) !important;
+            box-shadow: 0 0 25px rgba(96, 60, 216, 0.18) !important;
+        }
+        body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a,
+        body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list:hover > a,
+        body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list:hover > a {
+            background-color: rgba(255, 255, 255, 0.18) !important;
+            border-radius: 12px;
+            color: #ffffff !important;
+        }
+        body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.active > a,
+        body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active,
+        body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.active > a,
+        body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active {
+            background-color: rgba(255, 255, 255, 0.25) !important;
+            border-radius: 12px;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+        }
+        body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active,
+        body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        /* Sidebar - Dark Mode */
+        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
+        html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
+            background-color: #161925 !important;
+            background-image: none !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.4) !important;
+        }
+        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a,
+        html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a {
+            color: #94a3b8 !important;
+        }
+        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list:hover > a,
+        html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list:hover > a {
+            background-color: rgba(196, 78, 204, 0.14) !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.active > a,
+        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active,
+        html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.active > a,
+        html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active {
+            background: linear-gradient(90deg, rgba(196, 78, 204, 0.22) 0%, rgba(96, 60, 216, 0.22) 100%) !important;
+            border-left: 4px solid #C44ECC !important;
+            border-radius: 0 10px 10px 0 !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active svg,
+        html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active svg {
+            stroke: #C44ECC !important;
+            fill: #C44ECC !important;
+        }
+        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active,
+        html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active {
+            color: #e082e6 !important;
+            font-weight: 700 !important;
+        }
     </style>
 
     {% block head %}{% endblock %}
@@ -508,7 +637,7 @@
                                     style="height: 24px; object-fit: contain;">
                             </div>
                             <span
-                                style="font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.4rem; color: #006666; letter-spacing: 0px; text-transform: uppercase;">Miki</span>
+                                style="font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.4rem; background: linear-gradient(135deg, #C44ECC, #603CD8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 0px; text-transform: uppercase;">Miki</span>
                         </a>
                     </div>
                     <div class="toggle-sidebar"> <i class="status_toggle middle sidebar-toggle"

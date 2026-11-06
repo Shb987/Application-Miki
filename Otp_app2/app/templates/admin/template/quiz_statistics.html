@@ -159,7 +159,7 @@
             document.getElementById("totalDomains").textContent = Object.keys(data.by_domain).length;
             document.getElementById("totalTypes").textContent = Object.keys(data.by_question_type).length;
             renderBarChart("#domainChart", data.by_domain);
-            renderPieChart("#difficultyChart", data.by_difficulty, ["#006666", "#FE6A49", "#FFC107"]);
+            renderPieChart("#difficultyChart", data.by_difficulty, ["#C44ECC", "#603CD8", "#FFC107"]);
             renderBarChart("#classChart", data.by_class_range);
             renderDonutChart("#typeChart", data.by_question_type);
         } catch (err) { console.error("Error:", err); }
@@ -169,21 +169,21 @@
         new ApexCharts(document.querySelector(selector), {
             chart: { type: 'bar', height: 350 }, series: [{ name: 'Questions', data: Object.values(data) }],
             xaxis: { categories: Object.keys(data) }, plotOptions: { bar: { horizontal: true, distributed: true } },
-            colors: ['#006666', '#FE6A49', '#4b9bfa', '#FFC107', '#6f42c1'], legend: { show: false }
+            colors: ['#C44ECC', '#603CD8', '#4b9bfa', '#FFC107', '#6f42c1'], legend: { show: false }
         }).render();
     }
 
     function renderPieChart(selector, data, colors) {
         new ApexCharts(document.querySelector(selector), {
             chart: { type: 'pie', height: 350 }, series: Object.values(data), labels: Object.keys(data),
-            colors: colors || ['#006666', '#FE6A49', '#4b9bfa'], responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom' } } }]
+            colors: colors || ['#C44ECC', '#603CD8', '#4b9bfa'], responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom' } } }]
         }).render();
     }
 
     function renderDonutChart(selector, data) {
         new ApexCharts(document.querySelector(selector), {
             chart: { type: 'donut', height: 350 }, series: Object.values(data), labels: Object.keys(data),
-            colors: ['#006666', '#FE6A49', '#4b9bfa', '#FFC107'], responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom' } } }]
+            colors: ['#C44ECC', '#603CD8', '#4b9bfa', '#FFC107'], responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom' } } }]
         }).render();
     }
     loadStatistics();

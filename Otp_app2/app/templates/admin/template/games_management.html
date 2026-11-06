@@ -21,9 +21,9 @@
     }
 
     .game-tab-btn.active[id="tab-wordle"] {
-        background: rgba(25, 161, 161, 0.1);
-        color: #19a1a1;
-        border-color: #19a1a1;
+        background: rgba(196, 78, 204, 0.1);
+        color: #C44ECC;
+        border-color: #C44ECC;
     }
 
     .game-tab-btn.active[id="tab-puzzle"] {
@@ -44,7 +44,7 @@
     }
 
     .pz-dropzone:hover {
-        border-color: #19a1a1;
+        border-color: #C44ECC;
         background: #f0fdfa;
     }
 
@@ -57,8 +57,8 @@
     }
 
     .range-badge {
-        background: rgba(25, 161, 161, 0.1);
-        color: #19a1a1;
+        background: rgba(196, 78, 204, 0.1);
+        color: #C44ECC;
         border-radius: 10px;
         padding: 2px 10px;
         font-size: .74rem;
@@ -99,7 +99,7 @@
     .stat-icon {
         width: 18px;
         height: 18px;
-        color: #19a1a1;
+        color: #C44ECC;
     }
 
     .divider {
@@ -126,9 +126,9 @@
         background-color: #f8fafc;
     }
     .premium-form-control:focus {
-        border-color: #19a1a1;
+        border-color: #C44ECC;
         background-color: #fff;
-        box-shadow: 0 0 0 4px rgba(25, 161, 161, 0.1);
+        box-shadow: 0 0 0 4px rgba(196, 78, 204, 0.1);
         outline: none;
     }
     .premium-form-label {
@@ -156,9 +156,9 @@
         transition: all 0.2s ease;
     }
     .sq-grid-cell:focus {
-        border-color: #19a1a1 !important;
+        border-color: #C44ECC !important;
         transform: translateY(-2px);
-        box-shadow: 0 8px 12px -2px rgba(25, 161, 161, 0.25);
+        box-shadow: 0 8px 12px -2px rgba(196, 78, 204, 0.25);
     }
     
     /* Hints List styling */
@@ -202,14 +202,14 @@
         color: #fff !important;
     }
     body.dark-only .game-tab-btn.active[id="tab-wordle"] {
-        background: rgba(25, 161, 161, 0.2) !important;
-        color: #19a1a1 !important;
-        border-color: #19a1a1 !important;
+        background: rgba(196, 78, 204, 0.2) !important;
+        color: #C44ECC !important;
+        border-color: #C44ECC !important;
     }
     body.dark-only .game-tab-btn.active[id="tab-squares"] {
-        background: rgba(25, 161, 161, 0.2) !important;
-        color: #19a1a1 !important;
-        border-color: #19a1a1 !important;
+        background: rgba(196, 78, 204, 0.2) !important;
+        color: #C44ECC !important;
+        border-color: #C44ECC !important;
     }
     body.dark-only .game-tab-btn.active[id="tab-puzzle"] {
         background: rgba(243, 156, 18, 0.2) !important;
@@ -345,7 +345,7 @@
                     <input type="text" id="wordle-search" class="form-control"
                         style="max-width:180px;border-radius:8px;font-size:.85rem;" placeholder="Search word..."
                         oninput="wordleCurrentPage = 1; loadWordle()">
-                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #19a1a1;"
+                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #C44ECC;"
                         onclick="openWordleModal()">+ Add Word</button>
                     <span class="text-muted" id="wordle-count" style="font-size:.82rem;"></span>
                 </div>
@@ -377,7 +377,7 @@
                         <option value="9-10">Class 9-10</option>
                         <option value="11-12">Class 11-12</option>
                     </select>
-                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #19a1a1;"
+                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #C44ECC;"
                         onclick="openSquaresModal()">+ Add Level</button>
                     <span class="text-muted" id="squares-count" style="font-size:.82rem;"></span>
                 </div>
@@ -410,7 +410,7 @@
                     <button id="pz-delete-selected-btn" class="btn btn-sm btn-danger d-none" style="border-radius:8px;" onclick="deleteSelectedPuzzles()">
                         <i data-feather="trash-2" style="width: 14px; height: 14px; margin-bottom: 2px;"></i> Delete Selected
                     </button>
-                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #19a1a1;"
+                    <button class="btn btn-sm ms-auto text-white" style="border-radius:8px; background: #C44ECC;"
                         onclick="openPuzzleModal()">+ Add Puzzle Level</button>
                     <span class="text-muted" id="puzzle-count" style="font-size:.82rem;"></span>
                 </div>
@@ -428,7 +428,7 @@
 <div class="modal fade" id="wordleModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #19a1a1;">
+            <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #C44ECC;">
                 <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -466,7 +466,7 @@
                 </div>
                 <hr>
                 <div class="d-flex align-items-center mb-3">
-                    <div class="bg-light p-2 rounded-circle me-2"><i data-feather="help-circle" style="color: #19a1a1; width: 18px;"></i></div>
+                    <div class="bg-light p-2 rounded-circle me-2"><i data-feather="help-circle" style="color: #C44ECC; width: 18px;"></i></div>
                     <h6 class="mb-0" style="font-weight: 700; color: #334155;">Hints (Up to 5)</h6>
                 </div>
                 <div id="wordle-hints-container">
@@ -481,7 +481,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn text-white" style="background: #19a1a1;" onclick="saveWord()">Save Word</button>
+                <button class="btn text-white" style="background: #C44ECC;" onclick="saveWord()">Save Word</button>
             </div>
         </div>
     </div>
@@ -490,7 +490,7 @@
 <div class="modal fade" id="squaresModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content" style="border-radius:16px;">
-            <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #19a1a1;">
+            <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #C44ECC;">
                 <h6 class="modal-title" id="squares-modal-title">Add Squares Level</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -575,7 +575,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn text-white" style="background: #19a1a1;" onclick="saveSquares()">Save Level</button>
+                <button class="btn text-white" style="background: #C44ECC;" onclick="saveSquares()">Save Level</button>
             </div>
         </div>
     </div>
@@ -585,7 +585,7 @@
 <div class="modal fade" id="puzzleModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-md">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-            <div class="modal-header border-0 text-white p-4" style="background: linear-gradient(135deg, #19a1a1 0%, #0e7a7a 100%);">
+            <div class="modal-header border-0 text-white p-4" style="background: linear-gradient(135deg, #C44ECC 0%, #603CD8 100%);">
                 <h5 class="modal-title font-weight-bold d-flex align-items-center gap-2" id="puzzle-modal-title">
                     <i data-feather="grid"></i> Add Puzzle Level
                 </h5>
@@ -626,7 +626,7 @@
                         <label class="form-label font-weight-bold text-dark mb-1">Upload Level Image</label>
                         
                         <div class="pz-dropzone mb-2" onclick="document.getElementById('pz-file-input').click()">
-                            <i data-feather="upload-cloud" style="width: 32px; height: 32px; color: #19a1a1;" class="mb-2"></i>
+                            <i data-feather="upload-cloud" style="width: 32px; height: 32px; color: #C44ECC;" class="mb-2"></i>
                             <div class="font-weight-bold text-dark">Click to browse or drop image files</div>
                             <small class="text-muted">Auto-saves to <code>/static/games/puzzle/&lt;Difficulty&gt;/</code></small>
                             <input type="file" id="pz-file-input" class="d-none" accept="image/*" multiple onchange="handlePuzzleFilesSelect(this)">
@@ -654,7 +654,7 @@
             </div>
             <div class="modal-footer border-0 p-3 bg-white d-flex justify-content-between">
                 <button type="button" class="btn btn-light font-weight-bold px-4" style="border-radius: 10px; color: #64748b;" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn text-white font-weight-bold px-4" style="border-radius: 10px; background: linear-gradient(135deg, #19a1a1 0%, #0e7a7a 100%); box-shadow: 0 4px 12px rgba(25, 161, 161, 0.3);" onclick="savePuzzle()">Save Puzzle Level</button>
+                <button type="button" class="btn text-white font-weight-bold px-4" style="border-radius: 10px; background: linear-gradient(135deg, #C44ECC 0%, #603CD8 100%); box-shadow: 0 4px 12px rgba(196, 78, 204, 0.3);" onclick="savePuzzle()">Save Puzzle Level</button>
             </div>
         </div>
     </div>
@@ -881,7 +881,7 @@
                         </div>
                         <div class="divider"></div>
                         <div class="stat-item">
-                            <i data-feather="play-circle" class="stat-icon" style="color:#19a1a1;"></i>
+                            <i data-feather="play-circle" class="stat-icon" style="color:#C44ECC;"></i>
                             <span class="stat-label">Sessions:</span>
                             <span class="stat-value">${d.total_sessions}</span>
                         </div>
@@ -1021,13 +1021,13 @@
                 <div class="col-12">
                     <div class="stat-mini">
                         <div class="stat-item">
-                            <i data-feather="box" class="stat-icon" style="color:#13c9ca;"></i>
+                            <i data-feather="box" class="stat-icon" style="color:#603CD8;"></i>
                             <span class="stat-label">Total Levels:</span>
                             <span class="stat-value">${d.total_levels}</span>
                         </div>
                         <div class="divider"></div>
                         <div class="stat-item">
-                            <i data-feather="play-circle" class="stat-icon" style="color:#19a1a1;"></i>
+                            <i data-feather="play-circle" class="stat-icon" style="color:#C44ECC;"></i>
                             <span class="stat-label">Sessions:</span>
                             <span class="stat-value">${d.total_sessions}</span>
                         </div>
@@ -1328,7 +1328,7 @@
                         </div>
                         <div class="divider"></div>
                         <div class="stat-item">
-                            <i data-feather="award" class="stat-icon" style="color:#19a1a1;"></i>
+                            <i data-feather="award" class="stat-icon" style="color:#C44ECC;"></i>
                             <span class="stat-label">Student Records:</span>
                             <span class="stat-value">${d.total_progress_records}</span>
                         </div>

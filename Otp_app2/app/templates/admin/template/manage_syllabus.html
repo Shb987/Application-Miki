@@ -187,7 +187,7 @@
                 title: title,
                 text: text,
                 icon: type,
-                confirmButtonColor: '#19a1a1'
+                confirmButtonColor: '#C44ECC'
             });
         } else {
             const overlay = document.createElement('div');
@@ -195,13 +195,13 @@
             const box = document.createElement('div');
             box.style.cssText = 'background:white;padding:30px 40px;border-radius:16px;text-align:center;max-width:400px;box-shadow:0 15px 35px rgba(0,0,0,0.2);animation: popIn 0.3s ease-out;';
             const iconStr = type === 'success' 
-                ? '<div style="color:#19a1a1;font-size:50px;margin-bottom:15px;"><i class="fa fa-check-circle"></i></div>' 
+                ? '<div style="color:#C44ECC;font-size:50px;margin-bottom:15px;"><i class="fa fa-check-circle"></i></div>' 
                 : '<div style="color:#dc3545;font-size:50px;margin-bottom:15px;"><i class="fa fa-times-circle"></i></div>';
             
             box.innerHTML = iconStr + `
                 <h4 style="margin-bottom:12px;font-weight:700;color:#2d3748;">${title}</h4>
                 <p style="color:#718096;margin-bottom:24px;font-size:0.95rem;">${text}</p>
-                <button class="btn btn-primary px-4 py-2" style="background:linear-gradient(135deg, #19a1a1 0%, #086b6b 100%);border:none;border-radius:8px;font-weight:600;" onclick="this.parentElement.parentElement.remove()">OK</button>
+                <button class="btn btn-primary px-4 py-2" style="background:linear-gradient(135deg, #C44ECC 0%, #603CD8 100%);border:none;border-radius:8px;font-weight:600;" onclick="this.parentElement.parentElement.remove()">OK</button>
             `;
             
             // Add keyframe animation if not exists

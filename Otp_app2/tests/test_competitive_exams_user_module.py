@@ -194,3 +194,4 @@ def test_openapi_schema_only_two_competitive_user_endpoints():
     assert ("/user/competitive-exams/exams") not in [p for _, p, _ in comp_endpoints]
     assert ("/user/competitive-exams/textbooks") not in [p for _, p, _ in comp_endpoints]
     assert ("/user/competitive-exams/papers") not in [p for _, p, _ in comp_endpoints]
+

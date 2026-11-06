@@ -6,7 +6,7 @@
 <style>
     /* Premium Dashboard Styles */
     .profile-header-card {
-        background: linear-gradient(135deg, #7366ff 0%, #13c9ca 100%);
+        background: linear-gradient(135deg, #C44ECC 0%, #603CD8 100%);
         position: relative;
         border-radius: 20px;
         overflow: hidden;
@@ -332,13 +332,13 @@
     .career-box-wrapper {
         margin-bottom: 25px;
         padding: 18px;
-        background: linear-gradient(135deg, rgba(115,102,255,0.06), rgba(19,201,202,0.06));
+        background: linear-gradient(135deg, rgba(115,102,255,0.06), rgba(196, 78, 204,0.06));
         border-radius: 16px;
         border: 1px solid rgba(115,102,255,0.15);
     }
     body.dark-only .career-box-wrapper,
     html.dark-only .career-box-wrapper {
-        background: linear-gradient(135deg, rgba(115,102,255,0.12), rgba(19,201,202,0.08)) !important;
+        background: linear-gradient(135deg, rgba(115,102,255,0.12), rgba(196, 78, 204,0.08)) !important;
         border-color: rgba(115,102,255,0.25) !important;
     }
     body.dark-only .table thead.bg-light,
@@ -415,7 +415,7 @@
 <div class="modal fade" id="editQuotaModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #7366ff, #13c9ca); color: #fff; border-radius: 16px 16px 0 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #C44ECC, #603CD8); color: #fff; border-radius: 16px 16px 0 0;">
                 <h5 class="modal-title"><i data-feather="edit-2" style="width:18px;height:18px;margin-right:6px;"></i> Edit Quota</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -438,7 +438,7 @@
 <div class="modal fade" id="editStudentProfilePhoneModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #7366ff, #13c9ca); color: #fff; border-radius: 16px 16px 0 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #C44ECC, #603CD8); color: #fff; border-radius: 16px 16px 0 0;">
                 <h5 class="modal-title text-white"><i data-feather="phone" style="width:18px;height:18px;margin-right:6px;"></i> Update Phone Numbers</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -590,8 +590,8 @@
             <div class="col-xl-3 col-sm-6">
                 <div class="quota-widget">
                     <button class="edit-quota-btn" onclick="openQuotaModal('class_balance', 'Digital Tuition', ${classQs})"><i data-feather="edit-2" style="width:14px;height:14px;"></i></button>
-                    <div class="quota-icon-bg" style="background: #13c9ca; color: #13c9ca;"><i data-feather="video"></i></div>
-                    <div class="quota-title" style="color: #13c9ca;">Digital Tuition</div>
+                    <div class="quota-icon-bg" style="background: #C44ECC; color: #C44ECC;"><i data-feather="video"></i></div>
+                    <div class="quota-title" style="color: #C44ECC;">Digital Tuition</div>
                     <div class="quota-value">${classQs} <span class="quota-unit">Sessions</span></div>
                 </div>
             </div>
@@ -624,14 +624,14 @@
                 
                 <div class="content-card">
                     <div class="content-header">
-                        <div style="background:rgba(19,201,202,0.1); color:#13c9ca; padding:8px; border-radius:10px;"><i data-feather="credit-card" style="width:18px;height:18px;"></i></div>
+                        <div style="background:rgba(196, 78, 204,0.1); color:#C44ECC; padding:8px; border-radius:10px;"><i data-feather="credit-card" style="width:18px;height:18px;"></i></div>
                         <h5>Financial Overview</h5>
                     </div>
                     <div class="content-body" style="padding: 15px 25px;">
                         <ul class="info-list">
                             <li>
                                 <span class="info-label">Total Spend</span>
-                                <span class="info-value" style="color:#13c9ca; font-size: 1.2rem;">₹${s.subscription && s.subscription.total_spend ? s.subscription.total_spend : 0}</span>
+                                <span class="info-value" style="color:#C44ECC; font-size: 1.2rem;">₹${s.subscription && s.subscription.total_spend ? s.subscription.total_spend : 0}</span>
                             </li>
                             <li>
                                 <span class="info-label">Last Recharge</span>
@@ -747,7 +747,7 @@
                         <span class="career-title">${item.career}</span>
                         <small class="text-muted" style="font-size:0.75rem;">(${item.category})</small>
                     </div>
-                    <span class="badge rounded-pill" style="background:linear-gradient(135deg,#7366ff,#13c9ca); color:#fff; font-size:0.8rem; font-weight:700; padding:5px 10px;">
+                    <span class="badge rounded-pill" style="background:linear-gradient(135deg,#7366ff,#C44ECC); color:#fff; font-size:0.8rem; font-weight:700; padding:5px 10px;">
                         ${item.confidence_percentage || item.confidence_score + '%'} Match
                     </span>
                 </div>
@@ -787,7 +787,7 @@
             "intrapersonal": "Intrapersonal",
             "naturalist": "Naturalist"
         };
-        const catColors = ["#7366ff", "#13c9ca", "#f73164", "#ff9f40", "#54ba4a", "#6610f2", "#fd7e14", "#20c997"];
+        const catColors = ["#7366ff", "#C44ECC", "#f73164", "#ff9f40", "#54ba4a", "#6610f2", "#fd7e14", "#20c997"];
 
         html += `<div class="row pe-2">`;
         cats.forEach((c, i) => {

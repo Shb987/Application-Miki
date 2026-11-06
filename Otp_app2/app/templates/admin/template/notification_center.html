@@ -67,7 +67,7 @@
     }
 
     .composer-header {
-        background: linear-gradient(135deg, #13c9ca 0%, #0d8b8c 100%);
+        background: linear-gradient(135deg, #C44ECC 0%, #603CD8 100%);
         color: #ffffff;
         padding: 22px 28px;
         display: flex;
@@ -121,8 +121,8 @@
 
     .form-control-custom:focus {
         background-color: #ffffff;
-        border-color: #13c9ca;
-        box-shadow: 0 0 0 3px rgba(19, 201, 202, 0.18);
+        border-color: #C44ECC;
+        box-shadow: 0 0 0 3px rgba(196, 78, 204, 0.18);
         color: #0f172a;
         outline: none;
     }
@@ -151,9 +151,9 @@
     }
 
     .audience-card.active {
-        border-color: #13c9ca;
-        background: rgba(19, 201, 202, 0.08);
-        box-shadow: 0 4px 16px rgba(19, 201, 202, 0.15);
+        border-color: #C44ECC;
+        background: rgba(196, 78, 204, 0.08);
+        box-shadow: 0 4px 16px rgba(196, 78, 204, 0.15);
     }
 
     .audience-card .aud-icon {
@@ -171,7 +171,7 @@
     }
 
     .audience-card.active .aud-icon {
-        background: #13c9ca;
+        background: #C44ECC;
         color: #ffffff;
     }
 
@@ -191,7 +191,7 @@
 
     /* Buttons */
     .btn-gradient-send {
-        background: linear-gradient(135deg, #3cdddd 0%, #13c9ca 100%);
+        background: linear-gradient(135deg, #C44ECC 0%, #603CD8 100%);
         color: #ffffff !important;
         border: none;
         border-radius: 12px;
@@ -204,7 +204,7 @@
 
     .btn-gradient-send:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(19, 201, 202, 0.4);
+        box-shadow: 0 6px 20px rgba(196, 78, 204, 0.4);
         color: #ffffff !important;
     }
 
@@ -288,8 +288,8 @@
     body.dark-only .form-control-custom:focus,
     .dark-only .form-control-custom:focus {
         background-color: #1a1d26 !important;
-        border-color: #13c9ca !important;
-        box-shadow: 0 0 0 3px rgba(19, 201, 202, 0.22) !important;
+        border-color: #C44ECC !important;
+        box-shadow: 0 0 0 3px rgba(196, 78, 204, 0.22) !important;
         color: #ffffff !important;
     }
 
@@ -306,14 +306,14 @@
 
     body.dark-only .audience-card:hover,
     .dark-only .audience-card:hover {
-        border-color: #13c9ca !important;
+        border-color: #C44ECC !important;
     }
 
     body.dark-only .audience-card.active,
     .dark-only .audience-card.active {
-        background: rgba(19, 201, 202, 0.12) !important;
-        border-color: #13c9ca !important;
-        box-shadow: 0 4px 16px rgba(19, 201, 202, 0.22) !important;
+        background: rgba(196, 78, 204, 0.12) !important;
+        border-color: #C44ECC !important;
+        box-shadow: 0 4px 16px rgba(196, 78, 204, 0.22) !important;
     }
 
     body.dark-only .audience-card .aud-title,
@@ -334,7 +334,7 @@
 
     body.dark-only .audience-card.active .aud-icon,
     .dark-only .audience-card.active .aud-icon {
-        background: #13c9ca !important;
+        background: #C44ECC !important;
         color: #ffffff !important;
     }
 
@@ -408,7 +408,7 @@
             <div class="metric-card">
                 <div class="metric-title">Broadcasts Today</div>
                 <div class="metric-value text-primary" id="stat-today">—</div>
-                <div class="metric-icon-bg" style="background: rgba(19, 201, 202, 0.12); color: #13c9ca;">
+                <div class="metric-icon-bg" style="background: rgba(196, 78, 204, 0.12); color: #C44ECC;">
                     <i class="fa fa-bullhorn"></i>
                 </div>
             </div>
@@ -540,7 +540,7 @@
 <div class="modal fade" id="confirmModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:18px; overflow:hidden; border:none; box-shadow:0 12px 36px rgba(0,0,0,0.25);">
-            <div class="modal-header text-white" style="background:linear-gradient(135deg, #13c9ca, #0d8b8c); border:none; padding:18px 24px;">
+            <div class="modal-header text-white" style="background:linear-gradient(135deg, #C44ECC, #603CD8); border:none; padding:18px 24px;">
                 <h6 class="modal-title fw-bold mb-0">
                     <i class="fa fa-question-circle me-2"></i>Confirm Broadcast Dispatch
                 </h6>
@@ -681,7 +681,7 @@
         }
 
         const targetLabel = target === "class" 
-            ? `<span class="badge" style="background:#13c9ca; font-size:0.85rem;">Class ${cls}</span>`
+            ? `<span class="badge" style="background:#C44ECC; font-size:0.85rem;">Class ${cls}</span>`
             : `<span class="badge bg-primary" style="font-size:0.85rem;">All Registered Users</span>`;
 
         document.getElementById("confirm-body").innerHTML = `

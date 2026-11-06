@@ -120,12 +120,12 @@
     }
 
     .search-input-group input:focus {
-        border-color: #13c9ca;
-        box-shadow: 0 0 0 0.2rem rgba(19, 201, 202, 0.15);
+        border-color: #603CD8;
+        box-shadow: 0 0 0 0.2rem rgba(196, 78, 204, 0.15);
     }
 
     .btn-gradient-primary {
-        background: linear-gradient(135deg, #3cdddd, #19a1a1);
+        background: linear-gradient(135deg, #C44ECC, #603CD8);
         color: #ffffff !important;
         border: none;
         border-radius: 10px;
@@ -257,7 +257,7 @@
             <div class="metric-card">
                 <div class="metric-title">Broadcasts Today</div>
                 <div class="metric-value text-primary" id="stat-today">—</div>
-                <div class="metric-icon-bg" style="background: rgba(19, 201, 202, 0.12); color: #13c9ca;">
+                <div class="metric-icon-bg" style="background: rgba(196, 78, 204, 0.12); color: #603CD8;">
                     <i class="fa fa-bullhorn"></i>
                 </div>
             </div>
@@ -353,7 +353,7 @@
 <div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:18px; overflow:hidden; border:none; box-shadow:0 10px 30px rgba(0,0,0,0.15);">
-            <div class="modal-header text-white" style="background: linear-gradient(135deg, #3cdddd, #19a1a1); border:none; padding:18px 24px;">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #C44ECC, #603CD8); border:none; padding:18px 24px;">
                 <h6 class="modal-title fw-bold mb-0" id="reviewModalLabel">
                     <i class="fa fa-bullhorn me-2"></i>Broadcast Details
                 </h6>
@@ -516,7 +516,7 @@
             const dateStr = log.created_at ? new Date(log.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—';
             const isClass = log.target === "class";
             const targetBadge = isClass 
-                ? `<span class="target-badge" style="background: rgba(19, 201, 202, 0.15); color: #0d8b8c; border: 1px solid rgba(19, 201, 202, 0.3);"><i class="fa fa-graduation-cap me-1"></i>Class ${log.target_class || ''}</span>`
+                ? `<span class="target-badge" style="background: rgba(196, 78, 204, 0.15); color: #0d8b8c; border: 1px solid rgba(196, 78, 204, 0.3);"><i class="fa fa-graduation-cap me-1"></i>Class ${log.target_class || ''}</span>`
                 : `<span class="target-badge" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3);"><i class="fa fa-globe me-1"></i>All Users</span>`;
 
             const rawMsg = log.message || "";
@@ -527,7 +527,7 @@
             rowsHtml += `<tr>
                 <td>
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px; background: rgba(19, 201, 202, 0.12); color:#13c9ca; flex-shrink:0;">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px; background: rgba(196, 78, 204, 0.12); color:#603CD8; flex-shrink:0;">
                             <i class="fa fa-bullhorn" style="font-size:0.85rem;"></i>
                         </div>
                         <strong class="text-dark" title="${safeTitle}">${log.title || 'Untitled'}</strong>
@@ -592,7 +592,7 @@
 
         const targetDiv = document.getElementById("modal-target");
         if (log.target === "class") {
-            targetDiv.innerHTML = `<span class="badge" style="background:#13c9ca; font-size:0.85rem;"><i class="fa fa-graduation-cap me-1"></i>Class ${log.target_class || ''}</span>`;
+            targetDiv.innerHTML = `<span class="badge" style="background:#603CD8; font-size:0.85rem;"><i class="fa fa-graduation-cap me-1"></i>Class ${log.target_class || ''}</span>`;
         } else {
             targetDiv.innerHTML = `<span class="badge bg-primary" style="font-size:0.85rem;"><i class="fa fa-globe me-1"></i>All Users</span>`;
         }

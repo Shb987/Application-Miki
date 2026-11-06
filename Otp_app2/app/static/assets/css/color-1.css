@@ -108,25 +108,116 @@
   color: #ffffff !important;
 }
 
-/* Sidebar Styling - Light Mode */
-.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
-  background: radial-gradient(circle at 60% 98%, rgba(216, 70, 230, 0.35) 0%, rgba(140, 40, 200, 0.15) 45%, transparent 70%), linear-gradient(180deg, #6c187e 0%, #521683 40%, #3e126e 75%, #2a0b4d 100%) !important;
-  box-shadow: 0 0 25px rgba(96, 60, 216, 0.18) !important;
-  position: relative;
-  overflow: hidden;
+/* =========================================================
+   Layout & Positioning: Fixed Sidebar, Fixed Header, Fluid Body
+   ========================================================= */
+
+/* Ambient Glowing Background on Body */
+body:not(.dark-only),
+html:not(.dark-only) {
+  background: radial-gradient(ellipse 700px 350px at 85% 6%, rgba(216, 180, 254, 0.45) 0%, rgba(243, 232, 255, 0.25) 45%, transparent 75%), #fbfaff !important;
+  background-attachment: fixed !important;
 }
 
-.sidebar-wrapper::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 95px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 95' preserveAspectRatio='none'%3E%3Cpath fill='rgba(216, 70, 230, 0.28)' d='M0,52 C70,24 140,72 210,38 C255,18 280,44 300,30 L300,95 L0,95 Z'/%3E%3Cpath fill='rgba(196, 78, 204, 0.4)' d='M0,72 C60,48 130,86 210,58 C260,38 285,62 300,50 L300,95 L0,95 Z'/%3E%3C/svg%3E") bottom center no-repeat;
-  background-size: cover;
-  pointer-events: none;
-  z-index: 1;
+body.dark-only,
+html.dark-only {
+  background: radial-gradient(ellipse 700px 350px at 85% 6%, rgba(147, 51, 234, 0.18) 0%, rgba(96, 60, 216, 0.1) 45%, transparent 75%), #11131e !important;
+  background-attachment: fixed !important;
+  color: #f1f5f9 !important;
+}
+
+.page-wrapper,
+.page-body-wrapper {
+  background: transparent !important;
+}
+
+/* Sidebar Wrapper - Light Mode */
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
+  position: fixed !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 265px !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  z-index: 99 !important;
+  border-top-right-radius: 24px !important;
+  border-bottom-right-radius: 24px !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  background: radial-gradient(circle at 60% 98%, rgba(216, 70, 230, 0.35) 0%, rgba(140, 40, 200, 0.15) 45%, transparent 70%), linear-gradient(180deg, #6c187e 0%, #521683 40%, #3e126e 75%, #2a0b4d 100%) !important;
+  box-shadow: 0 0 25px rgba(96, 60, 216, 0.18) !important;
+  overflow: visible !important;
+}
+
+/* Decorative subtle wave at bottom of sidebar */
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper::after {
+  content: "" !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 95px !important;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 95' preserveAspectRatio='none'%3E%3Cpath fill='rgba(216, 70, 230, 0.28)' d='M0,52 C70,24 140,72 210,38 C255,18 280,44 300,30 L300,95 L0,95 Z'/%3E%3Cpath fill='rgba(196, 78, 204, 0.4)' d='M0,72 C60,48 130,86 210,58 C260,38 285,62 300,50 L300,95 L0,95 Z'/%3E%3C/svg%3E") bottom center no-repeat !important;
+  background-size: cover !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* Sidebar Wrapper - Dark Mode */
+body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
+html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
+  background: radial-gradient(circle at 60% 98%, rgba(147, 51, 234, 0.25) 0%, transparent 70%), linear-gradient(180deg, #440d52 0%, #320c52 40%, #240942 75%, #150428 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper::after,
+html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper::after {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 95' preserveAspectRatio='none'%3E%3Cpath fill='rgba(147, 51, 234, 0.2)' d='M0,52 C70,24 140,72 210,38 C255,18 280,44 300,30 L300,95 L0,95 Z'/%3E%3Cpath fill='rgba(168, 85, 247, 0.3)' d='M0,72 C60,48 130,86 210,58 C260,38 285,62 300,50 L300,95 L0,95 Z'/%3E%3C/svg%3E") bottom center no-repeat !important;
+  background-size: cover !important;
+}
+
+/* Page Header - Fixed at Top */
+.page-wrapper.compact-wrapper .page-header {
+  position: fixed !important;
+  top: 0 !important;
+  left: 265px !important;
+  width: calc(100% - 265px) !important;
+  height: 75px !important;
+  z-index: 90 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.page-wrapper.compact-wrapper .page-header .header-wrapper {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 14px 28px !important;
+  height: 100% !important;
+}
+
+/* Page Body - Sits immediately below fixed header, tight and aligned */
+.page-wrapper.compact-wrapper .page-body-wrapper .page-body {
+  margin-left: 265px !important;
+  margin-top: 75px !important;
+  min-height: calc(100vh - 75px) !important;
+  padding: 8px 28px 28px 28px !important;
+  background: transparent !important;
+  position: relative !important;
+}
+
+/* Collapsed Sidebar Support */
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon ~ .page-body {
+  margin-left: 0 !important;
+}
+.page-wrapper.compact-wrapper .page-header.close_icon {
+  left: 0 !important;
+  width: 100% !important;
 }
 
 /* Hide Section Title to match screenshot */
@@ -187,84 +278,71 @@
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
-/* Submenu Tree-Structure */
+/* Clean Tree Submenu Styling */
 .sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu {
   position: relative !important;
-  padding-left: 28px !important;
-  margin-left: 18px !important;
-  margin-top: 4px !important;
-  margin-bottom: 8px !important;
+  padding: 4px 0 6px 14px !important;
+  margin: 2px 0 6px 12px !important;
   border: none !important;
   background: transparent !important;
   z-index: 2;
 }
 
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu::before {
-  content: "" !important;
-  position: absolute !important;
-  top: 2px !important;
-  bottom: 14px !important;
-  left: 12px !important;
-  width: 1.5px !important;
-  background: rgba(255, 255, 255, 0.35) !important;
-  border-radius: 1px !important;
-}
-
 .sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li {
   position: relative !important;
-  padding: 4px 0 !important;
-}
-
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
-  content: "" !important;
-  position: absolute !important;
-  top: 15px !important;
-  left: -16px !important;
-  width: 12px !important;
-  height: 1.5px !important;
-  background: rgba(255, 255, 255, 0.35) !important;
-}
-
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li::after {
-  content: "" !important;
-  position: absolute !important;
-  top: 13px !important;
-  left: -5px !important;
-  width: 5px !important;
-  height: 5px !important;
-  border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.6) !important;
+  padding: 2px 0 !important;
 }
 
 .sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a {
-  color: rgba(255, 255, 255, 0.85) !important;
+  position: relative !important;
+  color: rgba(255, 255, 255, 0.82) !important;
   font-size: 0.88rem !important;
   font-weight: 500 !important;
-  padding: 4px 8px !important;
-  display: inline-block !important;
-  transition: all 0.2s ease !important;
+  padding: 6px 12px 6px 36px !important;
+  display: block !important;
   background: transparent !important;
+  transition: all 0.2s ease !important;
 }
 
 .sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a:hover,
 .sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a.active {
   color: #ffffff !important;
   font-weight: 700 !important;
-  transform: translateX(3px) !important;
+  transform: translateX(2px) !important;
 }
 
-/* Sidebar Styling - Dark Mode */
-body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
-html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
-  background: radial-gradient(circle at 60% 98%, rgba(147, 51, 234, 0.25) 0%, transparent 70%), linear-gradient(180deg, #440d52 0%, #320c52 40%, #240942 75%, #150428 100%) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.5) !important;
+/* Tree-Branch connector curve */
+.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a:after {
+  content: "" !important;
+  position: absolute !important;
+  left: 14px !important;
+  top: 0px !important;
+  width: 14px !important;
+  height: 18px !important;
+  border-bottom-left-radius: 8px !important;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.38) !important;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.38) !important;
+  border-top: none !important;
+  border-right: none !important;
+  background: transparent !important;
 }
 
-body.dark-only .sidebar-wrapper::after,
-html.dark-only .sidebar-wrapper::after {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 95' preserveAspectRatio='none'%3E%3Cpath fill='rgba(147, 51, 234, 0.2)' d='M0,52 C70,24 140,72 210,38 C255,18 280,44 300,30 L300,95 L0,95 Z'/%3E%3Cpath fill='rgba(168, 85, 247, 0.3)' d='M0,72 C60,48 130,86 210,58 C260,38 285,62 300,50 L300,95 L0,95 Z'/%3E%3C/svg%3E") bottom center no-repeat;
-  background-size: cover;
+/* Small bullet/dot indicator */
+.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 28px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a.active::before {
+  background: #ffffff !important;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8) !important;
 }
 
 body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a,

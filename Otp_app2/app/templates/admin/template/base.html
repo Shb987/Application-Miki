@@ -608,32 +608,44 @@
 
         /* Ambient Glowing Background - Light Mode */
         body:not(.dark-only),
-        html:not(.dark-only),
-        body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper,
-        body:not(.dark-only) .page-body {
+        html:not(.dark-only) {
             background: radial-gradient(ellipse 700px 350px at 85% 6%, rgba(216, 180, 254, 0.45) 0%, rgba(243, 232, 255, 0.25) 45%, transparent 75%), #fbfaff !important;
+            background-attachment: fixed !important;
         }
 
         /* Ambient Glowing Background - Dark Mode */
         body.dark-only,
-        html.dark-only,
-        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper,
-        body.dark-only .page-body {
+        html.dark-only {
             background: radial-gradient(ellipse 700px 350px at 85% 6%, rgba(147, 51, 234, 0.18) 0%, rgba(96, 60, 216, 0.1) 45%, transparent 75%), #11131e !important;
+            background-attachment: fixed !important;
             color: #f1f5f9 !important;
         }
 
-        /* Transparent Header */
-        .page-header {
+        .page-wrapper,
+        .page-body-wrapper {
             background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
         }
-        .page-header .header-wrapper {
+
+        /* Transparent Header */
+        .page-wrapper.compact-wrapper .page-header {
+            position: fixed !important;
+            top: 0 !important;
+            left: 265px !important;
+            width: calc(100% - 265px) !important;
+            height: 75px !important;
+            z-index: 90 !important;
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
-            padding: 16px 28px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .page-wrapper.compact-wrapper .page-header .header-wrapper {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 14px 28px !important;
+            height: 100% !important;
         }
         .left-header h4 {
             font-size: 1.45rem !important;
@@ -677,6 +689,16 @@
             color: #94a3b8 !important;
         }
 
+        /* Page Body Layout */
+        .page-wrapper.compact-wrapper .page-body-wrapper .page-body {
+            margin-left: 265px !important;
+            margin-top: 75px !important;
+            min-height: calc(100vh - 75px) !important;
+            padding: 8px 28px 28px 28px !important;
+            background: transparent !important;
+            position: relative !important;
+        }
+
         /* Transparent Clean Footer */
         .footer {
             background: transparent !important;
@@ -691,6 +713,7 @@
         html.dark-only .footer p {
             color: #64748b !important;
         }
+        
     </style>
 
     {% block head %}{% endblock %}

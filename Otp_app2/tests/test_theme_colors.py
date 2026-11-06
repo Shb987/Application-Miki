@@ -57,3 +57,4 @@ def test_base_html_theme_integration():
     assert 'rgba(196, 78, 204, 0.25)' in content
     # Check logo styling
     assert 'linear-gradient(135deg, #C44ECC, #603CD8)' in content
+

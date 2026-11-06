@@ -604,6 +604,93 @@
             color: #e082e6 !important;
             font-weight: 700 !important;
         }
+    
+
+        /* Ambient Glowing Background - Light Mode */
+        body:not(.dark-only),
+        html:not(.dark-only),
+        body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper,
+        body:not(.dark-only) .page-body {
+            background: radial-gradient(ellipse 700px 350px at 85% 6%, rgba(216, 180, 254, 0.45) 0%, rgba(243, 232, 255, 0.25) 45%, transparent 75%), #fbfaff !important;
+        }
+
+        /* Ambient Glowing Background - Dark Mode */
+        body.dark-only,
+        html.dark-only,
+        body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper,
+        body.dark-only .page-body {
+            background: radial-gradient(ellipse 700px 350px at 85% 6%, rgba(147, 51, 234, 0.18) 0%, rgba(96, 60, 216, 0.1) 45%, transparent 75%), #11131e !important;
+            color: #f1f5f9 !important;
+        }
+
+        /* Transparent Header */
+        .page-header {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .page-header .header-wrapper {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 16px 28px !important;
+        }
+        .left-header h4 {
+            font-size: 1.45rem !important;
+            font-weight: 700 !important;
+            color: #1e1b4b !important;
+            margin-bottom: 2px !important;
+        }
+        body.dark-only .left-header h4,
+        html.dark-only .left-header h4 {
+            color: #f8fafc !important;
+        }
+        .left-header .welcome-content {
+            font-size: 0.88rem !important;
+            color: #64748b !important;
+        }
+        body.dark-only .left-header .welcome-content,
+        html.dark-only .left-header .welcome-content {
+            color: #94a3b8 !important;
+        }
+        .nav-menus .mode i {
+            color: #1e1b4b !important;
+        }
+        body.dark-only .nav-menus .mode i,
+        html.dark-only .nav-menus .mode i {
+            color: #f8fafc !important;
+        }
+        #header-profile-name {
+            font-weight: 600 !important;
+            color: #1e1b4b !important;
+        }
+        body.dark-only #header-profile-name,
+        html.dark-only #header-profile-name {
+            color: #f8fafc !important;
+        }
+        #header-profile-role {
+            color: #64748b !important;
+            font-size: 0.78rem !important;
+        }
+        body.dark-only #header-profile-role,
+        html.dark-only #header-profile-role {
+            color: #94a3b8 !important;
+        }
+
+        /* Transparent Clean Footer */
+        .footer {
+            background: transparent !important;
+            border-top: none !important;
+            padding: 24px 0 16px 0 !important;
+        }
+        .footer p, .footer-copyright p {
+            color: #8b88a5 !important;
+            font-size: 0.85rem !important;
+        }
+        body.dark-only .footer p,
+        html.dark-only .footer p {
+            color: #64748b !important;
+        }
     </style>
 
     {% block head %}{% endblock %}
@@ -646,9 +733,8 @@
                 </div>
                 <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
                     <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
-                        <div class="d-flex align-items-center gap-2 ">
-                            <h4 class="f-w-600">Welcome <span id="admin-name">Loading...</span></h4>
-                            <img class="mt-0" src="/assets/images/hand.gif" alt="hand-gif">
+                        <div class="d-flex align-items-center gap-2">
+                            <h4 class="f-w-600" style="margin-bottom:0; font-size:1.45rem;">Welcome <span id="admin-name">admin</span> 👋</h4>
                         </div>
                     </div>
                     <div class="welcome-content d-xl-block d-none"><span class="text-truncate col-12">Here’s what’s
@@ -694,7 +780,7 @@
                     <div class="container-fluid">
                         <div class="row">
                             <div class="col-md-12 footer-copyright text-center">
-                                <p class="mb-0">Copyright © 2024 Miki Assessment Portal</p>
+                                <p class="mb-0">Copyright © 2026 Miki Assessment Portal</p>
                             </div>
                         </div>
                     </div>
@@ -896,6 +982,43 @@
     </script>
 
     {% block scripts %}{% endblock %}
+
+    <!-- Active Sidebar Highlight Synchronization -->
+    <script>
+        (function() {
+            function syncSidebarState() {
+                var path = window.location.pathname;
+                if (path.indexOf("/admin-panel/user-management-page") !== -1) {
+                    var menu = document.getElementById("menu-user-management");
+                    if (menu) {
+                        menu.classList.add("active");
+                        var aTitle = menu.querySelector(".sidebar-link.sidebar-title");
+                        if (aTitle) aTitle.classList.add("active");
+                        var sub = menu.querySelector(".sidebar-submenu");
+                        if (sub) {
+                            sub.style.display = "block";
+                            var currentTab = new URLSearchParams(window.location.search).get("tab") || "overview";
+                            var items = sub.querySelectorAll("li a");
+                            items.forEach(function(item) {
+                                item.classList.remove("active");
+                                if (item.getAttribute("href").indexOf("tab=" + currentTab) !== -1) {
+                                    item.classList.add("active");
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+            window.highlightActiveSidebar = syncSidebarState;
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', syncSidebarState);
+            } else {
+                syncSidebarState();
+            }
+            window.addEventListener('load', syncSidebarState);
+        })();
+    </script>
+
 </body>
 
 </html>

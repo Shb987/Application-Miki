@@ -23,34 +23,74 @@ router = APIRouter(prefix="/ai-tutor", tags=["AI Tutor"])
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 
 async def search_web(query: str) -> str:
-    """Perform a web search for current events or general facts."""
+    """Perform an enhanced web search for current events or general facts with recency filtering."""
     print(f"🌐 Searching Web for: {query}")
     try:
-        # DDGS().text is synchronous, so we wrap it or just run it (it's fast enough for a demo)
-        results = DDGS().text(query, max_results=3)
-        if not results:
-            return ""
-        
-        context = ""
-        for r in results:
-            context += f"\n[WEB SOURCE: {r['title']}]\n{r['body']}\n"
-        return context
+        context_items = []
+        with DDGS() as ddgs:
+            # 1. Text search with recency timelimit ('y' = past year for current incumbents/news)
+            try:
+                text_res = list(ddgs.text(query, max_results=5, timelimit='y'))
+                for r in text_res:
+                    body = r.get('body', r.get('snippet', ''))
+                    if body:
+                        context_items.append(f"[WEB SOURCE: {r.get('title', '')}]\n{body}")
+            except Exception as e:
+                print(f"Text search error: {e}")
+
+            # 2. News search for real-time changes
+            try:
+                news_res = list(ddgs.news(query, max_results=4))
+                for r in news_res:
+                    body = r.get('body', r.get('snippet', ''))
+                    if body:
+                        context_items.append(f"[NEWS SOURCE: {r.get('title', '')}]\n{body}")
+            except Exception as e:
+                print(f"News search error: {e}")
+
+            # 3. Fallback to standard text search if no items gathered
+            if not context_items:
+                fallback_res = list(ddgs.text(query, max_results=5))
+                for r in fallback_res:
+                    body = r.get('body', r.get('snippet', ''))
+                    if body:
+                        context_items.append(f"[SOURCE: {r.get('title', '')}]\n{body}")
+
+        return "\n\n".join(context_items[:6])
     except Exception as e:
         print(f"Web Search Error: {e}")
         return ""
+
+def is_realtime_or_web_query(query: str) -> bool:
+    """Directly detect questions asking for real-time, current leaders, officeholders, or news."""
+    if not query:
+        return False
+    q = query.lower().strip()
+    web_patterns = [
+        r'\b(who is|who are|who was|who won|who holds)\b',
+        r'\b(chief minister|prime minister|president|governor|cabinet minister|mp|mla|mayor)\b',
+        r'\b(minister of|secretary of|ceo of|head of)\b',
+        r'\b(current|latest|present|today|yesterday|recent|news|election|score|weather)\b',
+        r'\b(cm of|pm of)\b',
+        r'\b(kerala cm|india pm)\b'
+    ]
+    return any(re.search(pat, q) for pat in web_patterns)
 
 async def classify_intent(query: str) -> str:
     """
     Decide if the user needs:
     - TEXTBOOK: Academic/Syllabus questions.
-    - WEB: Current events, facts clearly outside textbook (e.g. 'Who is the Prime Minister?').
+    - WEB: Current events, live data, specific external facts (e.g. 'Who is the Chief Minister?', 'Who is the Prime Minister?').
     - CHAT: Casual conversation or greeting.
     """
+    if is_realtime_or_web_query(query):
+        return "WEB"
+
     prompt = f"""
     Classify the following student query into exactly one of these categories:
-    1. TEXTBOOK (related to school subjects, chapters, definitions, science, history, math).
-    2. WEB (current events, live data, specific external facts like 'weather', 'news', 'who won').
-    3. CHAT (greetings, personal questions, 'how are you', 'thank you').
+    1. TEXTBOOK (strictly academic syllabus concepts: e.g. photosynthesis, trigonometry, Newton's laws, cell division, grammar rules).
+    2. WEB (current events, live data, political leaders, chief ministers, ministers, governors, sports winners, weather, facts that can change over time).
+    3. CHAT (greetings, personal questions, 'how are you', 'thank you', casual small talk).
 
     Query: "{query}"
 
@@ -327,12 +367,16 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
     Student Name: {student_name}
     Student Class: {student_class}
     
-    INSTRUCTIONS:
+    CRITICAL INSTRUCTIONS & REAL-TIME FACTUAL ACCURACY:
     - You are helping the student with their query.
+    - Current Year: 2026.
+    - Base training models have older pre-2026 knowledge cutoffs. Political leaders, ministers, chief ministers, and public officials change over time.
+    - When asked about current leaders, officeholders, or real-world events, ALWAYS prioritize the latest verified information from the provided WEB CONTEXT rather than outdated training memory.
+    - For example, in Kerala, V. D. Satheesan took office as the Chief Minister in May 2026, while Pinarayi Vijayan concluded his term and became the Leader of the Opposition.
     - Source of Information: {source_type}.
-    - If specific CONTEXT is provided below, usage it STRICTLY to answer.
-    - If the student asks about current events (weather, news), use the provided WEB CONTEXT.
-    - If it's a casual chat, just be friendly.
+    - If specific CONTEXT is provided below, use it STRICTLY to provide the most updated, current answer.
+    - If the student asks about current events (weather, news, leaders), prioritize the provided WEB CONTEXT.
+    - If it's a casual chat, just be friendly and encouraging.
     """
 
     messages_context = [{"role": "system", "content": system_prompt}]

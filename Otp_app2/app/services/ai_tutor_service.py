@@ -17,20 +17,44 @@ class AITutorService:
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder", timeout=20.0)
 
     async def search_web(self, query: str) -> str:
-        """Perform a web search for current events or general facts."""
+        """Perform an enhanced web search for current events or general facts with recency filtering."""
         logger.info(f"🌐 Searching Web for: {query}")
         try:
+            context_items = []
             with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=3))
-            
-            if not results:
+                # 1. Text search with recency timelimit ('y' = past year for current incumbents/news)
+                try:
+                    text_res = list(ddgs.text(query, max_results=5, timelimit='y'))
+                    for r in text_res:
+                        body = r.get('body', r.get('snippet', ''))
+                        if body:
+                            context_items.append(f"[WEB SOURCE: {r.get('title', '')}]\n{body}")
+                except Exception as te:
+                    logger.warning(f"Text search error: {te}")
+
+                # 2. News search for real-time changes
+                try:
+                    news_res = list(ddgs.news(query, max_results=4))
+                    for r in news_res:
+                        body = r.get('body', r.get('snippet', ''))
+                        if body:
+                            context_items.append(f"[NEWS SOURCE: {r.get('title', '')}]\n{body}")
+                except Exception as ne:
+                    logger.warning(f"News search error: {ne}")
+
+                # 3. Fallback to standard text search if no items gathered
+                if not context_items:
+                    fallback_res = list(ddgs.text(query, max_results=5))
+                    for r in fallback_res:
+                        body = r.get('body', r.get('snippet', ''))
+                        if body:
+                            context_items.append(f"[SOURCE: {r.get('title', '')}]\n{body}")
+
+            if not context_items:
                 logger.warning(f"No results found for query: {query}")
                 return ""
-            
-            context = ""
-            for r in results:
-                context += f"\n[WEB SOURCE: {r['title']}]\n{r.get('body', r.get('snippet', ''))}\n"
-            return context
+
+            return "\n\n".join(context_items[:6])
         except Exception as e:
             logger.error(f"Web Search Error: {e}")
             return ""
@@ -120,9 +144,13 @@ class AITutorService:
         Student Name: {student_name}
         Student Class: {student_class}
         
-        STRICT RULES:
+        CRITICAL INSTRUCTIONS & REAL-TIME FACTUAL ACCURACY:
+        - Current Year: 2026.
+        - Base training models have older pre-2026 knowledge cutoffs. Political leaders, ministers, chief ministers, and public officials change over time.
+        - When asked about current leaders, officeholders, or real-world events, ALWAYS prioritize the latest verified information from the search tools rather than outdated training memory.
+        - For example, in Kerala, V. D. Satheesan took office as the Chief Minister in May 2026, while Pinarayi Vijayan concluded his term and became the Leader of the Opposition.
         - You and the student must communicate ONLY in English.
-        - Respond briefly and encouragingly.
+        - Respond briefly, accurately, and encouragingly.
         - Use the provided search tools if you need textbook or real-time information.
         """
 

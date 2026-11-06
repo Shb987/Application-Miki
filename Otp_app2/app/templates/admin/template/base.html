@@ -655,7 +655,7 @@
             color: #ffffff !important;
         }
 
-        /* Tree Hierarchy for Submenus - Smooth Curved Branches (Image 3 match) */
+        /* Tree Hierarchy for Submenus - Smooth Curved Branches with Zero Tail */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu {
             position: relative !important;
             padding: 2px 0 6px 0 !important;
@@ -663,30 +663,28 @@
             background: transparent !important;
             border: none !important;
         }
-        /* Continuous Vertical Stem */
-        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu::before {
-            content: "" !important;
-            position: absolute !important;
-            left: 8px !important;
-            top: 0 !important;
-            bottom: 14px !important;
-            width: 1.5px !important;
-            background: rgba(255, 255, 255, 0.4) !important;
-            border-radius: 1px !important;
+        /* Completely eliminate global ul::before so no line ever extends past the last item */
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu::before,
+        .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-link.active ~ .sidebar-submenu::before,
+        .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu::before {
+            content: none !important;
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li {
             position: relative !important;
             padding: 4px 0 !important;
             margin: 0 !important;
         }
-        /* Smooth Curved branch: vertical stem turning 90deg into horizontal branch */
+        /* Smooth Curved branch: vertical stem turning 90deg into horizontal branch at top: 50% */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
             content: "" !important;
             position: absolute !important;
             left: 8px !important;
-            top: -3px !important;
-            width: 14px !important;
-            height: calc(50% + 3px) !important;
+            top: -2px !important;
+            width: 12px !important;
+            height: calc(50% + 2px) !important;
             border-left: 1.5px solid rgba(255, 255, 255, 0.4) !important;
             border-bottom: 1.5px solid rgba(255, 255, 255, 0.4) !important;
             border-bottom-left-radius: 9px !important;
@@ -696,25 +694,42 @@
             display: block !important;
             opacity: 1 !important;
             visibility: visible !important;
+            box-sizing: border-box !important;
+        }
+        /* Vertical line continuing to next item - ONLY on items before the last item */
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:not(:last-child)::after {
+            content: "" !important;
+            position: absolute !important;
+            left: 8px !important;
+            top: 50% !important;
+            bottom: -4px !important;
+            width: 1.5px !important;
+            background: rgba(255, 255, 255, 0.4) !important;
+            display: block !important;
+            z-index: 1 !important;
+        }
+        /* Ensure the last child (Parents) has NO line extending downwards */
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:last-child::after {
+            content: none !important;
+            display: none !important;
         }
         /* Solid Circular Node Dot at the tip of the curved branch */
-        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::after {
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a::before {
             content: "" !important;
             position: absolute !important;
             left: 20px !important;
-            top: calc(50% - 2.5px) !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
             width: 5.5px !important;
             height: 5.5px !important;
             border-radius: 50% !important;
-            border: none !important;
             background: rgba(255, 255, 255, 0.7) !important;
             display: block !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            z-index: 2 !important;
+            z-index: 3 !important;
             transition: all 0.2s ease !important;
         }
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a {
+            position: relative !important;
             padding: 4px 8px 4px 34px !important;
             font-size: 0.88rem !important;
             color: rgba(255, 255, 255, 0.75) !important;
@@ -732,14 +747,11 @@
             color: #ffffff !important;
             font-weight: 700 !important;
         }
-        /* Active glowing dot and highlighted branch curve */
-        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::after,
-        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::after {
+        /* Active glowing dot on active item */
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active::before {
             background: #ffffff !important;
             width: 7px !important;
             height: 7px !important;
-            left: 19.5px !important;
-            top: calc(50% - 3.5px) !important;
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 14px rgba(255, 255, 255, 0.6) !important;
         }
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::before,
@@ -777,17 +789,24 @@
             color: #ffffff !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu::before {
-            background: rgba(255, 255, 255, 0.4) !important;
+            content: none !important;
+            display: none !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
             border-left-color: rgba(255, 255, 255, 0.4) !important;
             border-bottom-color: rgba(255, 255, 255, 0.4) !important;
         }
-        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::after {
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:not(:last-child)::after {
+            background: rgba(255, 255, 255, 0.4) !important;
+        }
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:last-child::after {
+            content: none !important;
+            display: none !important;
+        }
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a::before {
             background: rgba(255, 255, 255, 0.7) !important;
         }
-        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::after,
-        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::after {
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active::before {
             background: #ffffff !important;
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 14px rgba(255, 255, 255, 0.6) !important;
         }

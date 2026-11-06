@@ -329,8 +329,6 @@ html.dark-only .page-wrapper.compact-wrapper .page-header {
 }
 
 /* Clean Tree Submenu Styling - single tree connector managed cleanly */
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a:before,
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a::before,
 .sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a:after,
 .sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a::after {
   content: none !important;

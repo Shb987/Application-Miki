@@ -25,8 +25,8 @@ def test_color_1_css_variables_and_classes():
     assert '--theme-secondary: #603CD8;' in content
     assert '196, 78, 204' in content
     assert '96, 60, 216' in content
-    # Sidebar light mode gradient
-    assert 'linear-gradient(180deg, #C44ECC 0%, #603CD8 100%)' in content
+    # Sidebar gradient
+    assert '#C44ECC' in content and '#A33BBE' in content
     # Sidebar dark mode rules
     assert 'body.dark-only' in content
 

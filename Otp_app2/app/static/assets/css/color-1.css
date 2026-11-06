@@ -145,7 +145,7 @@ html.dark-only {
   border-bottom-right-radius: 24px !important;
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
-  background: radial-gradient(circle at 60% 98%, rgba(216, 70, 230, 0.35) 0%, rgba(140, 40, 200, 0.15) 45%, transparent 70%), linear-gradient(180deg, #6c187e 0%, #521683 40%, #3e126e 75%, #2a0b4d 100%) !important;
+  background: radial-gradient(ellipse 130% 60% at 85% 100%, rgba(186, 75, 235, 0.45) 0%, rgba(186, 75, 235, 0) 65%), linear-gradient(180deg, #C44ECC 0%, #A33BBE 18%, #8334B8 38%, #6D2CB1 58%, #5621A2 80%, #6825AB 100%) !important;
   box-shadow: 0 0 25px rgba(96, 60, 216, 0.18) !important;
   overflow: visible !important;
 }
@@ -379,4 +379,11 @@ html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrap
   color: #ffffff !important;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(196, 78, 204, 0.3) !important;
+}
+
+body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
+html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
+  background: radial-gradient(ellipse 130% 60% at 85% 100%, rgba(186, 75, 235, 0.45) 0%, rgba(186, 75, 235, 0) 65%), linear-gradient(180deg, #C44ECC 0%, #A33BBE 18%, #8334B8 38%, #6D2CB1 58%, #5621A2 80%, #6825AB 100%) !important;
+  border-radius: 0 24px 24px 0 !important;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.5) !important;
 }

@@ -511,16 +511,24 @@
             background: transparent !important;
         }
 
-        /* Transparent Clean Header */
+        /* Clean Header */
         .page-header {
             background: transparent !important;
             box-shadow: none !important;
             border-bottom: none !important;
+            position: relative !important;
+            top: auto !important;
+            margin-top: 0 !important;
         }
         .header-wrapper {
             background: transparent !important;
             border-bottom: none !important;
             box-shadow: none !important;
+        }
+        .page-wrapper.compact-wrapper .page-body-wrapper .page-body,
+        .page-body {
+            background: transparent !important;
+            margin-top: 0 !important;
         }
         .left-header h4 {
             color: #0f172a !important;
@@ -717,25 +725,25 @@
             color: #ffffff !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu {
-            border-left-color: rgba(124, 58, 237, 0.4) !important;
+            border-left-color: rgba(255, 255, 255, 0.4) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
-            background: rgba(124, 58, 237, 0.4) !important;
+            background: rgba(255, 255, 255, 0.4) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::after {
-            border-color: rgba(124, 58, 237, 0.7) !important;
+            border-color: rgba(255, 255, 255, 0.8) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::after,
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::after {
-            background: #a855f7 !important;
-            border-color: #a855f7 !important;
-            box-shadow: 0 0 8px rgba(168, 85, 247, 0.6) !important;
+            background: #ffffff !important;
+            border-color: #ffffff !important;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a {
-            color: #94a3b8 !important;
+            color: rgba(255, 255, 255, 0.72) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active {
-            color: #f1f5f9 !important;
+            color: #ffffff !important;
             font-weight: 700 !important;
         }
 
@@ -796,7 +804,7 @@
                 <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
                     <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
                         <div class="d-flex align-items-center gap-2">
-                            <h4 class="f-w-600" style="margin-bottom:0; font-size:1.45rem;">Welcome <span id="admin-name">admin</span> 👋</h4>
+                            <h4 class="f-w-600" style="margin-bottom:0; font-size:1.45rem;">Welcome <span id="admin-name">admin</span> &#128075;</h4>
                         </div>
                     </div>
                     <div class="welcome-content d-xl-block d-none"><span class="text-truncate col-12">Here’s what’s
@@ -842,7 +850,7 @@
                     <div class="container-fluid">
                         <div class="row">
                             <div class="col-md-12 footer-copyright text-center">
-                                <p class="mb-0">Copyright © 2026 Miki Assessment Portal</p>
+                                <p class="mb-0">Copyright &copy; 2026 Miki Assessment Portal</p>
                             </div>
                         </div>
                     </div>

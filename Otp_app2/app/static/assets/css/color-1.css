@@ -178,18 +178,20 @@ html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrap
   background-size: cover !important;
 }
 
-/* Page Header - Fixed at Top */
+/* Page Header - In Natural Flow Above Page Body */
 .page-wrapper.compact-wrapper .page-header {
-  position: fixed !important;
-  top: 0 !important;
-  left: 265px !important;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  margin-left: 265px !important;
   width: calc(100% - 265px) !important;
-  height: 75px !important;
-  z-index: 90 !important;
+  min-height: 75px !important;
+  z-index: 10 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
   padding: 0 !important;
 }
 
@@ -197,16 +199,16 @@ html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrap
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  padding: 14px 28px !important;
-  height: 100% !important;
+  padding: 16px 28px 8px 28px !important;
+  height: auto !important;
 }
 
-/* Page Body - Sits immediately below fixed header, tight and aligned */
+/* Page Body - Sits directly below page header in natural flow */
 .page-wrapper.compact-wrapper .page-body-wrapper .page-body {
   margin-left: 265px !important;
-  margin-top: 75px !important;
-  min-height: calc(100vh - 75px) !important;
-  padding: 8px 28px 28px 28px !important;
+  margin-top: 0 !important;
+  min-height: calc(100vh - 85px) !important;
+  padding: 0 28px 28px 28px !important;
   background: transparent !important;
   position: relative !important;
 }
@@ -214,9 +216,10 @@ html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrap
 /* Collapsed Sidebar Support */
 .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon ~ .page-body {
   margin-left: 0 !important;
+  width: 100% !important;
 }
 .page-wrapper.compact-wrapper .page-header.close_icon {
-  left: 0 !important;
+  margin-left: 0 !important;
   width: 100% !important;
 }
 
@@ -278,71 +281,13 @@ html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrap
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
-/* Clean Tree Submenu Styling */
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu {
-  position: relative !important;
-  padding: 4px 0 6px 14px !important;
-  margin: 2px 0 6px 12px !important;
-  border: none !important;
-  background: transparent !important;
-  z-index: 2;
-}
-
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li {
-  position: relative !important;
-  padding: 2px 0 !important;
-}
-
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a {
-  position: relative !important;
-  color: rgba(255, 255, 255, 0.82) !important;
-  font-size: 0.88rem !important;
-  font-weight: 500 !important;
-  padding: 6px 12px 6px 36px !important;
-  display: block !important;
-  background: transparent !important;
-  transition: all 0.2s ease !important;
-}
-
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a:hover,
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a.active {
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  transform: translateX(2px) !important;
-}
-
-/* Tree-Branch connector curve */
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a:after {
-  content: "" !important;
-  position: absolute !important;
-  left: 14px !important;
-  top: 0px !important;
-  width: 14px !important;
-  height: 18px !important;
-  border-bottom-left-radius: 8px !important;
-  border-left: 1.5px solid rgba(255, 255, 255, 0.38) !important;
-  border-bottom: 1.5px solid rgba(255, 255, 255, 0.38) !important;
-  border-top: none !important;
-  border-right: none !important;
-  background: transparent !important;
-}
-
-/* Small bullet/dot indicator */
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a::before {
-  content: "" !important;
-  position: absolute !important;
-  left: 28px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  width: 4px !important;
-  height: 4px !important;
-  border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.6) !important;
-}
-
-.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a.active::before {
-  background: #ffffff !important;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8) !important;
+/* Clean Tree Submenu Styling - single tree connector managed cleanly */
+.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a:before,
+.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a::before,
+.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a:after,
+.sidebar-wrapper .sidebar-links .sidebar-list ul.sidebar-submenu li a::after {
+  content: none !important;
+  display: none !important;
 }
 
 body.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a,

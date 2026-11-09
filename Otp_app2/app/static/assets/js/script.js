@@ -83,7 +83,7 @@
       src = el.attr("src"),
       parent = el.parent();
     parent.css({
-      "background-image": "url(" + src + ")",
+      "background-image": "url('" + src + "')",
       "background-size": "cover",
       "background-position": "center",
       display: "block",

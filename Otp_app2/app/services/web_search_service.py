@@ -300,3 +300,4 @@ async def execute_web_search(query: str, max_results: int = 6) -> str:
 
     logger.info(f"[SEARCH_ORCHESTRATOR] Returning {len(context_items)} ranked search context blocks for: '{query}'")
     return "\n\n".join(context_items)
+

@@ -11,10 +11,7 @@ from app.utils.ai_usage_logger import log_ai_usage
 from fastapi import BackgroundTasks
 from app.utils.usage_guard import check_and_use_quota
 
-try:
-    from duckduckgo_search import DDGS
-except ImportError:
-    from ddgs import DDGS
+from app.services.web_search_service import execute_web_search, rank_source
 import numpy as np
 
 router = APIRouter(prefix="/ai-tutor", tags=["AI Tutor"])
@@ -22,73 +19,12 @@ router = APIRouter(prefix="/ai-tutor", tags=["AI Tutor"])
 # Initialize OpenAI Client (Async)
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 
-def rank_source(url_or_title: str) -> int:
-    """
-    Ranks sources according to Section 4 Source Priority:
-    1. Official government portals and ECI (.gov.in, .nic.in, eci.gov.in)
-    2. Reputable national & international news media
-    3. General reliable sources
-    99. Outdated SEO/forum sites (Pinterest, Brainly, Quora)
-    """
-    s = url_or_title.lower()
-    if any(d in s for d in [".gov.in", ".nic.in", "eci.gov.in"]):
-        return 1
-    if any(d in s for d in ["thehindu", "indianexpress", "ndtv", "timesofindia", "hindustantimes", "bbc", "reuters", "pti", "ani", "onmanorama", "mathrubhumi", "livemint", "economic times", "tribuneindia"]):
-        return 2
-    if any(d in s for d in ["pinterest", "brainly", "quora"]):
-        return 99
-    return 3
-
 async def search_web(query: str) -> str:
     """
-    Perform an enhanced web search for current events or general facts with recency filtering.
-    Prioritizes official government portals and reputable news organizations.
+    Perform a resilient multi-provider web search for current events or real-time facts.
+    Uses generic, supported browser profiles with graceful multi-provider fallbacks.
     """
-    print(f"🌐 Searching Web for: {query}")
-    try:
-        raw_items = []
-        with DDGS() as ddgs:
-            # 1. Text search with recency timelimit ('y' = past 12 months)
-            try:
-                text_res = list(ddgs.text(query, max_results=6, timelimit='y'))
-                raw_items.extend(text_res)
-            except Exception as e:
-                print(f"Text search error: {e}")
-
-            # 2. News search for live transitions, elections, appointments & breaking facts
-            try:
-                news_res = list(ddgs.news(query, max_results=4))
-                raw_items.extend(news_res)
-            except Exception as e:
-                print(f"News search error: {e}")
-
-            # 3. Fallback to standard text search if empty
-            if not raw_items:
-                raw_items = list(ddgs.text(query, max_results=5))
-
-        # Filter out spam and rank according to Source Priority
-        filtered = [
-            r for r in raw_items 
-            if not any(spam in (r.get('title', '') + ' ' + r.get('href', '')).lower() for spam in ["pinterest", "brainly", "quora"])
-        ]
-        filtered.sort(key=lambda r: rank_source(r.get('title', '') + ' ' + r.get('href', '')))
-
-        context_items = []
-        seen_titles = set()
-        for r in filtered:
-            title = r.get('title', '').strip()
-            body = r.get('body', r.get('snippet', '')).strip()
-            if not body or title in seen_titles:
-                continue
-            seen_titles.add(title)
-            context_items.append(f"[SOURCE: {title}]\n{body}")
-            if len(context_items) >= 6:
-                break
-
-        return "\n\n".join(context_items)
-    except Exception as e:
-        print(f"Web Search Error: {e}")
-        return ""
+    return await execute_web_search(query)
 
 def is_realtime_or_web_query(query: str) -> bool:
     """
@@ -443,8 +379,8 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
 
     2. REAL-TIME FACTUAL ACCURACY:
     - For all current affairs and real-time questions, strictly prioritize and rely on verified WEB/NEWS CONTEXT rather than outdated pretrained knowledge.
-    - Check whether previous officeholders have resigned, completed their term, or moved to another position.
-    - For example, in Kerala: As of May 18, 2026, V. D. Satheesan is the Chief Minister of Kerala, while Pinarayi Vijayan concluded his term and became the Leader of the Opposition.
+    - Check whether previous officeholders have resigned, completed their term, or moved to another position as reported in the live search context.
+    - Always identify the active incumbent from the verified search results provided in the context.
 
     3. SOURCE PRIORITY:
     - Use information in the following hierarchy:
@@ -456,26 +392,27 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
 
     4. CONFLICT RESOLUTION:
     - If pretrained model knowledge conflicts with verified recent information: ALWAYS prioritize the verified recent information.
-    - State the active incumbent and the effective date or year of the transition when helpful.
+    - State the active incumbent and the effective date or year of the transition when available.
 
     5. FALLBACK BEHAVIOUR:
     - If web search is unavailable or no reliable recent information is found:
-      - Do not guess or hallucinate.
-      - Do not confidently provide potentially outdated information.
-      - Clearly inform the user that the latest real-time information could not be verified online.
-      - Provide only the latest verified historical information with its date, if available.
+      - Do not guess, speculate, or hallucinate.
+      - Never fabricate current officeholders, election results, appointments, or breaking news.
+      - Clearly inform the student that the latest real-time information could not be verified online as of today.
+      - Provide only the latest verified historical information with its date/year if known, and advise the student to consult official government portals.
 
     6. ANSWER GENERATION (STUDENT-FRIENDLY):
     - Give the direct answer first.
-    - Mention the relevant date or year (e.g., 'As of 2026...', 'Since May 18, 2026...').
+    - Mention the relevant date or year from the source.
     - Add a short explanation when useful.
     - Include the source or reference when available.
     - Keep answers concise unless the student requests detailed explanations.
+    - Communicate ONLY in English.
 
     7. IMPORTANT RESTRICTIONS:
     - Never fabricate current officeholders, election results, appointments, or news.
     - Never use the model's knowledge cutoff as proof of current information.
-    - Never use textbook RAG as the only source for a real-time question.
+    - Never claim that information has been verified unless live search results support it.
     - Accuracy and freshness must always take priority over pretrained model knowledge.
     """
 

@@ -255,6 +255,8 @@ chess==1.11.2
 
 ddgs==9.10.0
 
+curl_cffi>=0.17.0
+
 razorpay
 
 langdetect

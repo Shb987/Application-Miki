@@ -4,11 +4,8 @@ import logging
 from datetime import datetime
 from bson import ObjectId
 from openai import AsyncOpenAI
-try:
-    from duckduckgo_search import DDGS
-except ImportError:
-    from ddgs import DDGS
 from app.core.database import db
+from app.services.web_search_service import execute_web_search, rank_source
 
 logger = logging.getLogger(__name__)
 
@@ -17,76 +14,15 @@ class AITutorService:
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder", timeout=20.0)
 
     def rank_source(self, url_or_title: str) -> int:
-        """
-        Ranks sources according to Section 4 Source Priority:
-        1. Official government portals and ECI (.gov.in, .nic.in, eci.gov.in)
-        2. Reputable national & international news media
-        3. General reliable sources
-        99. Outdated SEO/forum sites (Pinterest, Brainly, Quora)
-        """
-        s = url_or_title.lower()
-        if any(d in s for d in [".gov.in", ".nic.in", "eci.gov.in"]):
-            return 1
-        if any(d in s for d in ["thehindu", "indianexpress", "ndtv", "timesofindia", "hindustantimes", "bbc", "reuters", "pti", "ani", "onmanorama", "mathrubhumi", "livemint", "economic times", "tribuneindia"]):
-            return 2
-        if any(d in s for d in ["pinterest", "brainly", "quora"]):
-            return 99
-        return 3
+        """Ranks sources according to Section 4 Source Priority."""
+        return rank_source(url_or_title)
 
     async def search_web(self, query: str) -> str:
         """
-        Perform an enhanced web search for current events or general facts with recency filtering.
-        Prioritizes official government portals and reputable news organizations.
+        Perform a resilient multi-provider web search for current events or real-time facts.
+        Uses generic, supported browser profiles with graceful multi-provider fallbacks.
         """
-        logger.info(f"🌐 Searching Web for: {query}")
-        try:
-            raw_items = []
-            with DDGS() as ddgs:
-                # 1. Text search with recency timelimit ('y' = past 12 months)
-                try:
-                    text_res = list(ddgs.text(query, max_results=6, timelimit='y'))
-                    raw_items.extend(text_res)
-                except Exception as te:
-                    logger.warning(f"Text search error: {te}")
-
-                # 2. News search for live transitions, elections, appointments & breaking facts
-                try:
-                    news_res = list(ddgs.news(query, max_results=4))
-                    raw_items.extend(news_res)
-                except Exception as ne:
-                    logger.warning(f"News search error: {ne}")
-
-                # 3. Fallback to standard text search if empty
-                if not raw_items:
-                    raw_items = list(ddgs.text(query, max_results=5))
-
-            # Filter out spam and rank according to Source Priority
-            filtered = [
-                r for r in raw_items 
-                if not any(spam in (r.get('title', '') + ' ' + r.get('href', '')).lower() for spam in ["pinterest", "brainly", "quora"])
-            ]
-            filtered.sort(key=lambda r: self.rank_source(r.get('title', '') + ' ' + r.get('href', '')))
-
-            context_items = []
-            seen_titles = set()
-            for r in filtered:
-                title = r.get('title', '').strip()
-                body = r.get('body', r.get('snippet', '')).strip()
-                if not body or title in seen_titles:
-                    continue
-                seen_titles.add(title)
-                context_items.append(f"[SOURCE: {title}]\n{body}")
-                if len(context_items) >= 6:
-                    break
-
-            if not context_items:
-                logger.warning(f"No results found for query: {query}")
-                return ""
-
-            return "\n\n".join(context_items)
-        except Exception as e:
-            logger.error(f"Web Search Error: {e}")
-            return ""
+        return await execute_web_search(query)
 
     async def get_relevant_context(self, student_class: str, query: str) -> str:
         """Retrieves relevant textbook content using Vector Search."""
@@ -184,7 +120,7 @@ class AITutorService:
 
         2. REAL-TIME FACTUAL ACCURACY & MANDATORY SEARCH:
         - When asked about who holds a government position or current developments, ALWAYS use web_search.
-        - Never rely on outdated training cutoffs. For example, in Kerala, V. D. Satheesan assumed office as Chief Minister in May 2026, while Pinarayi Vijayan concluded his term and became Leader of the Opposition.
+        - Rely strictly on verified web/news search results provided in the context rather than outdated pretrained knowledge. Never fabricate current officeholders or events.
 
         3. SOURCE PRIORITY:
         - Prioritize official government (.gov.in, .nic.in) and Election Commission sources, followed by reputable news organizations.

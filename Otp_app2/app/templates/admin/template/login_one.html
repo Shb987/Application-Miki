@@ -29,7 +29,38 @@
   <link id="color" rel="stylesheet" href="../assets/css/color-1.css" media="screen">
   <link rel="stylesheet" type="text/css" href="../assets/css/responsive.css">
 
+  <script>
+    (function () {
+      var savedMode = localStorage.getItem("mode") || localStorage.getItem("dark");
+      if (savedMode === "dark-only") {
+        document.documentElement.classList.add("dark-only");
+      }
+    })();
+  </script>
+
   <style>
+    /* Continuous Unified Page Canvas */
+    html, body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    body:not(.dark-only),
+    html:not(.dark-only) {
+      background: radial-gradient(ellipse 700px 350px at 85% 6%, rgba(216, 180, 254, 0.35) 0%, rgba(243, 232, 255, 0.20) 45%, transparent 75%), #fbfaff !important;
+      background-attachment: fixed !important;
+      color: #1e293b;
+    }
+
+    body.dark-only,
+    html.dark-only {
+      background: radial-gradient(ellipse 700px 350px at 85% 6%, rgba(147, 51, 234, 0.15) 0%, rgba(96, 60, 216, 0.08) 45%, transparent 75%), #11131e !important;
+      background-attachment: fixed !important;
+      color: #f1f5f9 !important;
+    }
+
     .miki-brand-container {
       margin-bottom: 1.5rem;
       display: flex;
@@ -63,22 +94,10 @@
       line-height: 1;
     }
 
-    .login-main h4 {
-      font-weight: 600;
-      line-height: 1.4;
-      font-size: 1.1rem;
-      color: #2b2b2b;
-      margin-bottom: 5px;
-    }
-
-    .login-main p {
-      color: #7a7a7a;
-      font-size: 0.95rem;
-    }
-
+    /* Zero-Background Hero Column (Seamless for Transparent PNG) */
     .login-hero-col {
       min-height: 100vh;
-      background: linear-gradient(135deg, rgba(196, 78, 204, 0.04) 0%, rgba(96, 60, 216, 0.06) 100%), #fafafd;
+      background: transparent !important;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -89,6 +108,7 @@
     .login-hero-container {
       width: 100%;
       height: 100%;
+      background: transparent !important;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -100,17 +120,178 @@
       width: auto;
       height: auto;
       object-fit: contain;
-      filter: drop-shadow(0 20px 40px rgba(96, 60, 216, 0.12));
-      transition: transform 0.3s ease;
+      background: transparent !important;
+      filter: drop-shadow(0 20px 40px rgba(96, 60, 216, 0.15));
+      transition: transform 0.3s ease, filter 0.3s ease;
     }
 
     .login-hero-img:hover {
       transform: scale(1.015);
     }
+
+    /* Zero-Background Login Column */
+    .login-card {
+      background: transparent !important;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 15px;
+    }
+
+    .login-main {
+      width: 100%;
+      max-width: 450px;
+      padding: 40px;
+      border-radius: 16px;
+      transition: all 0.3s ease;
+    }
+
+    /* Light Mode Login Main */
+    body:not(.dark-only) .login-main,
+    html:not(.dark-only) .login-main {
+      background: #ffffff !important;
+      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      box-shadow: 0 20px 45px rgba(96, 60, 216, 0.08) !important;
+    }
+
+    body:not(.dark-only) .login-main h4,
+    html:not(.dark-only) .login-main h4 {
+      color: #1e293b !important;
+      font-weight: 600;
+      line-height: 1.4;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    body:not(.dark-only) .login-main p,
+    html:not(.dark-only) .login-main p {
+      color: #64748b !important;
+      font-size: 0.95rem;
+    }
+
+    body:not(.dark-only) .col-form-label {
+      color: #334155 !important;
+      font-weight: 500;
+    }
+
+    /* Dark Mode Login Main & Typography */
+    body.dark-only .login-hero-img,
+    html.dark-only .login-hero-img {
+      filter: drop-shadow(0 20px 45px rgba(196, 78, 204, 0.22)) !important;
+    }
+
+    .login-card,
+    .login-card.login-dark,
+    body.dark-only .login-card,
+    html.dark-only .login-card,
+    body.dark-only .login-dark,
+    html.dark-only .login-dark {
+      background: transparent !important;
+      background-color: transparent !important;
+    }
+
+    body.dark-only .login-main,
+    html.dark-only .login-main {
+      background-color: #1a1d28 !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    body.dark-only .login-main h4,
+    html.dark-only .login-main h4 {
+      color: #ffffff !important;
+      font-weight: 600;
+      line-height: 1.4;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    body.dark-only .login-main p,
+    html.dark-only .login-main p {
+      color: #94a3b8 !important;
+      font-size: 0.95rem;
+    }
+
+    body.dark-only .col-form-label,
+    html.dark-only .col-form-label {
+      color: #e2e8f0 !important;
+      font-weight: 500;
+    }
+
+    body.dark-only .login-main .form-control,
+    html.dark-only .login-main .form-control {
+      background-color: #11131e !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+
+    body.dark-only .login-main .form-control:focus,
+    html.dark-only .login-main .form-control:focus {
+      background-color: #11131e !important;
+      color: #ffffff !important;
+      border-color: #c44ecc !important;
+      box-shadow: 0 0 0 3px rgba(196, 78, 204, 0.25) !important;
+    }
+
+    body.dark-only .login-main .form-control::placeholder,
+    html.dark-only .login-main .form-control::placeholder {
+      color: #64748b !important;
+    }
+
+    body.dark-only .show-hide span,
+    html.dark-only .show-hide span {
+      color: #c44ecc !important;
+    }
+
+    /* Dark/Light Mode Floating Switcher */
+    .theme-mode-switch-wrap {
+      position: fixed;
+      top: 18px;
+      right: 22px;
+      z-index: 1050;
+    }
+
+    .theme-mode-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 50px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.85);
+      color: #334155;
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      transition: all 0.25s ease;
+    }
+
+    body.dark-only .theme-mode-btn,
+    html.dark-only .theme-mode-btn {
+      background: rgba(26, 29, 40, 0.9) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #f1f5f9 !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    .theme-mode-btn:hover {
+      transform: translateY(-2px);
+      border-color: #c44ecc !important;
+    }
   </style>
 </head>
 
 <body>
+  <!-- Dark / Light Mode Toggle Pill -->
+  <div class="theme-mode-switch-wrap">
+    <button type="button" class="theme-mode-btn" id="login-theme-toggle" aria-label="Toggle theme">
+      <i class="fa fa-moon-o" id="theme-toggle-icon"></i>
+      <span id="theme-toggle-text">Dark Mode</span>
+    </button>
+  </div>
   <!-- login page start-->
   <div class="container-fluid p-0">
     <div class="row m-0">
@@ -206,6 +387,41 @@
 
     <script>
       document.addEventListener('DOMContentLoaded', function() {
+        // Theme Switcher for Login Page (Smooth toggle between Light and Dark mode)
+        const themeToggleBtn = document.getElementById('login-theme-toggle');
+        const themeIcon = document.getElementById('theme-toggle-icon');
+        const themeText = document.getElementById('theme-toggle-text');
+
+        function updateThemeState(isDark) {
+          if (isDark) {
+            document.documentElement.classList.add('dark-only');
+            document.body.classList.add('dark-only');
+            document.body.classList.remove('light');
+            if (themeIcon) themeIcon.className = 'fa fa-sun-o';
+            if (themeText) themeText.textContent = 'Light Mode';
+          } else {
+            document.documentElement.classList.remove('dark-only');
+            document.body.classList.remove('dark-only');
+            document.body.classList.add('light');
+            if (themeIcon) themeIcon.className = 'fa fa-moon-o';
+            if (themeText) themeText.textContent = 'Dark Mode';
+          }
+        }
+
+        const currentIsDark = document.documentElement.classList.contains('dark-only') ||
+                              document.body.classList.contains('dark-only') ||
+                              (localStorage.getItem("mode") || localStorage.getItem("dark")) === "dark-only";
+        updateThemeState(currentIsDark);
+
+        if (themeToggleBtn) {
+          themeToggleBtn.addEventListener('click', function () {
+            const isDarkNow = !document.body.classList.contains('dark-only');
+            localStorage.setItem("mode", isDarkNow ? "dark-only" : "light");
+            localStorage.setItem("dark", isDarkNow ? "dark-only" : "light");
+            updateThemeState(isDarkNow);
+          });
+        }
+
         // Show/Hide Password Toggle
         const toggleBtn = document.querySelector('.show-hide');
         if (toggleBtn) {

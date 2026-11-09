@@ -75,18 +75,52 @@
       color: #7a7a7a;
       font-size: 0.95rem;
     }
+
+    .login-hero-col {
+      min-height: 100vh;
+      background: linear-gradient(135deg, rgba(196, 78, 204, 0.04) 0%, rgba(96, 60, 216, 0.06) 100%), #fafafd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 30px;
+      overflow: hidden;
+    }
+
+    .login-hero-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-hero-img {
+      max-width: 95%;
+      max-height: 86vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 40px rgba(96, 60, 216, 0.12));
+      transition: transform 0.3s ease;
+    }
+
+    .login-hero-img:hover {
+      transform: scale(1.015);
+    }
   </style>
 </head>
 
 <body>
   <!-- login page start-->
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-xl-7 b-center bg-size" style="background-image: url('/assets/images/Robot%20Leads%20a%20Colourful%20Learning%20Adventure.png'); background-size: cover; background-position: center; display: block;">
-        <img class="bg-img-cover bg-center" src="/assets/images/Robot%20Leads%20a%20Colourful%20Learning%20Adventure.png" alt="login-page">
+  <div class="container-fluid p-0">
+    <div class="row m-0">
+      <div class="col-xl-7 col-lg-6 d-none d-lg-flex align-items-center justify-content-center login-hero-col">
+        <div class="login-hero-container">
+          <img class="img-fluid login-hero-img" src="/assets/images/Robot%20Leads%20a%20Colourful%20Learning%20Adventure.png" alt="Miki Learning Adventure">
+        </div>
       </div>
 
-      <div class="col-xl-5 p-0">
+      <div class="col-xl-5 col-lg-6 col-12 p-0">
         <div class="login-card login-dark">
           <div>
             <div class="login-main">

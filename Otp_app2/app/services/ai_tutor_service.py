@@ -16,45 +16,74 @@ class AITutorService:
     def __init__(self):
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder", timeout=20.0)
 
+    def rank_source(self, url_or_title: str) -> int:
+        """
+        Ranks sources according to Section 4 Source Priority:
+        1. Official government portals and ECI (.gov.in, .nic.in, eci.gov.in)
+        2. Reputable national & international news media
+        3. General reliable sources
+        99. Outdated SEO/forum sites (Pinterest, Brainly, Quora)
+        """
+        s = url_or_title.lower()
+        if any(d in s for d in [".gov.in", ".nic.in", "eci.gov.in"]):
+            return 1
+        if any(d in s for d in ["thehindu", "indianexpress", "ndtv", "timesofindia", "hindustantimes", "bbc", "reuters", "pti", "ani", "onmanorama", "mathrubhumi", "livemint", "economic times", "tribuneindia"]):
+            return 2
+        if any(d in s for d in ["pinterest", "brainly", "quora"]):
+            return 99
+        return 3
+
     async def search_web(self, query: str) -> str:
-        """Perform an enhanced web search for current events or general facts with recency filtering."""
+        """
+        Perform an enhanced web search for current events or general facts with recency filtering.
+        Prioritizes official government portals and reputable news organizations.
+        """
         logger.info(f"🌐 Searching Web for: {query}")
         try:
-            context_items = []
+            raw_items = []
             with DDGS() as ddgs:
-                # 1. Text search with recency timelimit ('y' = past year for current incumbents/news)
+                # 1. Text search with recency timelimit ('y' = past 12 months)
                 try:
-                    text_res = list(ddgs.text(query, max_results=5, timelimit='y'))
-                    for r in text_res:
-                        body = r.get('body', r.get('snippet', ''))
-                        if body:
-                            context_items.append(f"[WEB SOURCE: {r.get('title', '')}]\n{body}")
+                    text_res = list(ddgs.text(query, max_results=6, timelimit='y'))
+                    raw_items.extend(text_res)
                 except Exception as te:
                     logger.warning(f"Text search error: {te}")
 
-                # 2. News search for real-time changes
+                # 2. News search for live transitions, elections, appointments & breaking facts
                 try:
                     news_res = list(ddgs.news(query, max_results=4))
-                    for r in news_res:
-                        body = r.get('body', r.get('snippet', ''))
-                        if body:
-                            context_items.append(f"[NEWS SOURCE: {r.get('title', '')}]\n{body}")
+                    raw_items.extend(news_res)
                 except Exception as ne:
                     logger.warning(f"News search error: {ne}")
 
-                # 3. Fallback to standard text search if no items gathered
-                if not context_items:
-                    fallback_res = list(ddgs.text(query, max_results=5))
-                    for r in fallback_res:
-                        body = r.get('body', r.get('snippet', ''))
-                        if body:
-                            context_items.append(f"[SOURCE: {r.get('title', '')}]\n{body}")
+                # 3. Fallback to standard text search if empty
+                if not raw_items:
+                    raw_items = list(ddgs.text(query, max_results=5))
+
+            # Filter out spam and rank according to Source Priority
+            filtered = [
+                r for r in raw_items 
+                if not any(spam in (r.get('title', '') + ' ' + r.get('href', '')).lower() for spam in ["pinterest", "brainly", "quora"])
+            ]
+            filtered.sort(key=lambda r: self.rank_source(r.get('title', '') + ' ' + r.get('href', '')))
+
+            context_items = []
+            seen_titles = set()
+            for r in filtered:
+                title = r.get('title', '').strip()
+                body = r.get('body', r.get('snippet', '')).strip()
+                if not body or title in seen_titles:
+                    continue
+                seen_titles.add(title)
+                context_items.append(f"[SOURCE: {title}]\n{body}")
+                if len(context_items) >= 6:
+                    break
 
             if not context_items:
                 logger.warning(f"No results found for query: {query}")
                 return ""
 
-            return "\n\n".join(context_items[:6])
+            return "\n\n".join(context_items)
         except Exception as e:
             logger.error(f"Web Search Error: {e}")
             return ""
@@ -137,21 +166,35 @@ class AITutorService:
         else:
             tone = "PROFESSOR / SENIOR TUTOR. Provide detailed academic answers. Focus on concepts and depth."
 
+        current_date_str = datetime.now().strftime('%A, %d %B %Y')
+        current_year = datetime.now().year
+
         return f"""
         {tone}
-        Your name is 'Miki', a conversational AI tutor. 
-        Current Date & Time: {datetime.now().strftime('%A, %d %B %Y')}.
+        Your name is 'Miki', a conversational, student-friendly AI tutor. 
+        Current System Date: {current_date_str} (Current Year: {current_year}).
         Student Name: {student_name}
         Student Class: {student_class}
         
-        CRITICAL INSTRUCTIONS & REAL-TIME FACTUAL ACCURACY:
-        - Current Year: 2026.
-        - Base training models have older pre-2026 knowledge cutoffs. Political leaders, ministers, chief ministers, and public officials change over time.
-        - When asked about current leaders, officeholders, or real-world events, ALWAYS prioritize the latest verified information from the search tools rather than outdated training memory.
-        - For example, in Kerala, V. D. Satheesan took office as the Chief Minister in May 2026, while Pinarayi Vijayan concluded his term and became the Leader of the Opposition.
+        === MIKI AI TUTOR – CURRENT AFFAIRS AND REAL-TIME INFORMATION INSTRUCTIONS ===
+        1. CURRENT DATE AWARENESS:
+        - Current system date is {current_date_str}.
+        - Never assume pretrained model knowledge represents current information.
+        - Treat all questions about political positions, leadership, government officials, election results, sports, and news as strictly time-sensitive.
+
+        2. REAL-TIME FACTUAL ACCURACY & MANDATORY SEARCH:
+        - When asked about who holds a government position or current developments, ALWAYS use web_search.
+        - Never rely on outdated training cutoffs. For example, in Kerala, V. D. Satheesan assumed office as Chief Minister in May 2026, while Pinarayi Vijayan concluded his term and became Leader of the Opposition.
+
+        3. SOURCE PRIORITY:
+        - Prioritize official government (.gov.in, .nic.in) and Election Commission sources, followed by reputable news organizations.
+
+        4. ANSWER GENERATION (STUDENT-FRIENDLY):
+        - Give the direct answer first with the relevant date or year.
+        - Add a brief helpful explanation when useful.
         - You and the student must communicate ONLY in English.
         - Respond briefly, accurately, and encouragingly.
-        - Use the provided search tools if you need textbook or real-time information.
+        - If real-time information cannot be verified, clearly inform the student rather than guessing.
         """
 
 ai_tutor_service = AITutorService()

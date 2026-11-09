@@ -22,65 +22,121 @@ router = APIRouter(prefix="/ai-tutor", tags=["AI Tutor"])
 # Initialize OpenAI Client (Async)
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
 
+def rank_source(url_or_title: str) -> int:
+    """
+    Ranks sources according to Section 4 Source Priority:
+    1. Official government portals and ECI (.gov.in, .nic.in, eci.gov.in)
+    2. Reputable national & international news media
+    3. General reliable sources
+    99. Outdated SEO/forum sites (Pinterest, Brainly, Quora)
+    """
+    s = url_or_title.lower()
+    if any(d in s for d in [".gov.in", ".nic.in", "eci.gov.in"]):
+        return 1
+    if any(d in s for d in ["thehindu", "indianexpress", "ndtv", "timesofindia", "hindustantimes", "bbc", "reuters", "pti", "ani", "onmanorama", "mathrubhumi", "livemint", "economic times", "tribuneindia"]):
+        return 2
+    if any(d in s for d in ["pinterest", "brainly", "quora"]):
+        return 99
+    return 3
+
 async def search_web(query: str) -> str:
-    """Perform an enhanced web search for current events or general facts with recency filtering."""
+    """
+    Perform an enhanced web search for current events or general facts with recency filtering.
+    Prioritizes official government portals and reputable news organizations.
+    """
     print(f"🌐 Searching Web for: {query}")
     try:
-        context_items = []
+        raw_items = []
         with DDGS() as ddgs:
-            # 1. Text search with recency timelimit ('y' = past year for current incumbents/news)
+            # 1. Text search with recency timelimit ('y' = past 12 months)
             try:
-                text_res = list(ddgs.text(query, max_results=5, timelimit='y'))
-                for r in text_res:
-                    body = r.get('body', r.get('snippet', ''))
-                    if body:
-                        context_items.append(f"[WEB SOURCE: {r.get('title', '')}]\n{body}")
+                text_res = list(ddgs.text(query, max_results=6, timelimit='y'))
+                raw_items.extend(text_res)
             except Exception as e:
                 print(f"Text search error: {e}")
 
-            # 2. News search for real-time changes
+            # 2. News search for live transitions, elections, appointments & breaking facts
             try:
                 news_res = list(ddgs.news(query, max_results=4))
-                for r in news_res:
-                    body = r.get('body', r.get('snippet', ''))
-                    if body:
-                        context_items.append(f"[NEWS SOURCE: {r.get('title', '')}]\n{body}")
+                raw_items.extend(news_res)
             except Exception as e:
                 print(f"News search error: {e}")
 
-            # 3. Fallback to standard text search if no items gathered
-            if not context_items:
-                fallback_res = list(ddgs.text(query, max_results=5))
-                for r in fallback_res:
-                    body = r.get('body', r.get('snippet', ''))
-                    if body:
-                        context_items.append(f"[SOURCE: {r.get('title', '')}]\n{body}")
+            # 3. Fallback to standard text search if empty
+            if not raw_items:
+                raw_items = list(ddgs.text(query, max_results=5))
 
-        return "\n\n".join(context_items[:6])
+        # Filter out spam and rank according to Source Priority
+        filtered = [
+            r for r in raw_items 
+            if not any(spam in (r.get('title', '') + ' ' + r.get('href', '')).lower() for spam in ["pinterest", "brainly", "quora"])
+        ]
+        filtered.sort(key=lambda r: rank_source(r.get('title', '') + ' ' + r.get('href', '')))
+
+        context_items = []
+        seen_titles = set()
+        for r in filtered:
+            title = r.get('title', '').strip()
+            body = r.get('body', r.get('snippet', '')).strip()
+            if not body or title in seen_titles:
+                continue
+            seen_titles.add(title)
+            context_items.append(f"[SOURCE: {title}]\n{body}")
+            if len(context_items) >= 6:
+                break
+
+        return "\n\n".join(context_items)
     except Exception as e:
         print(f"Web Search Error: {e}")
         return ""
 
 def is_realtime_or_web_query(query: str) -> bool:
-    """Directly detect questions asking for real-time, current leaders, officeholders, or news."""
+    """
+    Identifies whether a student query requires current/real-time information (REALTIME_WEB)
+    versus historical or conceptual questions (TEXTBOOK/HISTORICAL).
+    """
     if not query:
         return False
     q = query.lower().strip()
-    web_patterns = [
-        r'\b(who is|who are|who was|who won|who holds)\b',
-        r'\b(chief minister|prime minister|president|governor|cabinet minister|mp|mla|mayor)\b',
-        r'\b(minister of|secretary of|ceo of|head of)\b',
-        r'\b(current|latest|present|today|yesterday|recent|news|election|score|weather)\b',
-        r'\b(cm of|pm of)\b',
-        r'\b(kerala cm|india pm)\b'
+
+    # Historical or conceptual/definitional check:
+    # "Who was the first Chief Minister of Kerala?", "What is the role of a Chief Minister?"
+    historical_definitional_patterns = [
+        r'^\s*who was (the )?(first|former|1st|previous|past|earlier)\b',
+        r'^\s*what is the role of\b',
+        r'^\s*define\b',
+        r'^\s*explain the role of\b',
+        r'^\s*history of\b',
+        r'^\s*what does a (chief minister|prime minister|president|governor) do\b'
     ]
-    return any(re.search(pat, q) for pat in web_patterns)
+    has_realtime_explicit_keyword = any(term in q for term in ["current", "currently", "latest", "now", "today", "2026", "recent", "recently", "present"])
+    if any(re.search(pat, q) for pat in historical_definitional_patterns) and not has_realtime_explicit_keyword:
+        return False
+
+    realtime_patterns = [
+        # Current officeholders & political leaders
+        r'\bwho is (the )?(current |present |active |incumbent )?(chief minister|cm|prime minister|pm|president|governor|cabinet minister|minister|speaker|deputy cm|leader of opposition|opposition leader|mla|mp|mayor)\b',
+        r'\b(current|present|incumbent|active|latest|new) (chief minister|cm|prime minister|pm|president|governor|cabinet minister|minister|speaker|leader|government)\b',
+        r'\b(chief minister|cm|prime minister|pm|president|governor|minister) of\b',
+        r'\b(kerala cm|india pm|kerala chief minister|india prime minister)\b',
+        # Political transitions, elections, appointments
+        r'\b(election results?|who won the election|cabinet ministers?|political transitions?|appointments?|resignations?|transfers?)\b',
+        # Current schemes, policies, news & developments
+        r'\b(government schemes?|current schemes?|latest policies?|recent news|current affairs|latest developments?|breaking news)\b',
+        # Sports champions, tournaments, rankings
+        r'\b(who won|champion|champions|rankings?|tournament results?|world cup|olympics|ipl|cricket score)\b',
+        # Tech & scientific updates
+        r'\b(latest scientific|technological developments?|ai developments?|new discovery)\b',
+        # Explicit time-sensitive markers
+        r'\b(current|currently|latest|today|recent|recently|now|2026|this year|this month)\b'
+    ]
+    return any(re.search(pat, q) for pat in realtime_patterns)
 
 async def classify_intent(query: str) -> str:
     """
     Decide if the user needs:
-    - TEXTBOOK: Academic/Syllabus questions.
-    - WEB: Current events, live data, specific external facts (e.g. 'Who is the Chief Minister?', 'Who is the Prime Minister?').
+    - TEXTBOOK: Academic/Syllabus questions (e.g. photosynthesis, trigonometry, Newton's laws).
+    - WEB: Current events, live data, political leaders, chief ministers (REALTIME_WEB).
     - CHAT: Casual conversation or greeting.
     """
     if is_realtime_or_web_query(query):
@@ -88,13 +144,19 @@ async def classify_intent(query: str) -> str:
 
     prompt = f"""
     Classify the following student query into exactly one of these categories:
-    1. TEXTBOOK (strictly academic syllabus concepts: e.g. photosynthesis, trigonometry, Newton's laws, cell division, grammar rules).
-    2. WEB (current events, live data, political leaders, chief ministers, ministers, governors, sports winners, weather, facts that can change over time).
+    1. TEXTBOOK (strictly academic syllabus concepts: e.g. photosynthesis, trigonometry, Newton's laws, cell division, grammar rules, historical events like 'Who was the first Chief Minister of Kerala?', conceptual questions like 'What is the role of a Chief Minister?').
+    2. WEB (current events, live data, political leaders, current Chief Ministers, Prime Minister, President, governors, ministers, sports results, weather, news, facts that change over time).
     3. CHAT (greetings, personal questions, 'how are you', 'thank you', casual small talk).
+
+    IMPORTANT:
+    - "Who is the Chief Minister of Kerala?" → WEB
+    - "Who is the Prime Minister of India?" → WEB
+    - "Who was the first Chief Minister of Kerala?" → TEXTBOOK
+    - "What is the role of a Chief Minister?" → TEXTBOOK
 
     Query: "{query}"
 
-    Return ONLY the category name.
+    Return ONLY the category name: TEXTBOOK, WEB, or CHAT.
     """
     try:
         response = await client.chat.completions.create(
@@ -356,27 +418,65 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
     elif intent == "WEB":
         rag_context = await search_web(user_message)
         if rag_context:
-            source_type = "WEB SEARCH"
+            source_type = "REALTIME_WEB"
+        else:
+            source_type = "REALTIME_WEB (UNVERIFIED)"
+
+    current_year = datetime.now().year
 
     # 4. Construct System Prompt
     system_prompt = f"""
     {tone_instruction}
     
-    Your name is 'Miki'. 
-    Current Date & Time: {current_time}.
+    Your name is 'Miki', an intelligent, student-friendly AI Tutor.
+    Current System Date & Time: {current_time} (Year: {current_year}).
     Student Name: {student_name}
     Student Class: {student_class}
-    
-    CRITICAL INSTRUCTIONS & REAL-TIME FACTUAL ACCURACY:
-    - You are helping the student with their query.
-    - Current Year: 2026.
-    - Base training models have older pre-2026 knowledge cutoffs. Political leaders, ministers, chief ministers, and public officials change over time.
-    - When asked about current leaders, officeholders, or real-world events, ALWAYS prioritize the latest verified information from the provided WEB CONTEXT rather than outdated training memory.
-    - For example, in Kerala, V. D. Satheesan took office as the Chief Minister in May 2026, while Pinarayi Vijayan concluded his term and became the Leader of the Opposition.
-    - Source of Information: {source_type}.
-    - If specific CONTEXT is provided below, use it STRICTLY to provide the most updated, current answer.
-    - If the student asks about current events (weather, news, leaders), prioritize the provided WEB CONTEXT.
-    - If it's a casual chat, just be friendly and encouraging.
+    Source of Information: {source_type}.
+
+    === MIKI AI TUTOR – CURRENT AFFAIRS AND REAL-TIME INFORMATION INSTRUCTIONS ===
+
+    1. CURRENT DATE AWARENESS:
+    - Today's date is {current_time}.
+    - Never assume that pretrained model knowledge represents the latest facts.
+    - Information regarding government positions, political leadership, elections, appointments, sports results, technology updates, and recent events is strictly time-sensitive.
+
+    2. REAL-TIME FACTUAL ACCURACY:
+    - For all current affairs and real-time questions, strictly prioritize and rely on verified WEB/NEWS CONTEXT rather than outdated pretrained knowledge.
+    - Check whether previous officeholders have resigned, completed their term, or moved to another position.
+    - For example, in Kerala: As of May 18, 2026, V. D. Satheesan is the Chief Minister of Kerala, while Pinarayi Vijayan concluded his term and became the Leader of the Opposition.
+
+    3. SOURCE PRIORITY:
+    - Use information in the following hierarchy:
+      1. Official government websites and notifications (.gov.in, .nic.in).
+      2. Election Commission of India (eci.gov.in) and official state government portals.
+      3. Reputable national and international news organizations.
+      4. Other reliable and recently updated sources within the last 12 months.
+    - Never prioritize old Wikipedia snapshots, outdated educational websites, or cached snippets over verified current sources.
+
+    4. CONFLICT RESOLUTION:
+    - If pretrained model knowledge conflicts with verified recent information: ALWAYS prioritize the verified recent information.
+    - State the active incumbent and the effective date or year of the transition when helpful.
+
+    5. FALLBACK BEHAVIOUR:
+    - If web search is unavailable or no reliable recent information is found:
+      - Do not guess or hallucinate.
+      - Do not confidently provide potentially outdated information.
+      - Clearly inform the user that the latest real-time information could not be verified online.
+      - Provide only the latest verified historical information with its date, if available.
+
+    6. ANSWER GENERATION (STUDENT-FRIENDLY):
+    - Give the direct answer first.
+    - Mention the relevant date or year (e.g., 'As of 2026...', 'Since May 18, 2026...').
+    - Add a short explanation when useful.
+    - Include the source or reference when available.
+    - Keep answers concise unless the student requests detailed explanations.
+
+    7. IMPORTANT RESTRICTIONS:
+    - Never fabricate current officeholders, election results, appointments, or news.
+    - Never use the model's knowledge cutoff as proof of current information.
+    - Never use textbook RAG as the only source for a real-time question.
+    - Accuracy and freshness must always take priority over pretrained model knowledge.
     """
 
     messages_context = [{"role": "system", "content": system_prompt}]
@@ -394,7 +494,16 @@ async def chat_with_tutor(payload: TutorChatRequest, background_tasks: Backgroun
         CONTEXT ({source_type}):
         {rag_context}
         
-        Using the above context, answer: "{user_message}"
+        Using the above verified context, answer the student's question accurately: "{user_message}"
+        """
+        messages_context.append({"role": "user", "content": final_user_msg})
+    elif source_type.startswith("REALTIME_WEB"):
+        final_user_msg = f"""
+        [NOTICE: Real-time web search returned no verified recent sources for this current-affairs query.]
+        
+        Question: "{user_message}"
+        
+        INSTRUCTION: Follow Fallback Rule 5. Do not guess. Inform the student that real-time verification was unavailable online, and provide only verified historical facts with dates if known.
         """
         messages_context.append({"role": "user", "content": final_user_msg})
     else:

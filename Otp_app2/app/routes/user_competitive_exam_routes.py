@@ -196,95 +196,64 @@ async def list_categories():
 @router.get(
     "/competitive-exams/tutorials",
     summary="Get Competitive Tutorials",
-    description="Fetch competitive exam tutorials based on the selected exam category, including relevant tutorial links and associated textbooks."
+    description="Fetch competitive exam tutorials based on the selected exam category ID, including relevant tutorial links and associated textbooks."
 )
 async def get_competitive_tutorials(
-    category: Optional[str] = Query(None, description="Category Name or Category ID (from List Exam Categories API)"),
-    category_id: Optional[str] = Query(None, description="Category ID from List Exam Categories API"),
-    category_name: Optional[str] = Query(None, description="Category Name from List Exam Categories API"),
-    exam_name: Optional[str] = Query(None, description="Optional filter by Exam Name (e.g., 'KAS', 'UPSC Prelims')"),
-    subject: Optional[str] = Query(None, description="Optional filter by Subject"),
-    topic: Optional[str] = Query(None, description="Optional filter by Topic / Module"),
-    search: Optional[str] = Query(None, description="Keyword search in title, topic, subject, or exam"),
-    limit: int = Query(50, ge=1, le=200, description="Maximum items to return per collection"),
-    skip: int = Query(0, ge=0, description="Number of items to skip for pagination")
+    category_id: Optional[str] = Query(None, description="Category ID from List Exam Categories API")
 ):
     """
-    Fetch competitive exam tutorials and associated textbooks based on the selected exam category.
-    Accepts category object identifier (category, category_id, or category_name) from the Categories API.
+    Fetch competitive exam tutorials and associated textbooks based on the selected exam category ID.
+    Accepts category_id from the Categories API.
     Returns both the relevant tutorial links and the textbooks associated with that category.
     """
-    # Normalize parameters (support direct Python calls and FastAPI dependencies)
-    category = category.strip() if isinstance(category, str) else None
     category_id = category_id.strip() if isinstance(category_id, str) else None
-    category_name = category_name.strip() if isinstance(category_name, str) else None
-    exam_name = exam_name.strip() if isinstance(exam_name, str) else None
-    subject = subject.strip() if isinstance(subject, str) else None
-    topic = topic.strip() if isinstance(topic, str) else None
-    search = search.strip() if isinstance(search, str) else None
-    limit = limit if isinstance(limit, int) else 50
-    skip = skip if isinstance(skip, int) else 0
 
-    # ── 1. Resolve Category Identifier ──────────────────────────────────────
+    # ── 1. Resolve Category Identifier from category_id ─────────────────────
     target_category_name = None
     target_category_id = None
 
-    cat_param = (category_id or category_name or category or "").strip()
-    if cat_param:
-        if ObjectId.is_valid(cat_param):
-            target_category_id = cat_param
-            cat_doc = await db.competitive_exam_categories.find_one({"_id": ObjectId(cat_param)})
+    if category_id:
+        if ObjectId.is_valid(category_id):
+            target_category_id = category_id
+            cat_doc = await db.competitive_exam_categories.find_one({"_id": ObjectId(category_id)})
             if cat_doc:
                 target_category_name = cat_doc.get("category_name")
         else:
-            target_category_name = cat_param
+            # Fallback if category_id is stored as string ID or was passed as category name
+            target_category_id = category_id
             cat_doc = await db.competitive_exam_categories.find_one({
-                "category_name": {"$regex": f"^{re.escape(cat_param)}$", "$options": "i"}
+                "$or": [
+                    {"category_id": category_id},
+                    {"category_name": {"$regex": f"^{re.escape(category_id)}$", "$options": "i"}}
+                ]
             })
             if cat_doc:
                 target_category_id = str(cat_doc["_id"])
+                target_category_name = cat_doc.get("category_name")
+            else:
+                target_category_name = category_id
 
     # ── 2. Query Competitive Tutorials ──────────────────────────────────────
     tut_query: Dict[str, Any] = {"is_active": {"$ne": False}}
 
     if target_category_name or target_category_id:
         cat_or_filters = []
+        if target_category_id:
+            cat_or_filters.append({"category_id": target_category_id})
         if target_category_name:
             c_escaped = re.escape(target_category_name)
             cat_or_filters.extend([
                 {"category_name": {"$regex": c_escaped, "$options": "i"}},
                 {"exam_category": {"$regex": c_escaped, "$options": "i"}}
             ])
-        if target_category_id:
-            cat_or_filters.append({"category_id": target_category_id})
 
         if len(cat_or_filters) == 1:
             tut_query.update(cat_or_filters[0])
         elif cat_or_filters:
             tut_query["$or"] = cat_or_filters
 
-    if exam_name and exam_name.strip():
-        tut_query["exam_name"] = {"$regex": re.escape(exam_name.strip()), "$options": "i"}
-    if subject and subject.strip():
-        tut_query["subject"] = {"$regex": re.escape(subject.strip()), "$options": "i"}
-    if topic and topic.strip():
-        tut_query["topic"] = {"$regex": re.escape(topic.strip()), "$options": "i"}
-    if search and search.strip():
-        s = re.escape(search.strip())
-        tut_search = [
-            {"title": {"$regex": s, "$options": "i"}},
-            {"subject": {"$regex": s, "$options": "i"}},
-            {"topic": {"$regex": s, "$options": "i"}},
-            {"exam_name": {"$regex": s, "$options": "i"}}
-        ]
-        if "$or" in tut_query:
-            tut_query["$and"] = [{"$or": tut_query.pop("$or")}, {"$or": tut_search}]
-        else:
-            tut_query["$or"] = tut_search
-
-    tut_total = await db.competitive_tutorials.count_documents(tut_query)
-    tut_cursor = db.competitive_tutorials.find(tut_query).sort("_id", -1).skip(skip).limit(limit)
-    tut_items = await tut_cursor.to_list(length=limit)
+    tut_cursor = db.competitive_tutorials.find(tut_query).sort("_id", -1)
+    tut_items = await tut_cursor.to_list(length=None)
 
     clean_tutorials = []
     for item in tut_items:
@@ -293,6 +262,7 @@ async def get_competitive_tutorials(
             "_id": t_id,
             "tutorial_id": t_id,
             "title": item.get("title") or f"{item.get('exam_name', '')} - {item.get('subject', '')}",
+            "category_id": item.get("category_id") or target_category_id or "",
             "category_name": item.get("category_name") or item.get("exam_category") or target_category_name or "",
             "exam_name": item.get("exam_name", ""),
             "subject": item.get("subject", ""),
@@ -315,45 +285,22 @@ async def get_competitive_tutorials(
         ]
     }
 
-    if target_category_name:
-        cat_escaped = re.escape(target_category_name)
-        tb_cat_filter = {
-            "$or": [
+    if target_category_name or target_category_id:
+        tb_cat_or_filters = []
+        if target_category_id:
+            tb_cat_or_filters.append({"category_id": target_category_id})
+        if target_category_name:
+            cat_escaped = re.escape(target_category_name)
+            tb_cat_or_filters.extend([
                 {"exam_category": {"$regex": cat_escaped, "$options": "i"}},
                 {"category": {"$regex": cat_escaped, "$options": "i"}},
                 {"state": {"$regex": cat_escaped, "$options": "i"}},
                 {"board": {"$regex": cat_escaped, "$options": "i"}}
-            ]
-        }
-        tb_query["$and"] = [tb_cat_filter]
+            ])
+        tb_query["$and"] = [{"$or": tb_cat_or_filters}]
 
-    if exam_name and exam_name.strip():
-        tb_exam_filter = {
-            "$or": [
-                {"exam_name": {"$regex": re.escape(exam_name.strip()), "$options": "i"}},
-                {"standard": {"$regex": re.escape(exam_name.strip()), "$options": "i"}}
-            ]
-        }
-        tb_query["$and"] = tb_query.get("$and", []) + [tb_exam_filter]
-
-    if subject and subject.strip():
-        tb_query["subject"] = {"$regex": re.escape(subject.strip()), "$options": "i"}
-
-    if search and search.strip():
-        s_term = re.escape(search.strip())
-        tb_search_filter = {
-            "$or": [
-                {"textbook_title": {"$regex": s_term, "$options": "i"}},
-                {"textbook_name": {"$regex": s_term, "$options": "i"}},
-                {"subject": {"$regex": s_term, "$options": "i"}},
-                {"exam_name": {"$regex": s_term, "$options": "i"}}
-            ]
-        }
-        tb_query["$and"] = tb_query.get("$and", []) + [tb_search_filter]
-
-    tb_total = await db.textbook.count_documents(tb_query)
-    tb_cursor = db.textbook.find(tb_query).sort("created_at", -1).skip(skip).limit(limit)
-    tb_items = await tb_cursor.to_list(length=limit)
+    tb_cursor = db.textbook.find(tb_query).sort("created_at", -1)
+    tb_items = await tb_cursor.to_list(length=None)
 
     clean_textbooks = []
     for tb in tb_items:
@@ -365,6 +312,7 @@ async def get_competitive_tutorials(
             "textbook_id": tb_id,
             "_id": tb_id,
             "textbook_title": tb.get("textbook_title") or tb.get("textbook_name", "Competitive Textbook"),
+            "category_id": tb.get("category_id") or target_category_id or "",
             "exam_category": tb.get("exam_category") or tb.get("board", target_category_name or "Competitive Exams"),
             "exam_name": tb.get("exam_name") or tb.get("standard", "Competitive Exam"),
             "subject": tb.get("subject", "General Studies"),
@@ -377,9 +325,9 @@ async def get_competitive_tutorials(
 
     return serialize_mongo({
         "status": "success",
-        "category": target_category_name or cat_param or "All",
         "category_id": str(target_category_id) if target_category_id else None,
-        "category_name": target_category_name or cat_param,
+        "category_name": target_category_name or (str(target_category_id) if target_category_id else ""),
+        "category": target_category_name or (str(target_category_id) if target_category_id else "All"),
         "total_tutorials": len(clean_tutorials),
         "total_textbooks": len(clean_textbooks),
         "total_count": len(clean_tutorials),

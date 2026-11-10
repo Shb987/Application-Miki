@@ -3,6 +3,20 @@ from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 
 # -------------------------------------------------------------
+# Competitive Exam Category Models
+# -------------------------------------------------------------
+class CompetitiveCategoryCreateRequest(BaseModel):
+    category_name: str = Field(..., description="Competitive exam category name, e.g. 'Kerala PSC', 'UPSC Civil Services'")
+    description: Optional[str] = Field(None, description="Optional description of the category")
+    icon: Optional[str] = Field("fa-bookmark", description="FontAwesome icon class, e.g. 'fa-graduation-cap'")
+    is_active: bool = Field(True, description="Whether the category is active")
+
+class CompetitiveCategoryResponse(BaseModel):
+    status: str = "success"
+    message: str
+    category: Optional[Dict[str, Any]] = None
+
+# -------------------------------------------------------------
 # Competitive Exam Tutorial Models
 # -------------------------------------------------------------
 class CompetitiveVideoLink(BaseModel):

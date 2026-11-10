@@ -16,7 +16,13 @@ from app.core.database import db
 from app.utils.timezone_utils import get_ist_now, to_ist_iso
 from app.utils.admin_auth import require_permission, log_admin_activity
 from app.report.competitive_exam_pdf import save_competitive_exam_paper
-from app.models.competitive_exam_models import CompetitiveTutorialCreateRequest, CompetitiveTutorialResponse, CompetitiveVideoLink
+from app.models.competitive_exam_models import (
+    CompetitiveTutorialCreateRequest,
+    CompetitiveTutorialResponse,
+    CompetitiveVideoLink,
+    CompetitiveCategoryCreateRequest,
+    CompetitiveCategoryResponse
+)
 from app.routes.user_competitive_exam_routes import fetch_youtube_videos_for_tutorial
 from openai import AsyncOpenAI
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -380,6 +386,108 @@ async def get_categories():
         c["_id"] = str(c["_id"])
     return {"categories": categories}
 
+
+@router.post("/competitive-exams/categories")
+@router.post("/competitive-exams/categories/add")
+async def add_category(
+    request: Request,
+    payload: Optional[CompetitiveCategoryCreateRequest] = Body(None),
+    current_admin: Optional[dict] = Depends(resolve_admin_user)
+):
+    """
+    Create a new competitive exam category in the admin panel.
+    Persists to db.competitive_exam_categories so it dynamically shows up in
+    GET /user/competitive-exams/categories and the textbook upload form.
+    """
+    category_name = None
+    description = ""
+    icon = "fa-bookmark"
+    is_active = True
+
+    if payload and payload.category_name:
+        category_name = payload.category_name
+        description = payload.description or ""
+        icon = payload.icon or "fa-bookmark"
+        is_active = payload.is_active
+    else:
+        # Fallback to reading request json or form body
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                category_name = body.get("category_name")
+                description = body.get("description", "")
+                icon = body.get("icon", "fa-bookmark")
+                is_active = body.get("is_active", True)
+        except Exception:
+            try:
+                form = await request.form()
+                category_name = form.get("category_name")
+                description = form.get("description", "")
+                icon = form.get("icon", "fa-bookmark")
+                raw_active = form.get("is_active", "true")
+                is_active = str(raw_active).lower() in ("true", "1", "yes")
+            except Exception:
+                pass
+
+    if not category_name or not str(category_name).strip():
+        raise HTTPException(status_code=400, detail="Category name is required.")
+
+    category_name = str(category_name).strip()
+
+    # Case-insensitive duplicate check
+    existing = await db.competitive_exam_categories.find_one({
+        "category_name": {"$regex": f"^{re.escape(category_name)}$", "$options": "i"}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Category '{category_name}' already exists.")
+
+    now = get_ist_now()
+    new_doc = {
+        "category_name": category_name,
+        "description": str(description).strip() if description else f"{category_name} examinations",
+        "icon": str(icon).strip() if icon else "fa-bookmark",
+        "is_active": bool(is_active),
+        "created_at": now,
+        "updated_at": now
+    }
+    result = await db.competitive_exam_categories.insert_one(new_doc)
+    new_doc["_id"] = str(result.inserted_id)
+    new_doc["created_at"] = to_ist_iso(new_doc["created_at"])
+    new_doc["updated_at"] = to_ist_iso(new_doc["updated_at"])
+
+    return {
+        "status": "success",
+        "message": f"Category '{category_name}' created successfully.",
+        "category": new_doc
+    }
+
+
+@router.delete("/competitive-exams/categories/{category_id}")
+async def delete_category(
+    category_id: str,
+    current_admin: Optional[dict] = Depends(resolve_admin_user)
+):
+    """
+    Delete a competitive exam category by its ID.
+    """
+    if not category_id:
+        raise HTTPException(status_code=400, detail="Category ID is required.")
+
+    query = {}
+    if ObjectId.is_valid(category_id):
+        query["_id"] = ObjectId(category_id)
+    else:
+        query["category_name"] = category_id
+
+    res = await db.competitive_exam_categories.delete_one(query)
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Category not found.")
+
+    return {
+        "status": "success",
+        "message": "Category deleted successfully."
+    }
+
 # --------------------------
 # 2. EXAM BLUEPRINTS API (READ-ONLY)
 # --------------------------
@@ -440,9 +548,20 @@ async def upload_full_textbook(
         f.write(await file.read())
         
     now = get_ist_now()
+
+    cat_match = await db.competitive_exam_categories.find_one({
+        "$or": [
+            {"category_name": {"$regex": f"^{re.escape(exam_category.strip())}$", "$options": "i"}},
+            {"_id": ObjectId(exam_category.strip())} if ObjectId.is_valid(exam_category.strip()) else {"category_name": exam_category.strip()}
+        ]
+    })
+    category_id_val = str(cat_match["_id"]) if cat_match else None
+    cat_name_val = cat_match.get("category_name", exam_category.strip()) if cat_match else exam_category.strip()
+
     textbook_doc = {
         "module_type": "competitive_exam",
-        "exam_category": exam_category.strip(),
+        "category_id": category_id_val,
+        "exam_category": cat_name_val,
         "exam_name": exam_name.strip(),
         "exam_id": exam_id.strip() if exam_id else None,
         "exam_year": exam_year.strip() if exam_year else str(now.year),
@@ -452,7 +571,7 @@ async def upload_full_textbook(
         "textbook_title": textbook_title.strip(),
         "board": "Competitive Exams",
         "standard": exam_name.strip(),
-        "state": exam_category.strip(),
+        "state": cat_name_val,
         "textbook_name": textbook_title.strip(),
         "publication_year": exam_year.strip() if exam_year else str(now.year),
         "publisher": publisher.strip() if publisher else None,
@@ -1360,6 +1479,16 @@ async def admin_save_competitive_tutorial(
         else:
             cat_name = "Competitive Exams"
 
+    cat_match = await db.competitive_exam_categories.find_one({
+        "$or": [
+            {"category_name": {"$regex": f"^{re.escape(cat_name)}$", "$options": "i"}},
+            {"_id": ObjectId(cat_name)} if ObjectId.is_valid(cat_name) else {"category_name": cat_name}
+        ]
+    })
+    cat_id_val = str(cat_match["_id"]) if cat_match else None
+    if cat_match:
+        cat_name = cat_match.get("category_name", cat_name)
+
     now = get_ist_now()
     query = {
         "exam_name": payload.exam_name.strip(),
@@ -1373,6 +1502,7 @@ async def admin_save_competitive_tutorial(
     existing = await db.competitive_tutorials.find_one(query)
 
     tutorial_doc = {
+        "category_id": cat_id_val,
         "category_name": cat_name,
         "exam_name": payload.exam_name.strip(),
         "subject": payload.subject.strip(),

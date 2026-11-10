@@ -1635,6 +1635,7 @@ async def admin_save_competitive_tutorial(
 @router.get("/competitive-exams/tutorials/list")
 async def admin_get_competitive_tutorials(
     category: Optional[str] = Query(None),
+    category_id: Optional[str] = Query(None),
     exam_name: Optional[str] = Query(None),
     subject: Optional[str] = Query(None),
     topic: Optional[str] = Query(None),
@@ -1645,10 +1646,16 @@ async def admin_get_competitive_tutorials(
     """
     query: Dict[str, Any] = {}
 
-    if category and category.strip():
+    if category_id and category_id.strip():
+        query["$or"] = [
+            {"category_id": category_id.strip()},
+            {"category_name": {"$regex": re.escape(category_id.strip()), "$options": "i"}}
+        ]
+    elif category and category.strip():
         query["$or"] = [
             {"category_name": {"$regex": re.escape(category.strip()), "$options": "i"}},
-            {"exam_category": {"$regex": re.escape(category.strip()), "$options": "i"}}
+            {"exam_category": {"$regex": re.escape(category.strip()), "$options": "i"}},
+            {"category_id": category.strip()}
         ]
     if exam_name and exam_name.strip():
         query["exam_name"] = {"$regex": re.escape(exam_name.strip()), "$options": "i"}

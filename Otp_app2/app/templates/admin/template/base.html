@@ -656,10 +656,13 @@
         }
 
         /* Tree Hierarchy for Submenus - Smooth Curved Branches with Zero Tail */
+        .sidebar-wrapper .sidebar-main .sidebar-links {
+            padding-bottom: 120px !important;
+        }
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu {
             position: relative !important;
             padding: 2px 0 6px 0 !important;
-            margin: 2px 0 6px 30px !important;
+            margin: 2px 0 6px 14px !important;
             background: transparent !important;
             border: none !important;
         }
@@ -681,9 +684,9 @@
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
             content: "" !important;
             position: absolute !important;
-            left: 8px !important;
+            left: 6px !important;
             top: -2px !important;
-            width: 12px !important;
+            width: 10px !important;
             height: calc(50% + 2px) !important;
             border-left: 1.5px solid rgba(255, 255, 255, 0.4) !important;
             border-bottom: 1.5px solid rgba(255, 255, 255, 0.4) !important;
@@ -700,7 +703,7 @@
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:not(:last-child)::after {
             content: "" !important;
             position: absolute !important;
-            left: 8px !important;
+            left: 6px !important;
             top: 50% !important;
             bottom: -4px !important;
             width: 1.5px !important;
@@ -717,7 +720,7 @@
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a::before {
             content: "" !important;
             position: absolute !important;
-            left: 20px !important;
+            left: 16px !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
             width: 5.5px !important;
@@ -730,12 +733,15 @@
         }
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a {
             position: relative !important;
-            padding: 4px 8px 4px 34px !important;
-            font-size: 0.88rem !important;
+            padding: 4px 6px 4px 28px !important;
+            font-size: 0.85rem !important;
             color: rgba(255, 255, 255, 0.75) !important;
             font-weight: 500 !important;
-            letter-spacing: 0.3px !important;
-            display: inline-block !important;
+            letter-spacing: normal !important;
+            display: block !important;
+            white-space: normal !important;
+            word-break: normal !important;
+            line-height: 1.35 !important;
             background: transparent !important;
             transition: all 0.2s ease !important;
         }
@@ -987,6 +993,7 @@
                 "menu-plant-explorer": "Explorer",
                 "menu-questions": "Questions Base",
                 "menu-Exams": "Exams, Textbooks & Syllabus",
+                "menu-competitive-exams": "Competitive Exams",
                 "menu-quiz": "Quizzes",
                 "menu-tutorial": "Tutorials",
                 "menu-tuition": "Exams, Textbooks & Syllabus",
@@ -1077,6 +1084,7 @@
                 "menu-plant-explorer": "Explorer",
                 "menu-questions": "Questions Base",
                 "menu-Exams": "Exams, Textbooks & Syllabus",
+                "menu-competitive-exams": "Competitive Exams",
                 "menu-quiz": "Quizzes",
                 "menu-tutorial": "Tutorials",
                 "menu-tuition": "Exams, Textbooks & Syllabus",

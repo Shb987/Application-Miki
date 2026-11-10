@@ -492,6 +492,9 @@
 
             if (addCatModalObj) addCatModalObj.hide();
             showToast(`Category '${catName}' added successfully!`, "success");
+            if (typeof window.loadSidebarCompetitiveCategories === "function") {
+                window.loadSidebarCompetitiveCategories();
+            }
             await loadTextbooks();
         } catch (err) {
             alertBox.textContent = err.message;
@@ -567,25 +570,54 @@
     }
 
     async function populateFilterOptions() {
-        let catList = [...new Set(allTextbooks.map(tb => tb.exam_category).filter(Boolean))];
+        let catMap = new Map();
+        // First add categories from loaded textbooks
+        allTextbooks.forEach(tb => {
+            if (tb.exam_category) {
+                catMap.set(tb.exam_category, { name: tb.exam_category, id: tb.category_id || "" });
+            }
+        });
+
         try {
             const cRes = await fetch("/admin-panel/competitive-exams/categories", { headers: token ? { "Authorization": "Bearer " + token } : {} });
             if (cRes.ok) {
                 const cData = await cRes.json();
-                const fetchedCats = (cData.categories || []).map(c => c.category_name).filter(Boolean);
-                catList = [...new Set([...catList, ...fetchedCats])];
+                (cData.categories || []).forEach(c => {
+                    if (c.category_name) {
+                        catMap.set(c.category_name, { name: c.category_name, id: c._id || "" });
+                    }
+                });
             }
         } catch(e) { console.warn("Could not fetch categories:", e); }
-        catList.sort();
 
+        const catList = Array.from(catMap.values()).sort((a, b) => a.name.localeCompare(b.name));
         const exams = [...new Set(allTextbooks.map(tb => tb.exam_name).filter(Boolean))].sort();
         const subjects = [...new Set(allTextbooks.map(tb => tb.subject).filter(Boolean))].sort();
         const years = [...new Set(allTextbooks.map(tb => tb.exam_year).filter(Boolean))].sort((a, b) => parseInt(b) - parseInt(a));
         
-        updateSelect("filter-category", catList, "All Categories");
+        const catSel = document.getElementById("filter-category");
+        const currentCatVal = catSel.value;
+        catSel.innerHTML = '<option value="">All Categories</option>' +
+            catList.map(c => `<option value="${escapeHtml(c.name)}" data-id="${escapeHtml(c.id)}" ${c.name === currentCatVal ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
+
         updateSelect("filter-exam", exams, "All Exams");
         updateSelect("filter-subject", subjects, "All Subjects");
         updateSelect("filter-year", years, "All Years");
+
+        // Check URL query params to auto-filter by category
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlCatId = urlParams.get("category_id");
+        const urlCatName = urlParams.get("category");
+        if (urlCatName || urlCatId) {
+            const matchedOpt = Array.from(catSel.options).find(o => 
+                (urlCatId && o.getAttribute("data-id") === urlCatId) ||
+                (urlCatName && o.value.toLowerCase() === urlCatName.toLowerCase())
+            );
+            if (matchedOpt) {
+                catSel.value = matchedOpt.value;
+                window.applyFilters();
+            }
+        }
     }
 
     function updateSelect(id, items, defaultText) {
@@ -603,7 +635,9 @@
         const search = (document.getElementById("filter-search").value || "").trim().toLowerCase();
 
         const filtered = allTextbooks.filter(tb => {
-            const matchCategory = !category || String(tb.exam_category) === String(category);
+            const matchCategory = !category || 
+                String(tb.exam_category || "").toLowerCase() === String(category).toLowerCase() ||
+                String(tb.category_id || "") === String(category);
             const matchExam = !exam || String(tb.exam_name) === String(exam);
             const matchSubject = !subject || String(tb.subject) === String(subject);
             const matchYear = !year || String(tb.exam_year) === String(year);
@@ -710,6 +744,7 @@
                         <span class="badge badge-id-box font-monospace">${tb._id}</span>
                         <span class="badge bg-light-primary text-primary border"><i class="fa fa-graduation-cap me-1"></i> ${escapeHtml(tb.exam_name || 'Competitive')}</span>
                         ${tb.exam_category ? `<span class="badge bg-light text-secondary border"><i class="fa fa-tag me-1"></i> ${escapeHtml(tb.exam_category)}</span>` : ''}
+                        ${tb.category_id ? `<span class="badge badge-id-box font-monospace small" title="Category ID"><i class="fa fa-folder-o me-1"></i> Cat ID: ${escapeHtml(tb.category_id)}</span>` : ''}
                         <span class="badge bg-light text-dark border"><i class="fa fa-book me-1"></i> ${escapeHtml(tb.subject || 'Subject')}</span>
                         ${tb.stored_chunk_count ? `<span class="badge bg-light-success text-success border"><i class="fa fa-database me-1"></i> ${tb.stored_chunk_count} Chunks Vectorized</span>` : ''}
                         <span class="badge ${tb.pdf_deleted ? 'bg-light text-danger border border-danger' : 'bg-light text-muted border'}">

@@ -1,0 +1,750 @@
+{% extends "base.html" %}
+
+{% block title %}Category Management - Competitive Exams - Miki{% endblock %}
+
+{% block head %}
+<style>
+  .badge-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .copy-btn {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    padding: 0;
+    font-size: 11px;
+    transition: color 0.2s ease;
+  }
+  .copy-btn:hover {
+    color: #0284c7;
+  }
+  .cat-icon-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: rgba(69, 43, 144, 0.08);
+    color: #452b90;
+  }
+  .stat-card-custom {
+    border: 0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .stat-card-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  /* Dark mode support */
+  body.dark-only .badge-id,
+  .dark-only .badge-id {
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+  }
+  body.dark-only .copy-btn:hover,
+  .dark-only .copy-btn:hover {
+    color: #38bdf8 !important;
+  }
+  body.dark-only .card,
+  .dark-only .card {
+    background-color: #1e222d !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+  body.dark-only .table,
+  .dark-only .table {
+    color: #f1f5f9 !important;
+  }
+  body.dark-only .table thead th,
+  .dark-only .table thead th {
+    background-color: #161925 !important;
+    color: #94a3b8 !important;
+    border-color: #2d3243 !important;
+  }
+  body.dark-only .table tbody td,
+  .dark-only .table tbody td {
+    border-color: #2d3243 !important;
+  }
+  body.dark-only .table tbody tr:hover,
+  .dark-only .table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+  }
+  body.dark-only .cat-icon-badge,
+  .dark-only .cat-icon-badge {
+    background: rgba(165, 148, 255, 0.15) !important;
+    color: #a594ff !important;
+  }
+  body.dark-only .form-control,
+  body.dark-only .form-select,
+  .dark-only .form-control,
+  .dark-only .form-select {
+    background-color: #161925 !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .modal-content,
+  .dark-only .modal-content {
+    background-color: #1e222d !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+  }
+  body.dark-only .modal-header,
+  body.dark-only .modal-footer,
+  .dark-only .modal-header,
+  .dark-only .modal-footer {
+    border-color: #2d3243 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="page-title">
+    <div class="row align-items-center">
+      <div class="col-sm-6">
+        <h4 class="fw-bold mb-0">Competitive Exam Categories</h4>
+        <small class="text-muted">Create, edit, and organize dynamic exam categories linked to textbooks and tutorials</small>
+      </div>
+      <div class="col-sm-6 text-end">
+        <ol class="breadcrumb mb-2 justify-content-end">
+          <li class="breadcrumb-item"><a href="/admin-panel/user-management-page"><i class="fa fa-home"></i></a></li>
+          <li class="breadcrumb-item">Competitive Exams</li>
+          <li class="breadcrumb-item active">Add Category</li>
+        </ol>
+        <button type="button" class="btn btn-primary rounded-pill shadow-sm px-3" onclick="openAddModal()">
+          <i class="fa fa-plus-circle me-1"></i> Add Category
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid mt-3 mb-5">
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card stat-card-custom p-3 bg-white">
+        <div class="d-flex align-items-center">
+          <div class="cat-icon-badge me-3" style="background: rgba(14, 165, 233, 0.12); color: #0284c7;">
+            <i class="fa fa-tags"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-medium">Total Categories</div>
+            <h4 class="fw-bold mb-0" id="stat-total-categories">0</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card-custom p-3 bg-white">
+        <div class="d-flex align-items-center">
+          <div class="cat-icon-badge me-3" style="background: rgba(34, 197, 94, 0.12); color: #16a34a;">
+            <i class="fa fa-check-circle"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-medium">Active Categories</div>
+            <h4 class="fw-bold mb-0" id="stat-active-categories">0</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card-custom p-3 bg-white">
+        <div class="d-flex align-items-center">
+          <div class="cat-icon-badge me-3" style="background: rgba(99, 102, 241, 0.12); color: #4f46e5;">
+            <i class="fa fa-book"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-medium">Textbooks Linked</div>
+            <h4 class="fw-bold mb-0" id="stat-total-textbooks">0</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card-custom p-3 bg-white">
+        <div class="d-flex align-items-center">
+          <div class="cat-icon-badge me-3" style="background: rgba(234, 88, 12, 0.12); color: #ea580c;">
+            <i class="fa fa-youtube-play"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-medium">Tutorials Linked</div>
+            <h4 class="fw-bold mb-0" id="stat-total-tutorials">0</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Action Card -->
+  <div class="card border-0 shadow-sm rounded-3 mb-4">
+    <div class="card-body p-3">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-5">
+          <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0"><i class="fa fa-search text-muted"></i></span>
+            <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Search by category name, description, or ID..." oninput="filterCategories()">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <select id="statusFilter" class="form-select" onchange="filterCategories()">
+            <option value="all">All Statuses</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
+        </div>
+        <div class="col-md-4 text-md-end">
+          <button class="btn btn-outline-secondary rounded-pill me-2 px-3" onclick="loadCategoriesTable()">
+            <i class="fa fa-refresh me-1"></i> Refresh
+          </button>
+          <a href="/admin-panel/competitive-exams/upload-textbook" class="btn btn-outline-primary rounded-pill px-3">
+            <i class="fa fa-cloud-upload me-1"></i> Upload Textbook
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Categories Table Card -->
+  <div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 fw-bold"><i class="fa fa-list me-2 text-primary"></i> Exam Categories</h5>
+      <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small" id="tableRecordCount">Showing 0 categories</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0" id="categoriesTable">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 50px;" class="text-center">#</th>
+              <th style="width: 230px;">Category ID</th>
+              <th>Category Name</th>
+              <th>Description</th>
+              <th style="width: 130px;" class="text-center">Textbooks</th>
+              <th style="width: 130px;" class="text-center">Tutorials</th>
+              <th style="width: 110px;" class="text-center">Status</th>
+              <th style="width: 170px;" class="text-end pe-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="categoriesTbody">
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">
+                <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div> Loading categories...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ADD CATEGORY MODAL ==================== -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="addCategoryModalLabel"><i class="fa fa-plus-circle me-2"></i> Add Competitive Exam Category</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="addCategoryForm" onsubmit="submitNewCategory(event)">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Category Name <span class="text-danger">*</span></label>
+            <input type="text" id="new_cat_name" class="form-control rounded-3" placeholder="e.g. UPSC Civil Services, Kerala PSC, SSC, Banking" required>
+            <div class="form-text small text-muted">Each category receives a unique ID and appears in the sidebar and textbook upload dropdown.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Description (Optional)</label>
+            <textarea id="new_cat_desc" class="form-control rounded-3" rows="2" placeholder="e.g. Examinations conducted for civil services and state recruitment"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Icon</label>
+            <select id="new_cat_icon" class="form-select rounded-3">
+              <option value="fa-graduation-cap">Education / General</option>
+              <option value="fa-university">Civil / PSC</option>
+              <option value="fa-certificate">PSC / Degree</option>
+              <option value="fa-id-card">Staff / Recruitment</option>
+              <option value="fa-money">Banking / Finance</option>
+              <option value="fa-train">Railways</option>
+              <option value="fa-shield">Defence</option>
+              <option value="fa-flask">Engineering / Medical</option>
+              <option value="fa-briefcase">General Recruitment</option>
+              <option value="fa-bookmark">General</option>
+            </select>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="new_cat_active" checked>
+            <label class="form-check-label fw-medium" for="new_cat_active">Active Category</label>
+          </div>
+          <div id="addCatAlert" class="alert alert-danger d-none py-2 small"></div>
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" id="saveCatBtn" class="btn btn-primary rounded-pill px-4">
+              <i class="fa fa-save me-1"></i> Save Category
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EDIT CATEGORY MODAL ==================== -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fw-bold" id="editCategoryModalLabel"><i class="fa fa-pencil me-2 text-warning"></i> Edit Exam Category</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="editCategoryForm" onsubmit="submitEditCategory(event)">
+          <input type="hidden" id="edit_cat_id">
+          
+          <div class="mb-3">
+            <label class="form-label fw-bold text-muted small">Unique Category ID</label>
+            <div><span class="badge-id" id="edit_cat_id_display">-</span></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Category Name <span class="text-danger">*</span></label>
+            <input type="text" id="edit_cat_name" class="form-control rounded-3" required>
+            <div class="form-text small text-warning"><i class="fa fa-info-circle me-1"></i> Updating the category name will cascade to all linked textbooks, tutorials, and exams.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Description</label>
+            <textarea id="edit_cat_desc" class="form-control rounded-3" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Icon</label>
+            <select id="edit_cat_icon" class="form-select rounded-3">
+              <option value="fa-graduation-cap">Education / General</option>
+              <option value="fa-university">Civil / PSC</option>
+              <option value="fa-certificate">PSC / Degree</option>
+              <option value="fa-id-card">Staff / Recruitment</option>
+              <option value="fa-money">Banking / Finance</option>
+              <option value="fa-train">Railways</option>
+              <option value="fa-shield">Defence</option>
+              <option value="fa-flask">Engineering / Medical</option>
+              <option value="fa-briefcase">General Recruitment</option>
+              <option value="fa-bookmark">General</option>
+            </select>
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="edit_cat_active">
+            <label class="form-check-label fw-medium" for="edit_cat_active">Active Category</label>
+          </div>
+          <div id="editCatAlert" class="alert alert-danger d-none py-2 small"></div>
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" id="updateCatBtn" class="btn btn-primary rounded-pill px-4">
+              <i class="fa fa-check me-1"></i> Update Category
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DELETE CONFIRMATION MODAL ==================== -->
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-body text-center p-4">
+        <div class="text-danger mb-3">
+          <i class="fa fa-exclamation-triangle fa-3x"></i>
+        </div>
+        <h5 class="fw-bold mb-2">Delete Category?</h5>
+        <p id="deleteModalMessage" class="text-muted mb-4"></p>
+        <div class="d-flex justify-content-center gap-2">
+          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger rounded-pill px-4" id="confirmDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const token = localStorage.getItem("admin_token") || localStorage.getItem("access_token");
+  let allCategories = [];
+  let addModalObj = null;
+  let editModalObj = null;
+  let deleteModalObj = null;
+  let categoryPendingDelete = null;
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function showToast(message, type = "success") {
+    const toast = document.createElement("div");
+    toast.className = `alert alert-${type} shadow-lg position-fixed top-0 end-0 m-4`;
+    toast.style.zIndex = 99999;
+    toast.style.borderRadius = "12px";
+    toast.innerHTML = `<i class="fa ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i> ${escapeHtml(message)}`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transition = "opacity 0.5s ease";
+      setTimeout(() => toast.remove(), 500);
+    }, 3000);
+  }
+
+  function copyToClipboard(text, e) {
+    if (e) e.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("Copied category ID: " + text, "success");
+    }).catch(() => {
+      showToast("Failed to copy", "danger");
+    });
+  }
+
+  async function loadCategoriesTable() {
+    const tbody = document.getElementById("categoriesTbody");
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-5 text-muted"><div class="spinner-border text-primary spinner-border-sm me-2"></div> Loading categories...</td></tr>`;
+
+    try {
+      const headers = {};
+      if (token) headers["Authorization"] = "Bearer " + token;
+
+      let res = await fetch("/admin-panel/competitive-exams/categories", { headers });
+      if (!res.ok) {
+        res = await fetch("/user/competitive-exams/categories");
+      }
+      const data = await res.json();
+      allCategories = data.categories || [];
+
+      updateStats();
+      filterCategories();
+
+      // Also refresh the dynamic list in the sidebar if available
+      if (typeof window.loadSidebarCompetitiveCategories === "function") {
+        window.loadSidebarCompetitiveCategories();
+      }
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger"><i class="fa fa-exclamation-circle me-1"></i> Error loading categories: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  function updateStats() {
+    const total = allCategories.length;
+    const active = allCategories.filter(c => c.is_active !== false).length;
+    const totalTb = allCategories.reduce((acc, c) => acc + (c.textbook_count || 0), 0);
+    const totalTut = allCategories.reduce((acc, c) => acc + (c.tutorial_count || 0), 0);
+
+    document.getElementById("stat-total-categories").innerText = total;
+    document.getElementById("stat-active-categories").innerText = active;
+    document.getElementById("stat-total-textbooks").innerText = totalTb;
+    document.getElementById("stat-total-tutorials").innerText = totalTut;
+  }
+
+  function filterCategories() {
+    const search = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+    const status = document.getElementById("statusFilter").value;
+
+    const filtered = allCategories.filter(c => {
+      const matchStatus = status === "all" || (status === "active" && c.is_active !== false) || (status === "inactive" && c.is_active === false);
+      const name = (c.category_name || "").toLowerCase();
+      const desc = (c.description || "").toLowerCase();
+      const id = (c._id || "").toLowerCase();
+      const matchSearch = !search || name.includes(search) || desc.includes(search) || id.includes(search);
+      return matchStatus && matchSearch;
+    });
+
+    renderTable(filtered);
+  }
+
+  function renderTable(categories) {
+    const tbody = document.getElementById("categoriesTbody");
+    const countBadge = document.getElementById("tableRecordCount");
+    countBadge.innerText = `Showing ${categories.length} of ${allCategories.length} categories`;
+
+    if (categories.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-5">
+            <div class="text-muted mb-2"><i class="fa fa-folder-open-o fa-3x"></i></div>
+            <div class="fw-bold text-muted">No categories found</div>
+            <small class="text-muted">Click "Add Category" above to create an exam category.</small>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = categories.map((c, idx) => {
+      const cId = c._id || "";
+      const icon = (c.icon && c.icon.trim()) ? (c.icon.startsWith("fa-") ? c.icon : `fa-${c.icon}`) : "fa-bookmark";
+      const isActive = c.is_active !== false;
+      const tbCount = c.textbook_count || 0;
+      const tutCount = c.tutorial_count || 0;
+
+      return `
+        <tr>
+          <td class="text-center text-muted small">${idx + 1}</td>
+          <td>
+            <span class="badge-id" title="Click to copy ID" onclick="copyToClipboard('${cId}', event)">
+              <i class="fa fa-key text-muted" style="font-size: 10px;"></i>
+              <span>${cId}</span>
+              <button class="copy-btn" title="Copy"><i class="fa fa-clone"></i></button>
+            </span>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <span class="cat-icon-badge me-2"><i class="fa ${icon}"></i></span>
+              <div>
+                <div class="fw-bold text-dark">${escapeHtml(c.category_name)}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="text-muted small text-truncate" style="max-width: 280px;" title="${escapeHtml(c.description || '')}">
+              ${escapeHtml(c.description || '—')}
+            </div>
+          </td>
+          <td class="text-center">
+            <a href="/admin-panel/competitive-exams/manage-exams?category_id=${cId}&category=${encodeURIComponent(c.category_name)}" 
+               class="badge rounded-pill ${tbCount > 0 ? 'bg-primary' : 'bg-light text-muted border'} px-3 py-2 text-decoration-none" 
+               title="View ${tbCount} Textbooks">
+              <i class="fa fa-book me-1"></i> ${tbCount}
+            </a>
+          </td>
+          <td class="text-center">
+            <a href="/admin-panel/competitive-exams/tutorials?category_id=${cId}" 
+               class="badge rounded-pill ${tutCount > 0 ? 'bg-info text-white' : 'bg-light text-muted border'} px-3 py-2 text-decoration-none" 
+               title="View ${tutCount} Tutorials">
+              <i class="fa fa-youtube-play me-1"></i> ${tutCount}
+            </a>
+          </td>
+          <td class="text-center">
+            ${isActive 
+              ? '<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill small fw-semibold"><i class="fa fa-check me-1"></i> Active</span>' 
+              : '<span class="badge bg-secondary-subtle text-muted px-2 py-1 rounded-pill small fw-semibold"><i class="fa fa-times me-1"></i> Inactive</span>'}
+          </td>
+          <td class="text-end pe-3">
+            <div class="btn-group btn-group-sm" role="group">
+              <a href="/admin-panel/competitive-exams/upload-textbook?category_id=${cId}&category=${encodeURIComponent(c.category_name)}" 
+                 class="btn btn-outline-primary" title="Upload Textbook for ${escapeHtml(c.category_name)}">
+                <i class="fa fa-cloud-upload"></i>
+              </a>
+              <button type="button" class="btn btn-outline-secondary" onclick="openEditModal('${cId}')" title="Edit Category">
+                <i class="fa fa-pencil"></i>
+              </button>
+              <button type="button" class="btn btn-outline-danger" onclick="openDeleteModal('${cId}', '${escapeHtml(c.category_name)}', ${tbCount})" title="Delete Category">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function openAddModal() {
+    document.getElementById("addCategoryForm").reset();
+    document.getElementById("new_cat_active").checked = true;
+    const alertBox = document.getElementById("addCatAlert");
+    if (alertBox) alertBox.classList.add("d-none");
+    if (!addModalObj) {
+      addModalObj = new bootstrap.Modal(document.getElementById("addCategoryModal"));
+    }
+    addModalObj.show();
+  }
+
+  async function submitNewCategory(e) {
+    e.preventDefault();
+    const btn = document.getElementById("saveCatBtn");
+    const alertBox = document.getElementById("addCatAlert");
+    alertBox.classList.add("d-none");
+
+    const catName = document.getElementById("new_cat_name").value.trim();
+    const catDesc = document.getElementById("new_cat_desc").value.trim();
+    const catIcon = document.getElementById("new_cat_icon").value.trim();
+    const isActive = document.getElementById("new_cat_active").checked;
+
+    if (!catName) {
+      alertBox.textContent = "Please enter a category name.";
+      alertBox.classList.remove("d-none");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving...';
+
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = "Bearer " + token;
+
+      const res = await fetch("/admin-panel/competitive-exams/categories", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({
+          category_name: catName,
+          description: catDesc,
+          icon: catIcon,
+          is_active: isActive
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to create category");
+      }
+
+      if (addModalObj) addModalObj.hide();
+      showToast(`Category '${catName}' created successfully!`, "success");
+      await loadCategoriesTable();
+    } catch (err) {
+      alertBox.textContent = err.message;
+      alertBox.classList.remove("d-none");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-save me-1"></i> Save Category';
+    }
+  }
+
+  function openEditModal(catId) {
+    const cat = allCategories.find(c => String(c._id) === String(catId));
+    if (!cat) return;
+
+    document.getElementById("edit_cat_id").value = cat._id;
+    document.getElementById("edit_cat_id_display").innerText = cat._id;
+    document.getElementById("edit_cat_name").value = cat.category_name || "";
+    document.getElementById("edit_cat_desc").value = cat.description || "";
+    document.getElementById("edit_cat_icon").value = cat.icon || "fa-bookmark";
+    document.getElementById("edit_cat_active").checked = cat.is_active !== false;
+
+    const alertBox = document.getElementById("editCatAlert");
+    if (alertBox) alertBox.classList.add("d-none");
+
+    if (!editModalObj) {
+      editModalObj = new bootstrap.Modal(document.getElementById("editCategoryModal"));
+    }
+    editModalObj.show();
+  }
+
+  async function submitEditCategory(e) {
+    e.preventDefault();
+    const btn = document.getElementById("updateCatBtn");
+    const alertBox = document.getElementById("editCatAlert");
+    alertBox.classList.add("d-none");
+
+    const catId = document.getElementById("edit_cat_id").value;
+    const catName = document.getElementById("edit_cat_name").value.trim();
+    const catDesc = document.getElementById("edit_cat_desc").value.trim();
+    const catIcon = document.getElementById("edit_cat_icon").value.trim();
+    const isActive = document.getElementById("edit_cat_active").checked;
+
+    if (!catName) {
+      alertBox.textContent = "Please enter a category name.";
+      alertBox.classList.remove("d-none");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Updating...';
+
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = "Bearer " + token;
+
+      const res = await fetch(`/admin-panel/competitive-exams/categories/${catId}`, {
+        method: "PUT",
+        headers: headers,
+        body: JSON.stringify({
+          category_name: catName,
+          description: catDesc,
+          icon: catIcon,
+          is_active: isActive
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to update category");
+      }
+
+      if (editModalObj) editModalObj.hide();
+      showToast(`Category '${catName}' updated successfully!`, "success");
+      await loadCategoriesTable();
+    } catch (err) {
+      alertBox.textContent = err.message;
+      alertBox.classList.remove("d-none");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-check me-1"></i> Update Category';
+    }
+  }
+
+  function openDeleteModal(catId, catName, tbCount) {
+    categoryPendingDelete = catId;
+    let message = `Are you sure you want to delete category <strong>${escapeHtml(catName)}</strong>?`;
+    if (tbCount > 0) {
+      message += `<br><span class="text-danger fw-bold mt-2 d-block"><i class="fa fa-warning me-1"></i> Warning: This category has ${tbCount} uploaded textbook(s) linked to it.</span>`;
+    }
+    document.getElementById("deleteModalMessage").innerHTML = message;
+
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+    confirmBtn.onclick = () => performDeleteCategory(catId);
+
+    if (!deleteModalObj) {
+      deleteModalObj = new bootstrap.Modal(document.getElementById("deleteCategoryModal"));
+    }
+    deleteModalObj.show();
+  }
+
+  async function performDeleteCategory(catId) {
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Deleting...';
+
+    try {
+      const headers = {};
+      if (token) headers["Authorization"] = "Bearer " + token;
+
+      const res = await fetch(`/admin-panel/competitive-exams/categories/${catId}`, {
+        method: "DELETE",
+        headers: headers
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to delete category");
+      }
+
+      if (deleteModalObj) deleteModalObj.hide();
+      showToast("Category deleted successfully!", "success");
+      await loadCategoriesTable();
+    } catch (err) {
+      showToast(err.message, "danger");
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = 'Delete';
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadCategoriesTable();
+  });
+</script>
+{% endblock %}

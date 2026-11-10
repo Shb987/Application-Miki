@@ -15,22 +15,6 @@ from app.utils.timezone_utils import get_ist_now, to_ist_iso
 router = APIRouter(tags=["Competitive Exams - User"])
 
 # ---------------------------------------------------------------------------
-# DEFAULT SEEDS (Identical to Admin configuration)
-# ---------------------------------------------------------------------------
-DEFAULT_CATEGORIES = [
-    {"category_name": "UPSC Civil Services", "description": "Union Public Service Commission examinations (IAS, IPS, IFS, Prelims, Mains)", "icon": "fa-university", "is_active": True},
-    {"category_name": "Kerala PSC", "description": "Kerala Public Service Commission examinations (KAS, Degree Level, 10th/12th Level)", "icon": "fa-certificate", "is_active": True},
-    {"category_name": "SSC", "description": "Staff Selection Commission examinations (CGL, CHSL, MTS, CPO)", "icon": "fa-id-card", "is_active": True},
-    {"category_name": "Banking & Insurance", "description": "IBPS, SBI PO, Clerk, RBI Grade B, LIC AAO examinations", "icon": "fa-money", "is_active": True},
-    {"category_name": "Railway Recruitment", "description": "RRB NTPC, Group D, ALP, JE examinations", "icon": "fa-train", "is_active": True},
-    {"category_name": "Other State PSCs", "description": "TNPSC, APPSC, KPSC, MPSC, UPPSC and other State Public Service examinations", "icon": "fa-map", "is_active": True},
-    {"category_name": "Defence Examinations", "description": "NDA, CDS, AFCAT, CAPF, Territorial Army", "icon": "fa-shield", "is_active": True},
-    {"category_name": "Teaching & Eligibility", "description": "CTET, KTET, NET / SET, PRT, TGT, PGT examinations", "icon": "fa-graduation-cap", "is_active": True},
-    {"category_name": "NEET / JEE & Entrance", "description": "Medical, Engineering, and Higher Education Entrance examinations", "icon": "fa-flask", "is_active": True},
-    {"category_name": "Other Competitive Exams", "description": "General recruitment and skill-based competitive assessments", "icon": "fa-briefcase", "is_active": True}
-]
-
-# ---------------------------------------------------------------------------
 # HELPER FUNCTIONS
 # ---------------------------------------------------------------------------
 def serialize_mongo(data: Any) -> Any:
@@ -144,12 +128,6 @@ async def list_categories():
     Display the categories dynamically in the UI.
     When the user selects a category, pass the selected category object or identifier to the Tutorials API.
     """
-    count = await db.competitive_exam_categories.count_documents({})
-    if count == 0:
-        now = get_ist_now()
-        docs = [{**cat, "created_at": now, "updated_at": now} for cat in DEFAULT_CATEGORIES]
-        await db.competitive_exam_categories.insert_many(docs)
-
     categories = await db.competitive_exam_categories.find({"is_active": {"$ne": False}}).sort("category_name", 1).to_list(None)
 
     for cat in categories:
@@ -164,16 +142,17 @@ async def list_categories():
         })
         # Count available tutorials under this category
         cat["tutorial_count"] = await db.competitive_tutorials.count_documents({
-            "$or": [{"category_name": c_name}, {"exam_category": c_name}],
+            "$or": [{"category_id": c_id}, {"category_name": c_name}, {"exam_category": c_name}],
             "is_active": {"$ne": False}
         })
         # Count available textbooks under this category
         cat["textbook_count"] = await db.textbook.count_documents({
             "$or": [
-                {"exam_category": {"$regex": re.escape(c_name), "$options": "i"}},
-                {"category": {"$regex": re.escape(c_name), "$options": "i"}},
-                {"state": {"$regex": re.escape(c_name), "$options": "i"}},
-                {"board": {"$regex": re.escape(c_name), "$options": "i"}}
+                {"category_id": c_id},
+                {"exam_category": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}},
+                {"category": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}},
+                {"state": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}},
+                {"board": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}}
             ]
         })
 

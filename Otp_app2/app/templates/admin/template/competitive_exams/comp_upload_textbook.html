@@ -386,6 +386,10 @@
       catSel.value = catName;
       onCategoryChange();
 
+      if (typeof window.loadSidebarCompetitiveCategories === "function") {
+        window.loadSidebarCompetitiveCategories();
+      }
+
       if (addCatModalObj) addCatModalObj.hide();
     } catch (err) {
       alertBox.textContent = err.message;
@@ -400,16 +404,22 @@
     // Read URL query params if pre-selected
     const urlParams = new URLSearchParams(window.location.search);
     const preCat = urlParams.get('category');
+    const preCatId = urlParams.get('category_id');
     const preExamId = urlParams.get('exam_id');
     const preExamName = urlParams.get('exam_name');
 
     await loadCategories();
     await loadExams();
 
-    if (preCat) {
-      const catOpt = Array.from(document.getElementById("exam_category").options).find(o => o.value === preCat);
-      if (catOpt) catOpt.selected = true;
-      onCategoryChange();
+    if (preCatId || preCat) {
+      const catOpt = Array.from(document.getElementById("exam_category").options).find(o => 
+        (preCatId && o.getAttribute("data-id") === preCatId) || 
+        (preCat && o.value.toLowerCase() === preCat.toLowerCase())
+      );
+      if (catOpt) {
+        catOpt.selected = true;
+        onCategoryChange();
+      }
     }
     if (preExamId) {
       document.getElementById("exam_id").value = preExamId;
@@ -519,8 +529,15 @@
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Staging &amp; Ingesting...';
 
+    const catSel = document.getElementById("exam_category");
+    const selectedCatOpt = catSel.options[catSel.selectedIndex];
+    const catId = selectedCatOpt ? (selectedCatOpt.getAttribute("data-id") || "") : "";
+
     const formData = new FormData();
-    formData.append("exam_category", document.getElementById("exam_category").value);
+    formData.append("exam_category", catSel.value);
+    if (catId) {
+      formData.append("category_id", catId);
+    }
     formData.append("exam_name", document.getElementById("exam_name").value);
     formData.append("exam_id", document.getElementById("exam_id").value);
     formData.append("exam_year", document.getElementById("exam_year").value);

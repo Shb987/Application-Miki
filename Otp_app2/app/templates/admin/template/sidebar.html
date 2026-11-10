@@ -223,11 +223,14 @@
             </svg>
             <span>Competitive Exams</span>
           </a>
-          <ul class="sidebar-submenu">
+          <ul class="sidebar-submenu" id="competitive-exams-submenu">
+            <li><a href="/admin-panel/competitive-exams/manage-categories">Add Category</a></li>
             <li><a href="/admin-panel/competitive-exams/upload-textbook">Upload Textbooks</a></li>
             <li><a href="/admin-panel/competitive-exams/manage-exams">Manage Exams</a></li>
             <li><a href="/admin-panel/competitive-exams/generate-questions">Generate Question Papers</a></li>
             <li><a href="/admin-panel/competitive-exams/tutorials">Tutorials</a></li>
+            <li class="sidebar-category-heading" id="sidebar-comp-cat-heading" style="display: none; padding: 10px 16px 4px 16px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.7; font-weight: 700; color: #a594ff;">Categories</li>
+            <div id="sidebar-dynamic-categories"></div>
           </ul>
         </li>
 
@@ -409,10 +412,57 @@
     }
   }
 
+  async function loadSidebarCompetitiveCategories() {
+    try {
+      const container = document.getElementById("sidebar-dynamic-categories");
+      const heading = document.getElementById("sidebar-comp-cat-heading");
+      if (!container) return;
+
+      const token = localStorage.getItem("admin_token") || localStorage.getItem("access_token");
+      const headers = {};
+      if (token) headers["Authorization"] = "Bearer " + token;
+
+      let res = await fetch("/admin-panel/competitive-exams/categories", { headers });
+      if (!res.ok) {
+        res = await fetch("/user/competitive-exams/categories");
+      }
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const cats = (data.categories || []).filter(c => c.is_active !== false);
+
+      container.innerHTML = "";
+      if (cats.length > 0 && heading) {
+        heading.style.display = "block";
+      } else if (heading) {
+        heading.style.display = "none";
+      }
+
+      cats.forEach(c => {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        const iconName = (c.icon && c.icon.trim()) ? (c.icon.startsWith("fa-") ? c.icon : `fa-${c.icon}`) : "fa-folder-o";
+        a.href = `/admin-panel/competitive-exams/manage-exams?category_id=${encodeURIComponent(c._id)}&category=${encodeURIComponent(c.category_name)}`;
+        a.innerHTML = `<i class="fa ${iconName} me-2" style="font-size: 11px; width: 14px; text-align: center;"></i><span>${c.category_name}</span>`;
+        a.title = `${c.category_name} (${c.textbook_count || 0} textbooks)`;
+        li.appendChild(a);
+        container.appendChild(li);
+      });
+
+      if (typeof window.highlightActiveSidebar === "function") {
+        window.highlightActiveSidebar();
+      }
+    } catch (err) {
+      console.warn("Failed to load dynamic competitive categories in sidebar", err);
+    }
+  }
+
   window.highlightActiveSidebar = highlightActiveSidebar;
+  window.loadSidebarCompetitiveCategories = loadSidebarCompetitiveCategories;
 
   document.addEventListener("DOMContentLoaded", function () {
     highlightActiveSidebar();
+    loadSidebarCompetitiveCategories();
   });
 
   window.addEventListener("popstate", function () {

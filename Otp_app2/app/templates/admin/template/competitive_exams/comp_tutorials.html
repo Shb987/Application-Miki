@@ -665,6 +665,10 @@
       const tutCat = document.getElementById("tutCategory");
       tutCat.value = catName;
 
+      if (typeof window.loadSidebarCompetitiveCategories === "function") {
+        window.loadSidebarCompetitiveCategories();
+      }
+
       if (addCatModalObj) addCatModalObj.hide();
       showToast(`Category '${catName}' added successfully!`, "success");
     } catch (err) {

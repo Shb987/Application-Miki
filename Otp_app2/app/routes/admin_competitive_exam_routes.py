@@ -52,35 +52,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 GENERATED_PDF_DIR = "app/static/generated_papers"
 os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
 
-# Purge unused competitive exams template files removed from navigation
-for _unused_tmpl in [
-    "app/templates/admin/template/competitive_exams/comp_dashboard.html",
-    "app/templates/admin/template/competitive_exams/comp_categories.html",
-    "app/templates/admin/template/competitive_exams/comp_textbooks.html",
-    "app/templates/admin/template/competitive_exams/comp_chapters.html",
-    "app/templates/admin/template/competitive_exams/comp_generated_papers.html",
-    "app/templates/admin/template/competitive_exams/comp_exams.html"
-]:
-    if os.path.exists(_unused_tmpl):
-        try:
-            os.remove(_unused_tmpl)
-            print(f"[CLEANUP] Deleted removed template file: {_unused_tmpl}")
-        except Exception as _e:
-            pass
-
-DEFAULT_CATEGORIES = [
-    {"category_name": "UPSC Civil Services", "description": "Union Public Service Commission examinations (IAS, IPS, IFS, Prelims, Mains)", "icon": "fa-university", "is_active": True},
-    {"category_name": "Kerala PSC", "description": "Kerala Public Service Commission examinations (KAS, Degree Level, 10th/12th Level)", "icon": "fa-certificate", "is_active": True},
-    {"category_name": "SSC", "description": "Staff Selection Commission examinations (CGL, CHSL, MTS, CPO)", "icon": "fa-id-card", "is_active": True},
-    {"category_name": "Banking & Insurance", "description": "IBPS, SBI PO, Clerk, RBI Grade B, LIC AAO examinations", "icon": "fa-money", "is_active": True},
-    {"category_name": "Railway Recruitment", "description": "RRB NTPC, Group D, ALP, JE examinations", "icon": "fa-train", "is_active": True},
-    {"category_name": "Other State PSCs", "description": "TNPSC, APPSC, KPSC, MPSC, UPPSC and other State Public Service examinations", "icon": "fa-map", "is_active": True},
-    {"category_name": "Defence Examinations", "description": "NDA, CDS, AFCAT, CAPF, Territorial Army", "icon": "fa-shield", "is_active": True},
-    {"category_name": "Teaching & Eligibility", "description": "CTET, KTET, NET / SET, PRT, TGT, PGT examinations", "icon": "fa-graduation-cap", "is_active": True},
-    {"category_name": "NEET / JEE & Entrance", "description": "Medical, Engineering, and Higher Education Entrance examinations", "icon": "fa-flask", "is_active": True},
-    {"category_name": "Other Competitive Exams", "description": "General recruitment and skill-based competitive assessments", "icon": "fa-briefcase", "is_active": True}
-]
-
 DEFAULT_EXAMS = [
     {
         "category_name": "UPSC Civil Services",
@@ -374,17 +345,47 @@ async def extract_text_via_vision(file_path: str, status_query: dict = None) -> 
 # --------------------------
 @router.get("/competitive-exams/categories")
 async def get_categories():
-    """Retrieve all competitive exam categories. Seeds default categories if collection is empty."""
-    count = await db.competitive_exam_categories.count_documents({})
-    if count == 0:
-        now = get_ist_now()
-        docs = [{**cat, "created_at": now, "updated_at": now} for cat in DEFAULT_CATEGORIES]
-        await db.competitive_exam_categories.insert_many(docs)
-    
+    """
+    Retrieve all competitive exam categories dynamically created by the admin.
+    Includes real-time counts of linked textbooks, tutorials, and exams.
+    """
     categories = await db.competitive_exam_categories.find({}).sort("category_name", 1).to_list(None)
     for c in categories:
-        c["_id"] = str(c["_id"])
-    return {"categories": categories}
+        c_id = str(c["_id"])
+        c["_id"] = c_id
+        c_name = c.get("category_name", "")
+
+        c["textbook_count"] = await db.textbook.count_documents({
+            "$or": [
+                {"category_id": c_id},
+                {"exam_category": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}},
+                {"category": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}},
+                {"state": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}},
+                {"board": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}}
+            ]
+        })
+        c["tutorial_count"] = await db.competitive_tutorials.count_documents({
+            "$or": [
+                {"category_id": c_id},
+                {"category_name": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}},
+                {"exam_category": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}}
+            ],
+            "is_active": {"$ne": False}
+        })
+        c["exam_count"] = await db.competitive_exams.count_documents({
+            "$or": [
+                {"category_id": c_id},
+                {"category_name": {"$regex": f"^{re.escape(c_name)}$", "$options": "i"}}
+            ],
+            "is_active": {"$ne": False}
+        })
+
+        if "created_at" in c:
+            c["created_at"] = to_ist_iso(c["created_at"])
+        if "updated_at" in c:
+            c["updated_at"] = to_ist_iso(c["updated_at"])
+
+    return {"status": "success", "total": len(categories), "categories": categories}
 
 
 @router.post("/competitive-exams/categories")
@@ -397,7 +398,7 @@ async def add_category(
     """
     Create a new competitive exam category in the admin panel.
     Persists to db.competitive_exam_categories so it dynamically shows up in
-    GET /user/competitive-exams/categories and the textbook upload form.
+    GET /user/competitive-exams/categories, the sidebar, and the textbook upload form.
     """
     category_name = None
     description = ""
@@ -462,6 +463,95 @@ async def add_category(
     }
 
 
+@router.put("/competitive-exams/categories/{category_id}")
+async def update_category(
+    category_id: str,
+    request: Request,
+    payload: Optional[dict] = Body(None),
+    current_admin: Optional[dict] = Depends(resolve_admin_user)
+):
+    """
+    Update an existing competitive exam category.
+    Reflects the changes across associated textbooks, tutorials, and exams.
+    """
+    if not category_id:
+        raise HTTPException(status_code=400, detail="Category ID is required.")
+
+    cat_query = {"_id": ObjectId(category_id)} if ObjectId.is_valid(category_id) else {"category_name": category_id}
+    existing = await db.competitive_exam_categories.find_one(cat_query)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Category not found.")
+
+    old_name = existing.get("category_name", "")
+
+    data = payload or {}
+    if not data:
+        try:
+            data = await request.json()
+        except Exception:
+            try:
+                form = await request.form()
+                data = dict(form)
+            except Exception:
+                pass
+
+    new_name = str(data.get("category_name") or existing.get("category_name", "")).strip()
+    new_desc = str(data.get("description") if "description" in data else existing.get("description", "")).strip()
+    new_icon = str(data.get("icon") or existing.get("icon", "fa-bookmark")).strip()
+    raw_active = data.get("is_active")
+    new_active = existing.get("is_active", True) if raw_active is None else (str(raw_active).lower() in ("true", "1", "yes", True))
+
+    if not new_name:
+        raise HTTPException(status_code=400, detail="Category name cannot be empty.")
+
+    # Check if name is taken by another category
+    if new_name.lower() != old_name.lower():
+        dup = await db.competitive_exam_categories.find_one({
+            "category_name": {"$regex": f"^{re.escape(new_name)}$", "$options": "i"},
+            "_id": {"$ne": existing["_id"]}
+        })
+        if dup:
+            raise HTTPException(status_code=400, detail=f"Category '{new_name}' already exists.")
+
+    now = get_ist_now()
+    update_fields = {
+        "category_name": new_name,
+        "description": new_desc,
+        "icon": new_icon,
+        "is_active": new_active,
+        "updated_at": now
+    }
+
+    await db.competitive_exam_categories.update_one({"_id": existing["_id"]}, {"$set": update_fields})
+
+    # Cascade category name update to linked textbooks, tutorials, and exams
+    cid_str = str(existing["_id"])
+    if old_name and new_name != old_name:
+        await db.textbook.update_many(
+            {"$or": [{"category_id": cid_str}, {"exam_category": old_name}]},
+            {"$set": {"exam_category": new_name, "category_id": cid_str, "state": new_name}}
+        )
+        await db.competitive_tutorials.update_many(
+            {"$or": [{"category_id": cid_str}, {"category_name": old_name}]},
+            {"$set": {"category_name": new_name, "category_id": cid_str}}
+        )
+        await db.competitive_exams.update_many(
+            {"$or": [{"category_id": cid_str}, {"category_name": old_name}]},
+            {"$set": {"category_name": new_name, "category_id": cid_str}}
+        )
+
+    updated_doc = await db.competitive_exam_categories.find_one({"_id": existing["_id"]})
+    updated_doc["_id"] = str(updated_doc["_id"])
+    updated_doc["created_at"] = to_ist_iso(updated_doc.get("created_at"))
+    updated_doc["updated_at"] = to_ist_iso(updated_doc.get("updated_at"))
+
+    return {
+        "status": "success",
+        "message": f"Category '{new_name}' updated successfully.",
+        "category": updated_doc
+    }
+
+
 @router.delete("/competitive-exams/categories/{category_id}")
 async def delete_category(
     category_id: str,
@@ -518,6 +608,7 @@ async def get_exams(category_id: Optional[str] = None):
 async def upload_full_textbook(
     background_tasks: BackgroundTasks,
     exam_category: str = Form(...),
+    category_id: Optional[str] = Form(None),
     exam_name: str = Form(...),
     exam_id: Optional[str] = Form(None),
     exam_year: Optional[str] = Form(None),
@@ -549,13 +640,17 @@ async def upload_full_textbook(
         
     now = get_ist_now()
 
-    cat_match = await db.competitive_exam_categories.find_one({
-        "$or": [
-            {"category_name": {"$regex": f"^{re.escape(exam_category.strip())}$", "$options": "i"}},
-            {"_id": ObjectId(exam_category.strip())} if ObjectId.is_valid(exam_category.strip()) else {"category_name": exam_category.strip()}
-        ]
-    })
-    category_id_val = str(cat_match["_id"]) if cat_match else None
+    cat_match = None
+    if category_id and ObjectId.is_valid(category_id.strip()):
+        cat_match = await db.competitive_exam_categories.find_one({"_id": ObjectId(category_id.strip())})
+    if not cat_match and exam_category and exam_category.strip():
+        cat_match = await db.competitive_exam_categories.find_one({
+            "$or": [
+                {"category_name": {"$regex": f"^{re.escape(exam_category.strip())}$", "$options": "i"}},
+                {"_id": ObjectId(exam_category.strip())} if ObjectId.is_valid(exam_category.strip()) else {"category_name": exam_category.strip()}
+            ]
+        })
+    category_id_val = str(cat_match["_id"]) if cat_match else (category_id.strip() if category_id else None)
     cat_name_val = cat_match.get("category_name", exam_category.strip()) if cat_match else exam_category.strip()
 
     textbook_doc = {

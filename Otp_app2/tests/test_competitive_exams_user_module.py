@@ -372,3 +372,101 @@ def test_objectid_serialization_in_fastapi():
     assert encoded["tutorials"][0]["video_links"][0]["vid_id"] == "6aeaf1c3627ae009c2f48b48"
 
 
+def test_update_category_cascades_name():
+    """Verify updating category name cascades updates across textbooks, tutorials, and exams."""
+    from app.routes.admin_competitive_exam_routes import update_category
+    import asyncio
+
+    cat_id = ObjectId("672900000000000000000088")
+    existing_cat = {
+        "_id": cat_id,
+        "category_name": "Old Category",
+        "description": "Old Description",
+        "icon": "fa-university",
+        "is_active": True
+    }
+    updated_cat = {
+        "_id": cat_id,
+        "category_name": "New Category",
+        "description": "Updated Description",
+        "icon": "fa-certificate",
+        "is_active": True
+    }
+
+    with patch("app.routes.admin_competitive_exam_routes.db") as mock_admin_db:
+        # 1st find_one is existing, 2nd is duplicate check (None), 3rd is reload updated_doc
+        mock_admin_db.competitive_exam_categories.find_one = AsyncMock(side_effect=[
+            existing_cat,
+            None,
+            updated_cat
+        ])
+        mock_admin_db.competitive_exam_categories.update_one = AsyncMock()
+        mock_admin_db.textbook.update_many = AsyncMock()
+        mock_admin_db.competitive_tutorials.update_many = AsyncMock()
+        mock_admin_db.competitive_exams.update_many = AsyncMock()
+
+        mock_req = MagicMock()
+        res = asyncio.run(update_category(
+            category_id=str(cat_id),
+            request=mock_req,
+            payload={
+                "category_name": "New Category",
+                "description": "Updated Description",
+                "icon": "fa-certificate",
+                "is_active": True
+            }
+        ))
+
+        assert res["status"] == "success"
+        assert res["category"]["category_name"] == "New Category"
+        # Verify cascade calls
+        mock_admin_db.textbook.update_many.assert_called_once()
+        mock_admin_db.competitive_tutorials.update_many.assert_called_once()
+        mock_admin_db.competitive_exams.update_many.assert_called_once()
+
+
+def test_delete_category():
+    """Verify deleting category removes it from DB."""
+    from app.routes.admin_competitive_exam_routes import delete_category
+    import asyncio
+
+    cat_id = ObjectId("672900000000000000000077")
+    with patch("app.routes.admin_competitive_exam_routes.db") as mock_admin_db:
+        mock_del_res = MagicMock()
+        mock_del_res.deleted_count = 1
+        mock_admin_db.competitive_exam_categories.delete_one = AsyncMock(return_value=mock_del_res)
+
+        res = asyncio.run(delete_category(category_id=str(cat_id)))
+        assert res["status"] == "success"
+        assert "deleted successfully" in res["message"]
+
+
+def test_sidebar_and_page_routes():
+    """Verify sidebar menu order and page template rendering."""
+    with open("app/templates/admin/template/sidebar.html", "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Verify menu structure and ordering under Competitive Exams
+    sub_menu_idx = content.find('id="competitive-exams-submenu"')
+    assert sub_menu_idx != -1
+
+    snippet = content[sub_menu_idx:sub_menu_idx + 1200]
+    pos_add_cat = snippet.find('/admin-panel/competitive-exams/manage-categories')
+    pos_upload = snippet.find('/admin-panel/competitive-exams/upload-textbook')
+    pos_manage = snippet.find('/admin-panel/competitive-exams/manage-exams')
+    pos_gen = snippet.find('/admin-panel/competitive-exams/generate-questions')
+    pos_tut = snippet.find('/admin-panel/competitive-exams/tutorials')
+    pos_dyn = snippet.find('id="sidebar-dynamic-categories"')
+
+    assert pos_add_cat != -1
+    assert pos_upload != -1
+    assert pos_manage != -1
+    assert pos_gen != -1
+    assert pos_tut != -1
+    assert pos_dyn != -1
+
+    # Verify ordering: Add Category -> Upload Textbooks -> Manage Exams -> Generate Question Papers -> Tutorials -> Dynamic Categories
+    assert pos_add_cat < pos_upload < pos_manage < pos_gen < pos_tut < pos_dyn
+
+
+

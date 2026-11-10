@@ -22,6 +22,7 @@ def test_list_categories_structure(mock_db):
             "category_name": "Kerala PSC",
             "description": "Kerala Public Service Commission examinations",
             "icon": "fa-certificate",
+            "cover_image": "/uploads/competitive_categories/kerala_psc.png",
             "is_active": True
         },
         {
@@ -50,6 +51,8 @@ def test_list_categories_structure(mock_db):
     assert len(cats) == 2
     assert cats[0]["category_name"] == "Kerala PSC"
     assert cats[0]["_id"] == str(sample_cat_id)
+    assert cats[0]["cover_image"] == "/uploads/competitive_categories/kerala_psc.png"
+    assert cats[1]["cover_image"] == ""
     assert cats[0]["exam_count"] == 5
     assert cats[0]["tutorial_count"] == 3
     assert cats[0]["textbook_count"] == 4
@@ -474,6 +477,93 @@ def test_sidebar_and_page_routes():
 
     # Verify individual categories list is removed from sidebar
     assert "id=\"sidebar-dynamic-categories\"" not in snippet
+
+
+def test_category_cover_image_crud_and_endpoints():
+    """Verify add_category, update_category, and get_categories handle cover_image properly."""
+    from app.routes.admin_competitive_exam_routes import add_category, update_category, get_categories
+    from fastapi import Request
+    import asyncio
+    import io
+
+    # Mock DB in admin routes
+    with patch("app.routes.admin_competitive_exam_routes.db") as mock_admin_db:
+        # 1. Test get_categories returns cover_image
+        cat_id = ObjectId("672900000000000000000099")
+        sample_cat = {
+            "_id": cat_id,
+            "category_name": "SSC",
+            "description": "Staff Selection Commission",
+            "icon": "fa-id-card",
+            "cover_image": "/uploads/competitive_categories/ssc_banner.png",
+            "is_active": True
+        }
+        cursor = MagicMock()
+        cursor.sort.return_value.to_list = AsyncMock(return_value=[sample_cat])
+        mock_admin_db.competitive_exam_categories.find.return_value = cursor
+        mock_admin_db.textbook.count_documents = AsyncMock(return_value=2)
+        mock_admin_db.competitive_tutorials.count_documents = AsyncMock(return_value=1)
+        mock_admin_db.competitive_exams.count_documents = AsyncMock(return_value=3)
+
+        get_res = asyncio.run(get_categories())
+        assert get_res["status"] == "success"
+        assert len(get_res["categories"]) == 1
+        assert get_res["categories"][0]["cover_image"] == "/uploads/competitive_categories/ssc_banner.png"
+
+        # 2. Test add_category with JSON payload containing cover_image
+        mock_admin_db.competitive_exam_categories.find_one = AsyncMock(return_value=None)
+        inserted_id = ObjectId("672900000000000000000100")
+        mock_admin_db.competitive_exam_categories.insert_one = AsyncMock(
+            return_value=MagicMock(inserted_id=inserted_id)
+        )
+
+        mock_req = MagicMock(spec=Request)
+        mock_req.headers = {"content-type": "application/json"}
+        mock_req.json = AsyncMock(return_value={
+            "category_name": "Banking & Insurance",
+            "description": "IBPS, SBI PO, Clerk exams",
+            "icon": "fa-money",
+            "cover_image": "/uploads/competitive_categories/banking_cover.jpg",
+            "is_active": True
+        })
+
+        add_res = asyncio.run(add_category(request=mock_req))
+        assert add_res["status"] == "success"
+        assert add_res["category"]["category_name"] == "Banking & Insurance"
+        assert add_res["category"]["cover_image"] == "/uploads/competitive_categories/banking_cover.jpg"
+
+        # 3. Test update_category updates cover_image
+        existing_doc = {
+            "_id": inserted_id,
+            "category_name": "Banking & Insurance",
+            "description": "IBPS, SBI PO, Clerk exams",
+            "icon": "fa-money",
+            "cover_image": "/uploads/competitive_categories/banking_cover.jpg",
+            "is_active": True
+        }
+        updated_doc = {
+            **existing_doc,
+            "cover_image": "/uploads/competitive_categories/banking_new.jpg"
+        }
+        mock_admin_db.competitive_exam_categories.find_one = AsyncMock(
+            side_effect=[existing_doc, updated_doc]
+        )
+        mock_admin_db.competitive_exam_categories.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+        mock_admin_db.textbook.update_many = AsyncMock()
+        mock_admin_db.competitive_tutorials.update_many = AsyncMock()
+        mock_admin_db.competitive_exams.update_many = AsyncMock()
+
+        update_req = MagicMock(spec=Request)
+        update_req.headers = {"content-type": "application/json"}
+        update_req.json = AsyncMock(return_value={
+            "category_name": "Banking & Insurance",
+            "cover_image": "/uploads/competitive_categories/banking_new.jpg"
+        })
+
+        up_res = asyncio.run(update_category(category_id=str(inserted_id), request=update_req))
+        assert up_res["status"] == "success"
+        assert up_res["category"]["cover_image"] == "/uploads/competitive_categories/banking_new.jpg"
+
 
 
 

@@ -11,6 +11,9 @@ import re
 import asyncio
 import base64
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import db
 from app.utils.timezone_utils import get_ist_now, to_ist_iso
@@ -51,6 +54,52 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 GENERATED_PDF_DIR = "app/static/generated_papers"
 os.makedirs(GENERATED_PDF_DIR, exist_ok=True)
+
+UPLOAD_CATEGORY_DIR = "app/static/uploads/competitive_categories"
+os.makedirs(UPLOAD_CATEGORY_DIR, exist_ok=True)
+ALLOWED_CATEGORY_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"}
+
+async def save_category_cover_image(upload_file: UploadFile) -> Optional[str]:
+    """
+    Save an uploaded category cover image to app/static/uploads/competitive_categories.
+    Returns relative web URL path (e.g. '/uploads/competitive_categories/cat_xxx.png').
+    """
+    if not upload_file or not getattr(upload_file, "filename", None):
+        return None
+    raw_name = os.path.basename(upload_file.filename)
+    if not raw_name:
+        return None
+    ext = os.path.splitext(raw_name)[1].lower()
+    if ext not in ALLOWED_CATEGORY_IMAGE_EXTS:
+        ext = ".png"
+    safe_stem = re.sub(r'[^a-zA-Z0-9_\-]', '_', os.path.splitext(raw_name)[0])[:32]
+    filename = f"cat_{uuid.uuid4().hex[:10]}_{safe_stem}{ext}"
+    dest_path = os.path.join(UPLOAD_CATEGORY_DIR, filename)
+
+    try:
+        content = await upload_file.read()
+        if not content:
+            return None
+        with open(dest_path, "wb") as f:
+            f.write(content)
+        return f"/uploads/competitive_categories/{filename}"
+    except Exception as e:
+        logger.error(f"Error saving category cover image: {e}")
+        return None
+
+def remove_category_cover_image_file(image_url: Optional[str]):
+    """Safely delete category cover image file from disk if it exists in UPLOAD_CATEGORY_DIR."""
+    if not image_url or not isinstance(image_url, str):
+        return
+    prefix = "/uploads/competitive_categories/"
+    if image_url.startswith(prefix):
+        filename = image_url[len(prefix):]
+        file_path = os.path.join(UPLOAD_CATEGORY_DIR, filename)
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                logger.warning(f"Error removing old category cover image {file_path}: {e}")
 
 DEFAULT_EXAMS = [
     {
@@ -354,6 +403,7 @@ async def get_categories():
         c_id = str(c["_id"])
         c["_id"] = c_id
         c_name = c.get("category_name", "")
+        c["cover_image"] = c.get("cover_image") or ""
 
         c["textbook_count"] = await db.textbook.count_documents({
             "$or": [
@@ -392,34 +442,38 @@ async def get_categories():
 @router.post("/competitive-exams/categories/add")
 async def add_category(
     request: Request,
-    payload: Optional[CompetitiveCategoryCreateRequest] = Body(None),
+    payload: Optional[Any] = Body(None),
     current_admin: Optional[dict] = Depends(resolve_admin_user)
 ):
     """
     Create a new competitive exam category in the admin panel.
     Persists to db.competitive_exam_categories so it dynamically shows up in
     GET /user/competitive-exams/categories, the sidebar, and the textbook upload form.
+    Supports multipart/form-data (with file upload), application/json, and direct payload model.
     """
     category_name = None
     description = ""
     icon = "fa-bookmark"
     is_active = True
+    cover_image_url = ""
 
-    if payload and payload.category_name:
-        category_name = payload.category_name
-        description = payload.description or ""
-        icon = payload.icon or "fa-bookmark"
-        is_active = payload.is_active
-    else:
-        # Fallback to reading request json or form body
-        try:
-            body = await request.json()
-            if isinstance(body, dict):
-                category_name = body.get("category_name")
-                description = body.get("description", "")
-                icon = body.get("icon", "fa-bookmark")
-                is_active = body.get("is_active", True)
-        except Exception:
+    if payload:
+        if hasattr(payload, "category_name") and payload.category_name:
+            category_name = payload.category_name
+            description = getattr(payload, "description", "") or ""
+            icon = getattr(payload, "icon", "fa-bookmark") or "fa-bookmark"
+            is_active = getattr(payload, "is_active", True)
+            cover_image_url = getattr(payload, "cover_image", "") or ""
+        elif isinstance(payload, dict) and payload.get("category_name"):
+            category_name = payload.get("category_name")
+            description = payload.get("description", "") or ""
+            icon = payload.get("icon", "fa-bookmark") or "fa-bookmark"
+            is_active = payload.get("is_active", True)
+            cover_image_url = payload.get("cover_image", "") or ""
+
+    if not category_name and request is not None:
+        content_type = request.headers.get("content-type", "") if hasattr(request, "headers") else ""
+        if "multipart/form-data" in content_type:
             try:
                 form = await request.form()
                 category_name = form.get("category_name")
@@ -427,6 +481,26 @@ async def add_category(
                 icon = form.get("icon", "fa-bookmark")
                 raw_active = form.get("is_active", "true")
                 is_active = str(raw_active).lower() in ("true", "1", "yes")
+
+                file_obj = form.get("cover_image")
+                if file_obj and hasattr(file_obj, "filename") and file_obj.filename:
+                    saved_url = await save_category_cover_image(file_obj)
+                    if saved_url:
+                        cover_image_url = saved_url
+                elif isinstance(file_obj, str) and file_obj.strip():
+                    cover_image_url = file_obj.strip()
+            except Exception:
+                pass
+        else:
+            try:
+                body = await request.json()
+                if isinstance(body, dict):
+                    category_name = body.get("category_name")
+                    description = body.get("description", "")
+                    icon = body.get("icon", "fa-bookmark")
+                    raw_active = body.get("is_active", True)
+                    is_active = str(raw_active).lower() in ("true", "1", "yes") if not isinstance(raw_active, bool) else raw_active
+                    cover_image_url = str(body.get("cover_image") or "").strip()
             except Exception:
                 pass
 
@@ -447,12 +521,14 @@ async def add_category(
         "category_name": category_name,
         "description": str(description).strip() if description else f"{category_name} examinations",
         "icon": str(icon).strip() if icon else "fa-bookmark",
+        "cover_image": cover_image_url,
         "is_active": bool(is_active),
         "created_at": now,
         "updated_at": now
     }
     result = await db.competitive_exam_categories.insert_one(new_doc)
     new_doc["_id"] = str(result.inserted_id)
+    new_doc["cover_image"] = new_doc.get("cover_image") or ""
     new_doc["created_at"] = to_ist_iso(new_doc["created_at"])
     new_doc["updated_at"] = to_ist_iso(new_doc["updated_at"])
 
@@ -464,15 +540,17 @@ async def add_category(
 
 
 @router.put("/competitive-exams/categories/{category_id}")
+@router.post("/competitive-exams/categories/{category_id}")
 async def update_category(
     category_id: str,
     request: Request,
-    payload: Optional[dict] = Body(None),
+    payload: Optional[Any] = Body(None),
     current_admin: Optional[dict] = Depends(resolve_admin_user)
 ):
     """
     Update an existing competitive exam category.
     Reflects the changes across associated textbooks, tutorials, and exams.
+    Supports multipart/form-data (with file upload/replacement/removal), JSON, and payload objects.
     """
     if not category_id:
         raise HTTPException(status_code=400, detail="Category ID is required.")
@@ -483,23 +561,52 @@ async def update_category(
         raise HTTPException(status_code=404, detail="Category not found.")
 
     old_name = existing.get("category_name", "")
+    old_cover_image = existing.get("cover_image") or ""
+    new_cover_image = old_cover_image
 
-    data = payload or {}
-    if not data:
-        try:
-            data = await request.json()
-        except Exception:
+    data = {}
+    if payload:
+        if isinstance(payload, dict):
+            data = payload
+        elif hasattr(payload, "__dict__"):
+            data = {k: v for k, v in payload.__dict__.items() if not k.startswith("_")}
+
+    content_type = request.headers.get("content-type", "") if (request is not None and hasattr(request, "headers")) else ""
+    if not data and request is not None:
+        if "multipart/form-data" in content_type:
             try:
                 form = await request.form()
                 data = dict(form)
+                remove_image = str(form.get("remove_cover_image", "")).lower() in ("true", "1", "yes")
+                if remove_image:
+                    remove_category_cover_image_file(old_cover_image)
+                    new_cover_image = ""
+
+                file_obj = form.get("cover_image")
+                if file_obj and hasattr(file_obj, "filename") and file_obj.filename:
+                    remove_category_cover_image_file(old_cover_image)
+                    saved_url = await save_category_cover_image(file_obj)
+                    if saved_url:
+                        new_cover_image = saved_url
             except Exception:
                 pass
+        else:
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
 
     new_name = str(data.get("category_name") or existing.get("category_name", "")).strip()
     new_desc = str(data.get("description") if "description" in data else existing.get("description", "")).strip()
     new_icon = str(data.get("icon") or existing.get("icon", "fa-bookmark")).strip()
     raw_active = data.get("is_active")
     new_active = existing.get("is_active", True) if raw_active is None else (str(raw_active).lower() in ("true", "1", "yes", True))
+
+    if "remove_cover_image" in data and str(data["remove_cover_image"]).lower() in ("true", "1", "yes"):
+        remove_category_cover_image_file(old_cover_image)
+        new_cover_image = ""
+    elif "cover_image" in data and not ("multipart/form-data" in content_type and hasattr(data.get("cover_image"), "filename")):
+        new_cover_image = str(data["cover_image"] or "").strip()
 
     if not new_name:
         raise HTTPException(status_code=400, detail="Category name cannot be empty.")
@@ -518,6 +625,7 @@ async def update_category(
         "category_name": new_name,
         "description": new_desc,
         "icon": new_icon,
+        "cover_image": new_cover_image,
         "is_active": new_active,
         "updated_at": now
     }
@@ -541,7 +649,10 @@ async def update_category(
         )
 
     updated_doc = await db.competitive_exam_categories.find_one({"_id": existing["_id"]})
-    updated_doc["_id"] = str(updated_doc["_id"])
+    if not updated_doc:
+        updated_doc = {**existing, **update_fields}
+    updated_doc["_id"] = str(updated_doc.get("_id", existing["_id"]))
+    updated_doc["cover_image"] = updated_doc.get("cover_image") or ""
     updated_doc["created_at"] = to_ist_iso(updated_doc.get("created_at"))
     updated_doc["updated_at"] = to_ist_iso(updated_doc.get("updated_at"))
 
@@ -559,6 +670,7 @@ async def delete_category(
 ):
     """
     Delete a competitive exam category by its ID.
+    Cleans up associated cover image if present.
     """
     if not category_id:
         raise HTTPException(status_code=400, detail="Category ID is required.")
@@ -569,6 +681,14 @@ async def delete_category(
     else:
         query["category_name"] = category_id
 
+    try:
+        maybe_coro = db.competitive_exam_categories.find_one(query)
+        if asyncio.iscoroutine(maybe_coro) or hasattr(maybe_coro, "__await__"):
+            existing = await maybe_coro
+            if existing:
+                remove_category_cover_image_file(existing.get("cover_image"))
+    except Exception:
+        pass
     res = await db.competitive_exam_categories.delete_one(query)
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Category not found.")

@@ -9,6 +9,7 @@ class CompetitiveCategoryCreateRequest(BaseModel):
     category_name: str = Field(..., description="Competitive exam category name, e.g. 'Kerala PSC', 'UPSC Civil Services'")
     description: Optional[str] = Field(None, description="Optional description of the category")
     icon: Optional[str] = Field("fa-bookmark", description="FontAwesome icon class, e.g. 'fa-graduation-cap'")
+    cover_image: Optional[str] = Field(None, description="Cover image URL or relative path")
     is_active: bool = Field(True, description="Whether the category is active")
 
 class CompetitiveCategoryResponse(BaseModel):

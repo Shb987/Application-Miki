@@ -40,6 +40,21 @@
     background: rgba(69, 43, 144, 0.08);
     color: #452b90;
   }
+  .cat-cover-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
+  .image-preview-box {
+    max-height: 110px;
+    max-width: 220px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #cbd5e1;
+  }
   .stat-card-custom {
     border: 0;
     border-radius: 12px;
@@ -89,6 +104,14 @@
   .dark-only .cat-icon-badge {
     background: rgba(165, 148, 255, 0.15) !important;
     color: #a594ff !important;
+  }
+  body.dark-only .cat-cover-thumb,
+  .dark-only .cat-cover-thumb {
+    border-color: #334155 !important;
+  }
+  body.dark-only .image-preview-box,
+  .dark-only .image-preview-box {
+    border-color: #334155 !important;
   }
   body.dark-only .form-control,
   body.dark-only .form-select,
@@ -302,6 +325,17 @@
               <option value="fa-bookmark">General</option>
             </select>
           </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Cover Image (Optional)</label>
+            <input type="file" id="new_cat_image" class="form-control rounded-3" accept="image/png,image/jpeg,image/webp,image/jpg" onchange="previewNewCoverImage(this)">
+            <div class="form-text small text-muted">Upload a banner or thumbnail for this exam category (PNG, JPG, WEBP).</div>
+            <div id="new_cat_image_preview_container" class="mt-2 d-none position-relative d-inline-block">
+              <img id="new_cat_image_preview" src="" alt="Cover Preview" class="image-preview-box shadow-sm">
+              <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle p-0" style="transform: translate(30%, -30%); width: 22px; height: 22px; line-height: 20px; text-align: center;" onclick="clearNewCoverImage()" title="Remove selected image">
+                <i class="fa fa-times small"></i>
+              </button>
+            </div>
+          </div>
           <div class="form-check form-switch mb-3">
             <input class="form-check-input" type="checkbox" id="new_cat_active" checked>
             <label class="form-check-label fw-medium" for="new_cat_active">Active Category</label>
@@ -358,6 +392,30 @@
               <option value="fa-briefcase">General Recruitment</option>
               <option value="fa-bookmark">General</option>
             </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Cover Image</label>
+            <div id="edit_cat_current_image_container" class="mb-2 d-none">
+              <div class="small text-muted mb-1">Current Cover Image:</div>
+              <div class="d-flex align-items-center gap-2">
+                <img id="edit_cat_current_image" src="" alt="Current Cover" class="image-preview-box shadow-sm">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="toggleRemoveCoverImage()" id="btn_remove_edit_image" title="Remove current cover image">
+                  <i class="fa fa-trash me-1"></i> Remove Image
+                </button>
+              </div>
+              <div id="edit_cat_removed_badge" class="badge bg-danger-subtle text-danger mt-1 d-none">Image will be removed upon saving</div>
+            </div>
+            
+            <input type="file" id="edit_cat_image" class="form-control rounded-3" accept="image/png,image/jpeg,image/webp,image/jpg" onchange="previewEditCoverImage(this)">
+            <div class="form-text small text-muted">Upload an image file to add or update the category cover image.</div>
+            
+            <div id="edit_cat_new_preview_container" class="mt-2 d-none position-relative d-inline-block">
+              <span class="small text-muted d-block mb-1">New Image Preview:</span>
+              <img id="edit_cat_new_preview" src="" alt="New Cover Preview" class="image-preview-box shadow-sm">
+              <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle p-0" style="transform: translate(30%, -30%); width: 22px; height: 22px; line-height: 20px; text-align: center;" onclick="clearEditCoverImage()" title="Cancel image selection">
+                <i class="fa fa-times small"></i>
+              </button>
+            </div>
           </div>
           <div class="form-check form-switch mb-3">
             <input class="form-check-input" type="checkbox" id="edit_cat_active">
@@ -552,13 +610,16 @@
       const isActive = c.is_active !== false;
       const tbCount = c.textbook_count || 0;
       const tutCount = c.tutorial_count || 0;
+      const coverImgHtml = (c.cover_image && c.cover_image.trim()) 
+        ? `<img src="${escapeHtml(c.cover_image)}" alt="" class="cat-cover-thumb me-2" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';"><span class="cat-icon-badge me-2" style="display:none;"><i class="fa ${icon}"></i></span>`
+        : `<span class="cat-icon-badge me-2"><i class="fa ${icon}"></i></span>`;
 
       return `
         <tr data-id="${cId}">
           <td class="text-center text-muted small">${idx + 1}</td>
           <td>
             <div class="d-flex align-items-center">
-              <span class="cat-icon-badge me-2"><i class="fa ${icon}"></i></span>
+              ${coverImgHtml}
               <div>
                 <div class="fw-bold text-dark">${escapeHtml(c.category_name)}</div>
               </div>
@@ -607,8 +668,72 @@
     }).join("");
   }
 
+  // ── Cover Image Preview & Clear Helpers ─────────────────────────────
+  function clearNewCoverImage() {
+    const fileInput = document.getElementById("new_cat_image");
+    if (fileInput) fileInput.value = "";
+    const previewContainer = document.getElementById("new_cat_image_preview_container");
+    if (previewContainer) previewContainer.classList.add("d-none");
+    const previewImg = document.getElementById("new_cat_image_preview");
+    if (previewImg) previewImg.src = "";
+  }
+
+  function previewNewCoverImage(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById("new_cat_image_preview").src = e.target.result;
+        document.getElementById("new_cat_image_preview_container").classList.remove("d-none");
+      };
+      reader.readAsDataURL(input.files[0]);
+    } else {
+      clearNewCoverImage();
+    }
+  }
+
+  let editRemoveImageFlag = false;
+
+  function clearEditCoverImage() {
+    const fileInput = document.getElementById("edit_cat_image");
+    if (fileInput) fileInput.value = "";
+    const previewContainer = document.getElementById("edit_cat_new_preview_container");
+    if (previewContainer) previewContainer.classList.add("d-none");
+    const previewImg = document.getElementById("edit_cat_new_preview");
+    if (previewImg) previewImg.src = "";
+  }
+
+  function previewEditCoverImage(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById("edit_cat_new_preview").src = e.target.result;
+        document.getElementById("edit_cat_new_preview_container").classList.remove("d-none");
+      };
+      reader.readAsDataURL(input.files[0]);
+    } else {
+      clearEditCoverImage();
+    }
+  }
+
+  function toggleRemoveCoverImage() {
+    editRemoveImageFlag = !editRemoveImageFlag;
+    const currImgCont = document.getElementById("edit_cat_current_image_container");
+    const badge = document.getElementById("edit_cat_removed_badge");
+    const btn = document.getElementById("btn_remove_edit_image");
+    if (editRemoveImageFlag) {
+      if (currImgCont) currImgCont.classList.add("opacity-50");
+      if (badge) badge.classList.remove("d-none");
+      if (btn) btn.innerHTML = '<i class="fa fa-undo me-1"></i> Undo Remove';
+    } else {
+      if (currImgCont) currImgCont.classList.remove("opacity-50");
+      if (badge) badge.classList.add("d-none");
+      if (btn) btn.innerHTML = '<i class="fa fa-trash me-1"></i> Remove Image';
+    }
+  }
+
   function openAddModal() {
     document.getElementById("addCategoryForm").reset();
+    clearNewCoverImage();
     document.getElementById("new_cat_active").checked = true;
     const alertBox = document.getElementById("addCatAlert");
     if (alertBox) alertBox.classList.add("d-none");
@@ -628,6 +753,7 @@
     const catDesc = document.getElementById("new_cat_desc").value.trim();
     const catIcon = document.getElementById("new_cat_icon").value.trim();
     const isActive = document.getElementById("new_cat_active").checked;
+    const fileInput = document.getElementById("new_cat_image");
 
     if (!catName) {
       alertBox.textContent = "Please enter a category name.";
@@ -639,18 +765,22 @@
     btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving...';
 
     try {
-      const headers = { "Content-Type": "application/json" };
+      const formData = new FormData();
+      formData.append("category_name", catName);
+      formData.append("description", catDesc);
+      formData.append("icon", catIcon);
+      formData.append("is_active", isActive ? "true" : "false");
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        formData.append("cover_image", fileInput.files[0]);
+      }
+
+      const headers = {};
       if (token) headers["Authorization"] = "Bearer " + token;
 
       const res = await fetch("/admin-panel/competitive-exams/categories", {
         method: "POST",
         headers: headers,
-        body: JSON.stringify({
-          category_name: catName,
-          description: catDesc,
-          icon: catIcon,
-          is_active: isActive
-        })
+        body: formData
       });
 
       const data = await res.json().catch(() => ({}));
@@ -674,12 +804,32 @@
     const cat = allCategories.find(c => String(c._id) === String(catId));
     if (!cat) return;
 
+    editRemoveImageFlag = false;
+    clearEditCoverImage();
+
     document.getElementById("edit_cat_id").value = cat._id;
     document.getElementById("edit_cat_id_display").innerText = cat._id;
     document.getElementById("edit_cat_name").value = cat.category_name || "";
     document.getElementById("edit_cat_desc").value = cat.description || "";
     document.getElementById("edit_cat_icon").value = cat.icon || "fa-bookmark";
     document.getElementById("edit_cat_active").checked = cat.is_active !== false;
+
+    const currImgCont = document.getElementById("edit_cat_current_image_container");
+    const currImg = document.getElementById("edit_cat_current_image");
+    const badge = document.getElementById("edit_cat_removed_badge");
+    const btnRemove = document.getElementById("btn_remove_edit_image");
+
+    if (badge) badge.classList.add("d-none");
+    if (currImgCont) currImgCont.classList.remove("opacity-50");
+    if (btnRemove) btnRemove.innerHTML = '<i class="fa fa-trash me-1"></i> Remove Image';
+
+    if (cat.cover_image && cat.cover_image.trim()) {
+      if (currImg) currImg.src = cat.cover_image;
+      if (currImgCont) currImgCont.classList.remove("d-none");
+    } else {
+      if (currImgCont) currImgCont.classList.add("d-none");
+      if (currImg) currImg.src = "";
+    }
 
     const alertBox = document.getElementById("editCatAlert");
     if (alertBox) alertBox.classList.add("d-none");
@@ -701,6 +851,7 @@
     const catDesc = document.getElementById("edit_cat_desc").value.trim();
     const catIcon = document.getElementById("edit_cat_icon").value.trim();
     const isActive = document.getElementById("edit_cat_active").checked;
+    const fileInput = document.getElementById("edit_cat_image");
 
     if (!catName) {
       alertBox.textContent = "Please enter a category name.";
@@ -712,18 +863,25 @@
     btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Updating...';
 
     try {
-      const headers = { "Content-Type": "application/json" };
+      const formData = new FormData();
+      formData.append("category_name", catName);
+      formData.append("description", catDesc);
+      formData.append("icon", catIcon);
+      formData.append("is_active", isActive ? "true" : "false");
+      if (editRemoveImageFlag) {
+        formData.append("remove_cover_image", "true");
+      }
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        formData.append("cover_image", fileInput.files[0]);
+      }
+
+      const headers = {};
       if (token) headers["Authorization"] = "Bearer " + token;
 
       const res = await fetch(`/admin-panel/competitive-exams/categories/${catId}`, {
         method: "PUT",
         headers: headers,
-        body: JSON.stringify({
-          category_name: catName,
-          description: catDesc,
-          icon: catIcon,
-          is_active: isActive
-        })
+        body: formData
       });
 
       const data = await res.json().catch(() => ({}));

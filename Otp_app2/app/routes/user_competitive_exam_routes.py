@@ -134,6 +134,7 @@ async def list_categories():
         cat["_id"] = str(cat["_id"])
         c_name = cat.get("category_name", "")
         c_id = cat["_id"]
+        cat["cover_image"] = cat.get("cover_image") or ""
 
         # Count available exams under this category
         cat["exam_count"] = await db.competitive_exams.count_documents({

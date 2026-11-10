@@ -744,7 +744,6 @@
                         <span class="badge badge-id-box font-monospace">${tb._id}</span>
                         <span class="badge bg-light-primary text-primary border"><i class="fa fa-graduation-cap me-1"></i> ${escapeHtml(tb.exam_name || 'Competitive')}</span>
                         ${tb.exam_category ? `<span class="badge bg-light text-secondary border"><i class="fa fa-tag me-1"></i> ${escapeHtml(tb.exam_category)}</span>` : ''}
-                        ${tb.category_id ? `<span class="badge badge-id-box font-monospace small" title="Category ID"><i class="fa fa-folder-o me-1"></i> Cat ID: ${escapeHtml(tb.category_id)}</span>` : ''}
                         <span class="badge bg-light text-dark border"><i class="fa fa-book me-1"></i> ${escapeHtml(tb.subject || 'Subject')}</span>
                         ${tb.stored_chunk_count ? `<span class="badge bg-light-success text-success border"><i class="fa fa-database me-1"></i> ${tb.stored_chunk_count} Chunks Vectorized</span>` : ''}
                         <span class="badge ${tb.pdf_deleted ? 'bg-light text-danger border border-danger' : 'bg-light text-muted border'}">

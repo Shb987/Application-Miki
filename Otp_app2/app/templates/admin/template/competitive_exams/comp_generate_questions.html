@@ -167,13 +167,13 @@
 
             <div class="mb-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
-                <label class="form-label fw-bold font-primary mb-0"><i class="fa fa-list me-1"></i> Select Chapters / Topics</label>
+                <label class="form-label fw-bold font-primary mb-0"><i class="fa fa-list me-1"></i> Scope / Specific Chapters (Optional)</label>
                 <button type="button" class="btn btn-link btn-sm text-primary p-0" onclick="selectAllChapters()">Select All</button>
               </div>
               <select class="form-select shadow-sm" id="gen-chapters" multiple size="4" style="min-height: 105px;">
-                <option value="">-- All Chapters in Textbook (Default) --</option>
+                <option value="" selected>-- Full Textbook (Entire Book - Comprehensive Coverage) --</option>
               </select>
-              <small class="text-muted">Hold <b>Ctrl</b> (Windows) or <b>Cmd</b> (Mac) to select specific chapters.</small>
+              <small class="text-muted">Default is <b>Full Textbook (Entire Book)</b>. Hold <b>Ctrl</b> (Windows) or <b>Cmd</b> (Mac) to select specific chapters if desired.</small>
             </div>
 
             <!-- Exam Pattern Customization -->
@@ -589,7 +589,7 @@
     const tbId = document.getElementById("gen-textbook").value;
     const tb = allTextbooks.find(t => t._id === tbId);
     const chSel = document.getElementById("gen-chapters");
-    chSel.innerHTML = '<option value="" selected>-- All Chapters in Textbook (Default) --</option>';
+    chSel.innerHTML = '<option value="" selected>-- Full Textbook (Entire Book - Comprehensive Coverage) --</option>';
 
     if (!tb) return;
 

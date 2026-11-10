@@ -281,6 +281,9 @@ app.mount("/generated_papers", StaticFiles(directory="app/static/generated_paper
 app.mount("/app/static/generated_papers", StaticFiles(directory="app/static/generated_papers"), name="app_static_generated_papers")
 app.mount("/static/generated_papers", StaticFiles(directory="app/static/generated_papers"), name="static_generated_papers")
 app.mount("/static/games", StaticFiles(directory="app/static/games"), name="games")
+os.makedirs("app/static/textbook", exist_ok=True)
+app.mount("/static/textbook", StaticFiles(directory="app/static/textbook"), name="static_textbook")
+app.mount("/textbook", StaticFiles(directory="app/static/textbook"), name="textbook")
 # Admin Panel page routes (Jinja templates) - Registered first to prevent any route shadowing
 app.include_router(admin_pages.router, prefix="/admin-panel", tags=["Admin Pages"])
 

@@ -746,9 +746,13 @@
                         ${tb.exam_category ? `<span class="badge bg-light text-secondary border"><i class="fa fa-tag me-1"></i> ${escapeHtml(tb.exam_category)}</span>` : ''}
                         <span class="badge bg-light text-dark border"><i class="fa fa-book me-1"></i> ${escapeHtml(tb.subject || 'Subject')}</span>
                         ${tb.stored_chunk_count ? `<span class="badge bg-light-success text-success border"><i class="fa fa-database me-1"></i> ${tb.stored_chunk_count} Chunks Vectorized</span>` : ''}
-                        <span class="badge ${tb.pdf_deleted ? 'bg-light text-danger border border-danger' : 'bg-light text-muted border'}">
-                            <i class="fa ${tb.pdf_deleted ? 'fa-trash' : 'fa-file-pdf-o'} me-1"></i> ${tb.pdf_deleted ? 'Source PDF Purged' : 'PDF Retained'}
-                        </span>
+                        ${(tb.pdf_url || tb.download_url) ? `
+                            <a href="${tb.pdf_url || tb.download_url}" target="_blank" class="badge bg-light text-primary border border-primary text-decoration-none" onclick="event.stopPropagation()">
+                                <i class="fa fa-file-pdf-o text-danger me-1"></i> View / Download PDF
+                            </a>` : `
+                            <span class="badge bg-light text-muted border">
+                                <i class="fa fa-file-pdf-o me-1"></i> Full PDF Available
+                            </span>`}
                     </div>
                     <div class="col-md-3 text-end">
                         <span class="badge bg-light-primary text-primary border border-primary"><i class="fa fa-list me-1"></i> ${chapters.length} Chapters</span>
@@ -774,6 +778,10 @@
                                         <i class="fa fa-clock-o me-1"></i> ${tb.created_at ? new Date(tb.created_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'Recent'}
                                     </span>
                                     ${statusBadge}
+                                    ${(tb.pdf_url || tb.download_url) ? `
+                                        <a href="${tb.pdf_url || tb.download_url}" target="_blank" class="btn btn-sm btn-outline-info shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation()">
+                                            <i data-feather="file-text" style="width: 14px; height: 14px;"></i> View PDF
+                                        </a>` : ''}
                                     <a href="${genUrl}" class="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center gap-1" onclick="event.stopPropagation()">
                                         <i data-feather="zap" style="width: 14px; height: 14px;"></i> Generate Paper
                                     </a>

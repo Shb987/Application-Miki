@@ -123,12 +123,18 @@ def test_get_competitive_tutorials_with_category_id_as_name(mock_db):
     assert tut["exam_name"] == "KAS"
     assert len(tut["video_links"]) == 1
 
-    # Validate textbooks payload
+    # Validate textbooks payload (full PDF URL, no extracted chapters)
     assert len(res["textbooks"]) == 1
     tb = res["textbooks"][0]
     assert tb["_id"] == "672900000000000000000020"
     assert tb["textbook_title"] == "Kerala History & Culture"
     assert tb["chapters_count"] == 2
+    assert "chapters" not in tb
+    assert "pdf_url" in tb
+    assert tb["pdf_url"].startswith("/static/textbook/")
+    assert "download_url" in tb
+    assert "file_url" in tb
+    assert tb["total_pages"] == 240
 
 
 def test_get_competitive_tutorials_with_category_id(mock_db):

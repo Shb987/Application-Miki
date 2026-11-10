@@ -673,14 +673,20 @@ async def upload_full_textbook(
         "description": description.strip() if description else None,
         "syllabus_mapping": syllabus_mapping.strip() if syllabus_mapping else None,
         "original_filename": file.filename,
+        "filename": temp_filename,
+        "file_path": file_path,
+        "pdf_url": f"/static/textbook/{temp_filename}",
+        "download_url": f"/static/textbook/{temp_filename}",
+        "file_url": f"/static/textbook/{temp_filename}",
         "page_count": 0,
+        "total_pages": 0,
         "detected_chapter_count": 0,
         "stored_chunk_count": 0,
         "chapters": [],
         "chapter_metadata": [],
         "pdf_deleted": False,
-        "pdf_deletion_status": "pending",
-        "pdf_deletion_details": "Scheduled for auto-deletion after extraction and vectorization validation.",
+        "pdf_deletion_status": "retained",
+        "pdf_deletion_details": "Source PDF permanently retained for direct reading and download.",
         "status": "uploaded",
         "stage": "uploaded",
         "progress": 5,
@@ -704,7 +710,10 @@ async def upload_full_textbook(
             "stage": "uploaded",
             "progress": 5,
             "pdf_deleted": False,
-            "pdf_deletion_status": "pending",
+            "pdf_deletion_status": "retained",
+            "pdf_url": f"/static/textbook/{temp_filename}",
+            "download_url": f"/static/textbook/{temp_filename}",
+            "file_url": f"/static/textbook/{temp_filename}",
             "updated_at": now
         }},
         upsert=True
@@ -723,7 +732,10 @@ async def upload_full_textbook(
     return {
         "status": "processing",
         "textbook_id": textbook_id,
-        "message": f"Full textbook '{textbook_title}' received. Asynchronous extraction, embedding, and automatic PDF deletion started."
+        "pdf_url": f"/static/textbook/{temp_filename}",
+        "download_url": f"/static/textbook/{temp_filename}",
+        "file_url": f"/static/textbook/{temp_filename}",
+        "message": f"Full textbook '{textbook_title}' received. Processing extraction, indexing, and saving full PDF."
     }
 
 async def process_competitive_textbook_worker(
@@ -878,6 +890,7 @@ async def process_competitive_textbook_worker(
             {"_id": ObjectId(textbook_id)},
             {"$set": {
                 "page_count": total_pages,
+                "total_pages": total_pages,
                 "detected_chapter_count": len(detected_chapters),
                 "stored_chunk_count": len(valid_docs),
                 "chapters": chapter_titles,
@@ -900,95 +913,56 @@ async def process_competitive_textbook_worker(
             
         print(f"[COMP-TB] MongoDB validation SUCCESS: Verified {stored_count} stored passages with 3072-dim embeddings.")
 
-        # STEP 7: MANDATORY UPLOADED PDF DELETION (90% - 100%)
-        await db.chapter_status.update_one(status_query, {"$set": {"stage": "deleting_pdf", "progress": 92, "updated_at": datetime.now(timezone.utc)}})
-        await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"status": "deleting_pdf", "stage": "deleting_pdf", "progress": 92}})
+        # STEP 7: FINALIZE TEXTBOOK & RETAIN FULL SOURCE PDF (90% - 100%)
+        await db.chapter_status.update_one(status_query, {"$set": {"stage": "finalizing", "progress": 95, "updated_at": datetime.now(timezone.utc)}})
+        await db.textbook.update_one({"_id": ObjectId(textbook_id)}, {"$set": {"status": "finalizing", "stage": "finalizing", "progress": 95}})
         
-        pdf_deleted_successfully = False
-        cleanup_error_msg = ""
-        
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-                # Verify deletion
-                if not os.path.exists(file_path):
-                    pdf_deleted_successfully = True
-                    print(f"[COMP-TB] PDF DELETION SUCCESS: Deleted {file_path}")
-                else:
-                    cleanup_error_msg = "File still exists on disk after delete call."
-            except Exception as e:
-                # Retry once after brief pause (handles brief Windows lock)
-                await asyncio.sleep(1)
-                try:
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    pdf_deleted_successfully = not os.path.exists(file_path)
-                except Exception as e2:
-                    cleanup_error_msg = str(e2)
-                    print(f"[COMP-TB] PDF DELETION FAILED: {e2}")
-        else:
-            pdf_deleted_successfully = True
-            
         final_now = datetime.now(timezone.utc)
-        if pdf_deleted_successfully:
-            await db.textbook.update_one(
-                {"_id": ObjectId(textbook_id)},
-                {"$set": {
-                    "pdf_deleted": True,
-                    "pdf_deletion_status": "deleted",
-                    "pdf_deletion_timestamp": final_now,
-                    "pdf_deletion_details": "Source PDF successfully verified and deleted from server storage.",
-                    "status": "completed",
-                    "stage": "completed",
-                    "progress": 100,
-                    "updated_at": final_now
-                }}
-            )
-            await db.chapter_status.update_one(
-                status_query,
-                {"$set": {
-                    "status": "completed",
-                    "stage": "completed",
-                    "progress": 100,
-                    "pdf_deleted": True,
-                    "pdf_deletion_status": "deleted",
-                    "updated_at": final_now
-                }}
-            )
-            print(f"[COMP-TB] INGESTION COMPLETED: Textbook {textbook_id} is 100% processed and PDF deleted.")
-        else:
-            # Stored content is safe, but cleanup needs attention
-            await db.textbook.update_one(
-                {"_id": ObjectId(textbook_id)},
-                {"$set": {
-                    "pdf_deleted": False,
-                    "pdf_deletion_status": "failed",
-                    "pdf_deletion_details": f"Content safely stored, but automatic deletion failed: {cleanup_error_msg}",
-                    "status": "cleanup_failed",
-                    "stage": "cleanup_failed",
-                    "progress": 98,
-                    "updated_at": final_now
-                }}
-            )
-            await db.chapter_status.update_one(
-                status_query,
-                {"$set": {
-                    "status": "cleanup_failed",
-                    "stage": "cleanup_failed",
-                    "progress": 98,
-                    "pdf_deleted": False,
-                    "pdf_deletion_status": "failed",
-                    "error": f"Content safely saved, but PDF cleanup failed: {cleanup_error_msg}",
-                    "updated_at": final_now
-                }}
-            )
+        filename = os.path.basename(file_path)
+        pdf_rel_url = f"/static/textbook/{filename}"
+
+        await db.textbook.update_one(
+            {"_id": ObjectId(textbook_id)},
+            {"$set": {
+                "pdf_deleted": False,
+                "pdf_deletion_status": "retained",
+                "pdf_deletion_details": "Source PDF permanently retained for direct access and reading.",
+                "pdf_url": pdf_rel_url,
+                "download_url": pdf_rel_url,
+                "file_url": pdf_rel_url,
+                "filename": filename,
+                "file_path": file_path,
+                "total_pages": total_pages,
+                "page_count": total_pages,
+                "status": "completed",
+                "stage": "completed",
+                "progress": 100,
+                "updated_at": final_now
+            }}
+        )
+        await db.chapter_status.update_one(
+            status_query,
+            {"$set": {
+                "status": "completed",
+                "stage": "completed",
+                "progress": 100,
+                "pdf_deleted": False,
+                "pdf_deletion_status": "retained",
+                "pdf_url": pdf_rel_url,
+                "download_url": pdf_rel_url,
+                "file_url": pdf_rel_url,
+                "total_pages": total_pages,
+                "updated_at": final_now
+            }}
+        )
+        print(f"[COMP-TB] INGESTION COMPLETED: Textbook {textbook_id} is 100% processed and PDF retained at {pdf_rel_url}.")
 
         await log_admin_activity(
             admin_sub,
             admin_role,
             "upload_competitive_textbook",
-            f"Successfully processed competitive textbook '{tb_doc.get('textbook_title')}' ({stored_count} passages, PDF deleted: {pdf_deleted_successfully})",
-            status="completed" if pdf_deleted_successfully else "cleanup_failed"
+            f"Successfully processed competitive textbook '{tb_doc.get('textbook_title')}' ({stored_count} passages, PDF retained)",
+            status="completed"
         )
 
     except Exception as exc:
@@ -1078,6 +1052,12 @@ async def list_competitive_textbooks(
         t["exam_year"] = t.get("exam_year") or t.get("publication_year") or ""
         t["stored_chunk_count"] = t.get("stored_chunk_count", 0)
         t["pdf_deleted"] = bool(t.get("pdf_deleted", False))
+        t["total_pages"] = t.get("total_pages") or t.get("page_count", 0)
+        pdf_u = t.get("pdf_url") or t.get("download_url") or t.get("file_url")
+        if not pdf_u and t.get("filename"):
+            pdf_u = f"/static/textbook/{t['filename']}"
+        t["pdf_url"] = pdf_u or ""
+        t["download_url"] = pdf_u or ""
         t["status"] = t.get("status", "completed")
         if isinstance(t.get("chapters"), list):
             t["chapters"] = sorted(t["chapters"], key=natural_sort_key)
@@ -1098,6 +1078,13 @@ async def delete_competitive_textbook(
     if not textbook:
         raise HTTPException(status_code=404, detail="Competitive textbook not found")
         
+    file_p = textbook.get("file_path")
+    if not file_p and textbook.get("filename"):
+        file_p = os.path.join(UPLOAD_DIR, textbook["filename"])
+    if file_p and os.path.exists(file_p):
+        try: os.remove(file_p)
+        except Exception: pass
+
     del_result = await db.textbook_chapters.delete_many({
         "$or": [
             {"textbook_id": str(textbook_id)},
@@ -1233,7 +1220,8 @@ async def trigger_generate_questions(
         "textbook_id": textbook_id,
         "textbook_title": tb.get("textbook_title", "Textbook"),
         "subject": subject,
-        "chapters": chapters if chapters else tb.get("chapters", []),
+        "chapters": chapters if (chapters and any(c.strip() for c in chapters)) else [],
+        "use_full_textbook": not (chapters and any(c.strip() for c in chapters)),
         "papers_count": papers_count,
         "total_marks": total_marks,
         "duration_minutes": duration_minutes,
@@ -1264,6 +1252,7 @@ async def generate_competitive_questions_worker(task_id: str, admin_sub: str, ad
     try:
         textbook_id = task["textbook_id"]
         chapters = task.get("chapters", [])
+        use_full_textbook = task.get("use_full_textbook", True) or not chapters
         total_questions = task.get("total_questions", 50)
         total_marks = task.get("total_marks", 100)
         papers_count = task.get("papers_count", 1)
@@ -1273,20 +1262,34 @@ async def generate_competitive_questions_worker(task_id: str, admin_sub: str, ad
         language = task.get("language", "en")
         
         # 1. RETRIEVE RELEVANT PASSAGES FROM MONGODB (RAG)
-        rag_query = {"textbook_id": textbook_id}
-        if chapters:
+        rag_query = {
+            "$or": [
+                {"textbook_id": str(textbook_id)},
+                {"textbook_id": ObjectId(textbook_id)} if ObjectId.is_valid(textbook_id) else {"textbook_id": str(textbook_id)}
+            ]
+        }
+        if not use_full_textbook and chapters:
             rag_query["chapter_title"] = {"$in": chapters}
             
         passages = await db.textbook_chapters.find(rag_query).to_list(None)
         if not passages:
-            # Fallback to any passages for this textbook
-            passages = await db.textbook_chapters.find({"textbook_id": textbook_id}).to_list(None)
+            # Fallback to any passages for this textbook (Full Textbook)
+            fallback_query = {
+                "$or": [
+                    {"textbook_id": str(textbook_id)},
+                    {"textbook_id": ObjectId(textbook_id)} if ObjectId.is_valid(textbook_id) else {"textbook_id": str(textbook_id)}
+                ]
+            }
+            passages = await db.textbook_chapters.find(fallback_query).to_list(None)
             
         if not passages:
             raise Exception("No extracted passages found for this textbook in MongoDB.")
             
-        print(f"[RAG-COMP] Loaded {len(passages)} passages for question generation.")
+        print(f"[RAG-COMP] Loaded {len(passages)} passages for question generation (Full Textbook: {use_full_textbook}).")
         
+        # Sort passages sequentially by passage index / page range
+        passages.sort(key=lambda x: (x.get("passage_index", 0), natural_sort_key(str(x.get("page_range", "")))))
+
         # Group passages by chapter
         chapter_map = {}
         for p in passages:
@@ -1298,34 +1301,47 @@ async def generate_competitive_questions_worker(task_id: str, admin_sub: str, ad
         used_questions_all = []
 
         for p_idx in range(papers_count):
-            print(f"[RAG-COMP] Generating Paper {p_idx+1}/{papers_count} for {exam_name}...")
+            print(f"[RAG-COMP] Generating Paper {p_idx+1}/{papers_count} for {exam_name} across full textbook...")
             
-            # 2. DYNAMIC SEMANTIC SEARCH FOR TOP PASSAGES
+            # 2. SELECT BALANCED PASSAGES ACROSS THE ENTIRE TEXTBOOK
+            TARGET_PASSAGES = 32
             selected_passages = []
-            for ch_title, ch_passages in chapter_map.items():
-                if len(ch_passages) <= 6:
-                    selected_passages.extend(ch_passages)
-                else:
-                    # Semantic search based on paper index
-                    if p_idx == 0:
-                        query_text = f"Key concepts, foundational principles, definitions, and official facts in {ch_title}"
-                    elif p_idx == 1:
-                        query_text = f"Complex applications, analytical problems, historical contexts, and statutory provisions in {ch_title}"
-                    else:
-                        query_text = f"In-depth analysis, critical nuances, comparative evaluations, and exceptions in {ch_title}"
-                        
-                    emb_res = await client.embeddings.create(model="text-embedding-3-large", input=query_text)
-                    q_vec = emb_res.data[0].embedding
-                    
-                    scored = []
-                    for pass_item in ch_passages:
-                        score = cosine_similarity(q_vec, pass_item.get("vector", []))
-                        scored.append((score, pass_item))
-                    scored.sort(key=lambda x: x[0], reverse=True)
-                    selected_passages.extend([item for _, item in scored[:6]])
-                    
+
+            if len(passages) <= TARGET_PASSAGES:
+                selected_passages = list(passages)
+            elif len(chapter_map) > 1:
+                # Multiple chapters: distribute evenly across ALL chapters from first to last
+                per_chapter = max(1, TARGET_PASSAGES // len(chapter_map))
+                for ch_title, ch_passages in chapter_map.items():
+                    n_ch = len(ch_passages)
+                    step = max(1, n_ch // per_chapter)
+                    offset = (p_idx * 2) % n_ch
+                    for k in range(per_chapter):
+                        pick_idx = (offset + k * step) % n_ch
+                        selected_passages.append(ch_passages[pick_idx])
+
+                # If still under target, fill in evenly across full book
+                if len(selected_passages) < TARGET_PASSAGES:
+                    selected_ids = {str(sp.get("_id")) for sp in selected_passages}
+                    remaining = [p for p in passages if str(p.get("_id")) not in selected_ids]
+                    if remaining:
+                        needed = TARGET_PASSAGES - len(selected_passages)
+                        rem_step = max(1, len(remaining) // needed)
+                        for k in range(min(needed, len(remaining))):
+                            selected_passages.append(remaining[(k * rem_step) % len(remaining)])
+            else:
+                # Single chapter or un-chaptered book: sample evenly across the entire book
+                step = max(1, len(passages) // TARGET_PASSAGES)
+                offset = (p_idx * 3) % max(1, step)
+                for k in range(TARGET_PASSAGES):
+                    pick_idx = (offset + k * step) % len(passages)
+                    selected_passages.append(passages[pick_idx])
+
+            # Sort selected passages sequentially to preserve book flow
+            selected_passages.sort(key=lambda x: (x.get("passage_index", 0), natural_sort_key(str(x.get("page_range", "")))))
+
             context_blocks = []
-            for sp in selected_passages[:30]:  # Cap context to prevent token explosion
+            for sp in selected_passages[:TARGET_PASSAGES]:
                 context_blocks.append(f"--- Chapter: {sp.get('chapter_title')} (P. {sp.get('page_range')}) ---\n{sp.get('content')}")
             
             context_text = "\n\n".join(context_blocks)
@@ -1340,32 +1356,32 @@ async def generate_competitive_questions_worker(task_id: str, admin_sub: str, ad
                 exclusion_text = "### PREVIOUSLY GENERATED QUESTIONS (DO NOT DUPLICATE):\n" + "\n".join(f"- {q}" for q in used_questions_all[:50]) + "\n"
 
             prompt = f"""You are an elite competitive examination paper setter for {exam_name}.
-Your mission is to construct a rigorous, syllabus-aligned objective question paper based EXCLUSIVELY on the provided textbook excerpts.
+Your mission is to construct a rigorous, syllabus-aligned objective question paper based on the provided FULL textbook excerpts.
+Ensure questions are distributed comprehensively across ALL chapters and sections provided in the textbook excerpts. Do NOT concentrate questions on only one topic or chapter.
 
 ### EXAM SPECIFICATIONS
 - Examination: {exam_name}
 - Subject: {subject}
+- Scope: Full Textbook Comprehensive Coverage
 - Total Questions: {q_per_paper}
 - Total Marks: {total_marks}
 - Marks Per Question: {marks_per_q}
 - Negative Marking Rule: {neg_rule}
 - Language: {language}
 
-### RETRIEVED TEXTBOOK PASSAGES (AUTHORITATIVE SOURCE)
+### RETRIEVED TEXTBOOK PASSAGES (AUTHORITATIVE SOURCE COVERING FULL TEXTBOOK)
 {context_text}
 
 {exclusion_text}
 
 ### DIRECTIVES FOR COMPETITIVE EXAMS
-1. Strict Grounding: Every question, option, and answer MUST be factually supported by the textbook excerpts. Do not invent facts or test unmentioned topics.
-2. Formats: Generate standard objective MCQs with 4 options (A, B, C, D). You may include:
-   - Direct conceptual MCQs
-   - Statement-based MCQs (e.g. 'Consider the following statements... Which is/are correct?')
-   - Assertion & Reason
-   - Match the following
-3. Options: Exactly ONE unambiguously correct option. All distractors must be plausible and academically valid.
-4. Explanations: Provide a comprehensive explanation citing the chapter and concept for each question.
-5. Difficulty: Distribute difficulty evenly (Easy: 30%, Medium: 50%, Hard: 20%).
+1. Full Textbook Coverage: Ensure comprehensive coverage distributed evenly across all chapters and sections provided above.
+2. Strict Grounding: Every question, option, and explanation MUST be factually supported by the textbook excerpts.
+3. Formats: Generate standard objective MCQs with 4 options (A, B, C, D).
+4. Options: Exactly ONE unambiguously correct option. All distractors must be plausible and academically valid.
+5. Explanations: Provide a concise (1-2 sentences) explanation citing the chapter and concept for each question.
+6. Difficulty: Distribute difficulty evenly (Easy: 30%, Medium: 50%, Hard: 20%).
+7. Question Numbers: Provide sequential numbers from 1 to {q_per_paper}.
 
 ### OUTPUT JSON FORMAT
 Return ONLY valid JSON matching this schema:
@@ -1378,7 +1394,7 @@ Return ONLY valid JSON matching this schema:
   "negative_marking_rule": "{neg_rule}",
   "sections": [
     {{
-      "section_title": "Section A: Core Concepts & Practice",
+      "section_title": "Section A: Full Textbook Comprehensive Coverage",
       "questions": [
         {{
           "question_number": 1,
@@ -1409,6 +1425,7 @@ Return ONLY valid JSON matching this schema:
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.25,
+                max_tokens=8000,
                 response_format={"type": "json_object"}
             )
             

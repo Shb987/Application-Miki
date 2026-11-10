@@ -456,17 +456,18 @@ def test_sidebar_and_page_routes():
     pos_manage = snippet.find('/admin-panel/competitive-exams/manage-exams')
     pos_gen = snippet.find('/admin-panel/competitive-exams/generate-questions')
     pos_tut = snippet.find('/admin-panel/competitive-exams/tutorials')
-    pos_dyn = snippet.find('id="sidebar-dynamic-categories"')
 
     assert pos_add_cat != -1
     assert pos_upload != -1
     assert pos_manage != -1
     assert pos_gen != -1
     assert pos_tut != -1
-    assert pos_dyn != -1
 
-    # Verify ordering: Add Category -> Upload Textbooks -> Manage Exams -> Generate Question Papers -> Tutorials -> Dynamic Categories
-    assert pos_add_cat < pos_upload < pos_manage < pos_gen < pos_tut < pos_dyn
+    # Verify ordering: Add Category -> Upload Textbooks -> Manage Exams -> Generate Question Papers -> Tutorials
+    assert pos_add_cat < pos_upload < pos_manage < pos_gen < pos_tut
+
+    # Verify individual categories list is removed from sidebar
+    assert "id=\"sidebar-dynamic-categories\"" not in snippet
 
 
 

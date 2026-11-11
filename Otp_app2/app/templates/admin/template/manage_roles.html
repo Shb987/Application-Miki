@@ -93,44 +93,64 @@
 
   /* ── Navigation Tabs ── */
   .nav-tabs.border-tab {
-    border-bottom: none;
-    display: inline-flex;
-    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(203, 213, 225, 0.7) !important;
+    border-bottom: 1px solid rgba(203, 213, 225, 0.7) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    background: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(203, 213, 225, 0.6);
-    border-radius: 16px;
-    padding: 6px;
-    gap: 6px;
-    margin-bottom: 20px !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border-radius: 50px !important;
+    padding: 5px !important;
+    gap: 4px !important;
+    margin-bottom: 24px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
   .nav-tabs.border-tab .nav-item {
-    margin-bottom: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
   }
   .nav-tabs.border-tab .nav-link {
-    border: none !important;
-    border-radius: 12px;
-    padding: 10px 20px;
+    border: 1px solid transparent !important;
+    border-radius: 50px !important;
+    padding: 8px 22px !important;
+    margin: 0 !important;
     color: #64748b;
     font-weight: 600;
-    font-size: 0.94rem;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
+    font-size: 0.92rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     gap: 8px;
+    line-height: 1.25 !important;
+    white-space: nowrap;
+    text-decoration: none;
+    background: transparent;
   }
   .nav-tabs.border-tab .nav-link i {
-    font-size: 1.1em;
-    opacity: 0.8;
+    font-size: 1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
   }
   .nav-tabs.border-tab .nav-link:hover {
     color: #603CD8;
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(96, 60, 216, 0.08);
   }
   .nav-tabs.border-tab .nav-link.active {
-    background: #fff;
-    color: #603CD8;
-    box-shadow: 0 4px 12px rgba(96, 60, 216, 0.12);
+    background: #ffffff !important;
+    color: #603CD8 !important;
+    border: 1px solid rgba(96, 60, 216, 0.18) !important;
+    box-shadow: 0 4px 14px rgba(96, 60, 216, 0.15) !important;
+    font-weight: 700;
+  }
+  .nav-tabs.border-tab .nav-link.active i {
+    color: #603CD8 !important;
+    opacity: 1;
   }
 
   /* ── Dashboard Strip ── */
@@ -1317,25 +1337,34 @@
 
   body.dark-only .nav-tabs.border-tab,
   html.dark-only .nav-tabs.border-tab {
-    background: rgba(30, 34, 45, 0.9) !important;
-    border-color: #2e3243 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    background: #141721 !important;
+    border: 1px solid #2a2f42 !important;
+    border-bottom: 1px solid #2a2f42 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
   }
   body.dark-only .nav-tabs.border-tab .nav-link,
   html.dark-only .nav-tabs.border-tab .nav-link {
     color: #94a3b8 !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
   }
   body.dark-only .nav-tabs.border-tab .nav-link:hover,
   html.dark-only .nav-tabs.border-tab .nav-link:hover {
-    color: #c084fc !important;
-    background: rgba(196, 78, 204, 0.12) !important;
+    color: #f1f5f9 !important;
+    background: rgba(255, 255, 255, 0.06) !important;
   }
   body.dark-only .nav-tabs.border-tab .nav-link.active,
   html.dark-only .nav-tabs.border-tab .nav-link.active {
-    background: #1e222d !important;
+    background: linear-gradient(135deg, rgba(196, 78, 204, 0.28) 0%, rgba(96, 60, 216, 0.38) 100%) !important;
+    color: #f5d0fe !important;
+    border: 1px solid rgba(196, 78, 204, 0.55) !important;
+    box-shadow: 0 4px 14px rgba(96, 60, 216, 0.3) !important;
+    font-weight: 700;
+  }
+  body.dark-only .nav-tabs.border-tab .nav-link.active i,
+  html.dark-only .nav-tabs.border-tab .nav-link.active i {
     color: #e879f9 !important;
-    border: 1px solid rgba(196, 78, 204, 0.35) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+    opacity: 1;
   }
 
   body.dark-only .roles-panel,

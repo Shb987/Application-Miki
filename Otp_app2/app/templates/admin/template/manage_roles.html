@@ -1254,6 +1254,34 @@
   .btn-cancel:hover { background: #e2e8f0; color: #0f172a; }
   .btn-submit { background: linear-gradient(135deg, #C44ECC, #603CD8); color: #fff; border: none; border-radius: 12px; padding: 12px 28px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(96, 60, 216, 0.25); }
   .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(96, 60, 216, 0.35); }
+  .btn-danger-modal {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 28px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+  }
+  .btn-danger-modal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(220, 38, 38, 0.35);
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+  }
+  .delete-modal-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    font-size: 26px;
+  }
 
   /* Toast */
   .toast-msg {
@@ -1565,6 +1593,24 @@
   html.dark-only .btn-cancel:hover {
     background: #33394b !important;
     color: #f8fafc !important;
+  }
+  body.dark-only .btn-danger-modal,
+  html.dark-only .btn-danger-modal {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: #fff !important;
+  }
+  body.dark-only .delete-modal-icon,
+  html.dark-only .delete-modal-icon {
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+  }
+  body.dark-only .delete-modal-name,
+  html.dark-only .delete-modal-name {
+    color: #f8fafc !important;
+  }
+  body.dark-only .delete-modal-desc,
+  html.dark-only .delete-modal-desc {
+    color: #cbd5e1 !important;
   }
 </style>
 {% endblock %}
@@ -2034,6 +2080,44 @@
           </div>
         </form>
       </main>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Role Confirmation Modal -->
+<div class="modal-backdrop-custom" id="deleteRoleModal">
+  <div class="modal-box" style="max-width: 460px; text-align: center;">
+    <div class="delete-modal-icon">
+      <i class="fa fa-exclamation-triangle"></i>
+    </div>
+    <h4 style="margin-bottom: 12px; font-weight: 700;">Delete Role</h4>
+    <p class="delete-modal-desc" style="color: #64748b; font-size: 1rem; margin-bottom: 26px; line-height: 1.6;">
+      Delete role "<span id="deleteRoleNameDisplay" class="delete-modal-name" style="font-weight: 700; color: #0f172a;"></span>"? This cannot be undone.
+    </p>
+    <div class="modal-actions" style="justify-content: center; gap: 14px;">
+      <button type="button" class="btn-cancel" onclick="closeDeleteRoleModal()">Cancel</button>
+      <button type="button" id="confirmDeleteRoleBtn" class="btn-danger-modal" onclick="executeDeleteRole()">
+        <i class="fa fa-trash me-1"></i> Delete Role
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Staff Confirmation Modal -->
+<div class="modal-backdrop-custom" id="deleteAdminModal">
+  <div class="modal-box" style="max-width: 460px; text-align: center;">
+    <div class="delete-modal-icon">
+      <i class="fa fa-exclamation-triangle"></i>
+    </div>
+    <h4 style="margin-bottom: 12px; font-weight: 700;">Delete Staff Account</h4>
+    <p class="delete-modal-desc" style="color: #64748b; font-size: 1rem; margin-bottom: 26px; line-height: 1.6;">
+      Are you sure you want to delete staff account "<span id="deleteAdminUsernameDisplay" class="delete-modal-name" style="font-weight: 700; color: #0f172a;"></span>"? This cannot be undone.
+    </p>
+    <div class="modal-actions" style="justify-content: center; gap: 14px;">
+      <button type="button" class="btn-cancel" onclick="closeDeleteAdminModal()">Cancel</button>
+      <button type="button" id="confirmDeleteAdminBtn" class="btn-danger-modal" onclick="executeDeleteAdmin()">
+        <i class="fa fa-trash me-1"></i> Delete Staff
+      </button>
     </div>
   </div>
 </div>
@@ -2514,8 +2598,30 @@ async function submitRole() {
   }
 }
 
-async function deleteRole(roleName) {
-  if (!confirm(`Delete role "${roleName}"? This cannot be undone.`)) return;
+let pendingRoleToDelete = null;
+
+function deleteRole(roleName) {
+  pendingRoleToDelete = roleName;
+  const nameEl = document.getElementById("deleteRoleNameDisplay");
+  if (nameEl) nameEl.textContent = roleName;
+  const modal = document.getElementById("deleteRoleModal");
+  if (modal) modal.classList.add("show");
+}
+
+function closeDeleteRoleModal() {
+  pendingRoleToDelete = null;
+  const modal = document.getElementById("deleteRoleModal");
+  if (modal) modal.classList.remove("show");
+}
+
+async function executeDeleteRole() {
+  if (!pendingRoleToDelete) return;
+  const roleName = pendingRoleToDelete;
+  const btn = document.getElementById("confirmDeleteRoleBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Deleting...';
+  }
 
   try {
     const res = await fetch(`${API}/admin-panel/roles/${encodeURIComponent(roleName)}`, {
@@ -2523,7 +2629,7 @@ async function deleteRole(roleName) {
       headers: { Authorization: "Bearer " + TOKEN }
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || "Delete failed");
     }
 
@@ -2539,11 +2645,17 @@ async function deleteRole(roleName) {
       updatePermissionMetrics(null);
     }
 
+    closeDeleteRoleModal();
     showToast("Role deleted.", "success");
     await fetchRoles();
     await fetchRoleMonitoring();
   } catch (e) {
     showToast(e.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-trash me-1"></i> Delete Role';
+    }
   }
 }
 
@@ -2670,6 +2782,19 @@ document.getElementById("adminModal").addEventListener("click", function(e) {
 });
 document.getElementById("adminDetailsModal").addEventListener("click", function(e) {
   if (e.target === this) closeAdminDetailsModal();
+});
+document.getElementById("deleteRoleModal").addEventListener("click", function(e) {
+  if (e.target === this) closeDeleteRoleModal();
+});
+document.getElementById("deleteAdminModal").addEventListener("click", function(e) {
+  if (e.target === this) closeDeleteAdminModal();
+});
+
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    closeDeleteRoleModal();
+    closeDeleteAdminModal();
+  }
 });
 
 // --- ADMIN STAFF MANAGEMENT JS ---
@@ -2928,21 +3053,50 @@ async function submitAdmin() {
   }
 }
 
-async function deleteAdmin(username) {
-  if (!confirm(`Are you sure you want to delete staff account "${username}"?`)) return;
+let pendingAdminToDelete = null;
+
+function deleteAdmin(username) {
+  pendingAdminToDelete = username;
+  const nameEl = document.getElementById("deleteAdminUsernameDisplay");
+  if (nameEl) nameEl.textContent = username;
+  const modal = document.getElementById("deleteAdminModal");
+  if (modal) modal.classList.add("show");
+}
+
+function closeDeleteAdminModal() {
+  pendingAdminToDelete = null;
+  const modal = document.getElementById("deleteAdminModal");
+  if (modal) modal.classList.remove("show");
+}
+
+async function executeDeleteAdmin() {
+  if (!pendingAdminToDelete) return;
+  const username = pendingAdminToDelete;
+  const btn = document.getElementById("confirmDeleteAdminBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Deleting...';
+  }
+
   try {
     const res = await fetch(`${API}/admin-panel/admins/${encodeURIComponent(username)}`, {
       method: "DELETE",
       headers: { Authorization: "Bearer " + TOKEN }
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || "Delete failed");
     }
+    closeDeleteAdminModal();
     showToast("Admin staff account deleted", "success");
     fetchAdmins();
   } catch (e) {
     showToast(e.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-trash me-1"></i> Delete Staff';
+    }
   }
 }
 

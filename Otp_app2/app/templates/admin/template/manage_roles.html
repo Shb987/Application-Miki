@@ -1740,43 +1740,6 @@
         </div>
       </div>
 
-      <!-- Bottom Section: Live Monitoring -->
-      <div class="mt-4">
-        <aside class="monitor-panel">
-          <div class="monitor-panel-header">
-            <div>
-              <i class="fa fa-signal"></i> Live Monitoring
-              <small>Role-related admin actions and status updates.</small>
-            </div>
-            <button class="btn btn-sm btn-outline-success rounded-pill" onclick="fetchRoleMonitoring()">
-              <i class="fa fa-refresh me-1"></i> Refresh
-            </button>
-          </div>
-          <div class="monitor-body">
-            <div class="monitor-summary">
-              <div class="monitor-summary-card">
-                <p class="label">Role events</p>
-                <p class="value" id="monitor-total-events">0</p>
-                <p class="hint">Recent role actions tracked</p>
-              </div>
-              <div class="monitor-summary-card">
-                <p class="label">Failures</p>
-                <p class="value" id="monitor-failed-events">0</p>
-                <p class="hint">Failed attempts or errors</p>
-              </div>
-            </div>
-            <div class="monitor-list" id="role-monitor-list">
-              <div class="staff-loading" style="min-height:220px;">
-                <div class="text-center">
-                  <div class="spinner-border text-secondary mb-2" role="status"></div>
-                  <div>Loading live role monitoring...</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </div>
-
     </div>
 
     <!-- Admin Users Tab -->
@@ -2704,6 +2667,7 @@ function formatMonitorTime(timestamp) {
 
 function renderRoleMonitoring(logs) {
   const el = document.getElementById("role-monitor-list");
+  if (!el) return;
   if (!logs.length) {
     el.innerHTML = `
       <div class="staff-empty" style="margin: 0;">
@@ -2735,6 +2699,7 @@ function renderRoleMonitoring(logs) {
 
 async function fetchRoleMonitoring() {
   const el = document.getElementById("role-monitor-list");
+  if (!el) return;
   el.innerHTML = `
     <div class="staff-loading" style="min-height:220px;">
       <div class="text-center">

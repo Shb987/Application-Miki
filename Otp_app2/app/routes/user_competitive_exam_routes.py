@@ -288,7 +288,7 @@ async def get_competitive_tutorials(
         raw_chapters = tb.get("chapters", [])
         sorted_chapters = sorted(raw_chapters, key=natural_sort_key) if isinstance(raw_chapters, list) else []
 
-        pdf_url = tb.get("pdf_url") or tb.get("download_url") or tb.get("file_url")
+        pdf_url = tb.get("generated_pdf_url") or tb.get("pdf_url") or tb.get("download_url") or tb.get("file_url")
         if not pdf_url:
             filename = tb.get("filename") or f"comp_tb_{tb_id}.pdf"
             pdf_url = f"/static/textbook/{filename}"
@@ -302,7 +302,7 @@ async def get_competitive_tutorials(
             "exam_name": tb.get("exam_name") or tb.get("standard", "Competitive Exam"),
             "subject": tb.get("subject", "General Studies"),
             "total_pages": tb.get("total_pages") or tb.get("page_count", 0),
-            "chapters_count": len(sorted_chapters),
+            "chapters_count": tb.get("chapters_count") or len(sorted_chapters),
             "pdf_url": pdf_url,
             "download_url": pdf_url,
             "file_url": pdf_url,

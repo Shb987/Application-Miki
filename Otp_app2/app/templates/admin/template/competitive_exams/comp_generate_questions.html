@@ -154,6 +154,7 @@
                 <select class="form-select shadow-sm" id="gen-textbook" required onchange="onTextbookChange()">
                   <option value="">-- Select Ingested Textbook --</option>
                 </select>
+                <div id="tb-qb-badge" class="mt-2 d-none"></div>
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-bold font-primary"><i class="fa fa-language me-1"></i> Paper Language</label>
@@ -575,7 +576,18 @@
   }
 
   function onTextbookChange() {
-    // Full textbook mode enabled by default
+    const tbVal = document.getElementById("gen-textbook").value;
+    const badge = document.getElementById("tb-qb-badge");
+    if (!badge) return;
+    const selectedTb = allTextbooks.find(t => t._id === tbVal);
+    if (selectedTb && (selectedTb.pdf_url || selectedTb.download_url || selectedTb.file_url || selectedTb.generated_pdf_url)) {
+      const url = selectedTb.pdf_url || selectedTb.download_url || selectedTb.file_url || selectedTb.generated_pdf_url;
+      badge.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle py-2 px-3 rounded-pill"><i class="fa fa-file-pdf-o me-1"></i> Generated Question Bank PDF Available: <a href="${url}" target="_blank" class="fw-bold text-success text-decoration-underline ms-1">View / Download PDF</a> ${selectedTb.chapters_count ? `(${selectedTb.chapters_count} Chapters)` : ''}</span>`;
+      badge.classList.remove("d-none");
+    } else {
+      badge.classList.add("d-none");
+      badge.innerHTML = "";
+    }
   }
 
   function selectAllChapters() {}

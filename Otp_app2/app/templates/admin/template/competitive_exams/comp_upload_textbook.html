@@ -199,13 +199,24 @@
               </div>
             </div>
 
-            <div class="mb-3">
-              <div class="form-check form-switch p-2 bg-light rounded-3 border">
-                <input class="form-check-input ms-0 me-2" type="checkbox" id="force_vision">
-                <label class="form-check-label fw-bold font-primary" for="force_vision">
-                  Force Vision Extraction (GPT-4o-mini Vision)
-                </label>
-                <div class="small text-muted ps-4">Enable this toggle if the textbook is a scanned image PDF or contains complex equations.</div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <div class="form-check form-switch p-2 bg-light rounded-3 border">
+                  <input class="form-check-input ms-0 me-2" type="checkbox" id="auto_generate_question_bank" checked>
+                  <label class="form-check-label fw-bold font-primary" for="auto_generate_question_bank">
+                    Auto-Generate Question Bank PDF
+                  </label>
+                  <div class="small text-muted ps-4">Chapter-wise MCQs, official answers &amp; explanations compiled into PDF</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check form-switch p-2 bg-light rounded-3 border">
+                  <input class="form-check-input ms-0 me-2" type="checkbox" id="force_vision">
+                  <label class="form-check-label fw-bold font-primary" for="force_vision">
+                    Force Vision Extraction (OCR)
+                  </label>
+                  <div class="small text-muted ps-4">Enable if textbook is scanned or has complex diagrams/equations</div>
+                </div>
               </div>
             </div>
 
@@ -238,18 +249,22 @@
             </div>
 
             <!-- Completion Notice -->
-            <div id="progress-success-box" class="alert alert-success border-0 rounded-3 mt-3 d-none align-items-center justify-content-between p-3">
+            <div id="progress-success-box" class="alert alert-success border-0 rounded-3 mt-3 d-none align-items-center justify-content-between p-3 flex-wrap gap-2">
               <div class="d-flex align-items-center gap-2">
                 <i class="fa fa-check-circle fs-4 text-success"></i>
                 <div>
-                  <b class="d-block text-success">Textbook Ingested Successfully!</b>
+                  <b class="d-block text-success">Textbook Ingested &amp; Question Bank Ready!</b>
+                  <div id="progress-success-meta" class="mt-1"></div>
                 </div>
               </div>
-              <div class="d-flex justify-content-end gap-2">
-                <a href="/admin-panel/competitive-exams/manage-exams" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+              <div class="d-flex justify-content-end gap-2 flex-wrap">
+                <a id="qb-download-link" href="#" target="_blank" class="btn btn-success btn-sm rounded-pill px-3 d-none">
+                  <i class="fa fa-file-pdf-o me-1"></i> Download Question Bank PDF
+                </a>
+                <a href="/admin-panel/competitive-exams/manage-exams" class="btn btn-outline-primary btn-sm rounded-pill px-3">
                   <i class="fa fa-list me-1"></i> Manage Exams
                 </a>
-                <a href="/admin-panel/competitive-exams/generate-questions" class="btn btn-primary btn-sm rounded-pill px-4">
+                <a href="/admin-panel/competitive-exams/generate-questions" class="btn btn-primary btn-sm rounded-pill px-3">
                   <i class="fa fa-bolt me-1"></i> Generate Papers
                 </a>
               </div>
@@ -257,12 +272,17 @@
 
             <!-- Failure Notice -->
             <div id="progress-error-box" class="alert alert-danger border-0 rounded-3 mt-3 d-none p-3">
-              <div class="d-flex align-items-center gap-2">
-                <i class="fa fa-exclamation-triangle fs-4 text-danger"></i>
-                <div>
-                  <b class="d-block text-danger">Ingestion Failed</b>
-                  <small id="progress-error-msg" class="text-muted">An error occurred while processing the textbook.</small>
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="fa fa-exclamation-triangle fs-4 text-danger"></i>
+                  <div>
+                    <b class="d-block text-danger">Ingestion or Generation Issue</b>
+                    <small id="progress-error-msg" class="text-muted d-block">An error occurred while processing the textbook.</small>
+                  </div>
                 </div>
+                <button type="button" id="qb-retry-btn" class="btn btn-warning btn-sm rounded-pill px-3 d-none">
+                  <i class="fa fa-refresh me-1"></i> Retry Question Bank Generation
+                </button>
               </div>
             </div>
           </div>
@@ -545,6 +565,8 @@
     formData.append("textbook_title", document.getElementById("textbook_title").value);
     formData.append("publisher", document.getElementById("publisher").value);
     formData.append("syllabus_mapping", document.getElementById("syllabus_mapping").value);
+    const autoQb = document.getElementById("auto_generate_question_bank");
+    formData.append("auto_generate_question_bank", autoQb && autoQb.checked ? "true" : "false");
     formData.append("force_vision", document.getElementById("force_vision").checked ? "true" : "false");
     formData.append("file", selectedPdf);
 
@@ -599,19 +621,41 @@
         const p = data.progress || 0;
         let label = "Processing Textbook...";
         if (data.stage === "uploaded") label = "PDF Validated & Stored...";
-        else if (data.stage === "extracting") label = "Extracting Full Text Pages...";
-        else if (data.stage === "chapter_detection") label = "Detecting Chapters & Topics...";
+        else if (data.stage === "extracting") label = `Extracting Full Text Pages... ${data.total_pages ? `(${data.total_pages} pgs)` : ''}`;
+        else if (data.stage === "chapter_detection") label = `Detecting Chapters & Topics... ${data.chapters_count ? `(${data.chapters_count} chaps)` : ''}`;
         else if (data.stage === "embedding") label = "Generating Semantic Embeddings...";
         else if (data.stage === "validating") label = "Storing & Validating Vector Store...";
-        else if (data.stage === "pdf_cleanup") label = "Cleaning Temporary PDF...";
+        else if (data.stage === "generating_questions") label = "Synthesizing AI Question Bank (Chapter-wise MCQs)...";
+        else if (data.stage === "generating_pdf") label = "Compiling Question Bank PDF Document...";
+        else if (data.stage === "pdf_cleanup") label = "Purging Temporary Source PDF...";
 
         updateProgress(p, label);
 
         if (data.status === 'completed') {
           clearInterval(pollInterval);
-          updateProgress(100, "Textbook Ingestion Complete");
+          updateProgress(100, "Textbook & Question Bank Ingestion Complete");
           const successBox = document.getElementById("progress-success-box");
-          if (successBox) successBox.classList.remove("d-none");
+          if (successBox) {
+            successBox.classList.remove("d-none");
+            const metaContainer = document.getElementById("progress-success-meta");
+            if (metaContainer) {
+              let metaHtml = '';
+              if (data.total_pages) metaHtml += `<span class="badge bg-light text-dark border me-1"><i class="fa fa-file-text-o me-1"></i>${data.total_pages} Pages</span>`;
+              if (data.chapters_count) metaHtml += `<span class="badge bg-light text-dark border me-1"><i class="fa fa-list me-1"></i>${data.chapters_count} Chapters</span>`;
+              if (data.questions_count) metaHtml += `<span class="badge bg-light text-dark border me-1"><i class="fa fa-check-square-o me-1"></i>${data.questions_count} MCQs</span>`;
+              metaContainer.innerHTML = metaHtml;
+            }
+            const qbLink = document.getElementById("qb-download-link");
+            if (qbLink) {
+              const pdfUrl = data.pdf_url || data.download_url || data.file_url;
+              if (pdfUrl) {
+                qbLink.href = pdfUrl;
+                qbLink.classList.remove("d-none");
+              } else {
+                qbLink.classList.add("d-none");
+              }
+            }
+          }
           const submitBtn = document.getElementById("submit-btn");
           submitBtn.disabled = false;
           submitBtn.innerHTML = '<i class="fa fa-check me-2"></i> Ingestion Completed';
@@ -622,6 +666,15 @@
             if (errBox) errBox.classList.remove("d-none");
             const errMsg = document.getElementById("progress-error-msg");
             if (errMsg) errMsg.innerText = data.error || "Processing failed.";
+            const retryBtn = document.getElementById("qb-retry-btn");
+            if (retryBtn) {
+              if (data.can_retry) {
+                retryBtn.classList.remove("d-none");
+                retryBtn.onclick = () => retryQuestionBank(textbookId);
+              } else {
+                retryBtn.classList.add("d-none");
+              }
+            }
             const submitBtn = document.getElementById("submit-btn");
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fa fa-upload me-2"></i> Retry Ingestion';
@@ -640,6 +693,40 @@
         console.error("Polling error", e);
       }
     };
+
+    check();
+    pollInterval = setInterval(check, 2500);
+  }
+
+  async function retryQuestionBank(textbookId) {
+    const retryBtn = document.getElementById("qb-retry-btn");
+    if (retryBtn) {
+      retryBtn.disabled = true;
+      retryBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Retrying...';
+    }
+    try {
+      const res = await fetch(`/admin-panel/competitive-exams/textbook/${textbookId}/retry-generation`, {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.detail || "Failed to retry question bank generation.");
+        return;
+      }
+      const errBox = document.getElementById("progress-error-box");
+      if (errBox) errBox.classList.add("d-none");
+      updateProgress(60, "Restarting Question Bank Generation...");
+      pollStatus(textbookId);
+    } catch(e) {
+      alert("Network error: " + e.message);
+    } finally {
+      if (retryBtn) {
+        retryBtn.disabled = false;
+        retryBtn.innerHTML = '<i class="fa fa-refresh me-1"></i> Retry Question Bank Generation';
+      }
+    }
+  }
 
     check();
     pollInterval = setInterval(check, 2500);

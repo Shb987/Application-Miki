@@ -565,5 +565,249 @@ def test_category_cover_image_crud_and_endpoints():
         assert up_res["category"]["cover_image"] == "/uploads/competitive_categories/banking_new.jpg"
 
 
+def test_validate_pdf_file():
+    """Verify validate_pdf_file rejects corrupt bytes and accepts valid PDF structures."""
+    import pymupdf
+    from app.routes.admin_competitive_exam_routes import validate_pdf_file
+
+    # 1. Valid PDF with 2 pages
+    doc = pymupdf.open()
+    p1 = doc.new_page()
+    p1.insert_text((72, 72), "Chapter 1: Introduction to Polity")
+    p2 = doc.new_page()
+    p2.insert_text((72, 72), "Chapter 2: Fundamental Rights")
+    valid_pdf_bytes = doc.tobytes()
+    doc.close()
+
+    is_valid, page_count, err = validate_pdf_file(valid_pdf_bytes)
+    assert is_valid is True
+    assert page_count == 2
+    assert err == ""
+
+    # 2. Corrupt / empty bytes
+    is_valid_bad, _, err_bad = validate_pdf_file(b"Corrupted dummy PDF payload")
+    assert is_valid_bad is False
+    assert err_bad != ""
+
+
+def test_generate_chapter_mcqs_contract_and_structure():
+    """Verify generate_chapter_mcqs produces 4-option MCQs with answers, explanations, and difficulty tags."""
+    import asyncio
+    from app.routes.admin_competitive_exam_routes import generate_chapter_mcqs
+
+    chapter_text = """
+    The Preamble to the Constitution of India is a brief introductory statement that sets out the guiding purpose,
+    principles and philosophy of the Constitution. The Constitution of India was adopted on 26 November 1949 by the
+    Constituent Assembly and became effective on 26 January 1950. Dr. B. R. Ambedkar was the Chairman of the Drafting
+    Committee. The Constitution declares India a sovereign, socialist, secular, and democratic republic.
+    """
+    seen = set()
+    passages = [{"content": chapter_text, "page_range": "1-2", "topics": ["Preamble", "Constitution"]}]
+    mcqs = asyncio.run(generate_chapter_mcqs(
+        chapter_title="Chapter 1: The Preamble",
+        chapter_passages=passages,
+        exam_name="SSC CGL",
+        subject="Indian Polity",
+        target_count=3,
+        seen_questions=seen
+    ))
+
+    assert len(mcqs) >= 1
+    for mcq in mcqs:
+        assert "question" in mcq and len(mcq["question"].strip()) > 5
+        assert "options" in mcq and len(mcq["options"]) == 4
+        # Options format with A, B, C, D
+        assert set(mcq["options"].keys()) == {"A", "B", "C", "D"}
+        for k in ["A", "B", "C", "D"]:
+            assert len(str(mcq["options"][k]).strip()) > 0
+        assert mcq.get("correct_answer") in ["A", "B", "C", "D"]
+        assert "explanation" in mcq and len(mcq["explanation"].strip()) > 0
+        assert mcq["difficulty"] in ["Easy", "Medium", "Hard"]
+        assert "chapter_reference" in mcq and "Chapter 1: The Preamble" in mcq["chapter_reference"]
+
+
+def test_textbook_question_bank_pipeline_and_tutorials_response(tmp_path):
+    """
+    End-to-end integration test:
+    1. Pipeline generates question bank PDF from stored vectors.
+    2. Validates generated PDF structure and purges temporary source PDF.
+    3. Verifies GET /user/competitive-exams/tutorials returns the exact required JSON structure with pdf_url.
+    """
+    import asyncio
+    import pymupdf
+    from app.routes.admin_competitive_exam_routes import generate_textbook_question_bank_pipeline
+    from app.routes.user_competitive_exam_routes import get_competitive_tutorials
+
+    tb_id = "6af2bac3162d857fa1495cbc"
+    cat_id = "6ae4345bbf329b258a4f41fc"
+
+    # Create dummy source PDF file to test cleanup
+    src_pdf = tmp_path / "original_textbook.pdf"
+    doc = pymupdf.open()
+    doc.new_page().insert_text((72, 72), "Source textbook content")
+    doc.save(str(src_pdf))
+    doc.close()
+    assert os.path.exists(str(src_pdf))
+
+    # Mock stored chapters in textbook_chapters
+    stored_chunks = [
+        {
+            "_id": ObjectId("672900000000000000000501"),
+            "textbook_id": tb_id,
+            "chapter_title": "Chapter 1: Alphabet or Word Test",
+            "content": "The Alphabet Test involves arranging words in alphabetical order based on their initial letters.",
+            "page_range": "1-5",
+            "topics": ["Reasoning", "Alphabet"]
+        },
+        {
+            "_id": ObjectId("672900000000000000000502"),
+            "textbook_id": tb_id,
+            "chapter_title": "Chapter 6: Coding Decoding",
+            "content": "Coding and decoding tests reasoning ability to decipher hidden patterns or shifted cipher keys.",
+            "page_range": "20-25",
+            "topics": ["Reasoning", "Coding"]
+        }
+    ]
+
+    with patch("app.routes.admin_competitive_exam_routes.db") as mock_admin_db, \
+         patch("app.routes.user_competitive_exam_routes.db") as mock_user_db:
+
+        # Setup mock DB for admin pipeline
+        chunks_cursor = MagicMock()
+        chunks_cursor.to_list = AsyncMock(return_value=stored_chunks)
+        mock_admin_db.textbook_chapters.find.return_value = chunks_cursor
+
+        mock_admin_db.textbook.find_one = AsyncMock(return_value={
+            "_id": ObjectId(tb_id),
+            "textbook_id": tb_id,
+            "textbook_title": "Smart Question Bank",
+            "category_id": cat_id,
+            "exam_category": "SSC",
+            "exam_name": "SSC CGL (Tier 1 General Studies)",
+            "subject": "General Intelligence & Reasoning",
+            "total_pages": 51,
+            "chapters_count": 2,
+            "original_filename": "original_textbook.pdf"
+        })
+        mock_admin_db.textbook.update_one = AsyncMock()
+        mock_admin_db.chapter_status.update_one = AsyncMock()
+        mock_admin_db.generated_papers.insert_one = AsyncMock()
+
+        # Run pipeline with client=None to use reliable extractive generation
+        with patch("app.routes.admin_competitive_exam_routes.client", None):
+            res = asyncio.run(generate_textbook_question_bank_pipeline(
+                textbook_id=tb_id,
+                file_path=str(src_pdf)
+            ))
+
+        assert res["status"] == "completed"
+        assert res["questions_generated"] >= 2
+        assert os.path.exists(res["pdf_path"])
+        # Verify source PDF has been deleted
+        assert not os.path.exists(str(src_pdf))
+
+        # Verify db.textbook was updated with generated PDF links and status
+        completed_calls = [c[0][1]["$set"] for c in mock_admin_db.textbook.update_one.call_args_list if "$set" in c[0][1] and c[0][1]["$set"].get("question_bank_status") == "Completed"]
+        assert len(completed_calls) > 0
+        update_call_args = completed_calls[0]
+        assert update_call_args["question_bank_status"] == "Completed"
+        assert update_call_args["pdf_url"].startswith("/static/textbook/")
+        assert update_call_args["download_url"].startswith("/static/textbook/")
+        assert update_call_args["file_url"].startswith("/static/textbook/")
+        assert update_call_args["chapters_count"] == 2
+
+        # 4. Now test GET /user/competitive-exams/tutorials returns this structure
+        user_tb_doc = {
+            "_id": ObjectId(tb_id),
+            "textbook_id": tb_id,
+            "textbook_title": "Smart Question Bank",
+            "category_id": cat_id,
+            "exam_category": "SSC",
+            "exam_name": "SSC CGL (Tier 1 General Studies)",
+            "subject": "General Intelligence & Reasoning",
+            "total_pages": 51,
+            "chapters_count": 2,
+            "pdf_url": update_call_args["pdf_url"],
+            "download_url": update_call_args["download_url"],
+            "file_url": update_call_args["file_url"],
+            "original_filename": "original_textbook.pdf",
+            "uploaded_at": "2026-11-10T14:47:20.152000+05:30",
+            "created_at": "2026-11-10T14:47:20.152000+05:30",
+            "chapters": ["Chapter 1", "Chapter 2"]  # legacy chapters array should not be passed to user
+        }
+
+        mock_user_db.competitive_exam_categories.find_one = AsyncMock(return_value={
+            "_id": ObjectId(cat_id),
+            "category_name": "SSC"
+        })
+        tut_cursor = MagicMock()
+        tut_cursor.sort.return_value.to_list = AsyncMock(return_value=[])
+        tut_cursor.sort.return_value.skip.return_value.limit.return_value.to_list = AsyncMock(return_value=[])
+        mock_user_db.competitive_tutorials.find.return_value = tut_cursor
+        mock_user_db.competitive_tutorials.count_documents = AsyncMock(return_value=0)
+
+        tb_cursor = MagicMock()
+        tb_cursor.sort.return_value.to_list = AsyncMock(return_value=[user_tb_doc])
+        tb_cursor.sort.return_value.skip.return_value.limit.return_value.to_list = AsyncMock(return_value=[user_tb_doc])
+        mock_user_db.textbook.find.return_value = tb_cursor
+        mock_user_db.textbook.count_documents = AsyncMock(return_value=1)
+
+        tut_resp = asyncio.run(get_competitive_tutorials(category_id=cat_id))
+
+        assert tut_resp["status"] == "success"
+        assert "textbooks" in tut_resp
+        assert len(tut_resp["textbooks"]) == 1
+        ret_tb = tut_resp["textbooks"][0]
+
+        # Exact structure checks
+        assert ret_tb["textbook_id"] == tb_id
+        assert ret_tb["_id"] == tb_id
+        assert ret_tb["textbook_title"] == "Smart Question Bank"
+        assert ret_tb["category_id"] == cat_id
+        assert ret_tb["exam_category"] == "SSC"
+        assert ret_tb["exam_name"] == "SSC CGL (Tier 1 General Studies)"
+        assert ret_tb["subject"] == "General Intelligence & Reasoning"
+        assert ret_tb["total_pages"] == 51
+        assert ret_tb["chapters_count"] == 2
+        assert ret_tb["pdf_url"] == update_call_args["pdf_url"]
+        assert ret_tb["download_url"] == update_call_args["download_url"]
+        assert ret_tb["file_url"] == update_call_args["file_url"]
+        assert ret_tb["original_filename"] == "original_textbook.pdf"
+        assert ret_tb["uploaded_at"] == "2026-11-10T14:47:20.152000+05:30"
+        assert ret_tb["created_at"] == "2026-11-10T14:47:20.152000+05:30"
+        assert "chapters" not in ret_tb
+
+
+def test_retry_question_bank_generation_endpoint():
+    """Verify retry endpoint restarts generation for ingested textbooks."""
+    import asyncio
+    from fastapi import BackgroundTasks
+    from app.routes.admin_competitive_exam_routes import retry_question_bank_generation
+
+    tb_id = "6af2bac3162d857fa1495cbc"
+    with patch("app.routes.admin_competitive_exam_routes.db") as mock_admin_db:
+        mock_admin_db.textbook.find_one = AsyncMock(return_value={
+            "_id": ObjectId(tb_id),
+            "textbook_id": tb_id,
+            "textbook_title": "Smart Question Bank",
+            "subject": "Reasoning"
+        })
+        mock_admin_db.textbook_chapters.count_documents = AsyncMock(return_value=12)
+        mock_admin_db.textbook.update_one = AsyncMock()
+        mock_admin_db.chapter_status.update_one = AsyncMock()
+
+        bg_tasks = BackgroundTasks()
+        res = asyncio.run(retry_question_bank_generation(
+            textbook_id=tb_id,
+            background_tasks=bg_tasks,
+            current_admin={"sub": "admin_test", "role": "Admin"}
+        ))
+
+        assert res["status"] in ("processing", "queued")
+        assert res["textbook_id"] == tb_id
+        assert len(bg_tasks.tasks) == 1
+
+
+
 
 

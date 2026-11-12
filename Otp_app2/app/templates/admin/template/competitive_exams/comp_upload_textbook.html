@@ -103,7 +103,61 @@
   }
   body.dark-only #progress-container,
   .dark-only #progress-container {
-    border-top-color: #334155 !important;
+    border-top-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  /* Completion Banner Styling (Light & Dark Mode) */
+  .qb-success-card {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-left: 4px solid #16a34a;
+    border-radius: 12px;
+    padding: 16px 18px;
+    color: #14532d;
+  }
+  .qb-success-card .qb-success-icon {
+    color: #16a34a;
+    font-size: 1.5rem;
+  }
+  .qb-success-card .qb-success-title {
+    color: #15803d;
+    font-weight: 700;
+    font-size: 0.98rem;
+  }
+  .qb-success-card .qb-success-actions {
+    border-top: 1px solid rgba(22, 163, 74, 0.18);
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+  body.dark-only .qb-success-card,
+  .dark-only .qb-success-card {
+    background-color: rgba(16, 185, 129, 0.12) !important;
+    border: 1px solid rgba(52, 211, 153, 0.35) !important;
+    border-left: 4px solid #34d399 !important;
+    color: #ecfdf5 !important;
+  }
+  body.dark-only .qb-success-card .qb-success-icon,
+  .dark-only .qb-success-card .qb-success-icon {
+    color: #4ade80 !important;
+  }
+  body.dark-only .qb-success-card .qb-success-title,
+  .dark-only .qb-success-card .qb-success-title {
+    color: #4ade80 !important;
+  }
+  body.dark-only .qb-success-card .qb-success-actions,
+  .dark-only .qb-success-card .qb-success-actions {
+    border-top-color: rgba(52, 211, 153, 0.25) !important;
+  }
+  body.dark-only .qb-success-card .btn-outline-secondary,
+  .dark-only .qb-success-card .btn-outline-secondary {
+    color: #e2e8f0 !important;
+    border-color: #64748b !important;
+    background-color: rgba(15, 23, 42, 0.5) !important;
+  }
+  body.dark-only .qb-success-card .btn-outline-secondary:hover,
+  .dark-only .qb-success-card .btn-outline-secondary:hover {
+    background-color: #334155 !important;
+    color: #ffffff !important;
   }
 </style>
 {% endblock %}
@@ -246,22 +300,22 @@
             </div>
 
             <!-- Completion Notice -->
-            <div id="progress-success-box" class="alert alert-success border-0 rounded-3 mt-3 d-none align-items-center justify-content-between p-3 flex-wrap gap-2">
-              <div class="d-flex align-items-center gap-2">
-                <i class="fa fa-check-circle fs-4 text-success"></i>
-                <div>
-                  <b class="d-block text-success">Textbook Ingested &amp; Question Bank Ready!</b>
-                  <div id="progress-success-meta" class="mt-1"></div>
+            <div id="progress-success-box" class="qb-success-card mt-3 d-none">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="fa fa-check-circle qb-success-icon"></i>
+                  <span class="qb-success-title">Textbook Ingested &amp; Question Bank Ready!</span>
                 </div>
+                <div id="progress-success-meta" class="d-flex align-items-center flex-wrap gap-2"></div>
               </div>
-              <div class="d-flex justify-content-end gap-2 flex-wrap">
-                <a id="qb-download-link" href="#" target="_blank" class="btn btn-success btn-sm rounded-pill px-3 d-none">
+              <div class="qb-success-actions d-flex align-items-center justify-content-end flex-wrap gap-2">
+                <a id="qb-download-link" href="#" target="_blank" class="btn btn-success btn-sm rounded-pill px-3 fw-semibold d-none">
                   <i class="fa fa-file-pdf-o me-1"></i> Download Question Bank PDF
                 </a>
-                <a href="/admin-panel/competitive-exams/manage-exams" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                <a href="/admin-panel/competitive-exams/manage-exams" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold">
                   <i class="fa fa-list me-1"></i> Manage Exams
                 </a>
-                <a href="/admin-panel/competitive-exams/generate-questions" class="btn btn-primary btn-sm rounded-pill px-3">
+                <a href="/admin-panel/competitive-exams/generate-questions" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
                   <i class="fa fa-bolt me-1"></i> Generate Papers
                 </a>
               </div>

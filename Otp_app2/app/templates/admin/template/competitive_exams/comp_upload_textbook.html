@@ -478,7 +478,6 @@
       }
     } catch(e) { console.error(e); }
   }
-  }
 
   function updateExamDatalist() {
     const selectedCat = document.getElementById("exam_category").value;
@@ -545,7 +544,31 @@
   async function startUpload(e) {
     e.preventDefault();
     if (!selectedPdf) {
-      alert("Please select a PDF file.");
+      alert("Please select a valid PDF file.");
+      return;
+    }
+
+    const catSel = document.getElementById("exam_category");
+    if (!catSel || !catSel.value) {
+      alert("Please select an Exam Category.");
+      return;
+    }
+
+    const examName = (document.getElementById("exam_name").value || "").trim();
+    if (!examName) {
+      alert("Please enter an Exam Name.");
+      return;
+    }
+
+    const subject = (document.getElementById("subject").value || "").trim();
+    if (!subject) {
+      alert("Please enter a Subject.");
+      return;
+    }
+
+    const tbTitle = (document.getElementById("textbook_title").value || "").trim();
+    if (!tbTitle) {
+      alert("Please enter the Full Textbook Title.");
       return;
     }
 
@@ -553,7 +576,6 @@
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Staging &amp; Ingesting...';
 
-    const catSel = document.getElementById("exam_category");
     const selectedCatOpt = catSel.options[catSel.selectedIndex];
     const catId = selectedCatOpt ? (selectedCatOpt.getAttribute("data-id") || "") : "";
 
@@ -562,14 +584,14 @@
     if (catId) {
       formData.append("category_id", catId);
     }
-    formData.append("exam_name", document.getElementById("exam_name").value);
-    formData.append("exam_id", document.getElementById("exam_id").value);
-    formData.append("exam_year", document.getElementById("exam_year").value);
-    formData.append("subject", document.getElementById("subject").value);
-    formData.append("language", document.getElementById("language").value);
-    formData.append("textbook_title", document.getElementById("textbook_title").value);
-    formData.append("publisher", document.getElementById("publisher").value);
-    formData.append("syllabus_mapping", document.getElementById("syllabus_mapping").value);
+    formData.append("exam_name", examName);
+    formData.append("exam_id", document.getElementById("exam_id").value || "");
+    formData.append("exam_year", document.getElementById("exam_year").value || "");
+    formData.append("subject", subject);
+    formData.append("language", document.getElementById("language").value || "en");
+    formData.append("textbook_title", tbTitle);
+    formData.append("publisher", document.getElementById("publisher").value || "");
+    formData.append("syllabus_mapping", document.getElementById("syllabus_mapping").value || "");
     formData.append("auto_generate_question_bank", "true");
     formData.append("force_vision", document.getElementById("force_vision").checked ? "true" : "false");
     formData.append("file", selectedPdf);
@@ -581,9 +603,9 @@
         body: formData
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.detail || "Upload failed.");
+        alert(data.detail || "Upload failed: " + (res.statusText || "Server error"));
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fa fa-upload me-2"></i> Start Full Textbook Ingestion';
         return;

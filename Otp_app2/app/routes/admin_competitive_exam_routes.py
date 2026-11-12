@@ -778,14 +778,15 @@ async def generate_chapter_mcqs(
     chapter_passages: List[Dict[str, Any]],
     exam_name: str,
     subject: str,
-    target_count: int = 4,
+    target_count: int = 12,
     start_question_num: int = 1,
     seen_questions: Optional[set] = None
 ) -> List[Dict[str, Any]]:
     """
-    Generates high-quality objective MCQs grounded strictly in chapter passages.
-    Each MCQ has: question, options (A, B, C, D), correct_answer, explanation, difficulty, topic.
-    Includes robust fallback in case of LLM outage or offline test environments.
+    Generates high-quality objective MCQs grounded strictly in textbook passages.
+    Each MCQ has: question, options (A, B, C, D), correct_answer, explanation (1-2 sentences), difficulty, topic.
+    Does not mention chapter names or page numbers inside questions or explanations.
+    Includes chunked batching across large texts and robust fallback in case of LLM outage.
     """
     if seen_questions is None:
         seen_questions = set()
@@ -802,38 +803,63 @@ async def generate_chapter_mcqs(
         for t in p.get("topics", []):
             if t and t not in topics:
                 topics.append(t)
-    topics_str = ", ".join(topics[:5]) if topics else chapter_title
+    topics_str = ", ".join(topics[:5]) if topics else subject
+
+    def _clean_explanation(raw_expl: str, c_ans: str, opt_text: str) -> str:
+        expl = re.sub(r'\b(?:in|according to|from)\s+(?:this\s+)?chapter\s*\d*[^.,:]*[,:]?\s*', '', (raw_expl or '').strip(), flags=re.IGNORECASE).strip()
+        expl = re.sub(r'\(P\.\s*\d+(?:-\d+)?\)', '', expl).strip()
+        if not expl:
+            expl = f"The correct option is ({c_ans}) {opt_text}."
+        # Keep to 1-2 concise sentences
+        sents = re.split(r'(?<=[.!?])\s+', expl)
+        return " ".join(sents[:2]).strip()
+
+    def _clean_question(raw_q: str) -> str:
+        q = re.sub(r'\b(?:in|according to|from)\s+(?:this\s+)?chapter\s*\d*[^?,:]*[,:]?\s*', '', (raw_q or '').strip(), flags=re.IGNORECASE).strip()
+        return q[:1].upper() + q[1:] if q else ""
 
     generated_questions = []
 
-    # Try OpenAI gpt-4o-mini
-    try:
-        sample_context = content_text[:8000]
-        prompt = f"""You are an elite competitive examination paper setter for {exam_name}.
-Construct {target_count} rigorous objective Multiple Choice Questions (MCQs) based strictly on the provided chapter excerpts.
+    # Chunk content_text into batches of ~6500 chars to cover full content and generate many questions
+    BATCH_CHARS = 6500
+    text_batches = [content_text[i:i + BATCH_CHARS] for i in range(0, len(content_text), BATCH_CHARS)]
+    if not text_batches:
+        text_batches = [content_text]
+
+    # Try OpenAI gpt-4o-mini across batches
+    if client is not None:
+        for b_idx, batch_text in enumerate(text_batches):
+            if len(generated_questions) >= target_count:
+                break
+            remaining = target_count - len(generated_questions)
+            batches_left = len(text_batches) - b_idx
+            batch_target = min(15, max(5, (remaining + batches_left - 1) // batches_left))
+
+            try:
+                prompt = f"""You are an elite competitive examination paper setter for {exam_name}.
+Construct {batch_target} rigorous objective Multiple Choice Questions (MCQs) based strictly on the provided textbook excerpts.
 
 ### CONTEXT & EXAM
 - Examination: {exam_name}
 - Subject: {subject}
-- Chapter: {chapter_title}
 - Key Topics: {topics_str}
 
-### CHAPTER EXCERPTS (STRICTLY GROUNDED SOURCE)
-{sample_context}
+### TEXTBOOK EXCERPTS (STRICTLY GROUNDED SOURCE)
+{batch_text}
 
 ### INSTRUCTIONS
-1. Generate exactly {target_count} distinct Multiple Choice Questions based SOLELY on the text above.
-2. Provide exactly four options labeled "A", "B", "C", and "D". Ensure plausible distractors.
+1. Generate {batch_target} distinct, exam-grade Multiple Choice Questions based SOLELY on the facts and concepts in the text above.
+2. Provide exactly four options labeled "A", "B", "C", and "D" with plausible distractors.
 3. Mark exactly one correct option ("A", "B", "C", or "D").
-4. Provide a detailed, pedagogical explanation (2-3 sentences) citing the concept in the text.
-5. Difficulty: Distribute between "Easy", "Medium", and "Hard".
-6. Specify the concept or topic being tested.
+4. Provide a concise explanation in 1 to 2 sentences only, directly explaining why the answer is correct.
+5. CRITICAL: Do NOT mention any chapter name, chapter number, section title, or page number anywhere in the question, options, or explanation. Never write "In this chapter", "According to Chapter X", or "From the passage".
+6. Difficulty: Distribute between "Easy", "Medium", and "Hard".
 
 ### STRICT JSON RESPONSE FORMAT
 {{
   "questions": [
     {{
-      "question": "Question text here?",
+      "question": "Standalone question text here?",
       "options": {{
         "A": "Option A text",
         "B": "Option B text",
@@ -842,88 +868,94 @@ Construct {target_count} rigorous objective Multiple Choice Questions (MCQs) bas
       }},
       "correct_answer": "A",
       "difficulty": "Medium",
-      "topic": "{topics[0] if topics else chapter_title}",
-      "explanation": "Detailed explanation grounded in the chapter..."
+      "topic": "{topics[0] if topics else subject}",
+      "explanation": "Concise 1-2 sentence explanation."
     }}
   ]
 }}
 Return ONLY valid JSON matching the schema above."""
 
-        resp = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.25,
-            response_format={"type": "json_object"}
-        )
-        data = json.loads(resp.choices[0].message.content or "{}")
-        raw_items = data.get("questions", [])
+                resp = await client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    response_format={"type": "json_object"}
+                )
+                data = json.loads(resp.choices[0].message.content or "{}")
+                raw_items = data.get("questions", [])
 
-        for idx, item in enumerate(raw_items):
-            q_text = (item.get("question") or "").strip()
-            if not q_text or q_text.lower() in seen_questions:
-                continue
+                for idx, item in enumerate(raw_items):
+                    q_text = _clean_question(item.get("question") or "")
+                    if not q_text or q_text.lower() in seen_questions:
+                        continue
 
-            opts = item.get("options")
-            if not isinstance(opts, dict) or not all(k in opts and str(opts[k]).strip() for k in ["A", "B", "C", "D"]):
-                continue
+                    opts = item.get("options")
+                    if not isinstance(opts, dict) or not all(k in opts and str(opts[k]).strip() for k in ["A", "B", "C", "D"]):
+                        continue
 
-            c_ans = str(item.get("correct_answer") or "").strip().upper()
-            if c_ans not in ["A", "B", "C", "D"]:
-                c_ans = "A"
+                    c_ans = str(item.get("correct_answer") or "").strip().upper()
+                    if c_ans not in ["A", "B", "C", "D"]:
+                        c_ans = "A"
 
-            expl = (item.get("explanation") or "").strip()
-            if not expl:
-                expl = f"Correct answer is ({c_ans}). Grounded in textbook chapter: {chapter_title}."
+                    expl = _clean_explanation(item.get("explanation") or "", c_ans, str(opts[c_ans]).strip())
 
-            diff = item.get("difficulty") or ("Easy" if idx % 3 == 0 else ("Medium" if idx % 3 == 1 else "Hard"))
-            if diff not in ["Easy", "Medium", "Hard"]:
-                diff = "Medium"
+                    diff = item.get("difficulty") or ("Easy" if idx % 3 == 0 else ("Medium" if idx % 3 == 1 else "Hard"))
+                    if diff not in ["Easy", "Medium", "Hard"]:
+                        diff = "Medium"
 
-            q_num = start_question_num + len(generated_questions)
-            generated_questions.append({
-                "question_number": q_num,
-                "question": q_text,
-                "type": "MCQ",
-                "options": {
-                    "A": str(opts["A"]).strip(),
-                    "B": str(opts["B"]).strip(),
-                    "C": str(opts["C"]).strip(),
-                    "D": str(opts["D"]).strip()
-                },
-                "correct_answer": c_ans,
-                "marks": 1,
-                "difficulty": diff,
-                "topic": item.get("topic") or (topics[0] if topics else chapter_title),
-                "explanation": expl,
-                "chapter_reference": f"{chapter_title} (P. {page_ref})"
-            })
-            seen_questions.add(q_text.lower())
-            if len(generated_questions) >= target_count:
-                break
+                    q_num = start_question_num + len(generated_questions)
+                    generated_questions.append({
+                        "question_number": q_num,
+                        "question": q_text,
+                        "type": "MCQ",
+                        "options": {
+                            "A": str(opts["A"]).strip(),
+                            "B": str(opts["B"]).strip(),
+                            "C": str(opts["C"]).strip(),
+                            "D": str(opts["D"]).strip()
+                        },
+                        "correct_answer": c_ans,
+                        "marks": 1,
+                        "difficulty": diff,
+                        "topic": item.get("topic") or (topics[0] if topics else subject),
+                        "explanation": expl,
+                        "chapter_reference": f"{chapter_title} (P. {page_ref})"
+                    })
+                    seen_questions.add(q_text.lower())
+                    if len(generated_questions) >= target_count:
+                        break
 
-    except Exception as api_err:
-        print(f"[COMP-TB] LLM generation note for '{chapter_title}': {api_err}. Using grounded extractive fallback...")
+            except Exception as api_err:
+                print(f"[COMP-TB] LLM generation note (batch {b_idx+1}): {api_err}. Using grounded extractive fallback...")
 
     # Fallback if LLM produced fewer than needed or offline
     if len(generated_questions) < target_count:
         sentences = [
             s.strip() for s in re.split(r'(?<=[.!?])\s+', content_text)
-            if 35 <= len(s.strip()) <= 160 and s.strip()[0].isupper() and not s.strip().startswith("http")
+            if 30 <= len(s.strip()) <= 180 and s.strip()[0].isupper() and not s.strip().startswith("http")
         ]
-        
+
         diff_cycle = ["Easy", "Medium", "Hard"]
-        needed = target_count - len(generated_questions)
-        
-        for s_idx, sent in enumerate(sentences[:needed * 4]):
+        stem_templates = [
+            f"Which of the following statements is accurate in {subject}?",
+            f"Identify the correct statement based on {subject} concepts:",
+            f"Which option correctly describes a key fact in {subject}?",
+            f"Consider the following statements regarding {subject} and select the correct one:"
+        ]
+
+        for s_idx, sent in enumerate(sentences):
+            if len(generated_questions) >= target_count:
+                break
             q_num = start_question_num + len(generated_questions)
-            candidate_q = f"Which of the following statements is correct regarding {chapter_title}?"
+            stem = stem_templates[s_idx % len(stem_templates)]
+            candidate_q = f"{stem} ({len(generated_questions) + 1})" if stem.lower() in seen_questions else stem
             if candidate_q.lower() in seen_questions:
-                candidate_q = f"In {chapter_title}, which statement accurately reflects the textbook content? (Item {len(generated_questions)+1})"
+                continue
 
             opt_a = sent
-            opt_b = f"The concepts in {chapter_title} explicitly contradict the principles stated in the curriculum."
-            opt_c = f"The historical and analytical evidence for this topic is completely indeterminate."
-            opt_d = f"None of the standard examination interpretations apply to this section."
+            opt_b = f"This principle is unrelated to {subject} and contradicts standard definitions."
+            opt_c = "The underlying evidence for this concept is entirely unverified."
+            opt_d = "None of the standard analytical interpretations apply here."
 
             generated_questions.append({
                 "question_number": q_num,
@@ -938,13 +970,11 @@ Return ONLY valid JSON matching the schema above."""
                 "correct_answer": "A",
                 "marks": 1,
                 "difficulty": diff_cycle[len(generated_questions) % len(diff_cycle)],
-                "topic": topics[0] if topics else chapter_title,
-                "explanation": f"According to {chapter_title}: \"{sent}\"",
+                "topic": topics[0] if topics else subject,
+                "explanation": _clean_explanation(sent, "A", opt_a),
                 "chapter_reference": f"{chapter_title} (P. {page_ref})"
             })
             seen_questions.add(candidate_q.lower())
-            if len(generated_questions) >= target_count:
-                break
 
     return generated_questions
 
@@ -953,8 +983,8 @@ async def generate_textbook_question_bank_pipeline(
     file_path: Optional[str] = None,
     admin_sub: str = "ADMIN",
     admin_role: str = "Admin",
-    questions_per_chapter: int = 4,
-    target_total: int = 40
+    questions_per_chapter: int = 20,
+    target_total: int = 200
 ) -> Dict[str, Any]:
     """
     Automated textbook-to-question-bank generation workflow:
@@ -1038,7 +1068,8 @@ async def generate_textbook_question_bank_pipeline(
         textbook_title = tb_doc.get("textbook_title") or tb_doc.get("textbook_name", "Competitive Textbook")
 
         total_ch = len(chapter_map)
-        per_ch_q = max(2, min(questions_per_chapter, max(2, target_total // total_ch)))
+        effective_target = max(target_total, min(300, len(passages) * 6))
+        per_ch_q = max(8, min(questions_per_chapter, max(8, effective_target // total_ch)))
 
         all_sections = []
         all_questions = []
@@ -1082,10 +1113,12 @@ async def generate_textbook_question_bank_pipeline(
         ans_key = {str(q["question_number"]): q.get("correct_answer", "A") for q in all_questions}
 
         paper_data = {
+            "textbook_title": textbook_title,
             "paper_title": f"{textbook_title} - Question Bank",
             "exam_name": exam_name,
             "exam_category": category_name,
             "subject": subject,
+            "total_questions": len(all_questions),
             "total_marks": len(all_questions),
             "time_limit": f"{max(30, len(all_questions) * 2)} MINUTES",
             "negative_marking_rule": "0.33 Mark penalty per incorrect response",

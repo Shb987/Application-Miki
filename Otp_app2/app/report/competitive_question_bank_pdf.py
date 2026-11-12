@@ -204,16 +204,22 @@ def save_competitive_question_bank_pdf(question_bank_json: dict, filename: str):
     text-align: center;
     border: 1px solid #cbd5e1;
   }}
+  .answer-line {{
+    margin-left: 12px;
+    margin-top: 4px;
+    font-size: 9.5px;
+    color: #002B49;
+  }}
   .explanation-box {{
     background-color: #f0fdf4;
     border: 1px solid #bbf7d0;
     border-left: 3px solid #16a34a;
-    padding: 5px 8px;
+    padding: 4px 8px;
     margin-top: 3px;
-    margin-left: 10px;
+    margin-left: 12px;
     font-size: 9.5px;
     color: #14532d;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     page-break-inside: avoid;
     break-inside: avoid;
   }}
@@ -223,79 +229,41 @@ def save_competitive_question_bank_pdf(question_bank_json: dict, filename: str):
   <div class="bank-header">
     <div class="bank-agency">{category_name} &bull; {exam_name}</div>
     <div class="bank-main-title">{textbook_title}</div>
-    <div class="bank-subtitle">Comprehensive Textbook Question Bank &bull; Chapter-Wise Practice &amp; Detailed Explanations</div>
+    <div class="bank-subtitle">Comprehensive Textbook Question Bank &bull; Answers &amp; Explanations</div>
   </div>
 
   <table class="meta-table">
     <tr>
       <td><b>Subject:</b> {subject}</td>
       <td><b>Language:</b> {language}</td>
-      <td style="text-align: right;"><b>Total Chapters:</b> {total_chapters} &bull; <b>Questions:</b> {total_questions}</td>
+      <td style="text-align: right;"><b>Total Questions:</b> {total_questions}</td>
     </tr>
   </table>
-
-  <!-- Chapter Syllabus Breakdown -->
-  <div class="toc-box">
-    <div class="toc-title">Table of Chapters &amp; Question Coverage</div>
-    <table class="toc-grid">
-      <tr>
-        <th style="width: 15%;">Chapter</th>
-        <th style="width: 45%;">Chapter Title</th>
-        <th style="width: 25%;">Topic Coverage</th>
-        <th style="width: 15%; text-align: right;">Questions</th>
-      </tr>
-""")
-
-    for s_idx, sec in enumerate(sections):
-        ch_title = _escape_html(sec.get("section_title") or sec.get("chapter_title") or f"Chapter {s_idx + 1}")
-        q_list = sec.get("questions", [])
-        topics = ", ".join(_escape_html(t) for t in sec.get("topics", [])[:3]) if sec.get("topics") else "General Concepts"
-        html_parts.append(f"""
-      <tr>
-        <td><b>Ch. {s_idx + 1}</b></td>
-        <td>{ch_title}</td>
-        <td>{topics}</td>
-        <td style="text-align: right;"><b>{len(q_list)}</b> MCQs</td>
-      </tr>
-        """)
-
-    html_parts.append("""
-    </table>
-  </div>
 """)
 
     q_counter = 1
-    answer_explanations = []
 
-    # Render Chapter-wise Question Sections
-    for s_idx, sec in enumerate(sections):
-        ch_title = _escape_html(sec.get("section_title") or sec.get("chapter_title") or f"Chapter {s_idx + 1}")
-        topics_str = ", ".join(_escape_html(t) for t in sec.get("topics", [])) if sec.get("topics") else ""
+    # Render Questions sequentially with Correct Answer and Explanation directly below each question
+    for sec in sections:
         questions = sec.get("questions", [])
-
-        html_parts.append(f'<div class="section-header">CHAPTER {s_idx + 1}: {ch_title} ({len(questions)} Questions)</div>')
-        if topics_str:
-            html_parts.append(f'<div class="chapter-subtext">Topics: {topics_str}</div>')
 
         for q in questions:
             q_text = _escape_html(q.get("question", ""))
-            q_num = q.get("question_number", q_counter)
-            q_diff = _escape_html(q.get("difficulty", "Medium"))
-            diff_cls = "diff-easy" if "easy" in q_diff.lower() else ("diff-hard" if "hard" in q_diff.lower() else "diff-med")
+            q_num = q_counter
             correct_ans = _escape_html(q.get("correct_answer", ""))
             explanation = _escape_html(q.get("explanation", ""))
-            source_ref = _escape_html(q.get("chapter_reference", ""))
 
             html_parts.append(f"""
             <div class="question-item">
               <div class="q-head">
-                <span class="q-badge"><span class="{diff_cls}">[{q_diff}]</span> {f'&bull; {source_ref}' if source_ref else ''}</span>
                 <span><b>Q{q_num}.</b> {q_text}</span>
               </div>
             """)
 
             opts = q.get("options", {})
+            correct_opt_text = ""
             if isinstance(opts, dict):
+                correct_opt_text = _escape_html(opts.get(correct_ans, ""))
                 html_parts.append('<table class="options-table">')
                 html_parts.append('<tr>')
                 html_parts.append(f'<td><span class="opt-badge">(A)</span> {_escape_html(opts.get("A", ""))}</td>')
@@ -305,6 +273,9 @@ def save_competitive_question_bank_pdf(question_bank_json: dict, filename: str):
                 html_parts.append(f'<td><span class="opt-badge">(D)</span> {_escape_html(opts.get("D", ""))}</td>')
                 html_parts.append('</tr></table>')
             elif isinstance(opts, list):
+                idx_map = {"A": 0, "B": 1, "C": 2, "D": 3}
+                if correct_ans in idx_map and idx_map[correct_ans] < len(opts):
+                    correct_opt_text = _escape_html(opts[idx_map[correct_ans]])
                 html_parts.append('<table class="options-table">')
                 for i in range(0, len(opts), 2):
                     html_parts.append('<tr>')
@@ -318,59 +289,15 @@ def save_competitive_question_bank_pdf(question_bank_json: dict, filename: str):
                     html_parts.append('</tr>')
                 html_parts.append('</table>')
 
-            html_parts.append('</div>')
+            ans_display = f"({correct_ans}) {correct_opt_text}".strip() if correct_opt_text else f"({correct_ans})"
+            html_parts.append(f'<div class="answer-line"><b>Correct Answer:</b> {ans_display}</div>')
+            if explanation:
+                html_parts.append(f'<div class="explanation-box"><b>Explanation:</b> {explanation}</div>')
 
-            answer_explanations.append({
-                "num": q_num,
-                "chapter": ch_title,
-                "answer": correct_ans,
-                "explanation": explanation,
-                "source": source_ref
-            })
+            html_parts.append('</div>')
             q_counter += 1
 
-    # Appendix: Official Answer Key & Comprehensive Explanations
     html_parts.append("""
-    <div class="page-break"></div>
-    <div class="key-section">
-      <div class="bank-agency" style="text-align: center; margin-bottom: 2px;">OFFICIAL ANSWER KEY &amp; EXPLANATIONS</div>
-      <div style="text-align: center; font-size: 9.5px; color: #475569; margin-bottom: 10px;">
-        Curriculum-grounded pedagogical explanations and textbook citations for every question
-      </div>
-    """)
-
-    # Quick Answer Key Matrix in rows of 10
-    if answer_explanations:
-        html_parts.append('<div style="font-weight:bold; font-size:10px; margin-bottom:4px; text-transform:uppercase; color:#002B49;">Answer Key Quick Reference</div>')
-        CHUNK_SIZE = 10
-        for i in range(0, len(answer_explanations), CHUNK_SIZE):
-            chunk = answer_explanations[i:i + CHUNK_SIZE]
-            html_parts.append('<table class="answer-grid"><tr>')
-            for item in chunk:
-                html_parts.append(f'<th>Q{item["num"]}</th>')
-            html_parts.append('</tr><tr>')
-            for item in chunk:
-                html_parts.append(f'<td><b>({item["answer"]})</b></td>')
-            html_parts.append('</tr></table>')
-
-    html_parts.append('<div class="section-header" style="margin-top:16px;">DETAILED PEDAGOGICAL EXPLANATIONS</div>')
-
-    for item in answer_explanations:
-        html_parts.append(f"""
-        <div style="margin-bottom: 6px; page-break-inside: avoid;">
-          <div><b>Q{item['num']}. Correct Answer: <span style="color:#002B49;">({item['answer']})</span></b> &bull; <small style="color:#64748b;">{item['chapter']}</small></div>
-        """)
-        if item.get("explanation"):
-            html_parts.append(f"""
-          <div class="explanation-box">
-            <b>Explanation:</b> {item['explanation']}
-            {f"<br><small style='color:#475569;'><b>Citation:</b> {item['source']}</small>" if item.get('source') else ""}
-          </div>
-            """)
-        html_parts.append('</div>')
-
-    html_parts.append("""
-    </div>
 </body>
 </html>
 """)
@@ -421,20 +348,25 @@ def save_competitive_question_bank_pdf(question_bank_json: dict, filename: str):
         story.append(Paragraph(f"Subject: {subject} | Category: {category_name} | Exam: {exam_name}", h2_style))
         story.append(Spacer(1, 10))
 
-        for s_idx, sec in enumerate(sections):
-            ch_name = sec.get("section_title") or sec.get("chapter_title") or f"CHAPTER {s_idx + 1}"
-            story.append(Paragraph(f"&nbsp;{ch_name}", sec_style))
-            story.append(Spacer(1, 8))
+        q_idx = 1
+        for sec in sections:
             for q in sec.get("questions", []):
-                q_text = q.get("question", "")
-                q_num = q.get("question_number", 1)
-                story.append(Paragraph(f"<b>Q{q_num}. {q_text}</b>", body_style))
+                q_text = _escape_html(q.get("question", ""))
+                story.append(Paragraph(f"<b>Q{q_idx}. {q_text}</b>", body_style))
                 opts = q.get("options", {})
+                c_ans = _escape_html(q.get("correct_answer", ""))
+                c_opt = _escape_html(opts.get(c_ans, "")) if isinstance(opts, dict) else ""
                 if isinstance(opts, dict):
                     for k in ["A", "B", "C", "D"]:
                         if k in opts:
-                            story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>({k})</b> {opts[k]}", body_style))
-                story.append(Spacer(1, 6))
+                            story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>({k})</b> {_escape_html(opts[k])}", body_style))
+                ans_str = f"({c_ans}) {c_opt}".strip() if c_opt else f"({c_ans})"
+                story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>Correct Answer:</b> {ans_str}", body_style))
+                expl = _escape_html(q.get("explanation", ""))
+                if expl:
+                    story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>Explanation:</b> {expl}", body_style))
+                story.append(Spacer(1, 8))
+                q_idx += 1
 
         doc.build(story)
         print(f"[CompQB-PDF] Saved Question Bank PDF via ReportLab fallback: {filename}")

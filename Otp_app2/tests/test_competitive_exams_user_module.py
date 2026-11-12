@@ -900,7 +900,7 @@ def test_competitive_question_bank_pdf_template(tmp_path):
 
     is_valid, page_cnt, err = validate_pdf_file(res_path)
     assert is_valid is True
-    assert page_cnt >= 2
+    assert page_cnt >= 1
     assert err == ""
 
     # Verify content inside PDF using PyMuPDF
@@ -910,10 +910,12 @@ def test_competitive_question_bank_pdf_template(tmp_path):
 
     assert "Smart Question Bank for SSC CGL" in full_text
     assert "General Intelligence & Reasoning" in full_text
-    assert "Alphabet & Word Test" in full_text
-    assert "Seating Arrangement" in full_text
-    assert "OFFICIAL ANSWER KEY" in full_text
-    assert "DETAILED PEDAGOGICAL EXPLANATIONS" in full_text
+    assert "Correct Answer:" in full_text
+    assert "Explanation:" in full_text
+    assert "Third is Examine." in full_text
+    assert "[Medium]" not in full_text
+    assert "P. 1-4" not in full_text
+    assert "CHAPTER 1:" not in full_text
 
 
 

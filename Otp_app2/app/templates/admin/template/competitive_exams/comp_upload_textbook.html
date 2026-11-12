@@ -215,15 +215,20 @@
             <!-- Single Full Textbook PDF Dropzone -->
             <div class="mb-4">
               <label class="form-label fw-bold font-primary"><i class="fa fa-file-pdf-o text-danger me-1"></i> Full Textbook PDF <span class="text-danger">*</span></label>
-              <div class="dropzone-box p-4 text-center" id="dropzone" onclick="document.getElementById('pdf-file').click()">
+              <div class="dropzone-box p-4 text-center position-relative" id="dropzone" style="cursor: pointer;">
+                <input type="file" id="pdf-file" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer; z-index: 10;" accept="application/pdf,.pdf" onchange="handleFileSelect(this.files)">
                 <i class="fa fa-cloud-upload text-primary" style="font-size: 42px;"></i>
                 <h6 class="fw-bold mt-2 dropzone-label" id="file-label">Drag &amp; Drop Full Textbook PDF here or click to browse</h6>
-                <p class="small dropzone-info mb-0" id="file-info">Uploads the complete textbook. Individual chapter PDFs are not required.</p>
-                <input type="file" id="pdf-file" class="d-none" accept="application/pdf" onchange="handleFileSelect(this.files)">
+                <p class="small dropzone-info mb-2" id="file-info">Uploads the complete textbook. Individual chapter PDFs are not required.</p>
+                <div>
+                  <span class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" style="pointer-events: none;">
+                    <i class="fa fa-folder-open me-1"></i> Choose PDF File
+                  </span>
+                </div>
               </div>
             </div>
 
-            <button type="submit" id="submit-btn" class="btn btn-primary w-100 rounded-pill py-2 fw-bold text-uppercase shadow-sm" disabled>
+            <button type="submit" id="submit-btn" class="btn btn-primary w-100 rounded-pill py-2 fw-bold text-uppercase shadow-sm">
               <i class="fa fa-upload me-2"></i> Start Full Textbook Ingestion
             </button>
           </form>
@@ -448,24 +453,49 @@
         document.getElementById("exam_name").value = preExamName;
       }
     }
+    initDropzoneEvents();
   }
 
+  const DEFAULT_FALLBACK_CATEGORIES = [
+    "UPSC Civil Services",
+    "Kerala PSC",
+    "SSC",
+    "Banking & Insurance",
+    "Railway Recruitment",
+    "Other State PSCs",
+    "Defence Examinations",
+    "Teaching & Eligibility",
+    "NEET / JEE & Entrance",
+    "Other Competitive Exams"
+  ];
+
   async function loadCategories() {
+    const catSel = document.getElementById("exam_category");
+    if (!catSel) return;
+    const currentVal = catSel.value;
+    let loaded = [];
     try {
       let res = await fetch("/admin-panel/competitive-exams/categories", { headers: getHeaders() });
       if (!res.ok) {
         res = await fetch("/user/competitive-exams/categories");
       }
-      if (!res.ok) return;
-      const data = await res.json();
-      allCategories = (data.categories || []).filter(c => c.is_active !== false);
-      const catSel = document.getElementById("exam_category");
-      if (!catSel) return;
-      const currentVal = catSel.value;
-      catSel.innerHTML = '<option value="">-- Select Category --</option>' + 
-        allCategories.map(c => `<option value="${escapeHtml(c.category_name)}" data-id="${escapeHtml(c._id || '')}">${escapeHtml(c.category_name)}</option>`).join('');
-      if (currentVal) catSel.value = currentVal;
+      if (res.ok) {
+        const data = await res.json();
+        loaded = (data.categories || []).filter(c => c.is_active !== false);
+      }
     } catch(e) { console.error("Error loading categories:", e); }
+
+    if (loaded.length > 0) {
+      allCategories = loaded;
+    } else if (catSel.options.length <= 1) {
+      allCategories = DEFAULT_FALLBACK_CATEGORIES.map(name => ({ category_name: name, _id: "" }));
+    } else {
+      return;
+    }
+
+    catSel.innerHTML = '<option value="">-- Select Category --</option>' + 
+      allCategories.map(c => `<option value="${escapeHtml(c.category_name)}" data-id="${escapeHtml(c._id || '')}">${escapeHtml(c.category_name)}</option>`).join('');
+    if (currentVal) catSel.value = currentVal;
   }
 
   async function loadExams() {
@@ -512,39 +542,67 @@
       return;
     }
     selectedPdf = f;
-    document.getElementById("file-label").innerText = f.name;
+    const labelEl = document.getElementById("file-label");
+    if (labelEl) labelEl.innerText = f.name;
     const sizeMb = (f.size / (1024 * 1024)).toFixed(2);
-    document.getElementById("file-info").innerText = `Selected: ${f.name} (${sizeMb} MB) — Ready for ingestion`;
-    document.getElementById("dropzone").classList.add("border-success");
+    const infoEl = document.getElementById("file-info");
+    if (infoEl) infoEl.innerText = `Selected: ${f.name} (${sizeMb} MB) — Ready for ingestion`;
+    const dropzoneEl = document.getElementById("dropzone");
+    if (dropzoneEl) {
+      dropzoneEl.classList.add("border-success");
+      dropzoneEl.style.borderColor = "#16a34a";
+      dropzoneEl.style.backgroundColor = "rgba(22, 163, 74, 0.08)";
+    }
 
     // Suggest textbook title if empty
     const titleInput = document.getElementById("textbook_title");
-    if (!titleInput.value) {
+    if (titleInput && !titleInput.value) {
       let suggested = f.name.replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ");
       titleInput.value = suggested.charAt(0).toUpperCase() + suggested.slice(1);
     }
-    document.getElementById("submit-btn").disabled = false;
+    const submitBtn = document.getElementById("submit-btn");
+    if (submitBtn) submitBtn.disabled = false;
   }
 
-  // Setup drag & drop
-  const dropzone = document.getElementById("dropzone");
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); }, false);
-  });
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); }, false);
-  });
-  dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileSelect(e.dataTransfer.files);
-    }
-  });
+  function initDropzoneEvents() {
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("pdf-file");
+    if (!dropzone || !fileInput) return;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dragover');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      }, false);
+    });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect(e.dataTransfer.files);
+      }
+    });
+  }
 
   async function startUpload(e) {
     e.preventDefault();
     if (!selectedPdf) {
-      alert("Please select a valid PDF file.");
+      const fileInput = document.getElementById("pdf-file");
+      if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        selectedPdf = fileInput.files[0];
+      }
+    }
+    if (!selectedPdf) {
+      alert("Please select a PDF file first by clicking the upload box.");
       return;
     }
 
@@ -752,10 +810,6 @@
         retryBtn.innerHTML = '<i class="fa fa-refresh me-1"></i> Retry Question Bank Generation';
       }
     }
-  }
-
-    check();
-    pollInterval = setInterval(check, 2500);
   }
 
   function updateProgress(pct, statusText) {

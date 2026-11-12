@@ -153,6 +153,9 @@
                 </div>
                 <select class="form-select shadow-sm" id="exam_category" required onchange="onCategoryChange()">
                   <option value="">-- Select Category --</option>
+                  {% for c in categories %}
+                  <option value="{{ c.category_name }}" data-id="{{ c._id }}">{{ c.category_name }}</option>
+                  {% endfor %}
                 </select>
               </div>
               <div class="col-md-6">
@@ -199,24 +202,13 @@
               </div>
             </div>
 
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <div class="form-check form-switch p-2 bg-light rounded-3 border">
-                  <input class="form-check-input ms-0 me-2" type="checkbox" id="auto_generate_question_bank" checked>
-                  <label class="form-check-label fw-bold font-primary" for="auto_generate_question_bank">
-                    Auto-Generate Question Bank PDF
-                  </label>
-                  <div class="small text-muted ps-4">Chapter-wise MCQs, official answers &amp; explanations compiled into PDF</div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-check form-switch p-2 bg-light rounded-3 border">
-                  <input class="form-check-input ms-0 me-2" type="checkbox" id="force_vision">
-                  <label class="form-check-label fw-bold font-primary" for="force_vision">
-                    Force Vision Extraction (OCR)
-                  </label>
-                  <div class="small text-muted ps-4">Enable if textbook is scanned or has complex diagrams/equations</div>
-                </div>
+            <div class="mb-3">
+              <div class="form-check form-switch p-2 bg-light rounded-3 border">
+                <input class="form-check-input ms-0 me-2" type="checkbox" id="force_vision">
+                <label class="form-check-label fw-bold font-primary" for="force_vision">
+                  Force Vision Extraction (OCR)
+                </label>
+                <div class="small text-muted ps-4">Enable this toggle if the textbook is a scanned image PDF or contains complex equations.</div>
               </div>
             </div>
 
@@ -343,7 +335,20 @@
 
 {% block scripts %}
 <script>
-  const token = localStorage.getItem("admin_token");
+  function getToken() {
+    return localStorage.getItem("admin_token") || localStorage.getItem("access_token") || localStorage.getItem("token") || "";
+  }
+
+  function getHeaders(isJson = false) {
+    const token = getToken();
+    const h = {};
+    if (isJson) h["Content-Type"] = "application/json";
+    if (token && token !== "undefined" && token !== "null") {
+      h["Authorization"] = "Bearer " + token;
+    }
+    return h;
+  }
+
   let selectedPdf = null;
   let allCategories = [];
   let allExams = [];
@@ -380,12 +385,9 @@
     btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Saving...';
 
     try {
-      const headers = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = "Bearer " + token;
-
       const res = await fetch("/admin-panel/competitive-exams/categories", {
         method: "POST",
-        headers: headers,
+        headers: getHeaders(true),
         body: JSON.stringify({
           category_name: catName,
           description: catDesc,
@@ -442,23 +444,23 @@
     }
     if (preExamId) {
       document.getElementById("exam_id").value = preExamId;
-      const exOpt = Array.from(document.getElementById("exam_name").options).find(o => o.getAttribute("data-id") === preExamId);
-      if (exOpt) exOpt.selected = true;
-      onExamChange();
+      if (preExamName) {
+        document.getElementById("exam_name").value = preExamName;
+      }
     }
   }
 
   async function loadCategories() {
     try {
-      const headers = {};
-      if (token) headers["Authorization"] = "Bearer " + token;
-      let res = await fetch("/admin-panel/competitive-exams/categories", { headers });
+      let res = await fetch("/admin-panel/competitive-exams/categories", { headers: getHeaders() });
       if (!res.ok) {
         res = await fetch("/user/competitive-exams/categories");
       }
+      if (!res.ok) return;
       const data = await res.json();
-      allCategories = data.categories || [];
+      allCategories = (data.categories || []).filter(c => c.is_active !== false);
       const catSel = document.getElementById("exam_category");
+      if (!catSel) return;
       const currentVal = catSel.value;
       catSel.innerHTML = '<option value="">-- Select Category --</option>' + 
         allCategories.map(c => `<option value="${escapeHtml(c.category_name)}" data-id="${escapeHtml(c._id || '')}">${escapeHtml(c.category_name)}</option>`).join('');
@@ -468,11 +470,14 @@
 
   async function loadExams() {
     try {
-      const res = await fetch("/admin-panel/competitive-exams/api/exams", { headers: { "Authorization": "Bearer " + token } });
-      const data = await res.json();
-      allExams = data.exams || [];
-      updateExamDatalist();
+      const res = await fetch("/admin-panel/competitive-exams/api/exams", { headers: getHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        allExams = data.exams || [];
+        updateExamDatalist();
+      }
     } catch(e) { console.error(e); }
+  }
   }
 
   function updateExamDatalist() {
@@ -565,15 +570,14 @@
     formData.append("textbook_title", document.getElementById("textbook_title").value);
     formData.append("publisher", document.getElementById("publisher").value);
     formData.append("syllabus_mapping", document.getElementById("syllabus_mapping").value);
-    const autoQb = document.getElementById("auto_generate_question_bank");
-    formData.append("auto_generate_question_bank", autoQb && autoQb.checked ? "true" : "false");
+    formData.append("auto_generate_question_bank", "true");
     formData.append("force_vision", document.getElementById("force_vision").checked ? "true" : "false");
     formData.append("file", selectedPdf);
 
     try {
       const res = await fetch("/admin-panel/competitive-exams/textbook/upload-full", {
         method: "POST",
-        headers: { "Authorization": "Bearer " + token },
+        headers: getHeaders(),
         body: formData
       });
 
@@ -613,7 +617,7 @@
     const check = async () => {
       try {
         const res = await fetch(`/admin-panel/competitive-exams/textbook-status/${textbookId}`, {
-          headers: { "Authorization": "Bearer " + token }
+          headers: getHeaders()
         });
         if (!res.ok) return;
         const data = await res.json();
@@ -707,7 +711,7 @@
     try {
       const res = await fetch(`/admin-panel/competitive-exams/textbook/${textbookId}/retry-generation`, {
         method: "POST",
-        headers: { "Authorization": "Bearer " + token }
+        headers: getHeaders()
       });
       const data = await res.json();
       if (!res.ok) {

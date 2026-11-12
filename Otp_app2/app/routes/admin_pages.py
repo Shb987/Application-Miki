@@ -90,7 +90,14 @@ async def competitive_exams_categories_page(request: Request):
 
 @router.get("/competitive-exams/upload-textbook", response_class=HTMLResponse)
 async def competitive_exams_upload_textbook_page(request: Request):
-    return templates.TemplateResponse("competitive_exams/comp_upload_textbook.html", {"request": request})
+    categories = []
+    try:
+        categories = await db.competitive_exam_categories.find({"is_active": {"$ne": False}}).sort("category_name", 1).to_list(None)
+        for c in categories:
+            c["_id"] = str(c["_id"])
+    except Exception:
+        pass
+    return templates.TemplateResponse("competitive_exams/comp_upload_textbook.html", {"request": request, "categories": categories})
 
 @router.get("/competitive-exams/manage-exams", response_class=HTMLResponse)
 @router.get("/competitive-exams/manage-textbooks", response_class=HTMLResponse)

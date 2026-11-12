@@ -808,6 +808,115 @@ def test_retry_question_bank_generation_endpoint():
         assert len(bg_tasks.tasks) == 1
 
 
+def test_competitive_question_bank_pdf_template(tmp_path):
+    """Verify save_competitive_question_bank_pdf generates a valid structured question bank PDF with table of contents and answer matrix."""
+    import pymupdf
+    from app.report.competitive_question_bank_pdf import save_competitive_question_bank_pdf
+    from app.routes.admin_competitive_exam_routes import validate_pdf_file
+
+    pdf_out = tmp_path / "test_qb.pdf"
+    sample_qb = {
+        "textbook_title": "Smart Question Bank for SSC CGL",
+        "exam_name": "SSC CGL (Tier 1)",
+        "exam_category": "Staff Selection Commission",
+        "subject": "General Intelligence & Reasoning",
+        "language": "English",
+        "total_questions": 4,
+        "sections": [
+            {
+                "section_title": "Chapter 1: Alphabet & Word Test",
+                "topics": ["Alphabet Series", "Dictionary Sequence"],
+                "questions": [
+                    {
+                        "question_number": 1,
+                        "question": "Which of the following words appears third in standard dictionary order?",
+                        "options": {
+                            "A": "Examine",
+                            "B": "Edge",
+                            "C": "Effort",
+                            "D": "Element"
+                        },
+                        "correct_answer": "A",
+                        "difficulty": "Easy",
+                        "explanation": "Arranged alphabetically: Edge, Effort, Examine, Element. Third is Examine.",
+                        "chapter_reference": "Chapter 1 (P. 1-4)"
+                    },
+                    {
+                        "question_number": 2,
+                        "question": "If 'EDGE' is coded as 'GFII', what is the pattern applied to each character?",
+                        "options": {
+                            "A": "+2, +3, +2, +4",
+                            "B": "+2 shift across vowels",
+                            "C": "+2 on consonants, +4 on vowels",
+                            "D": "Direct alphabetical shift +2, +3, +2, +4"
+                        },
+                        "correct_answer": "D",
+                        "difficulty": "Medium",
+                        "explanation": "E(+2)=G, D(+3)=G, G(+2)=I, E(+4)=I.",
+                        "chapter_reference": "Chapter 1 (P. 5-8)"
+                    }
+                ]
+            },
+            {
+                "section_title": "Chapter 2: Seating Arrangement",
+                "topics": ["Linear Arrangement", "Circular Table"],
+                "questions": [
+                    {
+                        "question_number": 3,
+                        "question": "In a linear row of 6 people facing North, P is sitting to the immediate left of Q. If Q is third from right, where is P?",
+                        "options": {
+                            "A": "Second from left",
+                            "B": "Third from left",
+                            "C": "Fourth from right",
+                            "D": "Fourth from right (Third from left)"
+                        },
+                        "correct_answer": "D",
+                        "difficulty": "Medium",
+                        "explanation": "6 positions (1-6 from left). Q is 3rd from right = pos 4. P is left of Q = pos 3.",
+                        "chapter_reference": "Chapter 2 (P. 12-16)"
+                    },
+                    {
+                        "question_number": 4,
+                        "question": "Eight friends sit in a circle facing the center. What is the minimum information required to deduce opposite positions?",
+                        "options": {
+                            "A": "Positions of 3 consecutive individuals",
+                            "B": "Diameter symmetry with 2 fixed references",
+                            "C": "Both A and B",
+                            "D": "Clockwise ordering of at least 4 known elements"
+                        },
+                        "correct_answer": "B",
+                        "difficulty": "Hard",
+                        "explanation": "Diameter symmetry with 2 anchored reference vertices uniquely fixes opposite pairings in n=8.",
+                        "chapter_reference": "Chapter 2 (P. 17-21)"
+                    }
+                ]
+            }
+        ]
+    }
+
+    res_path = save_competitive_question_bank_pdf(sample_qb, str(pdf_out))
+    assert os.path.exists(res_path)
+    assert os.path.getsize(res_path) > 1000
+
+    is_valid, page_cnt, err = validate_pdf_file(res_path)
+    assert is_valid is True
+    assert page_cnt >= 2
+    assert err == ""
+
+    # Verify content inside PDF using PyMuPDF
+    doc = pymupdf.open(res_path)
+    full_text = " ".join(page.get_text() for page in doc)
+    doc.close()
+
+    assert "Smart Question Bank for SSC CGL" in full_text
+    assert "General Intelligence & Reasoning" in full_text
+    assert "Alphabet & Word Test" in full_text
+    assert "Seating Arrangement" in full_text
+    assert "OFFICIAL ANSWER KEY" in full_text
+    assert "DETAILED PEDAGOGICAL EXPLANATIONS" in full_text
+
+
+
 
 
 

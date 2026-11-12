@@ -19,6 +19,7 @@ from app.core.database import db
 from app.utils.timezone_utils import get_ist_now, to_ist_iso
 from app.utils.admin_auth import require_permission, log_admin_activity
 from app.report.competitive_exam_pdf import save_competitive_exam_paper
+from app.report.competitive_question_bank_pdf import save_competitive_question_bank_pdf
 from app.models.competitive_exam_models import (
     CompetitiveTutorialCreateRequest,
     CompetitiveTutorialResponse,
@@ -1082,7 +1083,7 @@ async def generate_textbook_question_bank_pipeline(
         qb_filename = f"qb_{textbook_id}.pdf"
         qb_pdf_path = os.path.join(UPLOAD_DIR, qb_filename)
 
-        save_competitive_exam_paper(paper_data, qb_pdf_path)
+        save_competitive_question_bank_pdf(paper_data, qb_pdf_path)
 
         # 6. Validate generated PDF
         is_valid_qb, qb_page_count, qb_err = validate_pdf_file(qb_pdf_path)

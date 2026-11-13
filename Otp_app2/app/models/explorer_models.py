@@ -516,9 +516,27 @@ class IndianExplorerResponse(IndianExplorerBase):
 # 🦁 5. Animal Explorer Models
 # ─────────────────────────────────────────────────────────────────────────────
 
+class AnimalCategoryBase(BaseModel):
+    name: str = Field(..., description="Category Name")
+    image_url: Optional[str] = Field("", description="Category Image URL")
+    order: Optional[int] = Field(1, description="Category Display Order")
+    description: Optional[str] = Field("", description="Category Description")
+
+class AnimalCategoryUpdate(BaseModel):
+    image_url: Optional[str] = None
+    description: Optional[str] = None
+    order: Optional[int] = None
+
+class AnimalCategoryResponse(AnimalCategoryBase):
+    count: int = 0
+
+class AnimalExportCategoryRequest(BaseModel):
+    target_categories: List[str] = Field(..., description="Target category or categories to export animal into")
+
 class AnimalExplorerBase(BaseModel):
     # 1. Category & Order
     category: str = Field("Wild Animals", description="Category: Wild Animals, Domestic Animals & Pets, Insects, Reptiles, Mammals, Birds, Amphibians, Aquatic & Marine Animals, Endangered Animals, Prehistoric Animals, Arachnids, Worms & Other Invertebrates")
+    category_image_url: Optional[str] = Field("", description="Category Header/Banner Image URL")
     order: int = Field(1, ge=1, description="Display Order")
 
     # 2. Animal / Species Name & Taxonomy
@@ -578,6 +596,7 @@ class AnimalExplorerCreate(AnimalExplorerBase):
 
 class AnimalExplorerUpdate(BaseModel):
     category: Optional[str] = None
+    category_image_url: Optional[str] = None
     order: Optional[int] = None
     name: Optional[str] = None
     scientific_name: Optional[str] = None

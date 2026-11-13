@@ -163,6 +163,19 @@
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
   }
 
+  .table-action-export {
+    background-color: #ecfdf5 !important;
+    color: #059669 !important;
+    border-color: #a7f3d0 !important;
+  }
+  .table-action-export:hover {
+    background-color: #10b981 !important;
+    color: #ffffff !important;
+    border-color: #10b981 !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35) !important;
+  }
+
   .search-input-wrapper {
     position: relative;
     min-width: 280px;
@@ -622,6 +635,9 @@
       </div>
 
       <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-light rounded-pill px-3 py-2 fw-bold" onclick="openCategoriesModal()" style="border: 1.5px solid rgba(255,255,255,0.4); font-size: 0.88rem;">
+          <i class="fa fa-folder-open me-1"></i> Manage Category Images
+        </button>
         <button class="btn btn-add-animal" onclick="openAddAnimalModal()">
           <i class="fa fa-plus-circle me-1"></i> Add Animal Entity
         </button>
@@ -641,6 +657,9 @@
 
       <div class="d-flex align-items-center gap-2">
         <span class="text-muted small fw-bold">Quick Actions:</span>
+        <button class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" onclick="openExportWildModal()">
+          <i class="fa fa-share-alt me-1"></i> Export Wild Animals
+        </button>
         <button class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold" onclick="loadAnimalEntities()">
           <i class="fa fa-refresh me-1"></i> Refresh
         </button>
@@ -744,9 +763,9 @@
           </div>
           <div class="form-section-box">
             <div class="row g-3 align-items-center">
-              <div class="col-md-8 form-group-custom mb-0">
+              <div class="col-md-5 form-group-custom mb-0">
                 <label class="field-label">Category <span class="text-danger">*</span></label>
-                <select class="form-select form-select-custom fw-bold border-warning" id="animal_category" required>
+                <select class="form-select form-select-custom fw-bold border-warning" id="animal_category" required onchange="onCategoryChanged()">
                   <option value="Wild Animals">🦁 Wild Animals</option>
                   <option value="Domestic Animals & Pets">🐕 Domestic Animals &amp; Pets</option>
                   <option value="Insects">🐜 Insects</option>
@@ -761,9 +780,27 @@
                   <option value="Worms & Other Invertebrates">🪱 Worms &amp; Other Invertebrates</option>
                 </select>
               </div>
-              <div class="col-md-4 form-group-custom mb-0">
+              <div class="col-md-5 form-group-custom mb-0">
+                <label class="field-label">Category Image URL</label>
+                <div class="input-group">
+                  <input type="text" class="form-control form-control-custom" id="animal_category_image_url" placeholder="Category banner or cover image URL" oninput="updateSinglePreview('animal_category_image_url', 'animal_category_image_preview')" />
+                  <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_category_image_url', 'animal_category_image_preview')">
+                    <i class="fa fa-upload"></i> Upload
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-2 form-group-custom mb-0">
                 <label class="field-label">Display Order <span class="text-danger">*</span></label>
                 <input type="number" class="form-control form-control-custom" id="animal_order" required min="1" value="1" />
+              </div>
+              <div class="col-12 mt-2">
+                <div id="animal_category_image_preview_wrap" class="d-flex align-items-center gap-3 p-2 rounded bg-light border" style="max-width: 480px;">
+                  <img id="animal_category_image_preview" src="" class="rounded" style="width: 60px; height: 42px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80'" />
+                  <div>
+                    <span class="small fw-bold d-block text-dark" id="category_preview_title">Category Banner Image</span>
+                    <small class="text-muted" style="font-size: 0.75rem;">Banner image displayed for this category across mobile app and website.</small>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1129,15 +1166,115 @@
   </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- Modal: Export Single Animal to Other Categories                           -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="exportAnimalModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa fa-clone fs-5"></i>
+          <h5 class="modal-title font-weight-bold text-white mb-0" id="exportModalTitle">Export Animal to Category</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="export_animal_id" />
+        <p class="text-muted small mb-3">
+          Export / copy <strong id="export_animal_name_label" class="text-dark"></strong> into other categories. All taxonomy, descriptions, images, audio, and characteristics will be safely cloned into the target categories!
+        </p>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="fw-bold small mb-0">Select Target Categories:</label>
+          <button type="button" class="btn btn-sm btn-link p-0 text-success text-decoration-none fw-bold" onclick="toggleSelectAllExportCategories()">Select All / None</button>
+        </div>
+        <div class="d-flex flex-column gap-2 p-3 bg-light rounded border" id="export_target_categories_list" style="max-height: 280px; overflow-y: auto;">
+          <!-- Dynamically populated categories -->
+        </div>
+      </div>
+      <div class="modal-footer border-0 p-3 bg-light rounded-bottom">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success rounded-pill px-4 fw-bold" id="btn_confirm_export" onclick="confirmExportAnimal()">
+          <i class="fa fa-share-square-o me-1"></i> Export to Selected
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- Modal: Export All Wild Animals to Other Categories                        -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="exportWildModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #047857 0%, #059669 100%);">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa fa-share-alt fs-5"></i>
+          <h5 class="modal-title font-weight-bold text-white mb-0">Export Wild Animals to Other Categories</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small mb-3">
+          Clone all existing animals in <strong class="text-dark">🦁 Wild Animals</strong> into other categories (e.g. 🐘 Mammals, 🦋 Endangered Animals). Duplicate animal names in target categories will be safely skipped.
+        </p>
+        <label class="fw-bold small mb-2 d-block">Select Destination Categories:</label>
+        <div class="d-flex flex-column gap-2 p-3 bg-light rounded border" id="export_all_wild_categories_list" style="max-height: 260px; overflow-y: auto;">
+          <!-- Dynamically populated categories -->
+        </div>
+      </div>
+      <div class="modal-footer border-0 p-3 bg-light rounded-bottom">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success rounded-pill px-4 fw-bold" id="btn_confirm_wild_export" onclick="confirmExportAllWild()">
+          <i class="fa fa-check me-1"></i> Export Wild Animals
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- Modal: Manage Category Images & Metadata                                  -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="categoriesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #78350f 0%, #b45309 100%);">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa fa-folder-open fs-5"></i>
+          <h5 class="modal-title font-weight-bold text-white mb-0">Manage Animal Category Images</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small mb-3">
+          Configure banner and cover images for each of the 12 animal categories. These images appear in the mobile app category tabs, exploration headers, and animal cards.
+        </p>
+        <div class="row g-3" id="categories_grid_container">
+          <!-- Dynamically generated category cards -->
+        </div>
+      </div>
+      <div class="modal-footer border-0 p-3 bg-light rounded-bottom">
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Hidden File Input for Single Image Upload -->
 <input type="file" id="single_image_input" accept="image/*" class="d-none" onchange="handleSingleUpload(this)" />
+<input type="file" id="category_image_upload_input" accept="image/*" class="d-none" onchange="handleCategoryImageUpload(this)" />
 
 <!-- Page Scripts -->
 <script>
   let animalEntities = [];
+  let animalCategories = [];
   let currentFilter = 'all';
   let currentTargetInputId = '';
   let currentTargetPreviewId = '';
+  let activeUploadingCategoryName = '';
+  let activeUploadingCategoryIdx = -1;
   let galleryImageUrls = [];
   let currentDescriptionsList = [''];
   let currentFactsList = [''];
@@ -1147,6 +1284,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    loadCategories();
     loadAnimalEntities();
   });
 
@@ -1278,6 +1416,9 @@
           <td>${statusBadge}</td>
           <td class="text-center pe-3">
             <div class="d-flex align-items-center justify-content-center gap-1">
+              <button class="table-action-btn table-action-export" title="Export / Copy to Other Category" onclick="openExportModal('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}', '${item.category || ''}')">
+                <i class="fa fa-clone"></i>
+              </button>
               <button class="table-action-btn table-action-edit" title="Edit Entity" onclick="openEditAnimalModal('${item.id}')">
                 <i class="fa fa-pencil"></i>
               </button>
@@ -1418,6 +1559,7 @@
 
     // Reset previews
     const previewIds = [
+      'animal_category_image_preview',
       'animal_image_preview', 'animal_banner_preview', 'animal_appearance_preview',
       'animal_habitat_preview', 'animal_diet_preview', 'animal_sound_preview',
       'animal_body_parts_preview', 'animal_life_cycle_preview', 'animal_adaptations_preview',
@@ -1429,6 +1571,8 @@
       const wrap = document.getElementById(id + '_wrap');
       if (wrap) wrap.classList.add('d-none');
     });
+
+    onCategoryChanged();
 
     document.getElementById('meta_created_at_wrap').style.display = 'none';
     document.getElementById('meta_updated_at_wrap').style.display = 'none';
@@ -1446,6 +1590,10 @@
     // 1. Category & Order
     document.getElementById('animal_category').value = item.category || 'Wild Animals';
     document.getElementById('animal_order').value = item.order || 1;
+    setFieldAndPreview('animal_category_image_url', 'animal_category_image_preview', item.category_image_url);
+    if (!item.category_image_url) {
+      onCategoryChanged();
+    }
 
     // 2. Name & Taxonomy
     document.getElementById('animal_name').value = item.name || '';
@@ -1655,6 +1803,7 @@
 
     const payload = {
       category: document.getElementById('animal_category').value,
+      category_image_url: document.getElementById('animal_category_image_url').value.trim(),
       order: parseInt(document.getElementById('animal_order').value) || 1,
       name: name,
       scientific_name: document.getElementById('animal_scientific_name').value.trim(),
@@ -1829,6 +1978,290 @@
   function removeGalleryImage(idx) {
     galleryImageUrls.splice(idx, 1);
     renderGalleryPreviews();
+  }
+
+  /* ==================== 📁 ANIMAL CATEGORIES MANAGEMENT ==================== */
+  async function loadCategories() {
+    try {
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const resp = await fetch('/admin-panel/animal-explorer/categories', { headers });
+      if (resp.ok) {
+        animalCategories = await resp.json();
+      }
+    } catch (err) {
+      console.warn('Failed to load categories:', err);
+    }
+  }
+
+  function onCategoryChanged() {
+    const selCat = document.getElementById('animal_category').value;
+    const catObj = animalCategories.find(c => c.name === selCat);
+    const catImgInput = document.getElementById('animal_category_image_url');
+    const catPreviewTitle = document.getElementById('category_preview_title');
+    if (catPreviewTitle) catPreviewTitle.innerText = `${selCat} Banner`;
+
+    if (catObj && catObj.image_url) {
+      setFieldAndPreview('animal_category_image_url', 'animal_category_image_preview', catObj.image_url);
+    } else {
+      const preview = document.getElementById('animal_category_image_preview');
+      if (preview && catImgInput && catImgInput.value) preview.src = catImgInput.value;
+    }
+  }
+
+  /* ==================== 📁 MANAGE CATEGORY IMAGES MODAL ==================== */
+  async function openCategoriesModal() {
+    await loadCategories();
+    const container = document.getElementById('categories_grid_container');
+    container.innerHTML = '';
+
+    animalCategories.forEach((cat, idx) => {
+      const emoji = categoryEmojiMap[cat.name] || '🐾';
+      const col = document.createElement('div');
+      col.className = 'col-md-6 col-lg-4';
+      col.innerHTML = `
+        <div class="card h-100 shadow-sm border p-3" style="border-radius: 14px; background: #fafafa;">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size: 1.3rem;">${emoji}</span>
+              <strong class="text-dark small">${cat.name}</strong>
+            </div>
+            <span class="badge bg-secondary rounded-pill px-2 py-1" style="font-size: 0.75rem;">${cat.count} animal${cat.count === 1 ? '' : 's'}</span>
+          </div>
+          <div class="position-relative mb-2">
+            <img src="${cat.image_url || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=400&q=80'}" id="cat_card_img_${idx}" class="w-100 rounded" style="height: 110px; object-fit: cover; border: 1.5px solid #e2e8f0;" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=400&q=80'" />
+          </div>
+          <div class="input-group input-group-sm mb-2">
+            <input type="text" class="form-control form-control-sm" id="cat_card_input_${idx}" value="${cat.image_url || ''}" placeholder="Category Image URL" oninput="document.getElementById('cat_card_img_${idx}').src = this.value;" />
+            <button class="btn btn-outline-secondary" type="button" title="Upload Image" onclick="triggerCategoryImageUpload('${cat.name.replace(/'/g, "\\'")}', ${idx})">
+              <i class="fa fa-upload"></i>
+            </button>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-warning fw-bold w-100 mt-auto" onclick="saveCategoryImageDirect('${cat.name.replace(/'/g, "\\'")}', ${idx})">
+            <i class="fa fa-save me-1"></i> Save Category Image
+          </button>
+        </div>
+      `;
+      container.appendChild(col);
+    });
+
+    new bootstrap.Modal(document.getElementById('categoriesModal')).show();
+  }
+
+  function triggerCategoryImageUpload(catName, idx) {
+    activeUploadingCategoryName = catName;
+    activeUploadingCategoryIdx = idx;
+    document.getElementById('category_image_upload_input').click();
+  }
+
+  async function handleCategoryImageUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = {};
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch(`/admin-panel/animal-explorer/categories/${encodeURIComponent(activeUploadingCategoryName)}/image`, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!resp.ok) throw new Error('Failed to upload category image');
+      const data = await resp.json();
+
+      if (activeUploadingCategoryIdx >= 0) {
+        const inp = document.getElementById(`cat_card_input_${activeUploadingCategoryIdx}`);
+        const img = document.getElementById(`cat_card_img_${activeUploadingCategoryIdx}`);
+        if (inp) inp.value = data.url;
+        if (img) img.src = data.url;
+      }
+      await loadCategories();
+      loadAnimalEntities();
+      alert(`Category image for "${activeUploadingCategoryName}" updated successfully!`);
+    } catch (err) {
+      alert(`Upload Error: ${err.message}`);
+    } finally {
+      input.value = '';
+    }
+  }
+
+  async function saveCategoryImageDirect(catName, idx) {
+    const inp = document.getElementById(`cat_card_input_${idx}`);
+    if (!inp) return;
+    const url = inp.value.trim();
+
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch(`/admin-panel/animal-explorer/categories/${encodeURIComponent(catName)}`, {
+        method: 'PUT',
+        headers: headers,
+        body: JSON.stringify({ image_url: url })
+      });
+      if (!resp.ok) throw new Error('Failed to update category');
+      await loadCategories();
+      loadAnimalEntities();
+      alert(`Category image for "${catName}" saved successfully!`);
+    } catch (err) {
+      alert(`Error saving category image: ${err.message}`);
+    }
+  }
+
+  /* ==================== 📤 EXPORT SINGLE ANIMAL MODAL ==================== */
+  const ALL_ANIMAL_CATEGORIES = [
+    'Wild Animals', 'Domestic Animals & Pets', 'Insects', 'Reptiles',
+    'Mammals', 'Birds', 'Amphibians', 'Aquatic & Marine Animals',
+    'Endangered Animals', 'Prehistoric Animals', 'Arachnids', 'Worms & Other Invertebrates'
+  ];
+
+  function openExportModal(itemId, itemName, currentCat) {
+    document.getElementById('export_animal_id').value = itemId;
+    document.getElementById('export_animal_name_label').innerText = `${itemName} [Currently in: ${currentCat}]`;
+
+    const listContainer = document.getElementById('export_target_categories_list');
+    listContainer.innerHTML = '';
+
+    ALL_ANIMAL_CATEGORIES.forEach(cat => {
+      if (cat === currentCat) return; // Skip current category
+      const emoji = categoryEmojiMap[cat] || '🐾';
+      const div = document.createElement('div');
+      div.className = 'form-check';
+      // Pre-check Mammals if exporting from Wild Animals
+      const isPreChecked = (currentCat === 'Wild Animals' && (cat === 'Mammals' || cat === 'Endangered Animals')) ? 'checked' : '';
+      div.innerHTML = `
+        <input class="form-check-input export-target-checkbox" type="checkbox" value="${cat}" id="exp_chk_${cat.replace(/\s+/g, '_')}" ${isPreChecked} />
+        <label class="form-check-label fw-bold small text-dark ms-1" for="exp_chk_${cat.replace(/\s+/g, '_')}">
+          ${emoji} ${cat}
+        </label>
+      `;
+      listContainer.appendChild(div);
+    });
+
+    new bootstrap.Modal(document.getElementById('exportAnimalModal')).show();
+  }
+
+  function toggleSelectAllExportCategories() {
+    const chks = document.querySelectorAll('.export-target-checkbox');
+    const allChecked = Array.from(chks).every(c => c.checked);
+    chks.forEach(c => c.checked = !allChecked);
+  }
+
+  async function confirmExportAnimal() {
+    const itemId = document.getElementById('export_animal_id').value;
+    const chks = document.querySelectorAll('.export-target-checkbox:checked');
+    const targets = Array.from(chks).map(c => c.value);
+
+    if (targets.length === 0) {
+      alert('Please select at least one target category to export this animal into.');
+      return;
+    }
+
+    const btn = document.getElementById('btn_confirm_export');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Exporting...';
+
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch(`/admin-panel/animal-explorer/${itemId}/export-category`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ target_categories: targets })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.detail || 'Failed to export animal');
+      }
+
+      const resData = await resp.json();
+      bootstrap.Modal.getInstance(document.getElementById('exportAnimalModal')).hide();
+      await loadCategories();
+      await loadAnimalEntities();
+      alert(resData.message || 'Animal exported successfully!');
+    } catch (err) {
+      alert(`Export Error: ${err.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  /* ==================== 🌍 EXPORT ALL WILD ANIMALS MODAL ==================== */
+  function openExportWildModal() {
+    const listContainer = document.getElementById('export_all_wild_categories_list');
+    listContainer.innerHTML = '';
+
+    ALL_ANIMAL_CATEGORIES.forEach(cat => {
+      if (cat === 'Wild Animals') return;
+      const emoji = categoryEmojiMap[cat] || '🐾';
+      const div = document.createElement('div');
+      div.className = 'form-check';
+      const isPreChecked = (cat === 'Mammals' || cat === 'Endangered Animals') ? 'checked' : '';
+      div.innerHTML = `
+        <input class="form-check-input export-wild-target-checkbox" type="checkbox" value="${cat}" id="wild_chk_${cat.replace(/\s+/g, '_')}" ${isPreChecked} />
+        <label class="form-check-label fw-bold small text-dark ms-1" for="wild_chk_${cat.replace(/\s+/g, '_')}">
+          ${emoji} ${cat}
+        </label>
+      `;
+      listContainer.appendChild(div);
+    });
+
+    new bootstrap.Modal(document.getElementById('exportWildModal')).show();
+  }
+
+  async function confirmExportAllWild() {
+    const chks = document.querySelectorAll('.export-wild-target-checkbox:checked');
+    const targets = Array.from(chks).map(c => c.value);
+
+    if (targets.length === 0) {
+      alert('Please select at least one destination category.');
+      return;
+    }
+
+    const btn = document.getElementById('btn_confirm_wild_export');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Exporting...';
+
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const resp = await fetch('/admin-panel/animal-explorer/export-all-wild', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ target_categories: targets })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.detail || 'Export failed');
+      }
+
+      const resData = await resp.json();
+      bootstrap.Modal.getInstance(document.getElementById('exportWildModal')).hide();
+      await loadCategories();
+      await loadAnimalEntities();
+      alert(resData.message || 'Wild animals exported successfully!');
+    } catch (err) {
+      alert(`Export Error: ${err.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
   }
 </script>
 {% endblock %}

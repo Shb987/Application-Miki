@@ -12,10 +12,93 @@ from PIL import Image
 from pydantic import BaseModel
 
 from app.core.database import db
-from app.models.explorer_models import AnimalExplorerCreate, AnimalExplorerUpdate, AnimalExplorerResponse
+from app.models.explorer_models import (
+    AnimalExplorerCreate,
+    AnimalExplorerUpdate,
+    AnimalExplorerResponse,
+    AnimalCategoryBase,
+    AnimalCategoryUpdate,
+    AnimalCategoryResponse,
+    AnimalExportCategoryRequest
+)
 from app.utils.admin_auth import require_permission
 
 router = APIRouter(prefix="/animal-explorer", tags=["Animal Explorer - Admin"])
+
+DEFAULT_ANIMAL_CATEGORIES = [
+    {
+        "name": "Wild Animals",
+        "image_url": "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=800&q=80",
+        "order": 1,
+        "description": "Untamed species thriving in their natural wilderness, savannas, jungles, and mountain habitats."
+    },
+    {
+        "name": "Domestic Animals & Pets",
+        "image_url": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80",
+        "order": 2,
+        "description": "Tamed companions, farm animals, and household pets living harmoniously with humans."
+    },
+    {
+        "name": "Insects",
+        "image_url": "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?auto=format&fit=crop&w=800&q=80",
+        "order": 3,
+        "description": "Six-legged arthropods with antennae, wings, and vital roles in pollination and ecology."
+    },
+    {
+        "name": "Reptiles",
+        "image_url": "https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae?auto=format&fit=crop&w=800&q=80",
+        "order": 4,
+        "description": "Cold-blooded vertebrates with dry scales or bony plates, including lizards, snakes, and tortoises."
+    },
+    {
+        "name": "Mammals",
+        "image_url": "https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?auto=format&fit=crop&w=800&q=80",
+        "order": 5,
+        "description": "Warm-blooded vertebrates characterized by hair or fur and nourishing young with milk."
+    },
+    {
+        "name": "Birds",
+        "image_url": "https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=800&q=80",
+        "order": 6,
+        "description": "Feathered, winged vertebrates with beaks, adapted for diverse flight, song, and nesting."
+    },
+    {
+        "name": "Amphibians",
+        "image_url": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=800&q=80",
+        "order": 7,
+        "description": "Dual-life vertebrates that transition between aquatic larvae and moisture-dependent terrestrial adults."
+    },
+    {
+        "name": "Aquatic & Marine Animals",
+        "image_url": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80",
+        "order": 8,
+        "description": "Fascinating creatures inhabiting freshwater lakes, rivers, coral reefs, and the deep ocean."
+    },
+    {
+        "name": "Endangered Animals",
+        "image_url": "https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=800&q=80",
+        "order": 9,
+        "description": "Vulnerable and critically threatened species requiring worldwide conservation and habitat protection."
+    },
+    {
+        "name": "Prehistoric Animals",
+        "image_url": "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?auto=format&fit=crop&w=800&q=80",
+        "order": 10,
+        "description": "Ancient and extinct megafauna, dinosaurs, and ancient beasts that once roamed Earth."
+    },
+    {
+        "name": "Arachnids",
+        "image_url": "https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?auto=format&fit=crop&w=800&q=80",
+        "order": 11,
+        "description": "Eight-legged joint-legged invertebrates including spiders, scorpions, and mites."
+    },
+    {
+        "name": "Worms & Other Invertebrates",
+        "image_url": "https://images.unsplash.com/photo-1508873696983-2df57036476b?auto=format&fit=crop&w=800&q=80",
+        "order": 12,
+        "description": "Diverse invertebrates without backbones, including annelids, mollusks, and sponges."
+    }
+]
 
 class AnimalExplorerGenerateRequest(BaseModel):
     name: str
@@ -38,6 +121,7 @@ def serialize_doc(doc):
 
     # Ensure all string fields default gracefully
     str_fields = [
+        "category_image_url",
         "scientific_name", "family", "habitat",
         "climate_zone", "conservation_status", "fun_fact", "short_summary",
         "short_description", "full_description", "image_url", "banner_image_url",
@@ -326,11 +410,22 @@ async def get_all_animal_entities(current_admin: dict = Depends(require_permissi
 @router.post("", response_model=AnimalExplorerResponse)
 async def create_animal_entity(data: AnimalExplorerCreate, current_admin: dict = Depends(require_permission("Animal Explorer", "create"))):
     """Create a new Animal Explorer entity (Requires Admin Authentication)"""
-    existing = await db.animal_explorer.find_one({"name": {"$regex": f"^{data.name.strip()}$", "$options": "i"}})
+    existing = await db.animal_explorer.find_one({
+        "name": {"$regex": f"^{data.name.strip()}$", "$options": "i"},
+        "category": data.category
+    })
     if existing:
-        raise HTTPException(status_code=400, detail=f"Animal entity '{data.name}' already exists.")
+        raise HTTPException(status_code=400, detail=f"Animal entity '{data.name}' already exists in category '{data.category}'.")
 
     new_doc = data.model_dump()
+    if not new_doc.get("category_image_url"):
+        stored = await db.animal_categories.find_one({"name": data.category})
+        if stored and stored.get("image_url"):
+            new_doc["category_image_url"] = stored["image_url"]
+        else:
+            fb = next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == data.category), "")
+            new_doc["category_image_url"] = fb
+
     new_doc["created_at"] = datetime.now(timezone.utc)
     new_doc["updated_at"] = datetime.now(timezone.utc)
 
@@ -339,6 +434,158 @@ async def create_animal_entity(data: AnimalExplorerCreate, current_admin: dict =
     return serialize_doc(created)
 
 # --- STATIC SPECIFIC ROUTES (MUST be defined before dynamic /{item_id} routes) ---
+
+@router.get("/categories", response_model=List[AnimalCategoryResponse])
+async def get_animal_categories(current_admin: dict = Depends(require_permission("Animal Explorer", "read"))):
+    """Retrieve all Animal Explorer categories with image URLs, metadata, and animal counts."""
+    pipeline = [{"$group": {"_id": "$category", "count": {"$sum": 1}}}]
+    counts_cursor = db.animal_explorer.aggregate(pipeline)
+    counts_list = await counts_cursor.to_list(length=100)
+    counts_map = {item["_id"]: item["count"] for item in counts_list if item.get("_id")}
+
+    stored_cursor = db.animal_categories.find()
+    stored_list = await stored_cursor.to_list(length=100)
+    stored_map = {item["name"]: item for item in stored_list if item.get("name")}
+
+    categories = []
+    for default_cat in DEFAULT_ANIMAL_CATEGORIES:
+        c_name = default_cat["name"]
+        stored = stored_map.get(c_name, {})
+        cat_obj = {
+            "name": c_name,
+            "image_url": stored.get("image_url") or default_cat["image_url"],
+            "order": stored.get("order") or default_cat["order"],
+            "description": stored.get("description") or default_cat["description"],
+            "count": counts_map.get(c_name, 0)
+        }
+        categories.append(cat_obj)
+
+    # Custom categories if any
+    for c_name, stored in stored_map.items():
+        if not any(c["name"] == c_name for c in categories):
+            categories.append({
+                "name": c_name,
+                "image_url": stored.get("image_url", ""),
+                "order": stored.get("order", len(categories) + 1),
+                "description": stored.get("description", ""),
+                "count": counts_map.get(c_name, 0)
+            })
+
+    categories.sort(key=lambda x: x["order"])
+    return categories
+
+@router.put("/categories/{category_name}")
+async def update_animal_category(
+    category_name: str,
+    update_data: AnimalCategoryUpdate,
+    current_admin: dict = Depends(require_permission("Animal Explorer", "update"))
+):
+    """Update category metadata (image URL, description, order) and sync image to all animals in this category."""
+    fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items() if v is not None}
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields provided for update")
+
+    fields["name"] = category_name
+    fields["updated_at"] = datetime.now(timezone.utc)
+
+    await db.animal_categories.update_one(
+        {"name": category_name},
+        {"$set": fields},
+        upsert=True
+    )
+
+    if "image_url" in fields and fields["image_url"]:
+        await db.animal_explorer.update_many(
+            {"category": category_name},
+            {"$set": {"category_image_url": fields["image_url"]}}
+        )
+
+    return {"message": f"Category '{category_name}' updated successfully", "category": category_name, "updated_fields": fields}
+
+@router.post("/categories/{category_name}/image")
+async def upload_category_image(
+    category_name: str,
+    file: UploadFile = File(...),
+    current_admin: dict = Depends(require_permission("Animal Explorer", "update"))
+):
+    """Upload an image specifically for a category and update its category image URL."""
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image format (JPEG, PNG, WEBP, SVG)")
+
+    ext = os.path.splitext(file.filename)[1] or ".png"
+    clean_cat = "".join(c if c.isalnum() else "_" for c in category_name.lower())
+    filename = f"cat_{clean_cat}_{int(datetime.now().timestamp())}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+
+    save_and_optimize_image(file, filepath)
+    relative_url = f"/uploads/animal/{filename}"
+
+    await db.animal_categories.update_one(
+        {"name": category_name},
+        {"$set": {"name": category_name, "image_url": relative_url, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True
+    )
+
+    await db.animal_explorer.update_many(
+        {"category": category_name},
+        {"$set": {"category_image_url": relative_url}}
+    )
+
+    return {"message": f"Category image for '{category_name}' uploaded successfully", "url": relative_url}
+
+@router.post("/export-all-wild")
+async def export_all_wild_animals(
+    req: AnimalExportCategoryRequest,
+    current_admin: dict = Depends(require_permission("Animal Explorer", "create"))
+):
+    """Export all animals currently in 'Wild Animals' to the specified target category/categories."""
+    wild_animals = await db.animal_explorer.find({"category": "Wild Animals"}).to_list(500)
+    if not wild_animals:
+        return {"message": "No animals found in 'Wild Animals' to export", "total_exported": 0}
+
+    cat_images = {d["name"]: d["image_url"] for d in DEFAULT_ANIMAL_CATEGORIES}
+    stored_cats = await db.animal_categories.find().to_list(100)
+    for sc in stored_cats:
+        if sc.get("image_url"):
+            cat_images[sc["name"]] = sc["image_url"]
+
+    total_created = 0
+    results = []
+
+    for animal in wild_animals:
+        animal_name = animal.get("name", "").strip()
+        for target_cat in req.target_categories:
+            target_cat_clean = target_cat.strip()
+            if not target_cat_clean or target_cat_clean == "Wild Animals":
+                continue
+
+            existing = await db.animal_explorer.find_one({
+                "name": {"$regex": f"^{animal_name}$", "$options": "i"},
+                "category": target_cat_clean
+            })
+            if existing:
+                continue
+
+            max_order_doc = await db.animal_explorer.find({"category": target_cat_clean}).sort("order", -1).limit(1).to_list(1)
+            next_order = (max_order_doc[0]["order"] + 1) if max_order_doc and "order" in max_order_doc[0] else 1
+
+            cloned = dict(animal)
+            cloned.pop("_id", None)
+            cloned["category"] = target_cat_clean
+            cloned["category_image_url"] = cat_images.get(target_cat_clean, "")
+            cloned["order"] = next_order
+            cloned["created_at"] = datetime.now(timezone.utc)
+            cloned["updated_at"] = datetime.now(timezone.utc)
+
+            ins = await db.animal_explorer.insert_one(cloned)
+            total_created += 1
+            results.append({"name": animal_name, "category": target_cat_clean, "id": str(ins.inserted_id)})
+
+    return {
+        "message": f"Successfully exported {total_created} wild animal record(s) to other categories",
+        "total_exported": total_created,
+        "details": results
+    }
 
 @router.get("/uploaded-images")
 async def get_uploaded_animal_images(current_admin: dict = Depends(require_permission("Animal Explorer", "read"))):
@@ -599,6 +846,73 @@ async def update_animal_entity(item_id: str, update_data: AnimalExplorerUpdate, 
 
     updated = await db.animal_explorer.find_one({"_id": ObjectId(item_id)})
     return serialize_doc(updated)
+
+@router.post("/{item_id}/export-category")
+async def export_animal_to_categories(
+    item_id: str,
+    req: AnimalExportCategoryRequest,
+    current_admin: dict = Depends(require_permission("Animal Explorer", "create"))
+):
+    """Export / clone an existing animal entity into one or more other categories (preserving all characteristics, media, and descriptions)."""
+    if not ObjectId.is_valid(item_id):
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    source_doc = await db.animal_explorer.find_one({"_id": ObjectId(item_id)})
+    if not source_doc:
+        raise HTTPException(status_code=404, detail="Source animal entity not found")
+
+    if not req.target_categories:
+        raise HTTPException(status_code=400, detail="At least one target category must be specified")
+
+    exported = []
+    skipped = []
+
+    # Cache category images
+    cat_images = {d["name"]: d["image_url"] for d in DEFAULT_ANIMAL_CATEGORIES}
+    stored_cats = await db.animal_categories.find().to_list(100)
+    for sc in stored_cats:
+        if sc.get("image_url"):
+            cat_images[sc["name"]] = sc["image_url"]
+
+    for target_cat in req.target_categories:
+        target_cat_clean = target_cat.strip()
+        if not target_cat_clean:
+            continue
+        if target_cat_clean == source_doc.get("category"):
+            skipped.append(f"{target_cat_clean} (already in this category)")
+            continue
+
+        existing = await db.animal_explorer.find_one({
+            "name": {"$regex": f"^{source_doc['name'].strip()}$", "$options": "i"},
+            "category": target_cat_clean
+        })
+        if existing:
+            skipped.append(f"{target_cat_clean} ('{source_doc['name']}' already exists here)")
+            continue
+
+        max_order_doc = await db.animal_explorer.find({"category": target_cat_clean}).sort("order", -1).limit(1).to_list(1)
+        next_order = (max_order_doc[0]["order"] + 1) if max_order_doc and "order" in max_order_doc[0] else 1
+
+        cloned = dict(source_doc)
+        cloned.pop("_id", None)
+        cloned["category"] = target_cat_clean
+        cloned["category_image_url"] = cat_images.get(target_cat_clean, "")
+        cloned["order"] = next_order
+        cloned["created_at"] = datetime.now(timezone.utc)
+        cloned["updated_at"] = datetime.now(timezone.utc)
+
+        ins_res = await db.animal_explorer.insert_one(cloned)
+        exported.append({
+            "category": target_cat_clean,
+            "id": str(ins_res.inserted_id),
+            "order": next_order
+        })
+
+    return {
+        "message": f"Exported '{source_doc['name']}' to {len(exported)} category(s).",
+        "exported": exported,
+        "skipped": skipped
+    }
 
 @router.delete("/{item_id}")
 async def delete_animal_entity(item_id: str, current_admin: dict = Depends(require_permission("Animal Explorer", "delete"))):

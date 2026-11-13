@@ -66,6 +66,105 @@ async def generate_tuition_speech(
         logger.warning(f"[Tuition-TTS] Failed to generate Miki voice speech: {e}")
         return None, None
 
+
+async def delete_session_audio(session_id: str, db=None) -> int:
+    """
+    Deletes all temporary Miki speech audio files generated for a specific tuition session.
+    """
+    if not session_id:
+        return 0
+    deleted_count = 0
+    pattern = f"miki_{session_id}_"
+    try:
+        if os.path.exists(TUITION_AUDIO_DIR):
+            for fname in os.listdir(TUITION_AUDIO_DIR):
+                if fname.startswith(pattern) and fname.endswith(".mp3"):
+                    fpath = os.path.join(TUITION_AUDIO_DIR, fname)
+                    try:
+                        os.remove(fpath)
+                        deleted_count += 1
+                    except Exception as err:
+                        logger.warning(f"[Tuition-Audio] Could not remove {fpath}: {err}")
+        if db is not None:
+            try:
+                s_oid = ObjectId(session_id)
+                await db.tuition_chat_logs.update_many(
+                    {"session_id": s_oid},
+                    {"$unset": {"audio_url": ""}}
+                )
+            except Exception:
+                pass
+    except Exception as e:
+        logger.warning(f"[Tuition-Audio] Error cleaning audio for session {session_id}: {e}")
+    return deleted_count
+
+
+async def auto_cleanup_tuition_audio(
+    db=None,
+    max_age_hours: float = 2.0,
+    completed_grace_mins: int = 15
+) -> int:
+    """
+    Automatically purges temporary Miki tuition speech files:
+    1. Audio files older than max_age_hours (default: 2 hours).
+    2. Audio files from completed or absent sessions after completed_grace_mins (default: 15 mins)
+       giving the student ample time to listen to the final summary.
+    """
+    if not os.path.exists(TUITION_AUDIO_DIR):
+        return 0
+
+    now_ts = datetime.now().timestamp()
+    deleted_count = 0
+    max_age_secs = max_age_hours * 3600
+    grace_secs = completed_grace_mins * 60
+
+    try:
+        filenames = [f for f in os.listdir(TUITION_AUDIO_DIR) if f.endswith(".mp3")]
+        if not filenames:
+            return 0
+
+        # Query completed/absent session IDs to match files
+        completed_session_ids = set()
+        if db is not None:
+            try:
+                done_sessions = await db.tuition_sessions.find(
+                    {"status": {"$in": ["completed", "absent"]}},
+                    {"_id": 1}
+                ).to_list(1000)
+                completed_session_ids = {str(s["_id"]) for s in done_sessions}
+            except Exception as e:
+                logger.warning(f"[Tuition-Audio] Failed to query completed sessions: {e}")
+
+        for fname in filenames:
+            fpath = os.path.join(TUITION_AUDIO_DIR, fname)
+            try:
+                stat = os.stat(fpath)
+                file_age_secs = now_ts - stat.st_mtime
+
+                should_delete = False
+
+                if file_age_secs >= max_age_secs:
+                    should_delete = True
+                else:
+                    parts = fname.replace(".mp3", "").split("_")
+                    if len(parts) >= 2 and parts[0] == "miki":
+                        sess_id = parts[1]
+                        if sess_id in completed_session_ids and file_age_secs >= grace_secs:
+                            should_delete = True
+
+                if should_delete:
+                    os.remove(fpath)
+                    deleted_count += 1
+            except Exception as fe:
+                logger.warning(f"[Tuition-Audio] Could not remove {fpath}: {fe}")
+
+        if deleted_count > 0:
+            print(f"[Tuition-Audio] Automatically cleaned up {deleted_count} expired Miki tuition audio files.")
+    except Exception as e:
+        logger.warning(f"[Tuition-Audio] Error during automatic audio cleanup: {e}")
+
+    return deleted_count
+
 async def generate_syllabus_with_ai(db, student_class: str, subject: str, board: str = "State") -> dict:
     """
     Reads textbook chapters for a given class+subject+board and uses GPT-4o 

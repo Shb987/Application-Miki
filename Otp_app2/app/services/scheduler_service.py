@@ -191,8 +191,10 @@ async def check_and_handle_missed_sessions(db):
 
 async def start_tuition_scheduler(db):
     """
-    Starts a background loop that checks for reminders and missed classes.
+    Starts a background loop that checks for reminders, missed classes, and automatically purges temporary audio files.
     """
+    from app.services.tuition_service import auto_cleanup_tuition_audio
+
     print("[Tuition Scheduler] Background Service Started.")
     
     while True:
@@ -202,6 +204,9 @@ async def start_tuition_scheduler(db):
             
             # 2. Clean-up (Missed/Absent)
             await check_and_handle_missed_sessions(db)
+
+            # 3. Automatically Delete Expired Miki Tuition Audio
+            await auto_cleanup_tuition_audio(db)
             
         except Exception as e:
             print(f"[Tuition Scheduler] Error in background loop: {e}")

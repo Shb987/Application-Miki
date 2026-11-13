@@ -8,6 +8,8 @@ from app.services.tuition_service import (
     generate_syllabus_with_ai, 
     map_syllabus_to_timetable, 
     generate_tuition_speech, 
+    delete_session_audio,
+    auto_cleanup_tuition_audio,
     TUITION_AUDIO_DIR
 )
 from app.models.tuition_models import StudentTimetableConfig, TuitionChatRequest
@@ -328,6 +330,9 @@ async def postpone_session(payload: PostponeRequest, current_user: dict = Depend
         "subject": subject,
         "status": {"$ne": "completed"}
     })
+
+    # Automatically purge temporary audio files for the postponed session
+    await delete_session_audio(payload.session_id, db=db)
     
     # 2. Trigger the dynamic mapper but tell it to START FROM TOMORROW
     try:

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
-from fastapi.responses import Response
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from app.core.database import db
@@ -11,7 +10,7 @@ from app.services.tuition_service import (
     generate_tuition_speech, 
     TUITION_AUDIO_DIR
 )
-from app.models.tuition_models import StudentTimetableConfig, TuitionChatRequest, TuitionTTSRequest
+from app.models.tuition_models import StudentTimetableConfig, TuitionChatRequest
 from app.utils.ai_usage_logger import log_ai_usage
 from pydantic import BaseModel
 from bson import ObjectId
@@ -608,56 +607,3 @@ async def tuition_session_chat(
         "current_state": new_state,
         "is_completed": "Class Dismissed" in ai_reply
     }
-
-
-@router.post("/user/tuition/tts")
-async def tuition_tts(
-    payload: TuitionTTSRequest, 
-    current_user: dict = Depends(admin_or_user)
-):
-    """
-    On-demand Text-to-Speech synthesis for Miki's voice in digital tuition.
-    Returns direct streaming MP3 audio.
-    """
-    if not payload.text or not payload.text.strip():
-        raise HTTPException(status_code=400, detail="Text is required for TTS synthesis.")
-    
-    clean_text = re.sub(r'\[SYSTEM_CHANGE_STATE:[^\]]+\]', '', payload.text).strip()
-    clean_text = re.sub(r'[*_#`]', '', clean_text).strip()
-    
-    valid_voices = {"nova", "alloy", "echo", "fable", "onyx", "shimmer"}
-    chosen_voice = payload.voice.lower() if payload.voice and payload.voice.lower() in valid_voices else "nova"
-
-    try:
-        tts_res = await client.audio.speech.create(
-            model="tts-1",
-            voice=chosen_voice,
-            input=clean_text[:4096],
-            response_format="mp3"
-        )
-        return Response(content=tts_res.content, media_type="audio/mpeg")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"TTS synthesis failed: {e}")
-
-
-@router.get("/user/tuition/session/audio/{session_id}/latest")
-async def get_latest_session_audio(
-    session_id: str,
-    current_user: dict = Depends(admin_or_user)
-):
-    """
-    Retrieves the most recent Miki voice audio clip generated for a tuition session.
-    """
-    try:
-        s_oid = ObjectId(session_id)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid session_id")
-        
-    last_assistant_log = await db.tuition_chat_logs.find_one(
-        {"session_id": s_oid, "role": "assistant", "audio_url": {"$exists": True, "$ne": None}},
-        sort=[("_id", -1)]
-    )
-    if not last_assistant_log or not last_assistant_log.get("audio_url"):
-        raise HTTPException(status_code=404, detail="No voice audio found for this session yet.")
-        
-    return {"status_code": 200, "audio_url": last_assistant_log["audio_url"]}

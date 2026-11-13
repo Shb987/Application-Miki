@@ -40,10 +40,6 @@ class TuitionChatRequest(BaseModel):
     voice: Optional[str] = "nova"
     include_voice: Optional[bool] = True
 
-class TuitionTTSRequest(BaseModel):
-    text: str
-    voice: Optional[str] = "nova"
-
 class TuitionSessionStateUpdate(BaseModel):
     session_id: str
     new_state: str  # RECAP, TEACH, GUIDED_PRACTICE, INDEPENDENT_PRACTICE, SUMMARY

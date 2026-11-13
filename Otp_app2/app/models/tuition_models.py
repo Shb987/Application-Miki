@@ -35,7 +35,14 @@ class StudentTimetableConfig(BaseModel):
 class TuitionChatRequest(BaseModel):
     student_id: str
     session_id: str
-    message: str
+    message: Optional[str] = ""
+    audio_base64: Optional[str] = None
+    voice: Optional[str] = "nova"
+    include_voice: Optional[bool] = True
+
+class TuitionTTSRequest(BaseModel):
+    text: str
+    voice: Optional[str] = "nova"
 
 class TuitionSessionStateUpdate(BaseModel):
     session_id: str

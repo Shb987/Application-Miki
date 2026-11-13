@@ -1,17 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
-from typing import List, Dict, Any
+from fastapi.responses import Response
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from app.core.database import db
 from app.utils.user_auth import get_current_user, admin_or_user
 from app.utils.admin_auth import require_permission
-from app.services.tuition_service import generate_syllabus_with_ai, map_syllabus_to_timetable
-from app.models.tuition_models import StudentTimetableConfig, TuitionChatRequest
+from app.services.tuition_service import (
+    generate_syllabus_with_ai, 
+    map_syllabus_to_timetable, 
+    generate_tuition_speech, 
+    TUITION_AUDIO_DIR
+)
+from app.models.tuition_models import StudentTimetableConfig, TuitionChatRequest, TuitionTTSRequest
 from app.utils.ai_usage_logger import log_ai_usage
 from pydantic import BaseModel
 from bson import ObjectId
 import os
+import re
+import io
+import base64
+import logging
 from openai import AsyncOpenAI
 from app.utils.usage_guard import check_and_use_quota, has_premium_access
+
+logger = logging.getLogger(__name__)
 
 async def check_premium(student_id: str):
     if not await has_premium_access(student_id):
@@ -401,11 +413,19 @@ async def start_session(session_id: str = Body(...), current_user: dict = Depend
         )
         
         topic = session.get("topic", {})
+        initial_msg = f"Welcome to today's class on {topic.get('title', 'our lesson')}! Let's start with a quick recap. Are you ready?"
+        audio_url, audio_base64 = await generate_tuition_speech(
+            text=initial_msg,
+            session_id=str(s_oid),
+            voice="nova"
+        )
         return {
             "status_code": 200,
             "can_join": True,
             "message": "Class started",
-            "initial_tutor_message": f"Welcome to today's class on {topic.get('title')}! Let's start with a quick recap. Are you ready?"
+            "initial_tutor_message": initial_msg,
+            "audio_url": audio_url,
+            "audio_base64": audio_base64
         }
     
     return {"status_code": 500, "can_join": False, "message": "Unknown error starting session."}
@@ -439,6 +459,25 @@ async def tuition_session_chat(
     student = await db.students.find_one({"_id": student_oid})
     student_class = str(student.get("student_class", "8")) if student else "8"
     subject = session.get("subject", "")
+
+    # Handle Student Voice Input (Speech-to-Text via Whisper)
+    user_message = (payload.message or "").strip()
+    if payload.audio_base64 and not user_message:
+        try:
+            raw_audio = base64.b64decode(payload.audio_base64.split(",")[-1])
+            wav_io = io.BytesIO(raw_audio)
+            wav_io.name = "student_speech.wav"
+            transcription = await client.audio.transcriptions.create(
+                model="whisper-1",
+                file=wav_io
+            )
+            user_message = transcription.text.strip()
+        except Exception as e:
+            logger.warning(f"[Tuition-STT] Error transcribing student speech: {e}")
+            user_message = payload.message or ""
+
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Message or audio input is required.")
     
     # 2. Fetch specific textbook chapter content to constrain the AI
     source_material = ""
@@ -504,7 +543,7 @@ async def tuition_session_chat(
         messages.append({"role": doc["role"], "content": doc["content"]})
         
     # Append new user message
-    messages.append({"role": "user", "content": payload.message})
+    messages.append({"role": "user", "content": user_message})
 
     # Call AI
     response = await client.chat.completions.create(
@@ -530,10 +569,20 @@ async def tuition_session_chat(
         new_state = "SUMMARY"
         ai_reply = ai_reply.replace("[SYSTEM_CHANGE_STATE: SUMMARY]", "").strip()
 
-    # Save to logs
+    # 🔊 Generate Miki's Voice Speech (OpenAI TTS)
+    audio_url = None
+    audio_base64 = None
+    if payload.include_voice:
+        audio_url, audio_base64 = await generate_tuition_speech(
+            text=ai_reply,
+            session_id=str(session_oid),
+            voice=payload.voice or "nova"
+        )
+
+    # Save to logs with voice audio URL
     await db.tuition_chat_logs.insert_many([
-        {"session_id": session_oid, "student_id": student_oid, "role": "user", "content": payload.message, "created_at": datetime.now(timezone.utc)},
-        {"session_id": session_oid, "student_id": student_oid, "role": "assistant", "content": ai_reply, "created_at": datetime.now(timezone.utc)}
+        {"session_id": session_oid, "student_id": student_oid, "role": "user", "content": user_message, "created_at": datetime.now(timezone.utc)},
+        {"session_id": session_oid, "student_id": student_oid, "role": "assistant", "content": ai_reply, "audio_url": audio_url, "created_at": datetime.now(timezone.utc)}
     ])
 
     # Update state if changed
@@ -553,6 +602,62 @@ async def tuition_session_chat(
     return {
         "status_code": 200,
         "reply": ai_reply,
+        "audio_url": audio_url,
+        "audio_base64": audio_base64,
+        "user_transcript": user_message if payload.audio_base64 else None,
         "current_state": new_state,
         "is_completed": "Class Dismissed" in ai_reply
     }
+
+
+@router.post("/user/tuition/tts")
+async def tuition_tts(
+    payload: TuitionTTSRequest, 
+    current_user: dict = Depends(admin_or_user)
+):
+    """
+    On-demand Text-to-Speech synthesis for Miki's voice in digital tuition.
+    Returns direct streaming MP3 audio.
+    """
+    if not payload.text or not payload.text.strip():
+        raise HTTPException(status_code=400, detail="Text is required for TTS synthesis.")
+    
+    clean_text = re.sub(r'\[SYSTEM_CHANGE_STATE:[^\]]+\]', '', payload.text).strip()
+    clean_text = re.sub(r'[*_#`]', '', clean_text).strip()
+    
+    valid_voices = {"nova", "alloy", "echo", "fable", "onyx", "shimmer"}
+    chosen_voice = payload.voice.lower() if payload.voice and payload.voice.lower() in valid_voices else "nova"
+
+    try:
+        tts_res = await client.audio.speech.create(
+            model="tts-1",
+            voice=chosen_voice,
+            input=clean_text[:4096],
+            response_format="mp3"
+        )
+        return Response(content=tts_res.content, media_type="audio/mpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS synthesis failed: {e}")
+
+
+@router.get("/user/tuition/session/audio/{session_id}/latest")
+async def get_latest_session_audio(
+    session_id: str,
+    current_user: dict = Depends(admin_or_user)
+):
+    """
+    Retrieves the most recent Miki voice audio clip generated for a tuition session.
+    """
+    try:
+        s_oid = ObjectId(session_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid session_id")
+        
+    last_assistant_log = await db.tuition_chat_logs.find_one(
+        {"session_id": s_oid, "role": "assistant", "audio_url": {"$exists": True, "$ne": None}},
+        sort=[("_id", -1)]
+    )
+    if not last_assistant_log or not last_assistant_log.get("audio_url"):
+        raise HTTPException(status_code=404, detail="No voice audio found for this session yet.")
+        
+    return {"status_code": 200, "audio_url": last_assistant_log["audio_url"]}

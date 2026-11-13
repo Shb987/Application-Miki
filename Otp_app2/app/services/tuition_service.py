@@ -2,7 +2,9 @@ import os
 import json
 import uuid
 import re
+import base64
 from datetime import datetime, timezone, timedelta
+from typing import Optional, Tuple
 import pytz
 from bson import ObjectId
 from openai import AsyncOpenAI
@@ -12,6 +14,57 @@ from app.utils.ai_usage_logger import log_ai_usage
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY") or "sk-placeholder")
+
+TUITION_AUDIO_DIR = os.path.join("app", "static", "uploads", "tuition_audio")
+os.makedirs(TUITION_AUDIO_DIR, exist_ok=True)
+
+
+async def generate_tuition_speech(
+    text: str,
+    session_id: Optional[str] = None,
+    voice: str = "nova"
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Synthesizes natural, human-like voice speech for Miki using OpenAI TTS.
+    Saves an MP3 file to app/static/uploads/tuition_audio/ and returns (audio_url, audio_base64).
+    Gracefully returns (None, None) if TTS synthesis is unavailable or fails.
+    """
+    if not text or not text.strip():
+        return None, None
+
+    # Clean text: remove internal state transitions, bracketed tokens, and excessive markdown
+    clean_text = re.sub(r'\[SYSTEM_CHANGE_STATE:[^\]]+\]', '', text).strip()
+    clean_text = re.sub(r'[*_#`]', '', clean_text).strip()
+    if not clean_text:
+        return None, None
+
+    valid_voices = {"nova", "alloy", "echo", "fable", "onyx", "shimmer"}
+    chosen_voice = voice.lower() if voice and voice.lower() in valid_voices else "nova"
+
+    try:
+        tts_res = await client.audio.speech.create(
+            model="tts-1",
+            voice=chosen_voice,
+            input=clean_text[:4096],
+            response_format="mp3"
+        )
+        audio_bytes = tts_res.content
+        if not audio_bytes:
+            return None, None
+
+        audio_id = f"miki_{session_id or 'tuition'}_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:6]}"
+        audio_filename = f"{audio_id}.mp3"
+        audio_filepath = os.path.join(TUITION_AUDIO_DIR, audio_filename)
+
+        with open(audio_filepath, "wb") as f:
+            f.write(audio_bytes)
+
+        audio_url = f"/uploads/tuition_audio/{audio_filename}"
+        audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+        return audio_url, audio_base64
+    except Exception as e:
+        logger.warning(f"[Tuition-TTS] Failed to generate Miki voice speech: {e}")
+        return None, None
 
 async def generate_syllabus_with_ai(db, student_class: str, subject: str, board: str = "State") -> dict:
     """

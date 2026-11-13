@@ -720,7 +720,14 @@
             <th>Category</th>
             <th>Diet &amp; Movement</th>
             <th>Status</th>
-            <th class="text-center pe-3" style="width: 110px;">Actions</th>
+            <th class="text-center pe-3" style="min-width: 130px;">
+              <div class="d-flex flex-column align-items-center justify-content-center">
+                <span class="fw-bold">Actions</span>
+                <button type="button" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-2 py-0 mt-1 shadow-sm" id="btn_actions_header_upload" onclick="triggerCurrentCategoryUpload()" title="Upload category image for current category (applies to all animals in this category)" style="font-size: 0.72rem; line-height: 1.5; white-space: nowrap;">
+                  <i class="fa fa-upload me-1"></i> Upload Image
+                </button>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody id="animalTableBody">
@@ -763,7 +770,7 @@
           </div>
           <div class="form-section-box">
             <div class="row g-3 align-items-center">
-              <div class="col-md-5 form-group-custom mb-0">
+              <div class="col-md-7 form-group-custom mb-0">
                 <label class="field-label">Category <span class="text-danger">*</span></label>
                 <select class="form-select form-select-custom fw-bold border-warning" id="animal_category" required onchange="onCategoryChanged()">
                   <option value="Wild Animals">🦁 Wild Animals</option>
@@ -781,25 +788,22 @@
                 </select>
               </div>
               <div class="col-md-5 form-group-custom mb-0">
-                <label class="field-label">Category Image URL</label>
-                <div class="input-group">
-                  <input type="text" class="form-control form-control-custom" id="animal_category_image_url" placeholder="Category banner or cover image URL" oninput="updateSinglePreview('animal_category_image_url', 'animal_category_image_preview')" />
-                  <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_category_image_url', 'animal_category_image_preview')">
-                    <i class="fa fa-upload"></i> Upload
-                  </button>
-                </div>
-              </div>
-              <div class="col-md-2 form-group-custom mb-0">
                 <label class="field-label">Display Order <span class="text-danger">*</span></label>
                 <input type="number" class="form-control form-control-custom" id="animal_order" required min="1" value="1" />
               </div>
+              <input type="hidden" id="animal_category_image_url" />
               <div class="col-12 mt-2">
-                <div id="animal_category_image_preview_wrap" class="d-flex align-items-center gap-3 p-2 rounded bg-light border" style="max-width: 480px;">
-                  <img id="animal_category_image_preview" src="" class="rounded" style="width: 60px; height: 42px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80'" />
-                  <div>
-                    <span class="small fw-bold d-block text-dark" id="category_preview_title">Category Banner Image</span>
-                    <small class="text-muted" style="font-size: 0.75rem;">Banner image displayed for this category across mobile app and website.</small>
+                <div class="d-flex flex-wrap align-items-center justify-content-between p-2 rounded bg-light border gap-2" style="max-width: 580px;">
+                  <div class="d-flex align-items-center gap-3">
+                    <img id="animal_category_image_preview" src="" class="rounded" style="width: 60px; height: 42px; object-fit: cover; border: 1.5px solid #fed7aa;" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80'" />
+                    <div>
+                      <span class="small fw-bold d-block text-dark" id="category_preview_title">Category Image</span>
+                      <small class="text-muted" style="font-size: 0.75rem;">Uploaded once per category and automatically applies to all animals in this category.</small>
+                    </div>
                   </div>
+                  <button type="button" class="btn btn-sm btn-outline-warning fw-bold px-3 rounded-pill" onclick="triggerCategoryImageUploadForSelected()" title="Upload / change category image once for all animals">
+                    <i class="fa fa-upload me-1"></i> Upload Category Image
+                  </button>
                 </div>
               </div>
             </div>
@@ -1327,6 +1331,18 @@
     });
     btn.classList.remove('btn-outline-secondary');
     btn.classList.add('active');
+
+    const headerBtn = document.getElementById('btn_actions_header_upload');
+    if (headerBtn) {
+      if (cat !== 'all') {
+        headerBtn.title = `Upload category image for ${cat} (applies to all animals in ${cat})`;
+        headerBtn.innerHTML = `<i class="fa fa-upload me-1"></i> Upload Image`;
+      } else {
+        headerBtn.title = 'Upload category image (select category)';
+        headerBtn.innerHTML = `<i class="fa fa-upload me-1"></i> Upload Image`;
+      }
+    }
+
     filterAnimalTable();
   }
 
@@ -1388,6 +1404,8 @@
     list.forEach(item => {
       const emoji = categoryEmojiMap[item.category] || '🐾';
       const thumb = item.image_url || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80';
+      const catObj = animalCategories.find(c => c.name === item.category);
+      const catImg = item.category_image_url || (catObj ? catObj.image_url : '');
       const statusBadge = item.is_active ? 
         '<span class="badge bg-success rounded-pill px-2 py-1"><i class="fa fa-check me-1"></i>Active</span>' : 
         '<span class="badge bg-secondary rounded-pill px-2 py-1">Draft</span>';
@@ -1405,9 +1423,12 @@
             <div class="text-muted small fst-italic">${item.scientific_name || item.family || 'Taxonomy pending'}</div>
           </td>
           <td>
-            <span class="badge rounded-pill bg-light text-dark border px-2 py-1" style="font-size: 0.8rem;">
-              ${emoji} ${item.category || 'Wild Animals'}
-            </span>
+            <div class="d-flex align-items-center gap-2">
+              ${catImg ? `<img src="${catImg}" class="rounded" style="width: 32px; height: 32px; object-fit: cover; border: 1.5px solid #fed7aa; flex-shrink: 0;" title="Category Image: ${item.category}" onerror="this.style.display='none'" />` : ''}
+              <span class="badge rounded-pill bg-light text-dark border px-2 py-1" style="font-size: 0.8rem;">
+                ${emoji} ${item.category || 'Wild Animals'}
+              </span>
+            </div>
           </td>
           <td>
             <span class="badge bg-warning text-dark me-1" style="font-size: 0.78rem;">${item.diet_type || 'Carnivore'}</span>
@@ -2000,14 +2021,18 @@
     const selCat = document.getElementById('animal_category').value;
     const catObj = animalCategories.find(c => c.name === selCat);
     const catImgInput = document.getElementById('animal_category_image_url');
+    const catPreview = document.getElementById('animal_category_image_preview');
     const catPreviewTitle = document.getElementById('category_preview_title');
-    if (catPreviewTitle) catPreviewTitle.innerText = `${selCat} Banner`;
+    if (catPreviewTitle) catPreviewTitle.innerText = `${selCat} Image`;
 
-    if (catObj && catObj.image_url) {
-      setFieldAndPreview('animal_category_image_url', 'animal_category_image_preview', catObj.image_url);
-    } else {
-      const preview = document.getElementById('animal_category_image_preview');
-      if (preview && catImgInput && catImgInput.value) preview.src = catImgInput.value;
+    const imgUrl = (catObj && catObj.image_url) ? catObj.image_url : (catImgInput ? catImgInput.value : '');
+    if (catImgInput) catImgInput.value = imgUrl;
+    if (catPreview) {
+      if (imgUrl) {
+        catPreview.src = imgUrl;
+      } else {
+        catPreview.src = 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80';
+      }
     }
   }
 
@@ -2056,6 +2081,31 @@
     document.getElementById('category_image_upload_input').click();
   }
 
+  function triggerCurrentCategoryUpload() {
+    let targetCat = currentFilter;
+    if (!targetCat || targetCat === 'all') {
+      const chosen = prompt(`Enter category name to upload image for:\n${ALL_ANIMAL_CATEGORIES.join(', ')}`, 'Wild Animals');
+      if (!chosen) return;
+      targetCat = chosen.trim();
+      const match = ALL_ANIMAL_CATEGORIES.find(c => c.toLowerCase() === targetCat.toLowerCase());
+      if (!match) {
+        alert('Invalid category name: ' + targetCat);
+        return;
+      }
+      targetCat = match;
+    }
+    activeUploadingCategoryName = targetCat;
+    activeUploadingCategoryIdx = -1;
+    document.getElementById('category_image_upload_input').click();
+  }
+
+  function triggerCategoryImageUploadForSelected() {
+    const selCat = document.getElementById('animal_category').value || 'Wild Animals';
+    activeUploadingCategoryName = selCat;
+    activeUploadingCategoryIdx = -1;
+    document.getElementById('category_image_upload_input').click();
+  }
+
   async function handleCategoryImageUpload(input) {
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
@@ -2081,9 +2131,15 @@
         if (inp) inp.value = data.url;
         if (img) img.src = data.url;
       }
+
+      const modalCatPreview = document.getElementById('animal_category_image_preview');
+      const modalCatInput = document.getElementById('animal_category_image_url');
+      if (modalCatPreview) modalCatPreview.src = data.url;
+      if (modalCatInput) modalCatInput.value = data.url;
+
       await loadCategories();
-      loadAnimalEntities();
-      alert(`Category image for "${activeUploadingCategoryName}" updated successfully!`);
+      await loadAnimalEntities();
+      alert(`Category image for "${activeUploadingCategoryName}" updated successfully! Applied to all animals in this category.`);
     } catch (err) {
       alert(`Upload Error: ${err.message}`);
     } finally {

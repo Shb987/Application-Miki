@@ -119,6 +119,19 @@ def serialize_doc(doc):
     if "interesting_facts" not in doc or doc["interesting_facts"] is None:
         doc["interesting_facts"] = []
 
+    # Ensure categories list is cleanly serialized and normalized
+    cats = doc.get("categories")
+    if not cats:
+        primary_cat = doc.get("category", "Wild Animals")
+        doc["categories"] = [primary_cat] if primary_cat else ["Wild Animals"]
+    elif isinstance(cats, str):
+        doc["categories"] = [c.strip() for c in cats.split(",") if c.strip()]
+    elif isinstance(cats, list):
+        doc["categories"] = [str(c).strip() for c in cats if str(c).strip()]
+
+    if not doc.get("category") and doc.get("categories"):
+        doc["category"] = doc["categories"][0]
+
     # Ensure all string fields default gracefully
     str_fields = [
         "category_image_url",
@@ -409,21 +422,30 @@ async def get_all_animal_entities(current_admin: dict = Depends(require_permissi
 
 @router.post("", response_model=AnimalExplorerResponse)
 async def create_animal_entity(data: AnimalExplorerCreate, current_admin: dict = Depends(require_permission("Animal Explorer", "create"))):
-    """Create a new Animal Explorer entity (Requires Admin Authentication)"""
+    """Create a new Animal Explorer entity (Unique per species, supports multiple categories simultaneously)"""
     existing = await db.animal_explorer.find_one({
-        "name": {"$regex": f"^{data.name.strip()}$", "$options": "i"},
-        "category": data.category
+        "name": {"$regex": f"^{data.name.strip()}$", "$options": "i"}
     })
     if existing:
-        raise HTTPException(status_code=400, detail=f"Animal entity '{data.name}' already exists in category '{data.category}'.")
+        raise HTTPException(status_code=400, detail=f"Animal entity '{data.name}' already exists. A single unified animal entity can belong to multiple categories simultaneously.")
 
     new_doc = data.model_dump()
+
+    # Normalize categories: ensure categories array has at least primary category
+    cats = new_doc.get("categories") or []
+    if not cats and new_doc.get("category"):
+        cats = [new_doc["category"]]
+    elif not cats:
+        cats = ["Wild Animals"]
+    new_doc["categories"] = cats
+    new_doc["category"] = cats[0]
+
     if not new_doc.get("category_image_url"):
-        stored = await db.animal_categories.find_one({"name": data.category})
+        stored = await db.animal_categories.find_one({"name": new_doc["category"]})
         if stored and stored.get("image_url"):
             new_doc["category_image_url"] = stored["image_url"]
         else:
-            fb = next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == data.category), "")
+            fb = next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == new_doc["category"]), "")
             new_doc["category_image_url"] = fb
 
     new_doc["created_at"] = datetime.now(timezone.utc)
@@ -437,8 +459,13 @@ async def create_animal_entity(data: AnimalExplorerCreate, current_admin: dict =
 
 @router.get("/categories", response_model=List[AnimalCategoryResponse])
 async def get_animal_categories(current_admin: dict = Depends(require_permission("Animal Explorer", "read"))):
-    """Retrieve all Animal Explorer categories with image URLs, metadata, and animal counts."""
-    pipeline = [{"$group": {"_id": "$category", "count": {"$sum": 1}}}]
+    """Retrieve all Animal Explorer categories with image URLs, metadata, and accurate multi-category animal counts."""
+    # Count each animal in EVERY category it belongs to
+    pipeline = [
+        {"$project": {"categories": {"$cond": [{"$isArray": "$categories"}, "$categories", ["$category"]]}}},
+        {"$unwind": "$categories"},
+        {"$group": {"_id": "$categories", "count": {"$sum": 1}}}
+    ]
     counts_cursor = db.animal_explorer.aggregate(pipeline)
     counts_list = await counts_cursor.to_list(length=100)
     counts_map = {item["_id"]: item["count"] for item in counts_list if item.get("_id")}
@@ -474,6 +501,65 @@ async def get_animal_categories(current_admin: dict = Depends(require_permission
     categories.sort(key=lambda x: x["order"])
     return categories
 
+@router.get("/export")
+async def export_animal_category_data(
+    category: Optional[str] = "all",
+    format: Optional[str] = "json",
+    current_admin: dict = Depends(require_permission("Animal Explorer", "read"))
+):
+    """
+    Export all animals belonging to the specified category (or All Categories).
+    If an animal belongs to multiple categories, it is included with its complete content in every applicable category.
+    """
+    from fastapi.responses import Response
+
+    cat_clean = category.strip() if category else "all"
+
+    cursor = db.animal_explorer.find().sort("order", 1)
+    all_docs = await cursor.to_list(length=None)
+    all_serialized = [serialize_doc(d) for d in all_docs]
+
+    if cat_clean.lower() == "all":
+        grouped_by_category = {}
+        for c in DEFAULT_ANIMAL_CATEGORIES:
+            c_name = c["name"]
+            grouped_by_category[c_name] = [
+                d for d in all_serialized
+                if (c_name in d.get("categories", []) or d.get("category") == c_name)
+            ]
+
+        export_data = {
+            "title": "Miki Animal Explorer - All Categories Export",
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "total_unique_animals": len(all_serialized),
+            "categories": grouped_by_category,
+            "animals": all_serialized
+        }
+    else:
+        category_animals = [
+            d for d in all_serialized
+            if (cat_clean in d.get("categories", []) or d.get("category") == cat_clean)
+        ]
+        export_data = {
+            "title": f"Miki Animal Explorer - {cat_clean} Export",
+            "category": cat_clean,
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "total_animals": len(category_animals),
+            "animals": category_animals
+        }
+
+    json_bytes = json.dumps(export_data, default=str, indent=2).encode("utf-8")
+    safe_name = cat_clean.lower().replace(" ", "_").replace("&", "and")
+    filename = f"animal_explorer_{safe_name}.json"
+
+    return Response(
+        content=json_bytes,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
 @router.put("/categories/{category_name}")
 async def update_animal_category(
     category_name: str,
@@ -496,7 +582,7 @@ async def update_animal_category(
 
     if "image_url" in fields and fields["image_url"]:
         await db.animal_explorer.update_many(
-            {"category": category_name},
+            {"$or": [{"category": category_name}, {"categories": category_name}]},
             {"$set": {"category_image_url": fields["image_url"]}}
         )
 
@@ -508,7 +594,7 @@ async def upload_category_image(
     file: UploadFile = File(...),
     current_admin: dict = Depends(require_permission("Animal Explorer", "update"))
 ):
-    """Upload an image specifically for a category and update its category image URL."""
+    """Upload an image specifically for a category and update its category image URL across all animals in that category."""
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image format (JPEG, PNG, WEBP, SVG)")
 
@@ -527,7 +613,7 @@ async def upload_category_image(
     )
 
     await db.animal_explorer.update_many(
-        {"category": category_name},
+        {"$or": [{"category": category_name}, {"categories": category_name}]},
         {"$set": {"category_image_url": relative_url}}
     )
 
@@ -536,55 +622,34 @@ async def upload_category_image(
 @router.post("/export-all-wild")
 async def export_all_wild_animals(
     req: AnimalExportCategoryRequest,
-    current_admin: dict = Depends(require_permission("Animal Explorer", "create"))
+    current_admin: dict = Depends(require_permission("Animal Explorer", "update"))
 ):
-    """Export all animals currently in 'Wild Animals' to the specified target category/categories."""
-    wild_animals = await db.animal_explorer.find({"category": "Wild Animals"}).to_list(500)
-    if not wild_animals:
-        return {"message": "No animals found in 'Wild Animals' to export", "total_exported": 0}
+    """Assign all animals currently in 'Wild Animals' to additional target category/categories without duplicate records."""
+    valid_targets = [c.strip() for c in req.target_categories if c and c.strip() and c.strip() != "Wild Animals"]
+    if not valid_targets:
+        raise HTTPException(status_code=400, detail="Please select at least one destination category")
 
-    cat_images = {d["name"]: d["image_url"] for d in DEFAULT_ANIMAL_CATEGORIES}
-    stored_cats = await db.animal_categories.find().to_list(100)
-    for sc in stored_cats:
-        if sc.get("image_url"):
-            cat_images[sc["name"]] = sc["image_url"]
+    wild_animals = await db.animal_explorer.find({
+        "$or": [
+            {"categories": "Wild Animals"},
+            {"category": "Wild Animals"}
+        ]
+    }).to_list(500)
 
-    total_created = 0
-    results = []
-
+    count = 0
     for animal in wild_animals:
-        animal_name = animal.get("name", "").strip()
-        for target_cat in req.target_categories:
-            target_cat_clean = target_cat.strip()
-            if not target_cat_clean or target_cat_clean == "Wild Animals":
-                continue
-
-            existing = await db.animal_explorer.find_one({
-                "name": {"$regex": f"^{animal_name}$", "$options": "i"},
-                "category": target_cat_clean
-            })
-            if existing:
-                continue
-
-            max_order_doc = await db.animal_explorer.find({"category": target_cat_clean}).sort("order", -1).limit(1).to_list(1)
-            next_order = (max_order_doc[0]["order"] + 1) if max_order_doc and "order" in max_order_doc[0] else 1
-
-            cloned = dict(animal)
-            cloned.pop("_id", None)
-            cloned["category"] = target_cat_clean
-            cloned["category_image_url"] = cat_images.get(target_cat_clean, "")
-            cloned["order"] = next_order
-            cloned["created_at"] = datetime.now(timezone.utc)
-            cloned["updated_at"] = datetime.now(timezone.utc)
-
-            ins = await db.animal_explorer.insert_one(cloned)
-            total_created += 1
-            results.append({"name": animal_name, "category": target_cat_clean, "id": str(ins.inserted_id)})
+        await db.animal_explorer.update_one(
+            {"_id": animal["_id"]},
+            {
+                "$addToSet": {"categories": {"$each": valid_targets}},
+                "$set": {"updated_at": datetime.now(timezone.utc)}
+            }
+        )
+        count += 1
 
     return {
-        "message": f"Successfully exported {total_created} wild animal record(s) to other categories",
-        "total_exported": total_created,
-        "details": results
+        "message": f"Successfully assigned {count} wild animal(s) to additional categories: {', '.join(valid_targets)}. Single unified records preserved.",
+        "total_updated": count
     }
 
 @router.get("/uploaded-images")
@@ -834,6 +899,18 @@ async def update_animal_entity(item_id: str, update_data: AnimalExplorerUpdate, 
     if not fields:
         raise HTTPException(status_code=400, detail="No fields provided for update")
 
+    if "categories" in fields and fields["categories"]:
+        fields["categories"] = [c.strip() for c in fields["categories"] if c and c.strip()]
+        if "category" not in fields or not fields["category"]:
+            fields["category"] = fields["categories"][0]
+        elif fields["category"] not in fields["categories"]:
+            fields["categories"].append(fields["category"])
+    elif "category" in fields and fields["category"]:
+        await db.animal_explorer.update_one(
+            {"_id": ObjectId(item_id)},
+            {"$addToSet": {"categories": fields["category"]}}
+        )
+
     fields["updated_at"] = datetime.now(timezone.utc)
 
     result = await db.animal_explorer.update_one(
@@ -853,7 +930,7 @@ async def export_animal_to_categories(
     req: AnimalExportCategoryRequest,
     current_admin: dict = Depends(require_permission("Animal Explorer", "create"))
 ):
-    """Export / clone an existing animal entity into one or more other categories (preserving all characteristics, media, and descriptions)."""
+    """Assign an existing animal entity into one or more categories simultaneously, preserving a single unified document with complete data."""
     if not ObjectId.is_valid(item_id):
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
@@ -864,54 +941,26 @@ async def export_animal_to_categories(
     if not req.target_categories:
         raise HTTPException(status_code=400, detail="At least one target category must be specified")
 
-    exported = []
-    skipped = []
+    current_cats = source_doc.get("categories") or ([source_doc.get("category")] if source_doc.get("category") else ["Wild Animals"])
+    valid_targets = [c.strip() for c in req.target_categories if c and c.strip()]
+    
+    new_targets = [c for c in valid_targets if c not in current_cats]
+    already_assigned = [c for c in valid_targets if c in current_cats]
 
-    # Cache category images
-    cat_images = {d["name"]: d["image_url"] for d in DEFAULT_ANIMAL_CATEGORIES}
-    stored_cats = await db.animal_categories.find().to_list(100)
-    for sc in stored_cats:
-        if sc.get("image_url"):
-            cat_images[sc["name"]] = sc["image_url"]
+    if new_targets:
+        await db.animal_explorer.update_one(
+            {"_id": ObjectId(item_id)},
+            {
+                "$addToSet": {"categories": {"$each": new_targets}},
+                "$set": {"updated_at": datetime.now(timezone.utc)}
+            }
+        )
 
-    for target_cat in req.target_categories:
-        target_cat_clean = target_cat.strip()
-        if not target_cat_clean:
-            continue
-        if target_cat_clean == source_doc.get("category"):
-            skipped.append(f"{target_cat_clean} (already in this category)")
-            continue
-
-        existing = await db.animal_explorer.find_one({
-            "name": {"$regex": f"^{source_doc['name'].strip()}$", "$options": "i"},
-            "category": target_cat_clean
-        })
-        if existing:
-            skipped.append(f"{target_cat_clean} ('{source_doc['name']}' already exists here)")
-            continue
-
-        max_order_doc = await db.animal_explorer.find({"category": target_cat_clean}).sort("order", -1).limit(1).to_list(1)
-        next_order = (max_order_doc[0]["order"] + 1) if max_order_doc and "order" in max_order_doc[0] else 1
-
-        cloned = dict(source_doc)
-        cloned.pop("_id", None)
-        cloned["category"] = target_cat_clean
-        cloned["category_image_url"] = cat_images.get(target_cat_clean, "")
-        cloned["order"] = next_order
-        cloned["created_at"] = datetime.now(timezone.utc)
-        cloned["updated_at"] = datetime.now(timezone.utc)
-
-        ins_res = await db.animal_explorer.insert_one(cloned)
-        exported.append({
-            "category": target_cat_clean,
-            "id": str(ins_res.inserted_id),
-            "order": next_order
-        })
-
+    updated_doc = await db.animal_explorer.find_one({"_id": ObjectId(item_id)})
     return {
-        "message": f"Exported '{source_doc['name']}' to {len(exported)} category(s).",
-        "exported": exported,
-        "skipped": skipped
+        "message": f"Successfully assigned '{source_doc['name']}' to {len(new_targets)} additional category(s). Single unified document preserved.",
+        "assigned_categories": updated_doc.get("categories", []),
+        "already_in": already_assigned
     }
 
 @router.delete("/{item_id}")

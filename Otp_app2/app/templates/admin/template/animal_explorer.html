@@ -657,6 +657,9 @@
 
       <div class="d-flex align-items-center gap-2">
         <span class="text-muted small fw-bold">Quick Actions:</span>
+        <button class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold" id="btnExportCategoryData" onclick="exportCurrentCategoryData()" title="Export all complete animal data for the currently selected category">
+          <i class="fa fa-download me-1"></i> Export Category Data
+        </button>
         <button class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" onclick="openExportWildModal()">
           <i class="fa fa-share-alt me-1"></i> Export Wild Animals
         </button>
@@ -791,6 +794,17 @@
                 <label class="field-label">Display Order <span class="text-danger">*</span></label>
                 <input type="number" class="form-control form-control-custom" id="animal_order" required min="1" value="1" />
               </div>
+
+              <!-- Multi-Category Assignment Section -->
+              <div class="col-12 mt-2">
+                <label class="field-label d-block mb-1">
+                  Assigned Categories <small class="text-muted fw-normal">(Animal can belong to multiple categories simultaneously, e.g. Bat &rarr; Mammals + Birds)</small>
+                </label>
+                <div class="p-2 rounded bg-light border d-flex flex-wrap gap-2" id="animal_categories_checkbox_container">
+                  <!-- Checkboxes populated dynamically -->
+                </div>
+              </div>
+
               <input type="hidden" id="animal_category_image_url" />
               <div class="col-12 mt-2">
                 <div class="d-flex flex-wrap align-items-center justify-content-between p-2 rounded bg-light border gap-2" style="max-width: 580px;">
@@ -1370,7 +1384,10 @@
     const q = (document.getElementById('animalSearchInput').value || '').toLowerCase().trim();
 
     let list = animalEntities.filter(item => {
-      const matchCat = (currentFilter === 'all') || (item.category === currentFilter);
+      const itemCats = (item.categories && Array.isArray(item.categories) && item.categories.length > 0) 
+        ? item.categories 
+        : (item.category ? [item.category] : ['Wild Animals']);
+      const matchCat = (currentFilter === 'all') || itemCats.includes(currentFilter) || (item.category === currentFilter);
       const nameStr = (item.name || '').toLowerCase();
       const sciStr = (item.scientific_name || '').toLowerCase();
       const habitatStr = (item.habitat || '').toLowerCase();
@@ -1402,10 +1419,25 @@
 
     let html = '';
     list.forEach(item => {
-      const emoji = categoryEmojiMap[item.category] || '🐾';
       const thumb = item.image_url || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80';
-      const catObj = animalCategories.find(c => c.name === item.category);
-      const catImg = item.category_image_url || (catObj ? catObj.image_url : '');
+      const itemCats = (item.categories && Array.isArray(item.categories) && item.categories.length > 0) 
+        ? item.categories 
+        : (item.category ? [item.category] : ['Wild Animals']);
+
+      const catBadgesHtml = itemCats.map(cat => {
+        const catEmoji = categoryEmojiMap[cat] || '🐾';
+        const cObj = animalCategories.find(c => c.name === cat);
+        const cImg = (cat === item.category && item.category_image_url) ? item.category_image_url : (cObj ? cObj.image_url : '');
+        return `
+          <div class="d-inline-flex align-items-center gap-1 mb-1 me-1">
+            ${cImg ? `<img src="${cImg}" class="rounded" style="width: 22px; height: 22px; object-fit: cover; border: 1px solid #fed7aa;" title="${cat}" onerror="this.style.display='none'" />` : ''}
+            <span class="badge rounded-pill bg-light text-dark border px-2 py-1" style="font-size: 0.78rem;">
+              ${catEmoji} ${cat}
+            </span>
+          </div>
+        `;
+      }).join('');
+
       const statusBadge = item.is_active ? 
         '<span class="badge bg-success rounded-pill px-2 py-1"><i class="fa fa-check me-1"></i>Active</span>' : 
         '<span class="badge bg-secondary rounded-pill px-2 py-1">Draft</span>';
@@ -1423,11 +1455,8 @@
             <div class="text-muted small fst-italic">${item.scientific_name || item.family || 'Taxonomy pending'}</div>
           </td>
           <td>
-            <div class="d-flex align-items-center gap-2">
-              ${catImg ? `<img src="${catImg}" class="rounded" style="width: 32px; height: 32px; object-fit: cover; border: 1.5px solid #fed7aa; flex-shrink: 0;" title="Category Image: ${item.category}" onerror="this.style.display='none'" />` : ''}
-              <span class="badge rounded-pill bg-light text-dark border px-2 py-1" style="font-size: 0.8rem;">
-                ${emoji} ${item.category || 'Wild Animals'}
-              </span>
+            <div class="d-flex flex-wrap align-items-center" style="max-width: 260px;">
+              ${catBadgesHtml}
             </div>
           </td>
           <td>
@@ -1437,7 +1466,7 @@
           <td>${statusBadge}</td>
           <td class="text-center pe-3">
             <div class="d-flex align-items-center justify-content-center gap-1">
-              <button class="table-action-btn table-action-export" title="Export / Copy to Other Category" onclick="openExportModal('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}', '${item.category || ''}')">
+              <button class="table-action-btn table-action-export" title="Assign / Export to Categories" onclick="openExportModal('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}')">
                 <i class="fa fa-clone"></i>
               </button>
               <button class="table-action-btn table-action-edit" title="Edit Entity" onclick="openEditAnimalModal('${item.id}')">
@@ -1561,6 +1590,26 @@
     return currentFactsList.map(s => s.trim()).filter(Boolean);
   }
 
+  function renderCategoryCheckboxes(selectedCategories = []) {
+    const container = document.getElementById('animal_categories_checkbox_container');
+    if (!container) return;
+    container.innerHTML = '';
+    const norm = selectedCategories.map(c => (c || '').trim());
+    ALL_ANIMAL_CATEGORIES.forEach(cat => {
+      const emoji = categoryEmojiMap[cat] || '🐾';
+      const isChecked = norm.includes(cat) ? 'checked' : '';
+      const div = document.createElement('div');
+      div.className = 'form-check me-3 mb-1';
+      div.innerHTML = `
+        <input class="form-check-input animal-category-multi-checkbox" type="checkbox" value="${cat}" id="multi_cat_${cat.replace(/[^a-zA-Z0-9]/g, '_')}" ${isChecked} />
+        <label class="form-check-label small fw-bold text-dark" for="multi_cat_${cat.replace(/[^a-zA-Z0-9]/g, '_')}">
+          ${emoji} ${cat}
+        </label>
+      `;
+      container.appendChild(div);
+    });
+  }
+
   /* Modal Open / Reset */
   function openAddAnimalModal() {
     document.getElementById('animalModalTitle').innerText = 'Add Animal Entity';
@@ -1568,6 +1617,10 @@
     document.getElementById('animalEntityForm').reset();
     document.getElementById('animal_order').value = (animalEntities.length + 1);
     document.getElementById('animal_is_active').checked = true;
+
+    const defaultCat = (currentFilter && currentFilter !== 'all') ? currentFilter : 'Wild Animals';
+    document.getElementById('animal_category').value = defaultCat;
+    renderCategoryCheckboxes([defaultCat]);
 
     currentDescriptionsList = ['', '', ''];
     renderDescriptionsContainer();
@@ -1609,7 +1662,12 @@
     document.getElementById('animal_id').value = item.id;
 
     // 1. Category & Order
-    document.getElementById('animal_category').value = item.category || 'Wild Animals';
+    const assignedCats = (item.categories && Array.isArray(item.categories) && item.categories.length > 0) 
+      ? item.categories 
+      : (item.category ? [item.category] : ['Wild Animals']);
+    document.getElementById('animal_category').value = item.category || assignedCats[0] || 'Wild Animals';
+    renderCategoryCheckboxes(assignedCats);
+
     document.getElementById('animal_order').value = item.order || 1;
     setFieldAndPreview('animal_category_image_url', 'animal_category_image_preview', item.category_image_url);
     if (!item.category_image_url) {
@@ -1822,8 +1880,18 @@
       return;
     }
 
+    const primaryCat = document.getElementById('animal_category').value;
+    const checkedCats = Array.from(document.querySelectorAll('.animal-category-multi-checkbox:checked')).map(cb => cb.value);
+    if (primaryCat && !checkedCats.includes(primaryCat)) {
+      checkedCats.unshift(primaryCat);
+    }
+    if (checkedCats.length === 0) {
+      checkedCats.push(primaryCat || 'Wild Animals');
+    }
+
     const payload = {
-      category: document.getElementById('animal_category').value,
+      category: primaryCat || checkedCats[0],
+      categories: checkedCats,
       category_image_url: document.getElementById('animal_category_image_url').value.trim(),
       order: parseInt(document.getElementById('animal_order').value) || 1,
       name: name,
@@ -2178,24 +2246,27 @@
     'Endangered Animals', 'Prehistoric Animals', 'Arachnids', 'Worms & Other Invertebrates'
   ];
 
-  function openExportModal(itemId, itemName, currentCat) {
+  function openExportModal(itemId, itemName) {
+    const item = animalEntities.find(x => x.id === itemId);
+    const currentCats = item && item.categories && item.categories.length > 0 
+      ? item.categories 
+      : (item && item.category ? [item.category] : ['Wild Animals']);
+
     document.getElementById('export_animal_id').value = itemId;
-    document.getElementById('export_animal_name_label').innerText = `${itemName} [Currently in: ${currentCat}]`;
+    document.getElementById('export_animal_name_label').innerText = `${itemName} [Currently in: ${currentCats.join(', ')}]`;
 
     const listContainer = document.getElementById('export_target_categories_list');
     listContainer.innerHTML = '';
 
     ALL_ANIMAL_CATEGORIES.forEach(cat => {
-      if (cat === currentCat) return; // Skip current category
       const emoji = categoryEmojiMap[cat] || '🐾';
+      const isAlreadyAssigned = currentCats.includes(cat);
       const div = document.createElement('div');
-      div.className = 'form-check';
-      // Pre-check Mammals if exporting from Wild Animals
-      const isPreChecked = (currentCat === 'Wild Animals' && (cat === 'Mammals' || cat === 'Endangered Animals')) ? 'checked' : '';
+      div.className = 'form-check mb-1';
       div.innerHTML = `
-        <input class="form-check-input export-target-checkbox" type="checkbox" value="${cat}" id="exp_chk_${cat.replace(/\s+/g, '_')}" ${isPreChecked} />
-        <label class="form-check-label fw-bold small text-dark ms-1" for="exp_chk_${cat.replace(/\s+/g, '_')}">
-          ${emoji} ${cat}
+        <input class="form-check-input export-target-checkbox" type="checkbox" value="${cat}" id="exp_chk_${cat.replace(/[^a-zA-Z0-9]/g, '_')}" ${isAlreadyAssigned ? 'checked disabled' : ''} />
+        <label class="form-check-label fw-bold small ${isAlreadyAssigned ? 'text-muted fst-italic' : 'text-dark'} ms-1" for="exp_chk_${cat.replace(/[^a-zA-Z0-9]/g, '_')}">
+          ${emoji} ${cat} ${isAlreadyAssigned ? '<span class="badge bg-secondary ms-1">Already Assigned</span>' : ''}
         </label>
       `;
       listContainer.appendChild(div);
@@ -2205,25 +2276,30 @@
   }
 
   function toggleSelectAllExportCategories() {
-    const chks = document.querySelectorAll('.export-target-checkbox');
+    const chks = document.querySelectorAll('.export-target-checkbox:not(:disabled)');
     const allChecked = Array.from(chks).every(c => c.checked);
     chks.forEach(c => c.checked = !allChecked);
   }
 
+  function exportCurrentCategoryData() {
+    const cat = currentFilter || 'all';
+    window.open(`/admin-panel/animal-explorer/export?category=${encodeURIComponent(cat)}`, '_blank');
+  }
+
   async function confirmExportAnimal() {
     const itemId = document.getElementById('export_animal_id').value;
-    const chks = document.querySelectorAll('.export-target-checkbox:checked');
+    const chks = document.querySelectorAll('.export-target-checkbox:checked:not(:disabled)');
     const targets = Array.from(chks).map(c => c.value);
 
     if (targets.length === 0) {
-      alert('Please select at least one target category to export this animal into.');
+      alert('Please select at least one new category to assign this animal into.');
       return;
     }
 
     const btn = document.getElementById('btn_confirm_export');
     const origHtml = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Exporting...';
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Assigning...';
 
     const headers = { 'Content-Type': 'application/json' };
     const token = getAuthToken();
@@ -2245,10 +2321,14 @@
       bootstrap.Modal.getInstance(document.getElementById('exportAnimalModal')).hide();
       await loadCategories();
       await loadAnimalEntities();
-      alert(resData.message || 'Animal exported successfully!');
+      alert(resData.message || 'Animal assigned to categories successfully!');
     } catch (err) {
       alert(`Export Error: ${err.message}`);
     } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
       btn.disabled = false;
       btn.innerHTML = origHtml;
     }

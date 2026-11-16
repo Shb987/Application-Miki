@@ -1,5 +1,5 @@
-from typing import List, Optional
-from fastapi import APIRouter, Query
+from typing import List
+from fastapi import APIRouter
 from app.core.database import db
 from app.models.explorer_models import AnimalExplorerResponse
 
@@ -16,6 +16,19 @@ def serialize_doc(doc):
         doc["descriptions"] = [doc.get("full_description")] if doc.get("full_description") else []
     if "interesting_facts" not in doc or doc["interesting_facts"] is None:
         doc["interesting_facts"] = []
+
+    # Ensure categories list is cleanly serialized
+    cats = doc.get("categories")
+    if not cats:
+        primary_cat = doc.get("category", "Wild Animals")
+        doc["categories"] = [primary_cat] if primary_cat else ["Wild Animals"]
+    elif isinstance(cats, str):
+        doc["categories"] = [c.strip() for c in cats.split(",") if c.strip()]
+    elif isinstance(cats, list):
+        doc["categories"] = [str(c).strip() for c in cats if str(c).strip()]
+
+    if not doc.get("category") and doc.get("categories"):
+        doc["category"] = doc["categories"][0]
 
     str_fields = [
         "category_image_url",
@@ -38,12 +51,8 @@ def serialize_doc(doc):
     return doc
 
 @router.get("", response_model=List[AnimalExplorerResponse])
-async def get_active_animal_entities(category: Optional[str] = Query(None, description="Optional category filter (e.g. Mammals, Wild Animals)")):
-    """Get all active animal explorer entities ordered by order number (Single User Endpoint)"""
-    query = {"is_active": True}
-    if category and category.strip() and category.strip().lower() != "all":
-        query["category"] = category.strip()
-
-    cursor = db.animal_explorer.find(query).sort("order", 1)
+async def get_active_animal_entities():
+    """Get all active animal explorer entities ordered by order number (Parameter-free single GET endpoint)"""
+    cursor = db.animal_explorer.find({"is_active": True}).sort("order", 1)
     entities = await cursor.to_list(length=None)
     return [serialize_doc(doc) for doc in entities]

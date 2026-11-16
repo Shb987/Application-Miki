@@ -660,9 +660,6 @@
         <button class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold" id="btnExportCategoryData" onclick="exportCurrentCategoryData()" title="Export all complete animal data for the currently selected category">
           <i class="fa fa-download me-1"></i> Export Category Data
         </button>
-        <button class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" onclick="openExportWildModal()">
-          <i class="fa fa-share-alt me-1"></i> Export Wild Animals
-        </button>
         <button class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold" onclick="loadAnimalEntities()">
           <i class="fa fa-refresh me-1"></i> Refresh
         </button>
@@ -2325,10 +2322,6 @@
     } catch (err) {
       alert(`Export Error: ${err.message}`);
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = origHtml;
-    }
-  }
       btn.disabled = false;
       btn.innerHTML = origHtml;
     }

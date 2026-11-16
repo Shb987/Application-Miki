@@ -994,24 +994,7 @@
                 </div>
               </div>
 
-              <!-- 4. Animal Sound & Audio Description -->
-              <div class="col-md-6">
-                <div class="characteristic-card">
-                  <label class="characteristic-label"><i class="fa fa-volume-up text-primary me-1"></i> Animal Sound &amp; Audio Description</label>
-                  <textarea class="form-control form-control-custom mb-2" id="animal_sound_desc" rows="2" placeholder="Describe vocalization, roar, chirp, communication sounds..."></textarea>
-                  <div class="input-group">
-                    <input type="text" class="form-control form-control-custom" id="animal_sound_audio_url" placeholder="Sound audio / photo URL or upload" oninput="updateSinglePreview('animal_sound_audio_url', 'animal_sound_preview')" />
-                    <button type="button" class="btn btn-outline-secondary" onclick="triggerSingleUpload('animal_sound_audio_url', 'animal_sound_preview')">
-                      <i class="fa fa-upload"></i>
-                    </button>
-                  </div>
-                  <div id="animal_sound_preview_wrap" class="mt-2 d-none">
-                    <img id="animal_sound_preview" src="" class="img-preview-box" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- 5. Body Parts Image & Description -->
+              <!-- 4. Body Parts Image & Description -->
               <div class="col-md-6">
                 <div class="characteristic-card">
                   <label class="characteristic-label"><i class="fa fa-cubes text-info me-1"></i> Body Parts Image &amp; Description</label>
@@ -1028,7 +1011,7 @@
                 </div>
               </div>
 
-              <!-- 6. Life Cycle / Reproduction Image & Description -->
+              <!-- 5. Life Cycle / Reproduction Image & Description -->
               <div class="col-md-6">
                 <div class="characteristic-card">
                   <label class="characteristic-label"><i class="fa fa-refresh text-warning me-1"></i> Life Cycle / Reproduction Image &amp; Description</label>
@@ -1045,7 +1028,7 @@
                 </div>
               </div>
 
-              <!-- 7. Special Abilities / Adaptations Image & Description -->
+              <!-- 6. Special Abilities / Adaptations Image & Description -->
               <div class="col-md-6">
                 <div class="characteristic-card">
                   <label class="characteristic-label"><i class="fa fa-shield text-danger me-1"></i> Special Abilities / Adaptations Image &amp; Description</label>
@@ -1062,7 +1045,7 @@
                 </div>
               </div>
 
-              <!-- 8. Animal Babies / Offspring Image & Description (Optional) -->
+              <!-- 7. Animal Babies / Offspring Image & Description (Optional) -->
               <div class="col-md-6">
                 <div class="characteristic-card">
                   <label class="characteristic-label"><i class="fa fa-heart text-danger me-1"></i> Animal Babies / Offspring Image &amp; Description <span class="text-muted font-weight-normal" style="font-size: 0.75rem;">(Optional)</span></label>
@@ -1628,7 +1611,7 @@
     const previewIds = [
       'animal_category_image_preview',
       'animal_image_preview', 'animal_banner_preview', 'animal_appearance_preview',
-      'animal_habitat_preview', 'animal_diet_preview', 'animal_sound_preview',
+      'animal_habitat_preview', 'animal_diet_preview',
       'animal_body_parts_preview', 'animal_life_cycle_preview', 'animal_adaptations_preview',
       'animal_offspring_preview'
     ];
@@ -1697,9 +1680,6 @@
 
     setFieldAndPreview('animal_diet_image_url', 'animal_diet_preview', item.diet_image_url);
     document.getElementById('animal_diet_desc').value = item.diet_description || '';
-
-    setFieldAndPreview('animal_sound_audio_url', 'animal_sound_preview', item.sound_audio_url || item.sound_image_url);
-    document.getElementById('animal_sound_desc').value = item.sound_description || '';
 
     setFieldAndPreview('animal_body_parts_image_url', 'animal_body_parts_preview', item.body_parts_image_url);
     document.getElementById('animal_body_parts_desc').value = item.body_parts_description || '';
@@ -1829,9 +1809,6 @@
       if (data.diet_description) document.getElementById('animal_diet_desc').value = data.diet_description;
       if (data.diet_image_url) setFieldAndPreview('animal_diet_image_url', 'animal_diet_preview', data.diet_image_url);
 
-      if (data.sound_description) document.getElementById('animal_sound_desc').value = data.sound_description;
-      if (data.sound_audio_url || data.sound_image_url) setFieldAndPreview('animal_sound_audio_url', 'animal_sound_preview', data.sound_audio_url || data.sound_image_url);
-
       if (data.body_parts_description) document.getElementById('animal_body_parts_desc').value = data.body_parts_description;
       if (data.body_parts_image_url) setFieldAndPreview('animal_body_parts_image_url', 'animal_body_parts_preview', data.body_parts_image_url);
 
@@ -1908,9 +1885,9 @@
       habitat_description: document.getElementById('animal_habitat_desc').value.trim(),
       diet_image_url: document.getElementById('animal_diet_image_url').value.trim(),
       diet_description: document.getElementById('animal_diet_desc').value.trim(),
-      sound_audio_url: document.getElementById('animal_sound_audio_url').value.trim(),
-      sound_image_url: document.getElementById('animal_sound_audio_url').value.trim(),
-      sound_description: document.getElementById('animal_sound_desc').value.trim(),
+      sound_audio_url: "",
+      sound_image_url: "",
+      sound_description: "",
       body_parts_image_url: document.getElementById('animal_body_parts_image_url').value.trim(),
       body_parts_description: document.getElementById('animal_body_parts_desc').value.trim(),
       life_cycle_image_url: document.getElementById('animal_life_cycle_image_url').value.trim(),

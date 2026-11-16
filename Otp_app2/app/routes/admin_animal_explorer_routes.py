@@ -775,7 +775,6 @@ Return a valid JSON object strictly containing:
 - appearance_description: Physical appearance, fur/scales/feathers, coloration, body structure
 - habitat_description: Natural territory, shelter, weather preferences
 - diet_description: Food habits, prey or vegetation eaten, hunting or foraging tactics
-- sound_description: Vocalizations, roaring, calls, frequencies, purpose of sounds
 - body_parts_description: Claws, teeth, limbs, tail, sense organs, anatomy
 - life_cycle_description: Mating, gestation/incubation, lifespan, stages from juvenile to adult
 - adaptations_description: Camouflage, speed, night vision, thermal regulation, survival skills

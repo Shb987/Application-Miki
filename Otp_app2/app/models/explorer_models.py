@@ -566,9 +566,6 @@ class AnimalExplorerBase(BaseModel):
     habitat_description: Optional[str] = Field("", description="Habitat Description")
     diet_image_url: Optional[str] = Field("", description="Food Habits / Diet Image URL")
     diet_description: Optional[str] = Field("", description="Food Habits / Diet Description")
-    sound_audio_url: Optional[str] = Field("", description="Animal Sound Audio / Image URL")
-    sound_image_url: Optional[str] = Field("", description="Animal Sound Image URL")
-    sound_description: Optional[str] = Field("", description="Animal Sound & Audio Description")
     body_parts_image_url: Optional[str] = Field("", description="Body Parts Image URL")
     body_parts_description: Optional[str] = Field("", description="Body Parts Description")
     life_cycle_image_url: Optional[str] = Field("", description="Life Cycle / Reproduction Image URL")
@@ -623,9 +620,6 @@ class AnimalExplorerUpdate(BaseModel):
     habitat_description: Optional[str] = None
     diet_image_url: Optional[str] = None
     diet_description: Optional[str] = None
-    sound_audio_url: Optional[str] = None
-    sound_image_url: Optional[str] = None
-    sound_description: Optional[str] = None
     body_parts_image_url: Optional[str] = None
     body_parts_description: Optional[str] = None
     life_cycle_image_url: Optional[str] = None

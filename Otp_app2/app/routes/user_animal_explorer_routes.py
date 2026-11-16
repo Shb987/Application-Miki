@@ -38,7 +38,6 @@ def serialize_doc(doc):
         "appearance_image_url", "appearance_description",
         "habitat_image_url", "habitat_description",
         "diet_image_url", "diet_description",
-        "sound_audio_url", "sound_image_url", "sound_description",
         "body_parts_image_url", "body_parts_description",
         "life_cycle_image_url", "life_cycle_description",
         "adaptations_image_url", "adaptations_description",
@@ -48,6 +47,10 @@ def serialize_doc(doc):
     for k in str_fields:
         if k not in doc or doc[k] is None:
             doc[k] = ""
+
+    doc.pop("sound_audio_url", None)
+    doc.pop("sound_image_url", None)
+    doc.pop("sound_description", None)
     return doc
 
 @router.get("", response_model=List[AnimalExplorerResponse])

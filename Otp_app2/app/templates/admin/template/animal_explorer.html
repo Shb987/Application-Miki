@@ -2278,9 +2278,46 @@
     chks.forEach(c => c.checked = !allChecked);
   }
 
-  function exportCurrentCategoryData() {
+  async function exportCurrentCategoryData() {
     const cat = currentFilter || 'all';
-    window.open(`/admin-panel/animal-explorer/export?category=${encodeURIComponent(cat)}`, '_blank');
+    const btn = document.getElementById('btnExportCategoryData');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Exporting...';
+    }
+
+    const token = getAuthToken();
+    const headers = {};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+      const exportUrl = `/admin-panel/animal-explorer/export?category=${encodeURIComponent(cat)}${token ? '&token=' + encodeURIComponent(token) : ''}`;
+      const resp = await fetch(exportUrl, { headers });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.detail || `Server returned ${resp.status}`);
+      }
+
+      const blob = await resp.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      const cleanName = cat.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      a.download = `animal_explorer_${cleanName}_export.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert(`Export Failed: ${err.message}`);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    }
   }
 
   async function confirmExportAnimal() {

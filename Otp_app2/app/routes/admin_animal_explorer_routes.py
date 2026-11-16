@@ -7,11 +7,13 @@ import urllib.request
 from typing import List, Optional
 from datetime import datetime, timezone
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Request, Query
 from PIL import Image
 from pydantic import BaseModel
+from jose import JWTError, jwt
 
 from app.core.database import db
+from app.core.settings import settings
 from app.models.explorer_models import (
     AnimalExplorerCreate,
     AnimalExplorerUpdate,
@@ -22,6 +24,34 @@ from app.models.explorer_models import (
     AnimalExportCategoryRequest
 )
 from app.utils.admin_auth import require_permission
+
+async def get_admin_user_flexible(
+    request: Request,
+    token: Optional[str] = Query(None)
+):
+    """Authenticate admin via Bearer header, ?token= query parameter, or cookies."""
+    jwt_token = token
+    if not jwt_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            jwt_token = auth_header.split(" ", 1)[1].strip()
+    if not jwt_token:
+        jwt_token = request.cookies.get("admin_token") or request.cookies.get("access_token")
+
+    if not jwt_token:
+        raise HTTPException(status_code=401, detail="Not authenticated. Admin token required.")
+
+    try:
+        payload = jwt.decode(jwt_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    username = payload.get("sub")
+    role = payload.get("role")
+    if not username or not role:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    return {"sub": username, "role": role}
 
 router = APIRouter(prefix="/animal-explorer", tags=["Animal Explorer - Admin"])
 
@@ -505,7 +535,8 @@ async def get_animal_categories(current_admin: dict = Depends(require_permission
 async def export_animal_category_data(
     category: Optional[str] = "all",
     format: Optional[str] = "json",
-    current_admin: dict = Depends(require_permission("Animal Explorer", "read"))
+    token: Optional[str] = Query(None),
+    current_admin: dict = Depends(get_admin_user_flexible)
 ):
     """
     Export all animals belonging to the specified category (or All Categories).

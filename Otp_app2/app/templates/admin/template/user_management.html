@@ -551,7 +551,7 @@
     }
     body.dark-only .parent-blocked-msg,
     html.dark-only .parent-blocked-msg {
-        color: rgba(255, 255, 255, 0.75) !important;
+        color: rgba(255, 255, 255, 0.8) !important;
     }
     body.dark-only .parent-blocked-msg strong,
     html.dark-only .parent-blocked-msg strong {
@@ -568,7 +568,7 @@
     }
     body.dark-only .parent-blocked-students-container,
     html.dark-only .parent-blocked-students-container {
-        background: rgba(255, 255, 255, 0.05) !important;
+        background: rgba(15, 23, 42, 0.6) !important;
         border-color: rgba(255, 255, 255, 0.1) !important;
     }
 
@@ -580,14 +580,22 @@
     }
     body.dark-only .parent-blocked-list-label,
     html.dark-only .parent-blocked-list-label {
-        color: #cbd5e1 !important;
+        color: #e2e8f0 !important;
+    }
+
+    .parent-blocked-users-icon {
+        color: #7c22e0;
+    }
+    body.dark-only .parent-blocked-users-icon,
+    html.dark-only .parent-blocked-users-icon {
+        color: #c084fc !important;
     }
 
     .parent-blocked-student-pill {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 6px 12px;
+        padding: 7px 12px;
         margin-bottom: 6px;
         border-radius: 8px;
         background: #ffffff;
@@ -596,11 +604,25 @@
         color: #1e293b;
         font-weight: 600;
     }
+    .parent-blocked-student-pill:last-child {
+        margin-bottom: 0;
+    }
     body.dark-only .parent-blocked-student-pill,
     html.dark-only .parent-blocked-student-pill {
-        background: rgba(255, 255, 255, 0.07) !important;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        color: #f1f5f9 !important;
+        background: rgba(196, 78, 204, 0.16) !important;
+        border-color: rgba(196, 78, 204, 0.35) !important;
+        color: #f5d0fe !important;
+    }
+    .parent-blocked-cap-icon {
+        color: #dc2626;
+    }
+    body.dark-only .parent-blocked-cap-icon,
+    html.dark-only .parent-blocked-cap-icon {
+        color: #f472b6 !important;
+    }
+    body.dark-only .parent-blocked-student-name,
+    html.dark-only .parent-blocked-student-name {
+        color: #fdf4ff !important;
     }
 
     .parent-blocked-rule-box {
@@ -617,9 +639,13 @@
     }
     body.dark-only .parent-blocked-rule-box,
     html.dark-only .parent-blocked-rule-box {
-        background: rgba(245, 158, 11, 0.12) !important;
-        border-color: rgba(245, 158, 11, 0.28) !important;
+        background: rgba(245, 158, 11, 0.15) !important;
+        border-color: rgba(245, 158, 11, 0.35) !important;
         color: #fbbf24 !important;
+    }
+    body.dark-only .parent-blocked-rule-box strong,
+    html.dark-only .parent-blocked-rule-box strong {
+        color: #fde68a !important;
     }
 
     .parent-blocked-btn-understood {
@@ -1491,11 +1517,11 @@
         if (studentNames && studentNames.length > 0) {
             listEl.style.display = 'block';
             listEl.innerHTML = `
-                <div class="parent-blocked-list-label"><i class="fa fa-users me-1 text-primary"></i> Linked Student Account(s) (${studentNames.length}):</div>
+                <div class="parent-blocked-list-label"><i class="fa fa-users me-1 parent-blocked-users-icon"></i> Linked Student Account(s) (${studentNames.length}):</div>
                 ${studentNames.map(name => `
                     <div class="parent-blocked-student-pill">
-                        <i class="fa fa-graduation-cap text-danger" style="font-size: 13px;"></i>
-                        <span>${name}</span>
+                        <i class="fa fa-graduation-cap parent-blocked-cap-icon" style="font-size: 13px;"></i>
+                        <span class="parent-blocked-student-name">${name}</span>
                     </div>
                 `).join('')}
             `;

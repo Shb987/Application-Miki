@@ -60,8 +60,8 @@ def serialize_question_for_user(question: dict) -> QuizQuestionResponse:
 def determine_class_range(std: int) -> str:
     if 1 <= std <= 3:
         return "1-3"
-    elif 4 <= std <= 5: # Assuming 3-5 covers 3,4,5 or per your seeds
-        return "3-5"
+    elif 4 <= std <= 5:
+        return "4-5"
     elif 6 <= std <= 8:
         return "6-8"
     elif 9 <= std <= 10:
@@ -80,7 +80,7 @@ async def get_quiz_questions(
 ):
     """
     Get random quiz questions for a student.
-    - `student_class`: Pass the single class number (e.g., 5). The system auto-converts it to range (e.g., '3-5').
+    - `student_class`: Pass the single class number (e.g., 5). The system auto-converts it to range (e.g., '4-5').
     - Fetches random mixed questions from ALL domains by default for the 'Game' mode.
     """
     # Auto-convert class number to range string

@@ -9,7 +9,7 @@ class WordleService:
     @staticmethod
     def get_class_range(std: int) -> str:
         if 1 <= std <= 3: return "1-3"
-        elif 4 <= std <= 5: return "3-5"
+        elif 4 <= std <= 5: return "4-5"
         elif 6 <= std <= 8: return "6-8"
         elif 9 <= std <= 10: return "9-10"
         elif 11 <= std <= 12: return "11-12"
@@ -23,7 +23,7 @@ class WordleService:
         Ensures total_levels is at least min_level.
         """
         default_config = {
-            "1-3": 15, "3-5": 25, "6-8": 50, "9-10": 50, "11-12": 50
+            "1-3": 15, "4-5": 25, "6-8": 50, "9-10": 50, "11-12": 50
         }
         fallback = default_config.get(class_range, 50)
 

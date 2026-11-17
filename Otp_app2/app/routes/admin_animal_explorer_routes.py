@@ -576,7 +576,7 @@ async def export_animal_category_data(
         for c in DEFAULT_ANIMAL_CATEGORIES:
             c_name = c["name"]
             grouped_by_category[c_name] = [
-                {**dict(d), "category_image_url": cat_images.get(c_name, d.get("category_image_url", ""))}
+                {**dict(d), "category": c_name, "category_image_url": cat_images.get(c_name, d.get("category_image_url", ""))}
                 for d in all_serialized
                 if (c_name in d.get("categories", []) or d.get("category") == c_name)
             ]
@@ -590,7 +590,7 @@ async def export_animal_category_data(
         }
     else:
         category_animals = [
-            {**dict(d), "category_image_url": cat_images.get(cat_clean, d.get("category_image_url", ""))}
+            {**dict(d), "category": cat_clean, "category_image_url": cat_images.get(cat_clean, d.get("category_image_url", ""))}
             for d in all_serialized
             if (cat_clean in d.get("categories", []) or d.get("category") == cat_clean)
         ]

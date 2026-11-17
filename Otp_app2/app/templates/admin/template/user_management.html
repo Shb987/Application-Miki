@@ -319,6 +319,25 @@
         transform: translateY(-2px);
     }
 
+    /* Parents Table Headings */
+    .parents-table-header {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.78rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #475569;
+        gap: 15px;
+    }
+    body.dark-only .parents-table-header,
+    html.dark-only .parents-table-header {
+        background: #1e222d !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        color: #94a3b8 !important;
+    }
+
     /* Modern Rows */
     .parent-row {
         background: #fff;
@@ -806,7 +825,7 @@
                         <h2 class="kpi-metric-number" id="kpi-schools">
                             <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
                         </h2>
-                        <p class="kpi-metric-label">No. of Schools Added</p>
+                        <p class="kpi-metric-label">School Added</p>
                     </div>
                     <svg class="kpi-wave-accent text-amber" viewBox="0 0 140 70" preserveAspectRatio="none">
                         <path d="M0,50 C40,20 90,60 140,25 L140,70 L0,70 Z" fill="currentColor"></path>
@@ -923,6 +942,14 @@
                         <span class="badge bg-soft-primary text-primary" id="parent-count"
                             style="font-size:0.85rem; padding: 8px 15px; border-radius: 10px; background: rgba(196, 78, 204, 0.12);"></span>
                     </div>
+                </div>
+
+                <!-- Parents Table Headings / Labels -->
+                <div class="parents-table-header d-none d-md-flex align-items-center mb-2 px-3 py-2">
+                    <div style="width: 40px; flex-shrink: 0; text-align: center;">#</div>
+                    <div style="flex: 2;">Guardian Details</div>
+                    <div style="flex: 3;">Linked Students</div>
+                    <div style="width: 80px; flex-shrink: 0; text-align: center;">Actions</div>
                 </div>
 
                 <div id="parents-list-container">

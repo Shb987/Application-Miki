@@ -719,7 +719,7 @@
             <th class="text-center pe-3" style="min-width: 130px;">
               <div class="d-flex flex-column align-items-center justify-content-center">
                 <span class="fw-bold">Actions</span>
-                <button type="button" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-2 py-0 mt-1 shadow-sm" id="btn_actions_header_upload" onclick="triggerCurrentCategoryUpload()" title="Upload category image for current category (applies to all animals in this category)" style="font-size: 0.72rem; line-height: 1.5; white-space: nowrap;">
+                <button type="button" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-2 py-0 mt-1 shadow-sm" id="btn_actions_header_upload" onclick="openUploadAnimalModal()" title="Upload image for an animal (select category & animal)" style="font-size: 0.72rem; line-height: 1.5; white-space: nowrap;">
                   <i class="fa fa-upload me-1"></i> Upload Image
                 </button>
               </div>
@@ -1256,6 +1256,86 @@
   </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- Modal: Quick Animal Image Upload (Select Category & Animal)               -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="uploadAnimalModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%);">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa fa-camera fs-5"></i>
+          <h5 class="modal-title font-weight-bold text-white mb-0">Upload Animal Image</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small mb-3">
+          Select both the category and the specific animal to upload and update the animal's image.
+        </p>
+
+        <!-- Category Selection -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small text-dark">
+            <i class="fa fa-folder text-warning me-1"></i> 1. Select Category <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" id="quick_upload_category" onchange="onQuickUploadCategoryChange()">
+            <option value="">-- Choose Category --</option>
+          </select>
+        </div>
+
+        <!-- Animal Selection -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small text-dark">
+            <i class="fa fa-paw text-warning me-1"></i> 2. Select Animal <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" id="quick_upload_animal" disabled>
+            <option value="">-- First select a category --</option>
+          </select>
+          <div class="form-text small text-muted" id="quick_upload_animal_hint">Choose a category above to load its animals.</div>
+        </div>
+
+        <!-- Image Target Field Selection -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small text-dark">
+            <i class="fa fa-image text-warning me-1"></i> 3. Image Target Field
+          </label>
+          <select class="form-select" id="quick_upload_target_field">
+            <option value="image_url">Main Photo / Thumbnail (image_url)</option>
+            <option value="banner_image_url">Banner / Cover Image (banner_image_url)</option>
+            <option value="appearance_image_url">Appearance Image</option>
+            <option value="habitat_image_url">Habitat Image</option>
+            <option value="diet_image_url">Diet Image</option>
+            <option value="movement_image_url">Movement Image</option>
+            <option value="lifecycle_image_url">Lifecycle Image</option>
+            <option value="offspring_image_url">Offspring Image</option>
+          </select>
+        </div>
+
+        <!-- File Upload Input -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small text-dark">
+            <i class="fa fa-upload text-warning me-1"></i> 4. Choose Image File <span class="text-danger">*</span>
+          </label>
+          <input type="file" class="form-control" id="quick_upload_file" accept="image/*" onchange="previewQuickUploadFile(this)" />
+        </div>
+
+        <!-- Preview Card -->
+        <div id="quick_upload_preview_wrap" class="p-2 border rounded bg-light text-center" style="display: none;">
+          <div class="small text-muted mb-1 fw-bold">Preview:</div>
+          <img id="quick_upload_preview_img" src="" alt="Upload preview" style="max-height: 140px; max-width: 100%; object-fit: contain; border-radius: 8px;" />
+        </div>
+      </div>
+      <div class="modal-footer border-0 p-3 bg-light rounded-bottom d-flex justify-content-between">
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning text-dark fw-bold rounded-pill px-4 shadow-sm" id="btn_submit_quick_animal_upload" onclick="submitQuickAnimalImageUpload()">
+          <i class="fa fa-cloud-upload me-1"></i> Upload &amp; Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Hidden File Input for Single Image Upload -->
 <input type="file" id="single_image_input" accept="image/*" class="d-none" onchange="handleSingleUpload(this)" />
 <input type="file" id="category_image_upload_input" accept="image/*" class="d-none" onchange="handleCategoryImageUpload(this)" />
@@ -1374,10 +1454,10 @@
     const headerBtn = document.getElementById('btn_actions_header_upload');
     if (headerBtn) {
       if (cat !== 'all') {
-        headerBtn.title = `Upload category image for ${cat} (applies to all animals in ${cat})`;
+        headerBtn.title = `Upload image for an animal in ${cat}`;
         headerBtn.innerHTML = `<i class="fa fa-upload me-1"></i> Upload Image`;
       } else {
-        headerBtn.title = 'Upload category image (select category)';
+        headerBtn.title = 'Upload image for an animal (select category & animal)';
         headerBtn.innerHTML = `<i class="fa fa-upload me-1"></i> Upload Image`;
       }
     }
@@ -1481,6 +1561,9 @@
               <div class="d-flex align-items-center justify-content-center gap-1">
                 <button class="table-action-btn table-action-export" title="Assign / Export to Categories" onclick="openExportModal('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}')">
                   <i class="fa fa-clone"></i>
+                </button>
+                <button class="table-action-btn text-warning" title="Upload Image for this Animal" onclick="openUploadAnimalModal('${(item.category || '').replace(/'/g, "\\'")}', '${item.id}')">
+                  <i class="fa fa-upload"></i>
                 </button>
                 <button class="table-action-btn table-action-edit" title="Edit Entity" onclick="openEditAnimalModal('${item.id}')">
                   <i class="fa fa-pencil"></i>
@@ -2152,22 +2235,186 @@
     document.getElementById('category_image_upload_input').click();
   }
 
-  function triggerCurrentCategoryUpload() {
-    let targetCat = currentFilter;
-    if (!targetCat || targetCat === 'all') {
-      const chosen = prompt(`Enter category name to upload image for:\n${ALL_ANIMAL_CATEGORIES.join(', ')}`, 'Wild Animals');
-      if (!chosen) return;
-      targetCat = chosen.trim();
-      const match = ALL_ANIMAL_CATEGORIES.find(c => c.toLowerCase() === targetCat.toLowerCase());
-      if (!match) {
-        alert('Invalid category name: ' + targetCat);
-        return;
-      }
-      targetCat = match;
+  /* ==================== QUICK ANIMAL IMAGE UPLOAD (CATEGORY + ANIMAL REQUIRED) ==================== */
+  function openUploadAnimalModal(prefillCat = null, prefillAnimalId = null) {
+    const catSelect = document.getElementById('quick_upload_category');
+    const fileInput = document.getElementById('quick_upload_file');
+    const previewWrap = document.getElementById('quick_upload_preview_wrap');
+    const previewImg = document.getElementById('quick_upload_preview_img');
+
+    if (fileInput) fileInput.value = '';
+    if (previewWrap) previewWrap.style.display = 'none';
+    if (previewImg) previewImg.src = '';
+
+    // Populate category dropdown
+    let catOptions = '<option value="">-- Choose Category --</option>';
+    ALL_ANIMAL_CATEGORIES.forEach(c => {
+      const emoji = categoryEmojiMap[c] || '🐾';
+      catOptions += `<option value="${c}">${emoji} ${c}</option>`;
+    });
+    catSelect.innerHTML = catOptions;
+
+    // Determine category to select
+    let targetCat = prefillCat;
+    if (!targetCat && currentFilter && currentFilter !== 'all') {
+      targetCat = currentFilter;
     }
-    activeUploadingCategoryName = targetCat;
-    activeUploadingCategoryIdx = -1;
-    document.getElementById('category_image_upload_input').click();
+
+    if (targetCat) {
+      catSelect.value = targetCat;
+    } else {
+      catSelect.value = '';
+    }
+
+    onQuickUploadCategoryChange(prefillAnimalId);
+
+    new bootstrap.Modal(document.getElementById('uploadAnimalModal')).show();
+  }
+
+  function onQuickUploadCategoryChange(prefillAnimalId = null) {
+    const cat = document.getElementById('quick_upload_category').value;
+    const animalSelect = document.getElementById('quick_upload_animal');
+    const hintEl = document.getElementById('quick_upload_animal_hint');
+
+    if (!cat) {
+      animalSelect.disabled = true;
+      animalSelect.innerHTML = '<option value="">-- First select a category --</option>';
+      if (hintEl) hintEl.innerText = 'Choose a category above to load its animals.';
+      return;
+    }
+
+    const matchingAnimals = animalEntities.filter(item => {
+      const itemCats = (item.categories && Array.isArray(item.categories) && item.categories.length > 0)
+        ? item.categories
+        : (item.category ? [item.category] : ['Wild Animals']);
+      return itemCats.includes(cat) || item.category === cat;
+    });
+
+    if (matchingAnimals.length === 0) {
+      animalSelect.disabled = true;
+      animalSelect.innerHTML = '<option value="">-- No animals found in this category --</option>';
+      if (hintEl) hintEl.innerText = `No animals found in "${cat}". Add an animal first.`;
+      return;
+    }
+
+    animalSelect.disabled = false;
+    let options = `<option value="">-- Select Animal (${matchingAnimals.length} available) --</option>`;
+    matchingAnimals.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '')).forEach(a => {
+      options += `<option value="${a.id}">${a.name || 'Unnamed'} (Order: ${a.order || '-'})</option>`;
+    });
+    animalSelect.innerHTML = options;
+
+    if (prefillAnimalId) {
+      animalSelect.value = prefillAnimalId;
+    }
+    if (hintEl) {
+      hintEl.innerText = `${matchingAnimals.length} animal(s) available in category "${cat}".`;
+    }
+  }
+
+  function previewQuickUploadFile(input) {
+    const wrap = document.getElementById('quick_upload_preview_wrap');
+    const img = document.getElementById('quick_upload_preview_img');
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        if (img) img.src = e.target.result;
+        if (wrap) wrap.style.display = 'block';
+      };
+      reader.readAsDataURL(input.files[0]);
+    } else {
+      if (wrap) wrap.style.display = 'none';
+      if (img) img.src = '';
+    }
+  }
+
+  async function submitQuickAnimalImageUpload() {
+    const cat = document.getElementById('quick_upload_category').value;
+    const animalId = document.getElementById('quick_upload_animal').value;
+    const targetField = document.getElementById('quick_upload_target_field').value || 'image_url';
+    const fileInput = document.getElementById('quick_upload_file');
+    const btn = document.getElementById('btn_submit_quick_animal_upload');
+
+    if (!cat) {
+      alert('Please select a category first.');
+      document.getElementById('quick_upload_category').focus();
+      return;
+    }
+    if (!animalId) {
+      alert('Please select an animal from the chosen category.');
+      document.getElementById('quick_upload_animal').focus();
+      return;
+    }
+    if (!fileInput.files || fileInput.files.length === 0) {
+      alert('Please choose an image file to upload.');
+      fileInput.focus();
+      return;
+    }
+
+    const originalBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Uploading...';
+
+    try {
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const headers = {};
+      const token = getAuthToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      // 1. Upload the image
+      const uploadResp = await fetch('/admin-panel/animal-explorer/upload-image', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      if (!uploadResp.ok) {
+        const errData = await uploadResp.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Image upload failed');
+      }
+      const uploadData = await uploadResp.json();
+      const uploadedUrl = uploadData.url;
+
+      // 2. Update the animal with the uploaded image URL
+      const updatePayload = {};
+      updatePayload[targetField] = uploadedUrl;
+
+      const patchHeaders = { 'Content-Type': 'application/json' };
+      if (token) patchHeaders['Authorization'] = 'Bearer ' + token;
+
+      const updateResp = await fetch(`/admin-panel/animal-explorer/${encodeURIComponent(animalId)}`, {
+        method: 'PUT',
+        headers: patchHeaders,
+        body: JSON.stringify(updatePayload)
+      });
+      if (!updateResp.ok) {
+        const errData = await updateResp.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to assign image to animal entity');
+      }
+
+      // 3. Hide modal & reload
+      const modalEl = document.getElementById('uploadAnimalModal');
+      const modalInstance = bootstrap.Modal.getInstance(modalEl);
+      if (modalInstance) modalInstance.hide();
+
+      await loadAnimalEntities();
+
+      const targetAnimal = animalEntities.find(a => a.id === animalId);
+      const animalName = targetAnimal ? targetAnimal.name : 'Selected animal';
+      alert(`Success: Image updated for "${animalName}" in "${cat}"!`);
+    } catch (err) {
+      console.error('Quick animal upload error:', err);
+      alert('Upload error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalBtnHtml;
+    }
+  }
+
+  function triggerCurrentCategoryUpload() {
+    openUploadAnimalModal();
   }
 
   function triggerCategoryImageUploadForSelected() {

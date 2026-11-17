@@ -603,6 +603,25 @@
             padding: 16px 28px 28px 28px !important;
             transition: margin-left 0.3s ease, width 0.3s ease !important;
         }
+        /* Collapsed Sidebar Responsive Adaptations */
+        .page-wrapper.compact-wrapper .page-header.close_icon {
+            left: 86px !important;
+            width: calc(100% - 86px) !important;
+        }
+        .page-wrapper.compact-wrapper .page-body-wrapper .page-body.close_icon,
+        .page-wrapper.compact-wrapper.close_icon .page-body,
+        .page-wrapper.compact-wrapper:has(.sidebar-wrapper.close_icon) .page-body {
+            margin-left: 86px !important;
+            width: calc(100% - 86px) !important;
+        }
+        .sidebar-wrapper.close_icon {
+            width: 86px !important;
+            transition: all 0.3s ease !important;
+        }
+        .sidebar-wrapper.close_icon .sidebar-list > a {
+            cursor: pointer !important;
+            justify-content: center !important;
+        }
         /* Hide redundant toggle artifacts in header */
         .header-logo-wrapper {
             display: none !important;
@@ -1238,6 +1257,44 @@
                 }, 400);
             });
         })();
+    </script>
+
+    <!-- Sidebar Collapsed / Responsive Icon Click Enhancement -->
+    <script>
+        $(document).ready(function() {
+            // When the sidebar is collapsed (icon-only mode), clicking ANY side icon expands the sidebar
+            // and opens the relevant submenu smoothly
+            $(document).on('click', '.sidebar-wrapper.close_icon .sidebar-list > a', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                var $sidebar = $('.sidebar-wrapper');
+                var $header = $('.page-header');
+                var $body = $('.page-body');
+
+                // Expand sidebar
+                $sidebar.removeClass('close_icon');
+                $header.removeClass('close_icon');
+                $body.removeClass('close_icon');
+
+                // Activate clicked item and open its submenu
+                $('.sidebar-title').removeClass('active');
+                $('.sidebar-submenu').slideUp(150);
+
+                $(this).addClass('active');
+                var $sub = $(this).next('.sidebar-submenu');
+                if ($sub && $sub.length) {
+                    $sub.slideDown(250);
+                }
+            });
+
+            // Ensure logo icon in collapsed sidebar also acts as expander
+            $(document).on('click', '.logo-icon-wrapper', function() {
+                $('.sidebar-wrapper').toggleClass('close_icon');
+                $('.page-header').toggleClass('close_icon');
+                $('.page-body').toggleClass('close_icon');
+            });
+        });
     </script>
 
 </body>

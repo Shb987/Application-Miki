@@ -1256,7 +1256,8 @@
     document.getElementById('spaceForm').reset();
     document.getElementById('entity-id').value = '';
     document.getElementById('spaceModalTitle').innerHTML = '<i class="fa fa-plus-circle me-2"></i> Add Space Entity';
-    document.getElementById('entity-order').value = spaceEntities.length + 1;
+    const maxOrder = spaceEntities.length > 0 ? Math.max(...spaceEntities.map(e => parseInt(e.order) || 0)) : 0;
+    document.getElementById('entity-order').value = maxOrder + 1;
     document.getElementById('entity-moons').value = '';
     document.getElementById('entity-active').checked = true;
     currentGalleryUrls = [];
@@ -1343,6 +1344,15 @@
       fun_fact: funFactVal || null,
       is_active: document.getElementById('entity-active').checked
     };
+
+    // Client-side uniqueness validation for order
+    const existingWithOrder = spaceEntities.find(e => (!id || e._id !== id) && Number(e.order) === Number(payload.order));
+    if (existingWithOrder) {
+      showToast(`Order #${payload.order} is already assigned to "${existingWithOrder.name}". Please choose a different order number.`, 'danger');
+      const orderEl = document.getElementById('entity-order');
+      if (orderEl) orderEl.focus();
+      return;
+    }
 
     const url = id ? `/admin-panel/space-explorer/${id}` : '/admin-panel/space-explorer';
     const method = id ? 'PUT' : 'POST';

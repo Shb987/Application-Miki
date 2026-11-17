@@ -88,6 +88,14 @@ async def create_space_entity(data: SpaceExplorerCreate, current_admin: dict = D
     if existing:
         raise HTTPException(status_code=400, detail=f"Space entity '{data.name}' already exists.")
 
+    if data.order is not None:
+        existing_order = await db.space_explorer.find_one({"order": data.order})
+        if existing_order:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Order number {data.order} is already assigned to '{existing_order.get('name')}'. Please choose a unique order number."
+            )
+
     new_doc = data.model_dump()
     new_doc["created_at"] = datetime.now(timezone.utc)
     new_doc["updated_at"] = datetime.now(timezone.utc)
@@ -194,6 +202,25 @@ async def update_space_entity(item_id: str, update_data: SpaceExplorerUpdate, cu
     fields = {k: v for k, v in update_data.model_dump(exclude_unset=True).items()}
     if not fields:
         raise HTTPException(status_code=400, detail="No fields provided for update")
+
+    if "name" in fields and fields["name"]:
+        existing_name = await db.space_explorer.find_one({
+            "_id": {"$ne": ObjectId(item_id)},
+            "name": {"$regex": f"^{fields['name'].strip()}$", "$options": "i"}
+        })
+        if existing_name:
+            raise HTTPException(status_code=400, detail=f"Space entity '{fields['name']}' already exists.")
+
+    if "order" in fields and fields["order"] is not None:
+        existing_order = await db.space_explorer.find_one({
+            "_id": {"$ne": ObjectId(item_id)},
+            "order": fields["order"]
+        })
+        if existing_order:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Order number {fields['order']} is already assigned to '{existing_order.get('name')}'. Please choose a unique order number."
+            )
 
     fields["updated_at"] = datetime.now(timezone.utc)
 

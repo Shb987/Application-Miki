@@ -31,7 +31,7 @@ class DifficultyLevel(str, Enum):
 
 class ClassRange(str, Enum):
     PRIMARY_LOWER = "1-3"
-    PRIMARY_UPPER = "3-5"
+    PRIMARY_UPPER = "4-5"
     MIDDLE_SCHOOL = "6-8"
     HIGH_SCHOOL = "9-10"
     HIGHER_SECONDARY = "11-12"

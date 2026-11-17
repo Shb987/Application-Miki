@@ -137,7 +137,7 @@ class AnimalExplorerGenerateRequest(BaseModel):
 UPLOAD_DIR = os.path.join("app", "static", "uploads", "animal")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-def serialize_doc(doc):
+def serialize_doc(doc, cat_image_map=None):
     if not doc:
         return None
     doc = dict(doc)
@@ -161,6 +161,12 @@ def serialize_doc(doc):
 
     if not doc.get("category") and doc.get("categories"):
         doc["category"] = doc["categories"][0]
+
+    primary_c = doc.get("category", "Wild Animals")
+    if cat_image_map and primary_c in cat_image_map:
+        doc["category_image_url"] = cat_image_map[primary_c]
+    elif not doc.get("category_image_url"):
+        doc["category_image_url"] = next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == primary_c), "")
 
     # Ensure all string fields default gracefully
     str_fields = [
@@ -449,9 +455,15 @@ def resolve_animal_correct_images(name: str, category: str = "Wild Animals") -> 
 @router.get("", response_model=List[AnimalExplorerResponse])
 async def get_all_animal_entities(current_admin: dict = Depends(require_permission("Animal Explorer", "read"))):
     """Retrieve all Animal Explorer entities ordered by display order (Requires Admin Authentication)"""
+    stored_cats = await db.animal_categories.find().to_list(100)
+    cat_image_map = {c["name"]: c.get("image_url", "") for c in DEFAULT_ANIMAL_CATEGORIES}
+    for sc in stored_cats:
+        if sc.get("image_url"):
+            cat_image_map[sc["name"]] = sc["image_url"]
+
     cursor = db.animal_explorer.find().sort("order", 1)
     entities = await cursor.to_list(length=None)
-    return [serialize_doc(doc) for doc in entities]
+    return [serialize_doc(doc, cat_image_map) for doc in entities]
 
 @router.post("", response_model=AnimalExplorerResponse)
 async def create_animal_entity(data: AnimalExplorerCreate, current_admin: dict = Depends(require_permission("Animal Explorer", "create"))):
@@ -464,14 +476,14 @@ async def create_animal_entity(data: AnimalExplorerCreate, current_admin: dict =
 
     new_doc = data.model_dump()
 
-    # Normalize categories: ensure categories array has at least primary category
     cats = new_doc.get("categories") or []
-    if not cats and new_doc.get("category"):
-        cats = [new_doc["category"]]
+    primary = new_doc.get("category")
+    if not cats and primary:
+        cats = [primary]
     elif not cats:
         cats = ["Wild Animals"]
-    new_doc["categories"] = cats
-    new_doc["category"] = cats[0]
+    new_doc["categories"] = [c.strip() for c in cats if c and c.strip()]
+    new_doc["category"] = primary.strip() if primary else new_doc["categories"][0]
 
     if not new_doc.get("category_image_url"):
         stored = await db.animal_categories.find_one({"name": new_doc["category"]})
@@ -549,16 +561,23 @@ async def export_animal_category_data(
 
     cat_clean = category.strip() if category else "all"
 
+    cat_images = {d["name"]: d["image_url"] for d in DEFAULT_ANIMAL_CATEGORIES}
+    stored_cats = await db.animal_categories.find().to_list(100)
+    for sc in stored_cats:
+        if sc.get("image_url"):
+            cat_images[sc["name"]] = sc["image_url"]
+
     cursor = db.animal_explorer.find().sort("order", 1)
     all_docs = await cursor.to_list(length=None)
-    all_serialized = [serialize_doc(d) for d in all_docs]
+    all_serialized = [serialize_doc(d, cat_images) for d in all_docs]
 
     if cat_clean.lower() == "all":
         grouped_by_category = {}
         for c in DEFAULT_ANIMAL_CATEGORIES:
             c_name = c["name"]
             grouped_by_category[c_name] = [
-                d for d in all_serialized
+                {**dict(d), "category_image_url": cat_images.get(c_name, d.get("category_image_url", ""))}
+                for d in all_serialized
                 if (c_name in d.get("categories", []) or d.get("category") == c_name)
             ]
 
@@ -571,7 +590,8 @@ async def export_animal_category_data(
         }
     else:
         category_animals = [
-            d for d in all_serialized
+            {**dict(d), "category_image_url": cat_images.get(cat_clean, d.get("category_image_url", ""))}
+            for d in all_serialized
             if (cat_clean in d.get("categories", []) or d.get("category") == cat_clean)
         ]
         export_data = {
@@ -616,7 +636,7 @@ async def update_animal_category(
 
     if "image_url" in fields and fields["image_url"]:
         await db.animal_explorer.update_many(
-            {"$or": [{"category": category_name}, {"categories": category_name}]},
+            {"category": category_name},
             {"$set": {"category_image_url": fields["image_url"]}}
         )
 
@@ -647,7 +667,7 @@ async def upload_category_image(
     )
 
     await db.animal_explorer.update_many(
-        {"$or": [{"category": category_name}, {"categories": category_name}]},
+        {"category": category_name},
         {"$set": {"category_image_url": relative_url}}
     )
 
@@ -932,17 +952,29 @@ async def update_animal_entity(item_id: str, update_data: AnimalExplorerUpdate, 
     if not fields:
         raise HTTPException(status_code=400, detail="No fields provided for update")
 
-    if "categories" in fields and fields["categories"]:
+    # Editing an animal's categories must NEVER modify the category image
+    fields.pop("category_image_url", None)
+
+    # Category and Assigned Categories fields work independently and consistently
+    if "category" in fields and fields["category"]:
+        fields["category"] = fields["category"].strip()
+
+    if "categories" in fields and fields["categories"] is not None:
         fields["categories"] = [c.strip() for c in fields["categories"] if c and c.strip()]
-        if "category" not in fields or not fields["category"]:
-            fields["category"] = fields["categories"][0]
-        elif fields["category"] not in fields["categories"]:
-            fields["categories"].append(fields["category"])
-    elif "category" in fields and fields["category"]:
-        await db.animal_explorer.update_one(
-            {"_id": ObjectId(item_id)},
-            {"$addToSet": {"categories": fields["category"]}}
-        )
+        if not fields["categories"] and fields.get("category"):
+            fields["categories"] = [fields["category"]]
+
+    # Synchronize animal's category_image_url strictly from db.animal_categories for its primary category
+    target_primary = fields.get("category")
+    if not target_primary:
+        curr = await db.animal_explorer.find_one({"_id": ObjectId(item_id)}, {"category": 1})
+        target_primary = curr.get("category") if curr else "Wild Animals"
+
+    stored_cat = await db.animal_categories.find_one({"name": target_primary})
+    if stored_cat and stored_cat.get("image_url"):
+        fields["category_image_url"] = stored_cat["image_url"]
+    else:
+        fields["category_image_url"] = next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == target_primary), "")
 
     fields["updated_at"] = datetime.now(timezone.utc)
 

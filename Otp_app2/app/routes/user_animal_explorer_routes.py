@@ -5,7 +5,22 @@ from app.models.explorer_models import AnimalExplorerResponse
 
 router = APIRouter(prefix="/animal-explorer", tags=["Animal Explorer - User"])
 
-def serialize_doc(doc):
+DEFAULT_ANIMAL_CATEGORIES = [
+    {"name": "Wild Animals", "image_url": "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Domestic Animals & Pets", "image_url": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Insects", "image_url": "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Reptiles", "image_url": "https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Mammals", "image_url": "https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Birds", "image_url": "https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Amphibians", "image_url": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Aquatic & Marine Animals", "image_url": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Endangered Animals", "image_url": "https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Prehistoric Animals", "image_url": "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Arachnids", "image_url": "https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?auto=format&fit=crop&w=800&q=80"},
+    {"name": "Worms & Other Invertebrates", "image_url": "https://images.unsplash.com/photo-1508873696983-2df57036476b?auto=format&fit=crop&w=800&q=80"}
+]
+
+def serialize_doc(doc, cat_image_map=None):
     if not doc:
         return None
     doc = dict(doc)
@@ -29,6 +44,12 @@ def serialize_doc(doc):
 
     if not doc.get("category") and doc.get("categories"):
         doc["category"] = doc["categories"][0]
+
+    primary_c = doc.get("category", "Wild Animals")
+    if cat_image_map and primary_c in cat_image_map:
+        doc["category_image_url"] = cat_image_map[primary_c]
+    elif not doc.get("category_image_url"):
+        doc["category_image_url"] = next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == primary_c), "")
 
     str_fields = [
         "category_image_url",
@@ -56,6 +77,12 @@ def serialize_doc(doc):
 @router.get("", response_model=List[AnimalExplorerResponse])
 async def get_active_animal_entities():
     """Get all active animal explorer entities ordered by order number (Parameter-free single GET endpoint)"""
+    stored_cats = await db.animal_categories.find().to_list(100)
+    cat_image_map = {c["name"]: c.get("image_url", "") for c in DEFAULT_ANIMAL_CATEGORIES}
+    for sc in stored_cats:
+        if sc.get("image_url"):
+            cat_image_map[sc["name"]] = sc["image_url"]
+
     cursor = db.animal_explorer.find({"is_active": True}).sort("order", 1)
     entities = await cursor.to_list(length=None)
-    return [serialize_doc(doc) for doc in entities]
+    return [serialize_doc(doc, cat_image_map) for doc in entities]

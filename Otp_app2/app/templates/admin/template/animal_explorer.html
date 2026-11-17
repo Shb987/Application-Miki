@@ -1262,6 +1262,49 @@
 
 <!-- Page Scripts -->
 <script>
+  const ALL_ANIMAL_CATEGORIES = [
+    'Wild Animals', 'Domestic Animals & Pets', 'Insects', 'Reptiles',
+    'Mammals', 'Birds', 'Amphibians', 'Aquatic & Marine Animals',
+    'Endangered Animals', 'Prehistoric Animals', 'Arachnids', 'Worms & Other Invertebrates'
+  ];
+
+  const categoryEmojiMap = {
+    'Wild Animals': '🦁',
+    'Domestic Animals & Pets': '🐕',
+    'Insects': '🐜',
+    'Reptiles': '🐍',
+    'Mammals': '🐘',
+    'Birds': '🐦',
+    'Amphibians': '🐸',
+    'Aquatic & Marine Animals': '🐬',
+    'Endangered Animals': '🦋',
+    'Prehistoric Animals': '🦴',
+    'Arachnids': '🕷️',
+    'Worms & Other Invertebrates': '🪱'
+  };
+
+  const DEFAULT_CAT_IMAGES = {
+    'Wild Animals': 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=800&q=80',
+    'Domestic Animals & Pets': 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80',
+    'Insects': 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?auto=format&fit=crop&w=800&q=80',
+    'Reptiles': 'https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae?auto=format&fit=crop&w=800&q=80',
+    'Mammals': 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?auto=format&fit=crop&w=800&q=80',
+    'Birds': 'https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=800&q=80',
+    'Amphibians': 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=800&q=80',
+    'Aquatic & Marine Animals': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80',
+    'Endangered Animals': 'https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=800&q=80',
+    'Prehistoric Animals': 'https://images.unsplash.com/photo-1570481662006-a3a1374699e8?auto=format&fit=crop&w=800&q=80',
+    'Arachnids': 'https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?auto=format&fit=crop&w=800&q=80',
+    'Worms & Other Invertebrates': 'https://images.unsplash.com/photo-1508873696983-2df57036476b?auto=format&fit=crop&w=800&q=80'
+  };
+
+  function getCategoryImageUrl(catName) {
+    if (!catName) return '';
+    const cObj = animalCategories.find(c => c.name === catName);
+    if (cObj && cObj.image_url) return cObj.image_url;
+    return DEFAULT_CAT_IMAGES[catName] || '';
+  }
+
   let animalEntities = [];
   let animalCategories = [];
   let currentFilter = 'all';
@@ -1284,13 +1327,15 @@
 
   async function loadAnimalEntities() {
     const tbody = document.getElementById('animalTableBody');
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="text-center py-5 text-muted">
-          <div class="spinner-border text-warning me-2" role="status"></div> Loading Animal Explorer data...
-        </td>
-      </tr>
-    `;
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center py-5 text-muted">
+            <div class="spinner-border text-warning me-2" role="status"></div> Loading Animal Explorer data...
+          </td>
+        </tr>
+      `;
+    }
 
     try {
       const headers = {};
@@ -1301,14 +1346,18 @@
       if (!resp.ok) throw new Error('Failed to fetch animal entities');
       animalEntities = await resp.json();
       
-      document.getElementById('stat-total-count').innerText = animalEntities.length;
-      document.getElementById('stat-active-count').innerText = animalEntities.filter(x => x.is_active).length;
+      const totalCountEl = document.getElementById('stat-total-count');
+      if (totalCountEl) totalCountEl.innerText = animalEntities.length;
+      const activeCountEl = document.getElementById('stat-active-count');
+      if (activeCountEl) activeCountEl.innerText = animalEntities.filter(x => x.is_active).length;
       renderAnimalTable();
     } catch (err) {
       console.error(err);
       animalEntities = [];
-      document.getElementById('stat-total-count').innerText = "0";
-      document.getElementById('stat-active-count').innerText = "0";
+      const totalCountEl = document.getElementById('stat-total-count');
+      if (totalCountEl) totalCountEl.innerText = "0";
+      const activeCountEl = document.getElementById('stat-active-count');
+      if (activeCountEl) activeCountEl.innerText = "0";
       renderAnimalTable();
     }
   }
@@ -1340,124 +1389,122 @@
     renderAnimalTable();
   }
 
-  const categoryEmojiMap = {
-    'Wild Animals': '🦁',
-    'Domestic Animals & Pets': '🐕',
-    'Insects': '🐜',
-    'Reptiles': '🐍',
-    'Mammals': '🐘',
-    'Birds': '🐦',
-    'Amphibians': '🐸',
-    'Aquatic & Marine Animals': '🐬',
-    'Endangered Animals': '🦋',
-    'Prehistoric Animals': '🦴',
-    'Arachnids': '🕷️',
-    'Worms & Other Invertebrates': '🪱'
-  };
-
   function renderAnimalTable() {
     const tbody = document.getElementById('animalTableBody');
-    const q = (document.getElementById('animalSearchInput').value || '').toLowerCase().trim();
+    if (!tbody) return;
 
-    let list = animalEntities.filter(item => {
-      const itemCats = (item.categories && Array.isArray(item.categories) && item.categories.length > 0) 
-        ? item.categories 
-        : (item.category ? [item.category] : ['Wild Animals']);
-      const matchCat = (currentFilter === 'all') || itemCats.includes(currentFilter) || (item.category === currentFilter);
-      const nameStr = (item.name || '').toLowerCase();
-      const sciStr = (item.scientific_name || '').toLowerCase();
-      const habitatStr = (item.habitat || '').toLowerCase();
-      const dietStr = (item.diet_type || '').toLowerCase();
-      const orderStr = String(item.order || '');
-      const matchSearch = nameStr.includes(q) || sciStr.includes(q) || habitatStr.includes(q) || dietStr.includes(q) || orderStr.includes(q);
-      return matchCat && matchSearch;
-    });
+    try {
+      const searchInput = document.getElementById('animalSearchInput');
+      const q = (searchInput ? searchInput.value || '' : '').toLowerCase().trim();
 
-    if (list.length === 0) {
+      let list = animalEntities.filter(item => {
+        const itemCats = (item.categories && Array.isArray(item.categories) && item.categories.length > 0) 
+          ? item.categories 
+          : (item.category ? [item.category] : ['Wild Animals']);
+        const matchCat = (currentFilter === 'all') || itemCats.includes(currentFilter) || (item.category === currentFilter);
+        const nameStr = (item.name || '').toLowerCase();
+        const sciStr = (item.scientific_name || '').toLowerCase();
+        const habitatStr = (item.habitat || '').toLowerCase();
+        const dietStr = (item.diet_type || '').toLowerCase();
+        const orderStr = String(item.order || '');
+        const matchSearch = nameStr.includes(q) || sciStr.includes(q) || habitatStr.includes(q) || dietStr.includes(q) || orderStr.includes(q);
+        return matchCat && matchSearch;
+      });
+
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-5">
+              <div class="my-3">
+                <span style="font-size: 3.5rem; opacity: 0.4;">🦁</span>
+                <h5 class="font-weight-bold text-dark mb-1 mt-2">No Animal Explorer Entities Found</h5>
+                <p class="text-muted mb-3" style="font-size: 0.9rem;">
+                  ${animalEntities.length === 0 ? 'No animal records added yet. Click below to add an animal entity.' : 'No entities match your search criteria.'}
+                </p>
+                <button class="btn btn-add-animal shadow-sm" onclick="openAddAnimalModal()">
+                  <i class="fa fa-plus-circle me-1"></i> Add Animal Entity
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      list.forEach(item => {
+        const thumb = item.image_url || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80';
+        const itemCats = (item.categories && Array.isArray(item.categories) && item.categories.length > 0) 
+          ? item.categories 
+          : (item.category ? [item.category] : ['Wild Animals']);
+
+        const catBadgesHtml = itemCats.map(cat => {
+          const catEmoji = categoryEmojiMap[cat] || '🐾';
+          const cImg = getCategoryImageUrl(cat);
+          return `
+            <div class="d-inline-flex align-items-center gap-1 mb-1 me-1">
+              ${cImg ? `<img src="${cImg}" class="rounded" style="width: 22px; height: 22px; object-fit: cover; border: 1px solid #fed7aa;" title="${cat}" onerror="this.style.display='none'" />` : ''}
+              <span class="badge rounded-pill bg-light text-dark border px-2 py-1" style="font-size: 0.78rem;">
+                ${catEmoji} ${cat}
+              </span>
+            </div>
+          `;
+        }).join('');
+
+        const statusBadge = item.is_active ? 
+          '<span class="badge bg-success rounded-pill px-2 py-1"><i class="fa fa-check me-1"></i>Active</span>' : 
+          '<span class="badge bg-secondary rounded-pill px-2 py-1">Draft</span>';
+
+        html += `
+          <tr>
+            <td>
+              <div class="order-badge">${item.order || 1}</div>
+            </td>
+            <td>
+              <img src="${thumb}" class="animal-img-thumb" alt="${item.name || ''}" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80'" />
+            </td>
+            <td>
+              <div class="fw-bold" style="font-size: 0.95rem;">${item.name || 'Unnamed Species'}</div>
+              <div class="text-muted small fst-italic">${item.scientific_name || item.family || 'Taxonomy pending'}</div>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap align-items-center" style="max-width: 260px;">
+                ${catBadgesHtml}
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-warning text-dark me-1" style="font-size: 0.78rem;">${item.diet_type || 'Carnivore'}</span>
+              <span class="badge bg-info text-white" style="font-size: 0.78rem;">${item.movement_type || 'Walking'}</span>
+            </td>
+            <td>${statusBadge}</td>
+            <td class="text-center pe-3">
+              <div class="d-flex align-items-center justify-content-center gap-1">
+                <button class="table-action-btn table-action-export" title="Assign / Export to Categories" onclick="openExportModal('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}')">
+                  <i class="fa fa-clone"></i>
+                </button>
+                <button class="table-action-btn table-action-edit" title="Edit Entity" onclick="openEditAnimalModal('${item.id}')">
+                  <i class="fa fa-pencil"></i>
+                </button>
+                <button class="table-action-btn table-action-delete" title="Delete Entity" onclick="deleteAnimalEntity('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}')">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    } catch (renderErr) {
+      console.error('Error rendering animal table:', renderErr);
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="text-center py-5">
-            <div class="my-3">
-              <span style="font-size: 3.5rem; opacity: 0.4;">🦁</span>
-              <h5 class="font-weight-bold text-dark mb-1 mt-2">No Animal Explorer Entities Found</h5>
-              <p class="text-muted mb-3" style="font-size: 0.9rem;">
-                ${animalEntities.length === 0 ? 'No animal records added yet. Click below to add an animal entity.' : 'No entities match your search criteria.'}
-              </p>
-              <button class="btn btn-add-animal shadow-sm" onclick="openAddAnimalModal()">
-                <i class="fa fa-plus-circle me-1"></i> Add Animal Entity
-              </button>
-            </div>
+          <td colspan="7" class="text-center py-4 text-danger">
+            <i class="fa fa-exclamation-triangle me-2"></i> Error rendering table: ${renderErr.message}
           </td>
         </tr>
       `;
-      return;
     }
-
-    let html = '';
-    list.forEach(item => {
-      const thumb = item.image_url || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80';
-      const itemCats = (item.categories && Array.isArray(item.categories) && item.categories.length > 0) 
-        ? item.categories 
-        : (item.category ? [item.category] : ['Wild Animals']);
-
-      const catBadgesHtml = itemCats.map(cat => {
-        const catEmoji = categoryEmojiMap[cat] || '🐾';
-        const cObj = animalCategories.find(c => c.name === cat);
-        const cImg = (cat === item.category && item.category_image_url) ? item.category_image_url : (cObj ? cObj.image_url : '');
-        return `
-          <div class="d-inline-flex align-items-center gap-1 mb-1 me-1">
-            ${cImg ? `<img src="${cImg}" class="rounded" style="width: 22px; height: 22px; object-fit: cover; border: 1px solid #fed7aa;" title="${cat}" onerror="this.style.display='none'" />` : ''}
-            <span class="badge rounded-pill bg-light text-dark border px-2 py-1" style="font-size: 0.78rem;">
-              ${catEmoji} ${cat}
-            </span>
-          </div>
-        `;
-      }).join('');
-
-      const statusBadge = item.is_active ? 
-        '<span class="badge bg-success rounded-pill px-2 py-1"><i class="fa fa-check me-1"></i>Active</span>' : 
-        '<span class="badge bg-secondary rounded-pill px-2 py-1">Draft</span>';
-
-      html += `
-        <tr>
-          <td>
-            <div class="order-badge">${item.order || 1}</div>
-          </td>
-          <td>
-            <img src="${thumb}" class="animal-img-thumb" alt="${item.name || ''}" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80'" />
-          </td>
-          <td>
-            <div class="fw-bold" style="font-size: 0.95rem;">${item.name || 'Unnamed Species'}</div>
-            <div class="text-muted small fst-italic">${item.scientific_name || item.family || 'Taxonomy pending'}</div>
-          </td>
-          <td>
-            <div class="d-flex flex-wrap align-items-center" style="max-width: 260px;">
-              ${catBadgesHtml}
-            </div>
-          </td>
-          <td>
-            <span class="badge bg-warning text-dark me-1" style="font-size: 0.78rem;">${item.diet_type || 'Carnivore'}</span>
-            <span class="badge bg-info text-white" style="font-size: 0.78rem;">${item.movement_type || 'Walking'}</span>
-          </td>
-          <td>${statusBadge}</td>
-          <td class="text-center pe-3">
-            <div class="d-flex align-items-center justify-content-center gap-1">
-              <button class="table-action-btn table-action-export" title="Assign / Export to Categories" onclick="openExportModal('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}')">
-                <i class="fa fa-clone"></i>
-              </button>
-              <button class="table-action-btn table-action-edit" title="Edit Entity" onclick="openEditAnimalModal('${item.id}')">
-                <i class="fa fa-pencil"></i>
-              </button>
-              <button class="table-action-btn table-action-delete" title="Delete Entity" onclick="deleteAnimalEntity('${item.id}', '${(item.name || '').replace(/'/g, "\\'")}')">
-                <i class="fa fa-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    });
-
-    tbody.innerHTML = html;
   }
 
   /* Description Blocks Management (Desc 1, Desc 2, Desc 3, + Add Description Block) */
@@ -1645,10 +1692,7 @@
     renderCategoryCheckboxes(assignedCats);
 
     document.getElementById('animal_order').value = item.order || 1;
-    setFieldAndPreview('animal_category_image_url', 'animal_category_image_preview', item.category_image_url);
-    if (!item.category_image_url) {
-      onCategoryChanged();
-    }
+    onCategoryChanged();
 
     // 2. Name & Taxonomy
     document.getElementById('animal_name').value = item.name || '';
@@ -1850,19 +1894,13 @@
       return;
     }
 
-    const primaryCat = document.getElementById('animal_category').value;
+    const primaryCat = document.getElementById('animal_category').value || 'Wild Animals';
     const checkedCats = Array.from(document.querySelectorAll('.animal-category-multi-checkbox:checked')).map(cb => cb.value);
-    if (primaryCat && !checkedCats.includes(primaryCat)) {
-      checkedCats.unshift(primaryCat);
-    }
-    if (checkedCats.length === 0) {
-      checkedCats.push(primaryCat || 'Wild Animals');
-    }
+    const finalCats = checkedCats.length > 0 ? checkedCats : [primaryCat];
 
     const payload = {
-      category: primaryCat || checkedCats[0],
-      categories: checkedCats,
-      category_image_url: document.getElementById('animal_category_image_url').value.trim(),
+      category: primaryCat,
+      categories: finalCats,
       order: parseInt(document.getElementById('animal_order').value) || 1,
       name: name,
       scientific_name: document.getElementById('animal_scientific_name').value.trim(),
@@ -2057,20 +2095,15 @@
 
   function onCategoryChanged() {
     const selCat = document.getElementById('animal_category').value;
-    const catObj = animalCategories.find(c => c.name === selCat);
-    const catImgInput = document.getElementById('animal_category_image_url');
     const catPreview = document.getElementById('animal_category_image_preview');
     const catPreviewTitle = document.getElementById('category_preview_title');
     if (catPreviewTitle) catPreviewTitle.innerText = `${selCat} Image`;
 
-    const imgUrl = (catObj && catObj.image_url) ? catObj.image_url : (catImgInput ? catImgInput.value : '');
+    const imgUrl = getCategoryImageUrl(selCat);
+    const catImgInput = document.getElementById('animal_category_image_url');
     if (catImgInput) catImgInput.value = imgUrl;
     if (catPreview) {
-      if (imgUrl) {
-        catPreview.src = imgUrl;
-      } else {
-        catPreview.src = 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80';
-      }
+      catPreview.src = imgUrl || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=200&q=80';
     }
   }
 
@@ -2170,10 +2203,12 @@
         if (img) img.src = data.url;
       }
 
-      const modalCatPreview = document.getElementById('animal_category_image_preview');
-      const modalCatInput = document.getElementById('animal_category_image_url');
-      if (modalCatPreview) modalCatPreview.src = data.url;
-      if (modalCatInput) modalCatInput.value = data.url;
+      if (document.getElementById('animal_category') && document.getElementById('animal_category').value === activeUploadingCategoryName) {
+        const modalCatPreview = document.getElementById('animal_category_image_preview');
+        const modalCatInput = document.getElementById('animal_category_image_url');
+        if (modalCatPreview) modalCatPreview.src = data.url;
+        if (modalCatInput) modalCatInput.value = data.url;
+      }
 
       await loadCategories();
       await loadAnimalEntities();
@@ -2210,12 +2245,6 @@
   }
 
   /* ==================== 📤 EXPORT SINGLE ANIMAL MODAL ==================== */
-  const ALL_ANIMAL_CATEGORIES = [
-    'Wild Animals', 'Domestic Animals & Pets', 'Insects', 'Reptiles',
-    'Mammals', 'Birds', 'Amphibians', 'Aquatic & Marine Animals',
-    'Endangered Animals', 'Prehistoric Animals', 'Arachnids', 'Worms & Other Invertebrates'
-  ];
-
   function openExportModal(itemId, itemName) {
     const item = animalEntities.find(x => x.id === itemId);
     const currentCats = item && item.categories && item.categories.length > 0 

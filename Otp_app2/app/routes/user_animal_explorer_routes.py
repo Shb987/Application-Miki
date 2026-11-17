@@ -1,5 +1,5 @@
-from typing import List, Optional
-from fastapi import APIRouter, Query
+from typing import List
+from fastapi import APIRouter
 from app.core.database import db
 from app.models.explorer_models import AnimalExplorerResponse
 
@@ -80,9 +80,9 @@ def serialize_doc(doc, cat_image_map=None):
     return doc
 
 @router.get("", response_model=List[AnimalExplorerResponse])
-async def get_active_animal_entities(category: Optional[str] = Query(None, description="Optional category filter")):
+async def get_active_animal_entities():
     """
-    Get all active animal explorer entities.
+    Get all active animal explorer entities (parameter-free endpoint).
     When an animal belongs to multiple categories simultaneously (assigned to multiple categories),
     the same animal is included in each category it is assigned to, with that category's specific uploaded image.
     Preserves all animal fields and complete data across all categories.
@@ -106,40 +106,27 @@ async def get_active_animal_entities(category: Optional[str] = Query(None, descr
     serialized_entities = [serialize_doc(doc, cat_image_map) for doc in entities]
 
     results = []
-    if category and category.strip() and category.strip().lower() != "all":
-        target_cat = category.strip()
+    # Grouped/expanded by category in canonical category order, preserving animal display order within each category
+    for c_name in ordered_category_names:
         for item in serialized_entities:
             item_cats = item.get("categories") or ([item.get("category")] if item.get("category") else ["Wild Animals"])
-            if target_cat in item_cats or item.get("category") == target_cat:
+            if c_name in item_cats or item.get("category") == c_name:
                 entry = dict(item)
-                entry["category"] = target_cat
+                entry["category"] = c_name
                 entry["category_image_url"] = cat_image_map.get(
-                    target_cat,
-                    next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == target_cat), item.get("category_image_url", ""))
+                    c_name,
+                    next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == c_name), item.get("category_image_url", ""))
                 )
                 results.append(entry)
-    else:
-        # Grouped/expanded by category in canonical category order, preserving animal display order within each category
-        for c_name in ordered_category_names:
-            for item in serialized_entities:
-                item_cats = item.get("categories") or ([item.get("category")] if item.get("category") else ["Wild Animals"])
-                if c_name in item_cats or item.get("category") == c_name:
-                    entry = dict(item)
-                    entry["category"] = c_name
-                    entry["category_image_url"] = cat_image_map.get(
-                        c_name,
-                        next((c["image_url"] for c in DEFAULT_ANIMAL_CATEGORIES if c["name"] == c_name), item.get("category_image_url", ""))
-                    )
-                    results.append(entry)
 
-        # In case an animal has an assigned category not in ordered_category_names
-        for item in serialized_entities:
-            item_cats = item.get("categories") or ([item.get("category")] if item.get("category") else ["Wild Animals"])
-            for extra_c in item_cats:
-                if extra_c and extra_c not in ordered_category_names:
-                    entry = dict(item)
-                    entry["category"] = extra_c
-                    entry["category_image_url"] = cat_image_map.get(extra_c, item.get("category_image_url", ""))
-                    results.append(entry)
+    # In case an animal has an assigned category not in ordered_category_names
+    for item in serialized_entities:
+        item_cats = item.get("categories") or ([item.get("category")] if item.get("category") else ["Wild Animals"])
+        for extra_c in item_cats:
+            if extra_c and extra_c not in ordered_category_names:
+                entry = dict(item)
+                entry["category"] = extra_c
+                entry["category_image_url"] = cat_image_map.get(extra_c, item.get("category_image_url", ""))
+                results.append(entry)
 
     return results

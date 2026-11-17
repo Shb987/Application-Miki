@@ -499,6 +499,146 @@
         min-width: 220px;
         border-radius: 12px;
     }
+
+    /* Parent Delete Blocked Modal Styles (Light & Dark Mode) */
+    .parent-delete-modal-content {
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #1e293b;
+    }
+    body.dark-only .parent-delete-modal-content,
+    html.dark-only .parent-delete-modal-content {
+        background: #1e2235 !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        color: #f1f5f9 !important;
+    }
+
+    .parent-blocked-icon-circle {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+        border: 2px solid rgba(239, 68, 68, 0.25);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+    body.dark-only .parent-blocked-icon-circle,
+    html.dark-only .parent-blocked-icon-circle {
+        background: rgba(239, 68, 68, 0.18) !important;
+        color: #f87171 !important;
+        border-color: rgba(239, 68, 68, 0.35) !important;
+    }
+
+    .parent-blocked-title {
+        color: #0f172a;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    body.dark-only .parent-blocked-title,
+    html.dark-only .parent-blocked-title {
+        color: #ffffff !important;
+    }
+
+    .parent-blocked-msg {
+        color: #64748b;
+        font-size: 0.93rem;
+        line-height: 1.55;
+    }
+    body.dark-only .parent-blocked-msg,
+    html.dark-only .parent-blocked-msg {
+        color: rgba(255, 255, 255, 0.75) !important;
+    }
+    body.dark-only .parent-blocked-msg strong,
+    html.dark-only .parent-blocked-msg strong {
+        color: #ffffff !important;
+    }
+
+    .parent-blocked-students-container {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 14px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    body.dark-only .parent-blocked-students-container,
+    html.dark-only .parent-blocked-students-container {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .parent-blocked-list-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 8px;
+    }
+    body.dark-only .parent-blocked-list-label,
+    html.dark-only .parent-blocked-list-label {
+        color: #cbd5e1 !important;
+    }
+
+    .parent-blocked-student-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        margin-bottom: 6px;
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        font-size: 0.88rem;
+        color: #1e293b;
+        font-weight: 600;
+    }
+    body.dark-only .parent-blocked-student-pill,
+    html.dark-only .parent-blocked-student-pill {
+        background: rgba(255, 255, 255, 0.07) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        color: #f1f5f9 !important;
+    }
+
+    .parent-blocked-rule-box {
+        border-radius: 10px;
+        font-size: 0.84rem;
+        padding: 10px 14px;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #92400e;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-align: left;
+    }
+    body.dark-only .parent-blocked-rule-box,
+    html.dark-only .parent-blocked-rule-box {
+        background: rgba(245, 158, 11, 0.12) !important;
+        border-color: rgba(245, 158, 11, 0.28) !important;
+        color: #fbbf24 !important;
+    }
+
+    .parent-blocked-btn-understood {
+        background: linear-gradient(135deg, #7c22e0 0%, #5816b8 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        box-shadow: 0 4px 15px rgba(124, 34, 224, 0.35);
+        transition: all 0.2s ease;
+        width: 100%;
+    }
+    .parent-blocked-btn-understood:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(124, 34, 224, 0.5);
+        color: #ffffff !important;
+    }
 </style>
 {% endblock %}
 
@@ -894,20 +1034,20 @@
 <!-- PARENT DELETE BLOCKED WARNING MODAL -->
 <div class="modal fade" id="parentDeleteBlockedModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+        <div class="modal-content border-0 shadow-lg parent-delete-modal-content">
             <div class="modal-body p-4 text-center">
-                <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px; border-radius: 50%; background: #fee2e2; color: #dc2626;">
+                <div class="parent-blocked-icon-circle">
                     <i class="fa fa-exclamation-triangle" style="font-size: 32px;"></i>
                 </div>
-                <h5 class="font-weight-bold text-dark mb-2" style="font-size: 1.25rem;">Cannot Delete Parent Account</h5>
-                <p id="parent-blocked-msg" class="text-muted mb-3" style="font-size: 0.92rem; line-height: 1.5;"></p>
-                <div id="parent-blocked-students-list" class="p-3 mb-3 text-start" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; max-height: 150px; overflow-y: auto;">
+                <h5 class="parent-blocked-title mb-2">Cannot Delete Parent Account</h5>
+                <p id="parent-blocked-msg" class="parent-blocked-msg mb-3"></p>
+                <div id="parent-blocked-students-list" class="parent-blocked-students-container mb-3 text-start">
                 </div>
-                <div class="alert alert-warning py-2 px-3 mb-3 text-start d-flex align-items-center gap-2" style="border-radius: 10px; font-size: 0.84rem; border: none; background: #fef3c7; color: #92400e;">
+                <div class="parent-blocked-rule-box mb-4">
                     <i class="fa fa-info-circle me-1" style="font-size: 16px; flex-shrink: 0;"></i>
                     <span><strong>Rule:</strong> Only student accounts can be deleted first. After all linked student accounts are deleted, parent account deletion is possible.</span>
                 </div>
-                <button type="button" class="btn btn-dark font-weight-bold w-100 py-2" style="border-radius: 10px;" data-bs-dismiss="modal">
+                <button type="button" class="btn parent-blocked-btn-understood" data-bs-dismiss="modal">
                     Understood
                 </button>
             </div>
@@ -1351,11 +1491,11 @@
         if (studentNames && studentNames.length > 0) {
             listEl.style.display = 'block';
             listEl.innerHTML = `
-                <div class="small fw-bold text-dark mb-2"><i class="fa fa-users me-1 text-primary"></i> Linked Student Account(s) (${studentNames.length}):</div>
+                <div class="parent-blocked-list-label"><i class="fa fa-users me-1 text-primary"></i> Linked Student Account(s) (${studentNames.length}):</div>
                 ${studentNames.map(name => `
-                    <div class="d-flex align-items-center gap-2 py-1 px-2 mb-1 rounded" style="background: #ffffff; border: 1px solid #e2e8f0; font-size: 0.88rem;">
+                    <div class="parent-blocked-student-pill">
                         <i class="fa fa-graduation-cap text-danger" style="font-size: 13px;"></i>
-                        <span class="fw-bold text-dark">${name}</span>
+                        <span>${name}</span>
                     </div>
                 `).join('')}
             `;

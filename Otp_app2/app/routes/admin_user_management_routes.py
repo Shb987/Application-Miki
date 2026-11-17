@@ -878,12 +878,58 @@ async def delete_parent(
     mobile: str,
     current_admin: dict = Depends(require_permission("User Management", "delete"))
 ):
-    """Remove a parent record from usertable."""
-    existing = await db.usertable.find_one({"mobile_number": mobile})
+    """
+    Remove a parent record from usertable only if no student/child accounts are linked.
+    If student accounts are linked, deletion is blocked with a 400 error.
+    """
+    mobile_clean = str(mobile).strip()
+    existing = await db.usertable.find_one({"mobile_number": mobile_clean})
     if not existing:
-        raise HTTPException(status_code=404, detail="Parent not found")
-    await db.usertable.delete_one({"mobile_number": mobile})
-    return {"status": "success", "message": f"Parent {mobile} removed"}
+        existing = await db.usertable.find_one({"mobile_number": mobile})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Parent account not found")
+
+    # 1. Collect student IDs linked to parent usertable document
+    s_ids = existing.get("student_ids", [])
+    if not isinstance(s_ids, list):
+        s_ids = [s_ids]
+    if existing.get("student_id"):
+        s_ids.append(existing.get("student_id"))
+
+    s_oids = []
+    for sid in s_ids:
+        if isinstance(sid, ObjectId):
+            s_oids.append(sid)
+        elif ObjectId.is_valid(str(sid)):
+            s_oids.append(ObjectId(str(sid)))
+
+    # 2. Check for active/existing students linked either by student_ids or guardian/parent phones
+    conditions = [
+        {"guardian_phone": mobile_clean},
+        {"parent_mobile": mobile_clean},
+        {"parent_phone": mobile_clean},
+        {"father_phone": mobile_clean}
+    ]
+    if s_oids:
+        conditions.append({"_id": {"$in": s_oids}})
+
+    linked_students = await db.students.find({"$or": conditions}).to_list(100)
+    if linked_students:
+        student_names = [s.get("student_name") or f"Student {s.get('_id')}" for s in linked_students]
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Cannot delete parent account. There are still {len(linked_students)} student account(s) "
+                f"linked to this parent: {', '.join(student_names)}. Only student accounts can be deleted first; "
+                f"after all student accounts are deleted, parent deletion is possible."
+            )
+        )
+
+    await db.usertable.delete_one({"_id": existing["_id"]})
+    return {
+        "status": "success",
+        "message": f"Parent account ({mobile_clean}) removed successfully"
+    }
 
 
 # ──────────────────────────────────────────────────────────────

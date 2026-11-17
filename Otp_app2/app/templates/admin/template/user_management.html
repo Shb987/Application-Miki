@@ -891,6 +891,30 @@
     </div>
 </div>
 
+<!-- PARENT DELETE BLOCKED WARNING MODAL -->
+<div class="modal fade" id="parentDeleteBlockedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-body p-4 text-center">
+                <div class="d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px; border-radius: 50%; background: #fee2e2; color: #dc2626;">
+                    <i class="fa fa-exclamation-triangle" style="font-size: 32px;"></i>
+                </div>
+                <h5 class="font-weight-bold text-dark mb-2" style="font-size: 1.25rem;">Cannot Delete Parent Account</h5>
+                <p id="parent-blocked-msg" class="text-muted mb-3" style="font-size: 0.92rem; line-height: 1.5;"></p>
+                <div id="parent-blocked-students-list" class="p-3 mb-3 text-start" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; max-height: 150px; overflow-y: auto;">
+                </div>
+                <div class="alert alert-warning py-2 px-3 mb-3 text-start d-flex align-items-center gap-2" style="border-radius: 10px; font-size: 0.84rem; border: none; background: #fef3c7; color: #92400e;">
+                    <i class="fa fa-info-circle me-1" style="font-size: 16px; flex-shrink: 0;"></i>
+                    <span><strong>Rule:</strong> Only student accounts can be deleted first. After all linked student accounts are deleted, parent account deletion is possible.</span>
+                </div>
+                <button type="button" class="btn btn-dark font-weight-bold w-100 py-2" style="border-radius: 10px;" data-bs-dismiss="modal">
+                    Understood
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast -->
 <div id="toast-um" class="toast align-items-center text-white border-0" role="alert" style="display:none; position:fixed; bottom:20px; right:20px; z-index:9999;">
     <div class="d-flex">
@@ -907,6 +931,7 @@
     let studentSkip = 0;
     const studentLimit = 20;
     let studentTotal = 0;
+    let currentParentsList = [];
 
     function showCustomConfirm(msg, onConfirm) {
         document.getElementById('confirm-modal-msg').innerHTML = msg;
@@ -1248,6 +1273,7 @@
         try {
             const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
             const json = await res.json();
+            currentParentsList = json.data || [];
             const count = json.total || 0;
             document.getElementById("parent-count").textContent = `${count} Registered Guardians`;
 
@@ -1294,7 +1320,7 @@
                             <i class="fa fa-edit" style="font-size:16px;"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="border-radius:8px; width:36px; height:36px; padding:0;" 
-                                onclick="deleteParent('${p.mobile_number}')" title="Remove Guardian">
+                                onclick="handleDeleteParent('${parentMobile}')" title="Remove Guardian">
                             <i class="fa fa-trash" style="font-size:16px;"></i>
                         </button>
                     </div>
@@ -1313,15 +1339,71 @@
         loadParents(true);
     }
 
-    async function deleteParent(mobile) {
-        showCustomConfirm(`Remove parent with mobile number <strong>${mobile}</strong>?`, async () => {
-            const res = await fetch(`${API_BASE}/admin-panel/users/parent/${encodeURIComponent(mobile)}`, {
-                method: "DELETE", headers: { Authorization: "Bearer " + token }
-            });
-            if (res.ok) { showToast("Parent removed", "success"); loadParents(); }
-            else { showToast("Failed", "danger"); }
+    function showParentDeleteBlockedModal(mobile, guardianName, studentNames = [], customDetail = null) {
+        const msgEl = document.getElementById('parent-blocked-msg');
+        const listEl = document.getElementById('parent-blocked-students-list');
+
+        const gName = guardianName || 'Guardian';
+        msgEl.innerHTML = customDetail ? customDetail : `
+            The parent account for <strong>${gName}</strong> (<strong>${mobile}</strong>) cannot be deleted because there are still active student account(s) associated with this parent.
+        `;
+
+        if (studentNames && studentNames.length > 0) {
+            listEl.style.display = 'block';
+            listEl.innerHTML = `
+                <div class="small fw-bold text-dark mb-2"><i class="fa fa-users me-1 text-primary"></i> Linked Student Account(s) (${studentNames.length}):</div>
+                ${studentNames.map(name => `
+                    <div class="d-flex align-items-center gap-2 py-1 px-2 mb-1 rounded" style="background: #ffffff; border: 1px solid #e2e8f0; font-size: 0.88rem;">
+                        <i class="fa fa-graduation-cap text-danger" style="font-size: 13px;"></i>
+                        <span class="fw-bold text-dark">${name}</span>
+                    </div>
+                `).join('')}
+            `;
+        } else {
+            listEl.style.display = 'none';
+            listEl.innerHTML = '';
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('parentDeleteBlockedModal'));
+        modal.show();
+    }
+
+    async function handleDeleteParent(mobile) {
+        const parent = currentParentsList.find(x => String(x.mobile_number).trim() === String(mobile).trim());
+        const studentNames = (parent && parent.student_names) ? parent.student_names : [];
+        const studentCount = (parent && parent.student_count !== undefined) ? parent.student_count : studentNames.length;
+
+        // If parent still has child/student account(s), deletion is NOT allowed
+        if (studentCount > 0 || studentNames.length > 0) {
+            showParentDeleteBlockedModal(mobile, parent ? parent.guardian_name : 'Guardian', studentNames);
+            return;
+        }
+
+        // Only after all student accounts are deleted is parent deletion possible
+        showCustomConfirm(`Remove parent account with mobile number <strong>${mobile}</strong>?`, async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin-panel/users/parent/${encodeURIComponent(mobile)}`, {
+                    method: "DELETE", headers: { Authorization: "Bearer " + token }
+                });
+                const resJson = await res.json().catch(() => ({}));
+                if (res.ok) {
+                    showToast("Parent account removed successfully", "success");
+                    loadParents();
+                } else {
+                    if (res.status === 400 && resJson.detail) {
+                        showParentDeleteBlockedModal(mobile, parent ? parent.guardian_name : 'Guardian', studentNames, resJson.detail);
+                    } else {
+                        showToast(resJson.detail || "Failed to remove parent", "danger");
+                    }
+                }
+            } catch (err) {
+                showToast("Network error while deleting parent", "danger");
+            }
         });
     }
+
+    // Retain function alias for backward compatibility
+    window.deleteParent = handleDeleteParent;
 
     function showToast(msg, type = "success") {
         const el = document.getElementById("toast-um");

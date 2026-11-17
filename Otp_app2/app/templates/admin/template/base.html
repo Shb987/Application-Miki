@@ -50,6 +50,13 @@
           if (document.body) {
             document.body.classList.add("dark-only");
           } else {
+            var modeObs = new MutationObserver(function() {
+              if (document.body) {
+                document.body.classList.add("dark-only");
+                modeObs.disconnect();
+              }
+            });
+            modeObs.observe(document.documentElement, { childList: true });
             document.addEventListener("DOMContentLoaded", function() {
               if (document.body) document.body.classList.add("dark-only");
             });
@@ -59,6 +66,50 @@
     </script>
 
     <style>
+        /* =========================================================
+           Full-screen Loader Isolation & Dark Mode Loading Fix
+           Ensures loader covers full viewport (including sidebar/header)
+           with the correct theme background and no FOUC (flash of unstyled content)
+           ========================================================= */
+        .loader-wrapper {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 999999 !important; /* Above sidebar (100) and header (990) */
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background-color: #f7f6fc !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            pointer-events: all !important;
+        }
+        .loader-wrapper .loader {
+            background-color: transparent !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .loader-wrapper .loader4 {
+            color: #C44ECC !important;
+        }
+
+        /* Dark Mode Loader Styling (Applies instantly via html.dark-only) */
+        html.dark-only .loader-wrapper,
+        body.dark-only .loader-wrapper {
+            background-color: #161925 !important;
+        }
+        html.dark-only .loader-wrapper .loader,
+        body.dark-only .loader-wrapper .loader {
+            background-color: transparent !important;
+        }
+        html.dark-only .loader-wrapper .loader4,
+        body.dark-only .loader-wrapper .loader4 {
+            color: #C44ECC !important;
+        }
+
         .action-group {
             display: flex;
             gap: 8px;
@@ -844,6 +895,14 @@
 </head>
 
 <body>
+    <script>
+        (function() {
+            var m = localStorage.getItem("mode") || localStorage.getItem("dark");
+            if (m === "dark-only" && document.body) {
+                document.body.classList.add("dark-only");
+            }
+        })();
+    </script>
     <!-- loader starts-->
     <div class="loader-wrapper">
         <div class="loader">
@@ -1165,6 +1224,19 @@
                 syncSidebarState();
             }
             window.addEventListener('load', syncSidebarState);
+            // Safety fallback: ensure loader overlay fades out cleanly even if third-party scripts delay
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    var l = document.querySelector('.loader-wrapper');
+                    if (l) {
+                        l.style.transition = 'opacity 0.4s ease';
+                        l.style.opacity = '0';
+                        setTimeout(function() {
+                            if (l && l.parentNode) l.parentNode.removeChild(l);
+                        }, 400);
+                    }
+                }, 400);
+            });
         })();
     </script>
 

@@ -322,6 +322,147 @@
         },
 
         /**
+         * Renders HTML for a single sidebar menu item skeleton
+         * @param {object} opts { width, hasChevron, subItems: [width1, width2] }
+         * @returns {string} HTML string
+         */
+        renderSidebarMenuItem: function (opts = {}) {
+            const width = opts.width || '95px';
+            const hasChevron = opts.hasChevron !== false;
+            let html = `
+                <div class="sidebar-skeleton-item">
+                    <div class="sidebar-skeleton-icon"></div>
+                    <div class="sidebar-skeleton-line" style="width: ${width}; height: 13px;"></div>
+                    ${hasChevron ? '<div class="sidebar-skeleton-chevron"></div>' : ''}
+                </div>
+            `;
+            if (Array.isArray(opts.subItems) && opts.subItems.length > 0) {
+                html += '<div class="sidebar-skeleton-submenu">';
+                opts.subItems.forEach(subW => {
+                    html += `
+                        <div class="sidebar-skeleton-subitem">
+                            <div class="sidebar-skeleton-bullet"></div>
+                            <div class="sidebar-skeleton-line" style="width: ${subW}; height: 10px;"></div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+            return html;
+        },
+
+        /**
+         * Renders HTML for the full sidebar skeleton layout matching MIKI navigation
+         * @returns {string} HTML string
+         */
+        renderSidebarSkeleton: function () {
+            return `
+                <div id="sidebar-skeleton" class="sidebar-skeleton-container" aria-hidden="true">
+                    <div class="sidebar-skeleton-inner">
+                        <div class="sidebar-skeleton-group-title">
+                            <div class="sidebar-skeleton-line" style="width: 58px; height: 9px;"></div>
+                        </div>
+                        ${this.renderSidebarMenuItem({ width: '125px', hasChevron: true, subItems: ['65px', '60px', '55px'] })}
+                        ${this.renderSidebarMenuItem({ width: '95px', hasChevron: true, subItems: ['85px', '110px'] })}
+                        ${this.renderSidebarMenuItem({ width: '65px', hasChevron: false })}
+                        ${this.renderSidebarMenuItem({ width: '80px', hasChevron: true })}
+                        ${this.renderSidebarMenuItem({ width: '90px', hasChevron: true })}
+                        ${this.renderSidebarMenuItem({ width: '60px', hasChevron: true })}
+                        ${this.renderSidebarMenuItem({ width: '75px', hasChevron: true })}
+                        ${this.renderSidebarMenuItem({ width: '85px', hasChevron: false })}
+                        ${this.renderSidebarMenuItem({ width: '65px', hasChevron: true })}
+                        ${this.renderSidebarMenuItem({ width: '100px', hasChevron: true })}
+                    </div>
+                </div>
+            `;
+        },
+
+        /**
+         * Smoothly transitions the sidebar from skeleton loader to live menu
+         */
+        revealSidebar: function () {
+            const skeleton = document.getElementById('sidebar-skeleton');
+            const menu = document.getElementById('sidebar-menu');
+            if (!menu) return;
+            if (menu.dataset.revealed === 'true') return;
+            menu.dataset.revealed = 'true';
+
+            if (skeleton) {
+                skeleton.style.transition = 'opacity 0.22s ease';
+                skeleton.style.opacity = '0';
+                setTimeout(() => {
+                    skeleton.style.display = 'none';
+                    menu.style.display = 'block';
+                    void menu.offsetWidth; // force reflow
+                    menu.style.opacity = '1';
+                    if (window.highlightActiveSidebar) window.highlightActiveSidebar();
+                }, 200);
+            } else {
+                menu.style.display = 'block';
+                menu.style.opacity = '1';
+                if (window.highlightActiveSidebar) window.highlightActiveSidebar();
+            }
+        },
+
+        /**
+         * Renders a complete dashboard skeleton (Cards + Charts + Table)
+         * @returns {string} HTML string
+         */
+        renderDashboardSkeleton: function () {
+            return `
+                <div class="miki-dashboard-skeleton">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <div class="miki-skeleton-bar mb-2" style="width: 240px; height: 26px;"></div>
+                            <div class="miki-skeleton-bar" style="width: 320px; height: 14px;"></div>
+                        </div>
+                        <div class="miki-skeleton-bar" style="width: 120px; height: 36px; border-radius: 20px;"></div>
+                    </div>
+                    ${this.renderCardsSkeleton(4)}
+                    <div class="row g-3 mb-4">
+                        <div class="col-xl-8 col-12">
+                            ${this.renderChartSkeleton()}
+                        </div>
+                        <div class="col-xl-4 col-12">
+                            <div class="miki-skeleton-card p-4 h-100">
+                                <div class="miki-skeleton-bar mb-3" style="width: 130px; height: 20px;"></div>
+                                ${this.renderListSkeleton(4)}
+                            </div>
+                        </div>
+                    </div>
+                    ${this.renderTableSkeleton(5, 6)}
+                </div>
+            `;
+        },
+
+        /**
+         * Universal Page Loading Skeleton generator
+         * @param {string} type 'dashboard' | 'table' | 'cards' | 'chart' | 'generic'
+         * @returns {string} HTML string
+         */
+        renderPageLoadingSkeleton: function (type = 'generic') {
+            switch (type) {
+                case 'dashboard':
+                    return this.renderDashboardSkeleton();
+                case 'table':
+                    return this.renderTableSkeleton(6, 6);
+                case 'cards':
+                    return this.renderCardsSkeleton(4);
+                case 'chart':
+                    return this.renderChartSkeleton();
+                default:
+                    return `
+                        <div class="miki-skeleton-container py-3">
+                            <div class="miki-skeleton-bar mb-3" style="width: 220px; height: 24px;"></div>
+                            <div class="miki-skeleton-bar mb-4" style="width: 340px; height: 14px;"></div>
+                            ${this.renderCardsSkeleton(3)}
+                            ${this.renderTableSkeleton(5, 5)}
+                        </div>
+                    `;
+            }
+        },
+
+        /**
          * Intercepts sidebar / menu clicks for smooth progress bar transition (prevents white flashes)
          */
         initModuleTransitions: function () {
@@ -339,6 +480,14 @@
             });
         }
     };
+
+    // Explicit component aliases per specification
+    MikiSkeleton.SidebarSkeleton = function (opts) { return MikiSkeleton.renderSidebarSkeleton(opts); };
+    MikiSkeleton.SidebarMenuItemSkeleton = function (opts) { return MikiSkeleton.renderSidebarMenuItem(opts); };
+    MikiSkeleton.DashboardSkeleton = function () { return MikiSkeleton.renderDashboardSkeleton(); };
+    MikiSkeleton.DashboardCardSkeleton = function (count) { return MikiSkeleton.renderCardsSkeleton(count); };
+    MikiSkeleton.TableSkeleton = function (rows, cols) { return MikiSkeleton.renderTableSkeleton(rows, cols); };
+    MikiSkeleton.PageLoadingSkeleton = function (type) { return MikiSkeleton.renderPageLoadingSkeleton(type); };
 
     // Attach to global window object
     window.MikiSkeleton = MikiSkeleton;

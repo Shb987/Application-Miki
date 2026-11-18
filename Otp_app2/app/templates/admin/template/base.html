@@ -970,9 +970,9 @@
                         <li class="profile-nav onhover-dropdown">
                             <div class="media profile-media">
                                 <div class="media-body d-block" style="min-width:90px">
-                                    <div class="d-flex align-items-center gap-2"> <span id="header-profile-name" style="font-weight:600; font-size:0.9rem;">Loading... </span><i
+                                    <div class="d-flex align-items-center gap-2"> <span id="header-profile-name" style="font-weight:600; font-size:0.9rem;"><span class="miki-header-skeleton-line" style="width: 55px; height: 13px;"></span></span><i
                                             class="middle fa fa-angle-down"> </i></div>
-                                    <p class="mb-0 font-roboto" id="header-profile-role" style="font-size:0.75rem; color:#888; text-transform:capitalize;">Staff</p>
+                                    <p class="mb-0 font-roboto" id="header-profile-role" style="font-size:0.75rem; color:#888; text-transform:capitalize;"><span class="miki-header-skeleton-line" style="width: 42px; height: 10px;"></span></p>
                                 </div>
                             </div>
                             <ul class="profile-dropdown onhover-show-div">
@@ -1266,6 +1266,17 @@
                         document.head.appendChild(style);
                     }
                 }
+
+                // Smoothly reveal sidebar if permissions are already verified from cache
+                if (cached || isSuperadmin) {
+                    document.addEventListener("DOMContentLoaded", function() {
+                        setTimeout(function() {
+                            if (window.MikiSkeleton && window.MikiSkeleton.revealSidebar) {
+                                window.MikiSkeleton.revealSidebar();
+                            }
+                        }, 120);
+                    });
+                }
             } catch(e) {}
         })();
     </script>
@@ -1339,8 +1350,11 @@
                 "menu-miki-care": "Miki Care"
             };
 
-            // If superadmin, show everything
+            // If superadmin, show everything and reveal menu
             if (data.is_superadmin) {
+                if (window.MikiSkeleton && window.MikiSkeleton.revealSidebar) {
+                    window.MikiSkeleton.revealSidebar();
+                }
                 return;
             }
 
@@ -1362,6 +1376,10 @@
                 }
                 style.innerHTML = css;
             }
+
+            if (window.MikiSkeleton && window.MikiSkeleton.revealSidebar) {
+                window.MikiSkeleton.revealSidebar();
+            }
         }
 
         function logout() {
@@ -1372,6 +1390,13 @@
         }
 
         loadAdminProfile();
+
+        // Safety fallback: ensure sidebar is always revealed even if network lags
+        setTimeout(function() {
+            if (window.MikiSkeleton && window.MikiSkeleton.revealSidebar) {
+                window.MikiSkeleton.revealSidebar();
+            }
+        }, 1200);
     </script>
 
     {% block scripts %}{% endblock %}

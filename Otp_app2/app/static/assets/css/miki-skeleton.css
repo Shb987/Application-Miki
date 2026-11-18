@@ -349,3 +349,145 @@ html.dark-only .miki-state-title {
     max-width: 420px;
     margin: 0 auto 20px;
 }
+
+/* ==========================================================================
+   MIKI Sidebar Skeleton Loading System (Tailored for Purple Gradient)
+   ========================================================================== */
+
+@keyframes mikiSidebarShimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.sidebar-skeleton-container {
+    width: 100%;
+    padding: 10px 10px 30px 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - 110px);
+    pointer-events: none;
+    user-select: none;
+    opacity: 1;
+    transition: opacity 0.25s ease-out;
+}
+
+/* Custom purple scrollbar matching sidebar */
+.sidebar-skeleton-container::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar-skeleton-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.sidebar-skeleton-group-title {
+    padding: 12px 14px 8px 14px;
+}
+
+.sidebar-skeleton-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-skeleton-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    margin-right: 14px;
+    flex-shrink: 0;
+}
+
+.sidebar-skeleton-line {
+    border-radius: 4px;
+    height: 12px;
+}
+
+.sidebar-skeleton-chevron {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.sidebar-skeleton-submenu {
+    padding-left: 48px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sidebar-skeleton-subitem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-skeleton-bullet {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Semi-transparent white/light-purple shimmer that blends naturally with purple gradient */
+.sidebar-skeleton-icon,
+.sidebar-skeleton-line,
+.sidebar-skeleton-chevron,
+.sidebar-skeleton-bullet {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.12) 20%,
+        rgba(255, 255, 255, 0.28) 50%,
+        rgba(255, 255, 255, 0.12) 80%
+    );
+    background-size: 200% 100%;
+    animation: mikiSidebarShimmer 1.8s infinite ease-in-out;
+}
+
+/* Support for compact / collapsed sidebar mode */
+.sidebar-wrapper.close_icon .sidebar-skeleton-container .sidebar-skeleton-line,
+.sidebar-wrapper.close_icon .sidebar-skeleton-container .sidebar-skeleton-chevron,
+.sidebar-wrapper.close_icon .sidebar-skeleton-container .sidebar-skeleton-submenu,
+.sidebar-wrapper.close_icon .sidebar-skeleton-container .sidebar-skeleton-group-title,
+.close_icon .sidebar-skeleton-container .sidebar-skeleton-line,
+.close_icon .sidebar-skeleton-container .sidebar-skeleton-chevron,
+.close_icon .sidebar-skeleton-container .sidebar-skeleton-submenu,
+.close_icon .sidebar-skeleton-container .sidebar-skeleton-group-title {
+    display: none !important;
+}
+
+.sidebar-wrapper.close_icon .sidebar-skeleton-container .sidebar-skeleton-item,
+.close_icon .sidebar-skeleton-container .sidebar-skeleton-item {
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.sidebar-wrapper.close_icon .sidebar-skeleton-container .sidebar-skeleton-icon,
+.close_icon .sidebar-skeleton-container .sidebar-skeleton-icon {
+    margin-right: 0 !important;
+}
+
+/* Header dynamic info skeleton line */
+.miki-header-skeleton-line {
+    display: inline-block;
+    background: linear-gradient(90deg, rgba(115, 102, 255, 0.15) 25%, rgba(115, 102, 255, 0.3) 50%, rgba(115, 102, 255, 0.15) 75%);
+    background-size: 200% 100%;
+    animation: mikiShimmer 1.8s infinite ease-in-out;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+body.dark-only .miki-header-skeleton-line {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0.1) 75%);
+    background-size: 200% 100%;
+}

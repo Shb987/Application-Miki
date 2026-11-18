@@ -126,32 +126,80 @@
         },
 
         /**
-         * Renders a list of item card skeletons (e.g., Guardians directory, Activity logs)
-         * @param {number} count Number of items (default 4)
+         * Renders full-width parent rows matching .parents-table-header columns (# | Guardian Details | Linked Students | Actions)
+         * @param {number} count Number of parent rows (default 4)
          * @returns {string} HTML string
          */
-        renderListSkeleton: function (count = 4) {
-            let html = '<div class="d-flex flex-column gap-2">';
+        renderParentsSkeleton: function (count = 4) {
+            let html = '<div class="d-flex flex-column gap-2" style="width: 100%;">';
             for (let i = 0; i < count; i++) {
                 html += `
-                    <div class="miki-skeleton-list-item">
-                        <div class="miki-skeleton-box circle-sm" style="width: 44px; height: 44px; flex-shrink: 0;"></div>
-                        <div class="d-flex flex-column gap-2 w-100" style="max-width: 300px;">
-                            <div class="miki-skeleton-bar" style="width: 70%; height: 16px;"></div>
-                            <div class="miki-skeleton-bar" style="width: 50%; height: 12px;"></div>
+                    <div class="parent-row miki-skeleton-parent-row" style="width: 100% !important; display: flex !important; align-items: center !important; gap: 15px !important; margin-bottom: 12px; padding: 16px;">
+                        <div class="parent-id-circle miki-skeleton" style="width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; background: var(--miki-skeleton-base);"></div>
+                        <div class="parent-info-main" style="flex: 2;">
+                            <div class="miki-skeleton-bar mb-2" style="width: 55%; height: 18px; border-radius: 4px;"></div>
+                            <div class="miki-skeleton-bar" style="width: 80%; height: 13px; border-radius: 4px;"></div>
                         </div>
-                        <div class="d-flex flex-wrap gap-2 ms-auto align-items-center">
-                            <div class="miki-skeleton-bar" style="width: 90px; height: 26px; border-radius: 14px;"></div>
-                            <div class="miki-skeleton-bar" style="width: 90px; height: 26px; border-radius: 14px;"></div>
+                        <div class="parent-students-area" style="flex: 3; display: flex; gap: 8px;">
+                            <div class="miki-skeleton-bar" style="width: 110px; height: 28px; border-radius: 20px;"></div>
+                            <div class="miki-skeleton-bar" style="width: 130px; height: 28px; border-radius: 20px;"></div>
                         </div>
-                        <div class="d-flex gap-1 ms-3">
-                            <div class="miki-skeleton-bar" style="width: 32px; height: 32px; border-radius: 8px;"></div>
+                        <div class="parent-actions" style="width: 80px; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px;">
+                            <div class="miki-skeleton-bar" style="width: 36px; height: 36px; border-radius: 8px;"></div>
+                            <div class="miki-skeleton-bar" style="width: 36px; height: 36px; border-radius: 8px;"></div>
                         </div>
                     </div>
                 `;
             }
             html += '</div>';
             return html;
+        },
+
+        /**
+         * Renders shimmering question cards for the questions section
+         * @param {number} count Number of cards (default 3)
+         * @returns {string} HTML string
+         */
+        renderQuestionCardsSkeleton: function (count = 3) {
+            let html = '<div class="row g-3" style="width: 100%;">';
+            for (let i = 0; i < count; i++) {
+                html += `
+                    <div class="col-12">
+                        <div class="miki-skeleton-card p-3 mb-2">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                                <div class="flex-grow-1">
+                                    <div class="miki-skeleton-bar mb-2" style="width: 70%; height: 20px; border-radius: 6px;"></div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 36px; border-radius: 8px;"></div></div>
+                                        <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 36px; border-radius: 8px;"></div></div>
+                                        <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 36px; border-radius: 8px;"></div></div>
+                                        <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 36px; border-radius: 8px;"></div></div>
+                                    </div>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <div class="miki-skeleton-bar" style="width: 110px; height: 22px; border-radius: 12px;"></div>
+                                        <div class="miki-skeleton-bar" style="width: 80px; height: 22px; border-radius: 12px;"></div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <div class="miki-skeleton-bar" style="width: 32px; height: 32px; border-radius: 8px;"></div>
+                                    <div class="miki-skeleton-bar" style="width: 32px; height: 32px; border-radius: 8px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            return html;
+        },
+
+        /**
+         * Renders a list of item card skeletons (e.g., Guardians directory, Activity logs)
+         * @param {number} count Number of items (default 4)
+         * @returns {string} HTML string
+         */
+        renderListSkeleton: function (count = 4) {
+            return this.renderParentsSkeleton(count);
         },
 
         /**

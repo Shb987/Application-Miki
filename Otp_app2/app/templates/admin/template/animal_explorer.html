@@ -604,6 +604,205 @@
     background-color: #242b3d !important;
     color: #ffffff !important;
   }
+
+  /* 📁 Manage Category Images Modal Styling (Balanced contrast in light & dark modes) */
+  #categoriesModal .modal-content {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+  }
+  body.dark-only #categoriesModal .modal-content,
+  .dark-only #categoriesModal .modal-content {
+    background: #181d33 !important;
+    border-color: #2b334e !important;
+  }
+
+  .cat-manage-subtitle {
+    color: #64748b;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+  body.dark-only .cat-manage-subtitle,
+  .dark-only .cat-manage-subtitle {
+    color: #94a3b8;
+  }
+
+  .cat-manage-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+  }
+  .cat-manage-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(217, 119, 6, 0.12);
+    border-color: #cbd5e1;
+  }
+  body.dark-only .cat-manage-card,
+  .dark-only .cat-manage-card {
+    background: #1e2540 !important;
+    border-color: #2f3857 !important;
+  }
+
+  .cat-manage-title {
+    color: #475569 !important; /* Soft slate charcoal instead of harsh pitch black */
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  body.dark-only .cat-manage-title,
+  .dark-only .cat-manage-title {
+    color: #f1f5f9 !important;
+  }
+
+  .cat-manage-badge {
+    background: rgba(217, 119, 6, 0.1);
+    color: #b45309;
+    font-weight: 600;
+    font-size: 0.76rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(217, 119, 6, 0.22);
+    display: inline-block;
+  }
+  body.dark-only .cat-manage-badge,
+  .dark-only .cat-manage-badge {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+
+  .cat-manage-img {
+    height: 110px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+  }
+  body.dark-only .cat-manage-img,
+  .dark-only .cat-manage-img {
+    border-color: #2b334e;
+  }
+
+  .cat-manage-input {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    font-size: 0.82rem !important;
+    border-radius: 8px 0 0 8px !important;
+  }
+  .cat-manage-input:focus {
+    background: #ffffff !important;
+    border-color: #d97706 !important;
+    color: #0f172a !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15) !important;
+  }
+  body.dark-only .cat-manage-input,
+  .dark-only .cat-manage-input {
+    background: #141829 !important;
+    border-color: #2b334e !important;
+    color: #f1f5f9 !important;
+  }
+
+  .cat-manage-upload-btn {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
+    border-left: none !important;
+    border-radius: 0 8px 8px 0 !important;
+    transition: all 0.15s ease;
+  }
+  .cat-manage-upload-btn:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+  }
+  body.dark-only .cat-manage-upload-btn,
+  .dark-only .cat-manage-upload-btn {
+    background: #242b3d !important;
+    border-color: #2b334e !important;
+    color: #cbd5e1 !important;
+  }
+
+  .cat-manage-save-btn {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.84rem !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 8px 14px !important;
+    box-shadow: 0 2px 8px rgba(180, 83, 9, 0.25) !important;
+    transition: all 0.2s ease !important;
+  }
+  .cat-manage-save-btn:hover {
+    background: linear-gradient(135deg, #b45309 0%, #92400e 100%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(180, 83, 9, 0.4) !important;
+    color: #ffffff !important;
+  }
+
+  /* 💬 Animal Explorer HTML Feedback Modals (Alert & Confirm) */
+  .animal-feedback-modal .modal-content {
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    background: #ffffff;
+  }
+  .animal-feedback-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.85rem;
+    margin: 0 auto 16px;
+  }
+  .animal-feedback-icon-success {
+    background: #ecfdf5;
+    color: #10b981;
+  }
+  .animal-feedback-icon-warning {
+    background: #fffbeb;
+    color: #f59e0b;
+  }
+  .animal-feedback-icon-error {
+    background: #fef2f2;
+    color: #ef4444;
+  }
+  .animal-feedback-icon-info {
+    background: #eff6ff;
+    color: #3b82f6;
+  }
+  .animal-feedback-title {
+    color: #1e293b !important;
+    font-weight: 700;
+    font-size: 1.18rem;
+    margin-bottom: 8px;
+  }
+  .animal-feedback-message {
+    color: #475569;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin-bottom: 20px;
+    word-break: break-word;
+  }
+  body.dark-only .animal-feedback-modal .modal-content,
+  .dark-only .animal-feedback-modal .modal-content {
+    background: #181d33 !important;
+    border: 1px solid #2b334e !important;
+  }
+  body.dark-only .animal-feedback-title,
+  .dark-only .animal-feedback-title {
+    color: #f1f5f9 !important;
+  }
+  body.dark-only .animal-feedback-message,
+  .dark-only .animal-feedback-message {
+    color: #cbd5e1 !important;
+  }
 </style>
 {% endblock %}
 
@@ -1240,7 +1439,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-4">
-        <p class="text-muted small mb-3">
+        <p class="cat-manage-subtitle mb-3">
           Configure banner and cover images for each of the 12 animal categories. These images appear in the mobile app category tabs, exploration headers, and animal cards.
         </p>
         <div class="row g-3" id="categories_grid_container">
@@ -1338,6 +1537,48 @@
 <input type="file" id="single_image_input" accept="image/*" class="d-none" onchange="handleSingleUpload(this)" />
 <input type="file" id="category_image_upload_input" accept="image/*" class="d-none" onchange="handleCategoryImageUpload(this)" />
 
+<!-- ========================================================================= -->
+<!-- HTML Feedback Modals (Alert & Confirm Replacements)                        -->
+<!-- ========================================================================= -->
+<!-- Custom HTML Alert Modal -->
+<div class="modal fade animal-feedback-modal" id="animalAlertModal" tabindex="-1" aria-hidden="true" style="z-index: 10999;">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+    <div class="modal-content text-center p-4">
+      <div id="animalAlertIconWrap" class="animal-feedback-icon-wrap animal-feedback-icon-info">
+        <i id="animalAlertIcon" class="fa fa-info-circle"></i>
+      </div>
+      <h5 id="animalAlertTitle" class="animal-feedback-title">Notice</h5>
+      <p id="animalAlertMessage" class="animal-feedback-message"></p>
+      <div class="d-flex justify-content-center">
+        <button type="button" class="btn btn-warning text-dark fw-bold rounded-pill px-4 py-2" data-bs-dismiss="modal" id="animalAlertOkBtn" style="min-width: 120px;">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom HTML Confirm Modal -->
+<div class="modal fade animal-feedback-modal" id="animalConfirmModal" tabindex="-1" aria-hidden="true" style="z-index: 10999;">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+    <div class="modal-content text-center p-4">
+      <div id="animalConfirmIconWrap" class="animal-feedback-icon-wrap animal-feedback-icon-warning">
+        <i class="fa fa-exclamation-triangle"></i>
+      </div>
+      <h5 id="animalConfirmTitle" class="animal-feedback-title">Are you sure?</h5>
+      <p id="animalConfirmMessage" class="animal-feedback-message"></p>
+      <div class="d-flex justify-content-center gap-2">
+        <button type="button" class="btn btn-secondary rounded-pill px-4 py-2" data-bs-dismiss="modal" id="animalConfirmCancelBtn">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-danger fw-bold rounded-pill px-4 py-2" id="animalConfirmActionBtn" style="min-width: 110px;">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Page Scripts -->
 <script>
   const ALL_ANIMAL_CATEGORIES = [
@@ -1397,6 +1638,111 @@
   function getAuthToken() {
     return window.token || localStorage.getItem('admin_token') || '';
   }
+
+  /* ==================== 💬 HTML MODAL ALERTS & CONFIRMS ==================== */
+  function showAnimalAlert(message, type = 'info', title = null) {
+    return new Promise((resolve) => {
+      const modalEl = document.getElementById('animalAlertModal');
+      if (!modalEl) {
+        console.warn('animalAlertModal not found:', message);
+        resolve(true);
+        return;
+      }
+      const iconWrap = document.getElementById('animalAlertIconWrap');
+      const icon = document.getElementById('animalAlertIcon');
+      const titleEl = document.getElementById('animalAlertTitle');
+      const msgEl = document.getElementById('animalAlertMessage');
+
+      const typeMap = {
+        success: {
+          iconClass: 'fa-check-circle',
+          wrapClass: 'animal-feedback-icon-success',
+          defaultTitle: 'Success'
+        },
+        warning: {
+          iconClass: 'fa-exclamation-circle',
+          wrapClass: 'animal-feedback-icon-warning',
+          defaultTitle: 'Attention'
+        },
+        error: {
+          iconClass: 'fa-times-circle',
+          wrapClass: 'animal-feedback-icon-error',
+          defaultTitle: 'Error'
+        },
+        info: {
+          iconClass: 'fa-info-circle',
+          wrapClass: 'animal-feedback-icon-info',
+          defaultTitle: 'Notice'
+        }
+      };
+
+      const config = typeMap[type] || typeMap.info;
+      if (iconWrap) {
+        iconWrap.className = 'animal-feedback-icon-wrap ' + config.wrapClass;
+      }
+      if (icon) {
+        icon.className = 'fa ' + config.iconClass;
+      }
+      if (titleEl) {
+        titleEl.textContent = title || config.defaultTitle;
+      }
+      if (msgEl) {
+        msgEl.textContent = message || '';
+      }
+
+      const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+      const onHidden = () => {
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        resolve(true);
+      };
+      modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+
+      modalInstance.show();
+    });
+  }
+
+  function showAnimalConfirm(message, title = 'Are you sure?') {
+    return new Promise((resolve) => {
+      const modalEl = document.getElementById('animalConfirmModal');
+      if (!modalEl) {
+        resolve(false);
+        return;
+      }
+      const titleEl = document.getElementById('animalConfirmTitle');
+      const msgEl = document.getElementById('animalConfirmMessage');
+      const actionBtn = document.getElementById('animalConfirmActionBtn');
+
+      if (titleEl) titleEl.textContent = title || 'Are you sure?';
+      if (msgEl) msgEl.textContent = message || '';
+
+      const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+      let userConfirmed = false;
+
+      const handleConfirm = () => {
+        userConfirmed = true;
+        modalInstance.hide();
+      };
+
+      if (actionBtn) {
+        actionBtn.onclick = handleConfirm;
+      }
+
+      const onHidden = () => {
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        if (actionBtn) actionBtn.onclick = null;
+        resolve(userConfirmed);
+      };
+      modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+
+      modalInstance.show();
+    });
+  }
+
+  // Intercept window.alert inside Animal Explorer so no native popup appears
+  window.alert = function(msg) {
+    showAnimalAlert(msg, 'info');
+  };
 
   document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
@@ -1862,7 +2208,7 @@
     const nameInput = document.getElementById('animal_name');
     const name = nameInput ? nameInput.value.trim() : '';
     if (!name) {
-      alert('Please enter an Animal or Species Name first (e.g. African Lion, Bengal Tiger, Golden Retriever, Bald Eagle).');
+      showAnimalAlert('Please enter an Animal or Species Name first (e.g. African Lion, Bengal Tiger, Golden Retriever, Bald Eagle).', 'warning', 'Missing Information');
       if (nameInput) nameInput.focus();
       return;
     }
@@ -1952,7 +2298,7 @@
       renderFactsContainer();
 
     } catch (err) {
-      alert(`Generation Error: ${err.message}`);
+      showAnimalAlert(`Generation Error: ${err.message}`, 'error', 'AI Generation Failed');
     } finally {
       btn.disabled = false;
       btn.innerHTML = origHtml;
@@ -1964,7 +2310,7 @@
     const id = document.getElementById('animal_id').value;
     const name = document.getElementById('animal_name').value.trim();
     if (!name) {
-      alert('Please enter an Animal or Species Name.');
+      showAnimalAlert('Please enter an Animal or Species Name.', 'warning', 'Validation');
       document.getElementById('animal_name').focus();
       return;
     }
@@ -2041,14 +2387,16 @@
 
       bootstrap.Modal.getInstance(document.getElementById('animalEntityModal')).hide();
       loadAnimalEntities();
+      showAnimalAlert(`Animal entity "${name}" saved successfully!`, 'success', 'Saved');
     } catch (err) {
-      alert(`Error saving animal entity: ${err.message}`);
+      showAnimalAlert(`Error saving animal entity: ${err.message}`, 'error', 'Save Failed');
     }
   }
 
   /* ==================== DELETE ENTITY ==================== */
   async function deleteAnimalEntity(id, name) {
-    if (!confirm(`Are you sure you want to delete the animal entity "${name}"?`)) return;
+    const confirmed = await showAnimalConfirm(`Are you sure you want to delete the animal entity "${name}"?`, 'Delete Animal Entity');
+    if (!confirmed) return;
 
     const headers = {};
     const token = getAuthToken();
@@ -2061,8 +2409,9 @@
       });
       if (!resp.ok) throw new Error('Failed to delete animal entity');
       loadAnimalEntities();
+      showAnimalAlert(`Animal entity "${name}" was deleted successfully.`, 'success', 'Deleted');
     } catch (err) {
-      alert(err.message);
+      showAnimalAlert(err.message, 'error', 'Delete Failed');
     }
   }
 
@@ -2097,7 +2446,7 @@
         updateSinglePreview(currentTargetInputId, currentTargetPreviewId);
       }
     } catch (err) {
-      alert(`Image upload error: ${err.message}`);
+      showAnimalAlert(`Image upload error: ${err.message}`, 'error', 'Upload Error');
     } finally {
       input.value = '';
     }
@@ -2127,7 +2476,7 @@
         renderGalleryPreviews();
       }
     } catch (err) {
-      alert(`Gallery upload error: ${err.message}`);
+      showAnimalAlert(`Gallery upload error: ${err.message}`, 'error', 'Upload Error');
     } finally {
       input.value = '';
     }
@@ -2193,24 +2542,24 @@
       const col = document.createElement('div');
       col.className = 'col-md-6 col-lg-4';
       col.innerHTML = `
-        <div class="card h-100 shadow-sm border p-3" style="border-radius: 14px; background: #fafafa;">
+        <div class="card h-100 cat-manage-card">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <div class="d-flex align-items-center gap-2">
-              <span style="font-size: 1.3rem;">${emoji}</span>
-              <strong class="text-dark small">${cat.name}</strong>
+              <span style="font-size: 1.25rem;">${emoji}</span>
+              <span class="cat-manage-title">${cat.name}</span>
             </div>
-            <span class="badge bg-secondary rounded-pill px-2 py-1" style="font-size: 0.75rem;">${cat.count} animal${cat.count === 1 ? '' : 's'}</span>
+            <span class="cat-manage-badge">${cat.count} animal${cat.count === 1 ? '' : 's'}</span>
           </div>
           <div class="position-relative mb-2">
-            <img src="${cat.image_url || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=400&q=80'}" id="cat_card_img_${idx}" class="w-100 rounded" style="height: 110px; object-fit: cover; border: 1.5px solid #e2e8f0;" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=400&q=80'" />
+            <img src="${cat.image_url || 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=400&q=80'}" id="cat_card_img_${idx}" class="w-100 cat-manage-img" onerror="this.src='https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=400&q=80'" />
           </div>
           <div class="input-group input-group-sm mb-2">
-            <input type="text" class="form-control form-control-sm" id="cat_card_input_${idx}" value="${cat.image_url || ''}" placeholder="Category Image URL" oninput="document.getElementById('cat_card_img_${idx}').src = this.value;" />
-            <button class="btn btn-outline-secondary" type="button" title="Upload Image" onclick="triggerCategoryImageUpload('${cat.name.replace(/'/g, "\\'")}', ${idx})">
+            <input type="text" class="form-control form-control-sm cat-manage-input" id="cat_card_input_${idx}" value="${cat.image_url || ''}" placeholder="Category Image URL" oninput="document.getElementById('cat_card_img_${idx}').src = this.value;" />
+            <button class="btn cat-manage-upload-btn" type="button" title="Upload Image" onclick="triggerCategoryImageUpload('${cat.name.replace(/'/g, "\\'")}', ${idx})">
               <i class="fa fa-upload"></i>
             </button>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-warning fw-bold w-100 mt-auto" onclick="saveCategoryImageDirect('${cat.name.replace(/'/g, "\\'")}', ${idx})">
+          <button type="button" class="btn cat-manage-save-btn w-100 mt-auto" onclick="saveCategoryImageDirect('${cat.name.replace(/'/g, "\\'")}', ${idx})">
             <i class="fa fa-save me-1"></i> Save Category Image
           </button>
         </div>
@@ -2328,17 +2677,17 @@
     const btn = document.getElementById('btn_submit_quick_animal_upload');
 
     if (!cat) {
-      alert('Please select a category first.');
+      showAnimalAlert('Please select a category first.', 'warning', 'Category Required');
       document.getElementById('quick_upload_category').focus();
       return;
     }
     if (!animalId) {
-      alert('Please select an animal from the chosen category.');
+      showAnimalAlert('Please select an animal from the chosen category.', 'warning', 'Animal Required');
       document.getElementById('quick_upload_animal').focus();
       return;
     }
     if (!fileInput.files || fileInput.files.length === 0) {
-      alert('Please choose an image file to upload.');
+      showAnimalAlert('Please choose an image file to upload.', 'warning', 'File Required');
       fileInput.focus();
       return;
     }
@@ -2395,10 +2744,10 @@
 
       const targetAnimal = animalEntities.find(a => a.id === animalId);
       const animalName = targetAnimal ? targetAnimal.name : 'Selected animal';
-      alert(`Success: Image updated for "${animalName}" in "${cat}"!`);
+      showAnimalAlert(`Success: Image updated for "${animalName}" in "${cat}"!`, 'success', 'Image Uploaded');
     } catch (err) {
       console.error('Quick animal upload error:', err);
-      alert('Upload error: ' + err.message);
+      showAnimalAlert('Upload error: ' + err.message, 'error', 'Upload Failed');
     } finally {
       btn.disabled = false;
       btn.innerHTML = originalBtnHtml;
@@ -2451,9 +2800,9 @@
 
       await loadCategories();
       await loadAnimalEntities();
-      alert(`Category image for "${activeUploadingCategoryName}" updated successfully! Applied to all animals in this category.`);
+      showAnimalAlert(`Category image for "${activeUploadingCategoryName}" updated successfully! Applied to all animals in this category.`, 'success', 'Category Updated');
     } catch (err) {
-      alert(`Upload Error: ${err.message}`);
+      showAnimalAlert(`Upload Error: ${err.message}`, 'error', 'Upload Failed');
     } finally {
       input.value = '';
     }
@@ -2477,9 +2826,9 @@
       if (!resp.ok) throw new Error('Failed to update category');
       await loadCategories();
       loadAnimalEntities();
-      alert(`Category image for "${catName}" saved successfully!`);
+      showAnimalAlert(`Category image for "${catName}" saved successfully!`, 'success', 'Category Saved');
     } catch (err) {
-      alert(`Error saving category image: ${err.message}`);
+      showAnimalAlert(`Error saving category image: ${err.message}`, 'error', 'Save Failed');
     }
   }
 
@@ -2552,7 +2901,7 @@
       document.body.removeChild(a);
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      alert(`Export Failed: ${err.message}`);
+      showAnimalAlert(`Export Failed: ${err.message}`, 'error', 'Export Failed');
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -2567,7 +2916,7 @@
     const targets = Array.from(chks).map(c => c.value);
 
     if (targets.length === 0) {
-      alert('Please select at least one new category to assign this animal into.');
+      showAnimalAlert('Please select at least one new category to assign this animal into.', 'warning', 'Selection Required');
       return;
     }
 
@@ -2596,9 +2945,9 @@
       bootstrap.Modal.getInstance(document.getElementById('exportAnimalModal')).hide();
       await loadCategories();
       await loadAnimalEntities();
-      alert(resData.message || 'Animal assigned to categories successfully!');
+      showAnimalAlert(resData.message || 'Animal assigned to categories successfully!', 'success', 'Assigned Successfully');
     } catch (err) {
-      alert(`Export Error: ${err.message}`);
+      showAnimalAlert(`Export Error: ${err.message}`, 'error', 'Export Failed');
     } finally {
       btn.disabled = false;
       btn.innerHTML = origHtml;
@@ -2633,7 +2982,7 @@
     const targets = Array.from(chks).map(c => c.value);
 
     if (targets.length === 0) {
-      alert('Please select at least one destination category.');
+      showAnimalAlert('Please select at least one destination category.', 'warning', 'Selection Required');
       return;
     }
 
@@ -2662,9 +3011,9 @@
       bootstrap.Modal.getInstance(document.getElementById('exportWildModal')).hide();
       await loadCategories();
       await loadAnimalEntities();
-      alert(resData.message || 'Wild animals exported successfully!');
+      showAnimalAlert(resData.message || 'Wild animals exported successfully!', 'success', 'Export Completed');
     } catch (err) {
-      alert(`Export Error: ${err.message}`);
+      showAnimalAlert(`Export Error: ${err.message}`, 'error', 'Export Failed');
     } finally {
       btn.disabled = false;
       btn.innerHTML = origHtml;

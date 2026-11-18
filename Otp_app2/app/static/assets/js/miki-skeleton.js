@@ -319,6 +319,7 @@
                 }, 350);
             });
             this.hideProgressBar();
+            this.revealSidebar();
         },
 
         /**
@@ -381,27 +382,17 @@
          * Smoothly transitions the sidebar from skeleton loader to live menu
          */
         revealSidebar: function () {
+            if (window.revealSidebarMenu) {
+                window.revealSidebarMenu();
+                return;
+            }
             const skeleton = document.getElementById('sidebar-skeleton');
             const menu = document.getElementById('sidebar-menu');
             if (!menu) return;
-            if (menu.dataset.revealed === 'true') return;
-            menu.dataset.revealed = 'true';
-
-            if (skeleton) {
-                skeleton.style.transition = 'opacity 0.22s ease';
-                skeleton.style.opacity = '0';
-                setTimeout(() => {
-                    skeleton.style.display = 'none';
-                    menu.style.display = 'block';
-                    void menu.offsetWidth; // force reflow
-                    menu.style.opacity = '1';
-                    if (window.highlightActiveSidebar) window.highlightActiveSidebar();
-                }, 200);
-            } else {
-                menu.style.display = 'block';
-                menu.style.opacity = '1';
-                if (window.highlightActiveSidebar) window.highlightActiveSidebar();
-            }
+            if (skeleton) skeleton.style.display = 'none';
+            menu.style.display = 'block';
+            menu.style.opacity = '1';
+            if (window.highlightActiveSidebar) window.highlightActiveSidebar();
         },
 
         /**
@@ -501,11 +492,12 @@
         MikiSkeleton.initModuleTransitions();
     }
 
-    // Automatically hide page loader on full load
+    // Automatically hide page loader & reveal sidebar on full load
     window.addEventListener('load', function () {
         setTimeout(function () {
             MikiSkeleton.hidePageLoader();
-        }, 150);
+            MikiSkeleton.revealSidebar();
+        }, 80);
     });
 
 })(window, document);

@@ -496,6 +496,12 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     highlightActiveSidebar();
+    if (window.revealSidebarMenu) window.revealSidebarMenu();
+  });
+
+  window.addEventListener("load", function () {
+    highlightActiveSidebar();
+    if (window.revealSidebarMenu) window.revealSidebarMenu();
   });
 
   window.addEventListener("popstate", function () {

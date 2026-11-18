@@ -35,6 +35,26 @@
     <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
     <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
     <link rel="stylesheet" type="text/css" href="/assets/css/miki-skeleton.css">
+    <script src="/assets/js/miki-skeleton.js"></script>
+    <script>
+      window.revealSidebarMenu = function() {
+        var skeleton = document.getElementById("sidebar-skeleton");
+        var menu = document.getElementById("sidebar-menu");
+        if (skeleton && skeleton.style.display !== "none") {
+          skeleton.style.transition = "opacity 0.2s ease";
+          skeleton.style.opacity = "0";
+          setTimeout(function() {
+            skeleton.style.display = "none";
+          }, 200);
+        }
+        if (menu) {
+          menu.style.display = "block";
+          void menu.offsetWidth;
+          menu.style.opacity = "1";
+        }
+        if (window.highlightActiveSidebar) window.highlightActiveSidebar();
+      };
+    </script>
     <script>
       (function() {
         var p = localStorage.getItem("primary");
@@ -1269,13 +1289,17 @@
 
                 // Smoothly reveal sidebar if permissions are already verified from cache
                 if (cached || isSuperadmin) {
-                    document.addEventListener("DOMContentLoaded", function() {
+                    if (document.readyState === 'loading') {
+                        document.addEventListener("DOMContentLoaded", function() {
+                            setTimeout(function() {
+                                if (window.revealSidebarMenu) window.revealSidebarMenu();
+                            }, 50);
+                        });
+                    } else {
                         setTimeout(function() {
-                            if (window.MikiSkeleton && window.MikiSkeleton.revealSidebar) {
-                                window.MikiSkeleton.revealSidebar();
-                            }
-                        }, 120);
-                    });
+                            if (window.revealSidebarMenu) window.revealSidebarMenu();
+                        }, 50);
+                    }
                 }
             } catch(e) {}
         })();
@@ -1352,8 +1376,8 @@
 
             // If superadmin, show everything and reveal menu
             if (data.is_superadmin) {
-                if (window.MikiSkeleton && window.MikiSkeleton.revealSidebar) {
-                    window.MikiSkeleton.revealSidebar();
+                if (window.revealSidebarMenu) {
+                    window.revealSidebarMenu();
                 }
                 return;
             }
@@ -1377,8 +1401,8 @@
                 style.innerHTML = css;
             }
 
-            if (window.MikiSkeleton && window.MikiSkeleton.revealSidebar) {
-                window.MikiSkeleton.revealSidebar();
+            if (window.revealSidebarMenu) {
+                window.revealSidebarMenu();
             }
         }
 
@@ -1393,10 +1417,10 @@
 
         // Safety fallback: ensure sidebar is always revealed even if network lags
         setTimeout(function() {
-            if (window.MikiSkeleton && window.MikiSkeleton.revealSidebar) {
-                window.MikiSkeleton.revealSidebar();
+            if (window.revealSidebarMenu) {
+                window.revealSidebarMenu();
             }
-        }, 1200);
+        }, 500);
     </script>
 
     {% block scripts %}{% endblock %}
@@ -1487,10 +1511,6 @@
             });
         });
     </script>
-
-    <!-- MIKI Reusable Skeleton Loader System -->
-    <script src="/assets/js/miki-skeleton.js"></script>
-
 </body>
 
 </html>

@@ -311,9 +311,9 @@
 
     <!-- Tabs -->
     <div class="d-flex gap-2 mb-4">
-        <button class="btn game-tab-btn active" id="tab-wordle" onclick="switchTab('wordle')">🔤 Wordle</button>
-        <button class="btn btn-outline-secondary game-tab-btn" id="tab-squares" onclick="switchTab('squares')">🟦 Squares</button>
-        <button class="btn btn-outline-secondary game-tab-btn" id="tab-puzzle" onclick="switchTab('puzzle')">🧩 Puzzle</button>
+        <button class="btn game-tab-btn active" id="tab-wordle" onclick="switchTab('wordle')">🔤 Wordle (Miki Words)</button>
+        <button class="btn btn-outline-secondary game-tab-btn" id="tab-squares" onclick="switchTab('squares')">🟦 Squares (MIKI match)</button>
+        <button class="btn btn-outline-secondary game-tab-btn" id="tab-puzzle" onclick="switchTab('puzzle')">🧩 Puzzle (MIKI puzzly)</button>
     </div>
 
     <!-- WORDLE PANEL -->
@@ -429,7 +429,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius:16px;">
             <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #C44ECC;">
-                <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word</h6><button type="button"
+                <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word (Miki Words)</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -491,7 +491,7 @@
     <div class="modal-dialog modal-xl">
         <div class="modal-content" style="border-radius:16px;">
             <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #C44ECC;">
-                <h6 class="modal-title" id="squares-modal-title">Add Squares Level</h6><button type="button"
+                <h6 class="modal-title" id="squares-modal-title">Add Squares Level (MIKI match)</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -587,7 +587,7 @@
         <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
             <div class="modal-header border-0 text-white p-4" style="background: linear-gradient(135deg, #C44ECC 0%, #603CD8 100%);">
                 <h5 class="modal-title font-weight-bold d-flex align-items-center gap-2" id="puzzle-modal-title">
-                    <i data-feather="grid"></i> Add Puzzle Level
+                    <i data-feather="grid"></i> Add Puzzle Level (MIKI puzzly)
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -699,6 +699,7 @@
 
     const PAGE_SIZE = 100;
     let wordleCurrentPage = 1;
+    let wordleAllWords = [];
     let squaresCurrentPage = 1;
     let squaresAllLevels = [];
     let puzzleCurrentPage = 1;
@@ -807,6 +808,7 @@
         const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
         const allWords = json.data || [];
+        wordleAllWords = allWords;
         const total = allWords.length;
         document.getElementById("wordle-count").textContent = `${total} words`;
 
@@ -907,7 +909,7 @@
             input.value = hints[i] || "";
         });
 
-        document.getElementById("wordle-modal-title").innerText = id ? "Edit Word" : "Add Word";
+        document.getElementById("wordle-modal-title").innerText = id ? "Edit Word (Miki Words)" : "Add Word (Miki Words)";
         const modal = new bootstrap.Modal(document.getElementById("wordleModal"));
         modal.show();
     }
@@ -925,19 +927,36 @@
             class_range: document.getElementById("w-range").value
         };
 
-        if (!body.word || !body.level || !body.class_range || hints.length === 0) {
-            alert("Please fill all required fields and at least one hint.");
+        if (!body.word || isNaN(body.level) || !body.class_range || hints.length === 0) {
+            showToastGm("Please fill all required fields and at least one hint.", "danger");
             return;
         }
 
-        const res = await fetch(id ? `${API_BASE}/admin-panel/games/wordle/words/${id}` : `${API_BASE}/admin-panel/games/wordle/words`, {
-            method: id ? "PUT" : "POST",
-            headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
-        if (res.ok) {
-            bootstrap.Modal.getInstance(document.getElementById("wordleModal")).hide();
-            loadWordle(); loadWordleStats();
+        // Validate unique level per class range
+        if (typeof wordleAllWords !== 'undefined' && Array.isArray(wordleAllWords)) {
+            const conflict = wordleAllWords.find(w => w.id !== id && w.class_range === body.class_range && parseInt(w.level) === body.level);
+            if (conflict) {
+                showToastGm(`Level ${body.level} already exists in class range '${body.class_range}'. Each level must be unique per class range.`, "danger");
+                return;
+            }
+        }
+
+        try {
+            const res = await fetch(id ? `${API_BASE}/admin-panel/games/wordle/words/${id}` : `${API_BASE}/admin-panel/games/wordle/words`, {
+                method: id ? "PUT" : "POST",
+                headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById("wordleModal")).hide();
+                showToastGm(id ? "Wordle word updated successfully." : "Wordle word added successfully.");
+                loadWordle(); loadWordleStats();
+            } else {
+                const errJson = await res.json().catch(() => ({}));
+                showToastGm(errJson.detail || "Failed to save Wordle word.", "danger");
+            }
+        } catch (err) {
+            showToastGm("Network error: " + err.message, "danger");
         }
     }
 
@@ -1053,7 +1072,7 @@
             cell.value = flatGrid[i] || "";
         });
 
-        document.getElementById("squares-modal-title").innerText = id ? "Edit Squares Level" : "Add Squares Level";
+        document.getElementById("squares-modal-title").innerText = id ? "Edit Squares Level (MIKI match)" : "Add Squares Level (MIKI match)";
         new bootstrap.Modal(document.getElementById("squaresModal")).show();
     }
 
@@ -1091,9 +1110,18 @@
             grid: grid
         };
 
-        if (!body.level || !body.class_range || body.main_words.length === 0 || cells.some(c => !c)) {
+        if (isNaN(body.level) || !body.class_range || body.main_words.length === 0 || cells.some(c => !c)) {
             showToastGm("Please fill all required fields (Level, Range, Main Words) and all 16 grid cells.", "danger");
             return;
+        }
+
+        // Validate unique level per class range
+        if (typeof squaresAllLevels !== 'undefined' && Array.isArray(squaresAllLevels)) {
+            const conflict = squaresAllLevels.find(s => s.id !== id && s.class_range === body.class_range && parseInt(s.level) === body.level);
+            if (conflict) {
+                showToastGm(`Level ${body.level} already exists in class range '${body.class_range}'. Each level must be unique per class range.`, "danger");
+                return;
+            }
         }
 
         try {
@@ -1356,7 +1384,7 @@
         }
 
         updateGridPreviewHint();
-        document.getElementById("puzzle-modal-title").innerHTML = id ? `<i data-feather="edit"></i> Edit Puzzle Level` : `<i data-feather="grid"></i> Add Puzzle Level`;
+        document.getElementById("puzzle-modal-title").innerHTML = id ? `<i data-feather="edit"></i> Edit Puzzle Level (MIKI puzzly)` : `<i data-feather="grid"></i> Add Puzzle Level (MIKI puzzly)`;
         feather.replace();
         new bootstrap.Modal(document.getElementById("puzzleModal")).show();
     }

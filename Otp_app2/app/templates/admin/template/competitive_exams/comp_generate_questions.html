@@ -98,6 +98,86 @@
   .dark-only .border-light-subtle {
     border-color: #334155 !important;
   }
+
+  /* Blueprint & Marking Rules High Contrast (Fix invisible white text in light mode) */
+  .blueprint-rules-box {
+    background-color: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+  .blueprint-rules-box h6,
+  .blueprint-rules-box .form-label,
+  .blueprint-rules-box .form-check-label,
+  .blueprint-rules-box label {
+    color: #1e293b !important;
+    fill: #1e293b !important;
+    font-weight: 600;
+  }
+  .blueprint-rules-box .input-group-text {
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    font-weight: 500;
+  }
+  .blueprint-rules-box .form-control {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+  .blueprint-rules-box .form-check-input {
+    border-color: #94a3b8 !important;
+  }
+
+  /* Ensure all form labels in #genForm are clearly visible in light mode */
+  #genForm label,
+  #genForm .form-label,
+  #genForm .form-check-label {
+    color: #1e293b !important;
+  }
+  #genForm label.font-primary {
+    color: #603CD8 !important;
+  }
+
+  /* Dark mode overrides for blueprint rules box */
+  body.dark-only .blueprint-rules-box,
+  .dark-only .blueprint-rules-box {
+    background-color: rgba(15, 23, 42, 0.75) !important;
+    border-color: #334155 !important;
+  }
+  body.dark-only .blueprint-rules-box h6,
+  body.dark-only .blueprint-rules-box .form-label,
+  body.dark-only .blueprint-rules-box .form-check-label,
+  body.dark-only .blueprint-rules-box label,
+  .dark-only .blueprint-rules-box h6,
+  .dark-only .blueprint-rules-box .form-label,
+  .dark-only .blueprint-rules-box .form-check-label,
+  .dark-only .blueprint-rules-box label {
+    color: #e2e8f0 !important;
+    fill: #e2e8f0 !important;
+  }
+  body.dark-only .blueprint-rules-box .form-control,
+  .dark-only .blueprint-rules-box .form-control {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+  body.dark-only .blueprint-rules-box .input-group-text,
+  .dark-only .blueprint-rules-box .input-group-text {
+    background-color: #334155 !important;
+    border-color: #475569 !important;
+    color: #cbd5e1 !important;
+  }
+  body.dark-only #genForm label,
+  body.dark-only #genForm .form-label,
+  body.dark-only #genForm .form-check-label,
+  .dark-only #genForm label,
+  .dark-only #genForm .form-label,
+  .dark-only #genForm .form-check-label {
+    color: #e2e8f0 !important;
+  }
+  body.dark-only #genForm label.font-primary,
+  .dark-only #genForm label.font-primary {
+    color: #C44ECC !important;
+  }
 </style>
 {% endblock %}
 
@@ -167,8 +247,8 @@
             </div>
 
             <!-- Exam Pattern Customization -->
-            <div class="card border border-light-subtle rounded-3 p-3 bg-light mb-4">
-              <h6 class="fw-bold text-dark mb-3"><i class="fa fa-sliders text-primary me-2"></i>Exam Blueprint &amp; Marking Rules</h6>
+            <div class="card border border-light-subtle rounded-3 p-3 mb-4 blueprint-rules-box">
+              <h6 class="fw-bold mb-3"><i class="fa fa-sliders text-primary me-2"></i>Exam Blueprint &amp; Marking Rules</h6>
               
               <div class="row g-3 mb-3">
                 <div class="col-md-3 col-6">

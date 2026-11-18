@@ -102,6 +102,21 @@
     .search-input-group {
         position: relative;
         max-width: 320px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-icon-inside {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        color: #7366ff;
+        pointer-events: none;
+        z-index: 5;
     }
 
     .search-input-group input {
@@ -110,6 +125,7 @@
         border: 1px solid rgba(220, 226, 235, 0.9);
         font-size: 0.88rem;
         background: #ffffff;
+        width: 100%;
         transition: all 0.2s ease;
     }
 
@@ -273,7 +289,7 @@
                         <h5 class="mb-1 f-w-700 card-section-title">Published Feed Posts</h5>
                         <p class="text-muted mb-0" style="font-size: 0.85rem;">Review educational content submitted by all registered contributors.</p>
                     </div>
-                    <div class="search-input-group d-none d-sm-block">
+                    <div class="search-input-group d-none d-sm-flex">
                         <i data-feather="search" class="search-icon-inside" style="width:16px;height:16px;"></i>
                         <input type="text" id="contentSearchInput" class="form-control" placeholder="Search title, author or topic..." onkeyup="filterContentTable()" />
                     </div>

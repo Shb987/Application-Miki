@@ -100,6 +100,11 @@ async def add_wordle_word(
     if class_range not in CLASS_RANGES:
         raise HTTPException(status_code=400, detail=f"class_range must be one of {CLASS_RANGES}")
 
+    # Check duplicate level in same class range
+    existing_level = await db.wordle_questions.find_one({"level": int(level), "class_range": class_range})
+    if existing_level:
+        raise HTTPException(status_code=400, detail=f"Level {level} already exists in class range '{class_range}'")
+
     # Check duplicate word in same class range
     existing = await db.wordle_questions.find_one({"word": word, "class_range": class_range})
     if existing:
@@ -155,6 +160,29 @@ async def update_wordle_word(
 
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
+
+    # Validate level uniqueness in class range for Wordle
+    target_level = update_data.get("level", existing.get("level"))
+    target_range = update_data.get("class_range", existing.get("class_range"))
+    if target_level is not None and target_range:
+        conflict_level = await db.wordle_questions.find_one({
+            "_id": {"$ne": oid},
+            "level": target_level,
+            "class_range": target_range
+        })
+        if conflict_level:
+            raise HTTPException(status_code=400, detail=f"Level {target_level} already exists in class range '{target_range}'")
+
+    # Validate word uniqueness in class range for Wordle
+    target_word = update_data.get("word", existing.get("word"))
+    if target_word and target_range:
+        conflict_word = await db.wordle_questions.find_one({
+            "_id": {"$ne": oid},
+            "word": target_word,
+            "class_range": target_range
+        })
+        if conflict_word:
+            raise HTTPException(status_code=400, detail=f"Word '{target_word}' already exists in class range '{target_range}'")
 
     update_data["updated_at"] = datetime.utcnow()
     await db.wordle_questions.update_one({"_id": oid}, {"$set": update_data})
@@ -333,6 +361,18 @@ async def update_squares_level(
 
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
+
+    # Validate level uniqueness in class range for Squares
+    target_level = update_data.get("level", existing.get("level"))
+    target_range = update_data.get("class_range", existing.get("class_range"))
+    if target_level is not None and target_range:
+        conflict_level = await db.squares_questions.find_one({
+            "_id": {"$ne": oid},
+            "level": target_level,
+            "class_range": target_range
+        })
+        if conflict_level:
+            raise HTTPException(status_code=400, detail=f"Level {target_level} already exists in class range '{target_range}'")
 
     update_data["updated_at"] = datetime.utcnow()
     await db.squares_questions.update_one({"_id": oid}, {"$set": update_data})
@@ -606,6 +646,17 @@ async def update_puzzle_level(
         update_data["image_url"] = f"/static/games/puzzle/{target_diff}/{file_name}"
     elif image_url is not None and image_url.strip():
         update_data["image_url"] = image_url.strip()
+
+    # Validate level uniqueness in difficulty for Puzzle
+    target_level = update_data.get("level", existing.get("level"))
+    if target_level is not None and target_diff:
+        conflict_level = await db.puzzle_levels.find_one({
+            "_id": {"$ne": oid},
+            "difficulty": target_diff,
+            "level": target_level
+        })
+        if conflict_level:
+            raise HTTPException(status_code=400, detail=f"Level {target_level} already exists for difficulty '{target_diff}'")
 
     update_data["updated_at"] = datetime.utcnow()
     await db.puzzle_levels.update_one({"_id": oid}, {"$set": update_data})

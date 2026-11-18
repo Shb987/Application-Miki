@@ -727,11 +727,9 @@
           </tr>
         </thead>
         <tbody id="animalTableBody">
-          <tr>
-            <td colspan="7" class="text-center py-5 text-muted">
-              <div class="spinner-border text-warning me-2" role="status"></div> Loading Animal Explorer data...
-            </td>
-          </tr>
+          <tr class="miki-skeleton-table-row"><td><div class="miki-skeleton-bar" style="width:100%;height:38px;"></div></td><td><div class="miki-skeleton-box circle-sm" style="width:36px;height:36px;"></div></td><td><div class="miki-skeleton-bar" style="width:80%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:60%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:70%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:50px;height:22px;border-radius:12px;"></div></td><td><div class="miki-skeleton-bar" style="width:60px;height:28px;"></div></td></tr>
+          <tr class="miki-skeleton-table-row"><td><div class="miki-skeleton-bar" style="width:100%;height:38px;"></div></td><td><div class="miki-skeleton-box circle-sm" style="width:36px;height:36px;"></div></td><td><div class="miki-skeleton-bar" style="width:70%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:55%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:65%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:50px;height:22px;border-radius:12px;"></div></td><td><div class="miki-skeleton-bar" style="width:60px;height:28px;"></div></td></tr>
+          <tr class="miki-skeleton-table-row"><td><div class="miki-skeleton-bar" style="width:100%;height:38px;"></div></td><td><div class="miki-skeleton-box circle-sm" style="width:36px;height:36px;"></div></td><td><div class="miki-skeleton-bar" style="width:75%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:50%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:60%;height:16px;"></div></td><td><div class="miki-skeleton-bar" style="width:50px;height:22px;border-radius:12px;"></div></td><td><div class="miki-skeleton-bar" style="width:60px;height:28px;"></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -1408,13 +1406,7 @@
   async function loadAnimalEntities() {
     const tbody = document.getElementById('animalTableBody');
     if (tbody) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" class="text-center py-5 text-muted">
-            <div class="spinner-border text-warning me-2" role="status"></div> Loading Animal Explorer data...
-          </td>
-        </tr>
-      `;
+      tbody.innerHTML = (typeof MikiSkeleton !== 'undefined') ? MikiSkeleton.renderTableRows(5, 7) : '<tr><td colspan="7" class="text-center py-4">Loading Animal Explorer data...</td></tr>';
     }
 
     try {

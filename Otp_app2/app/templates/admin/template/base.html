@@ -34,6 +34,7 @@
     <link rel="stylesheet" type="text/css" href="/assets/css/style.css">
     <link id="color" rel="stylesheet" href="/assets/css/color-1.css" media="screen">
     <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
+    <link rel="stylesheet" type="text/css" href="/assets/css/miki-skeleton.css">
     <script>
       (function() {
         var p = localStorage.getItem("primary");
@@ -67,47 +68,48 @@
 
     <style>
         /* =========================================================
-           Full-screen Loader Isolation & Dark Mode Loading Fix
-           Ensures loader covers full viewport (including sidebar/header)
-           with the correct theme background and no FOUC (flash of unstyled content)
+           MIKI Admin - Loading State & Dark Mode Zero-FOUC Config
+           Loader is contained strictly inside .page-body, preserving
+           the sidebar and top header intact at all times.
            ========================================================= */
-        .loader-wrapper {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 999999 !important; /* Above sidebar (100) and header (990) */
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            background-color: #f7f6fc !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            pointer-events: all !important;
+        html {
+            background-color: #f7f6fc;
         }
-        .loader-wrapper .loader {
-            background-color: transparent !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+        html.dark-only {
+            background-color: #161925;
         }
-        .loader-wrapper .loader4 {
-            color: #C44ECC !important;
+        body {
+            background-color: #f7f6fc;
+        }
+        body.dark-only {
+            background-color: #161925;
         }
 
-        /* Dark Mode Loader Styling (Applies instantly via html.dark-only) */
-        html.dark-only .loader-wrapper,
-        body.dark-only .loader-wrapper {
+        .page-body {
+            position: relative !important;
+        }
+
+        .page-body > .loader-wrapper {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            min-height: calc(100vh - 120px) !important;
+            z-index: 50 !important;
+            background-color: #f7f6fc !important;
+            display: block !important;
+            padding: 24px 30px !important;
+            margin: 0 !important;
+            pointer-events: all !important;
+            overflow: hidden !important;
+            transition: opacity 0.35s ease, visibility 0.35s ease !important;
+        }
+
+        html.dark-only .page-body > .loader-wrapper,
+        body.dark-only .page-body > .loader-wrapper {
             background-color: #161925 !important;
-        }
-        html.dark-only .loader-wrapper .loader,
-        body.dark-only .loader-wrapper .loader {
-            background-color: transparent !important;
-        }
-        html.dark-only .loader-wrapper .loader4,
-        body.dark-only .loader-wrapper .loader4 {
-            color: #C44ECC !important;
         }
 
         .action-group {
@@ -922,13 +924,8 @@
             }
         })();
     </script>
-    <!-- loader starts-->
-    <div class="loader-wrapper">
-        <div class="loader">
-            <div class="loader4"></div>
-        </div>
-    </div>
-    <!-- loader ends-->
+    <!-- Top Module Navigation Progress Bar -->
+    <div id="miki-top-progress-bar"></div>
 
     <!-- tap on top starts-->
     <div class="tap-top"><i data-feather="chevrons-up"></i></div>
@@ -995,8 +992,177 @@
             {% include "sidebar.html" %}
             <!-- Page Sidebar Ends-->
 
-            <div class="page-body" style="display: flex; flex-direction: column; min-height: calc(100vh - 80px);">
-                <div style="flex: 1 0 auto;">
+            <div class="page-body" style="display: flex; flex-direction: column; min-height: calc(100vh - 80px); position: relative;">
+                <!-- Reusable MIKI Dashboard Skeleton Loader starts (Scoped to main content only) -->
+                <div class="loader-wrapper" id="mikiPageLoader">
+                    <div class="miki-skeleton-container" style="max-width: 1400px; margin: 0 auto; width: 100%;">
+                        <!-- Top Header & Status Pill -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                            <div class="d-flex flex-column gap-2">
+                                <div class="miki-skeleton-bar" style="width: 260px; height: 28px; border-radius: 8px;"></div>
+                                <div class="miki-skeleton-bar" style="width: 360px; height: 14px; border-radius: 6px;"></div>
+                            </div>
+                            <div class="miki-skeleton-status-pill">
+                                <span class="miki-spinner-ring"></span>
+                                <span>Loading Dashboard Data...</span>
+                            </div>
+                        </div>
+
+                        <!-- 4 Stat / KPI Cards Skeleton -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-xl-3 col-sm-6">
+                                <div class="miki-skeleton-card kpi-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="miki-skeleton-box squircle"></div>
+                                        <div class="miki-skeleton-bar" style="width: 70px; height: 22px; border-radius: 12px;"></div>
+                                    </div>
+                                    <div class="miki-skeleton-bar mb-2" style="width: 95px; height: 34px; border-radius: 6px;"></div>
+                                    <div class="miki-skeleton-bar" style="width: 140px; height: 14px; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-sm-6">
+                                <div class="miki-skeleton-card kpi-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="miki-skeleton-box squircle"></div>
+                                        <div class="miki-skeleton-bar" style="width: 70px; height: 22px; border-radius: 12px;"></div>
+                                    </div>
+                                    <div class="miki-skeleton-bar mb-2" style="width: 95px; height: 34px; border-radius: 6px;"></div>
+                                    <div class="miki-skeleton-bar" style="width: 140px; height: 14px; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-sm-6">
+                                <div class="miki-skeleton-card kpi-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="miki-skeleton-box squircle"></div>
+                                        <div class="miki-skeleton-bar" style="width: 70px; height: 22px; border-radius: 12px;"></div>
+                                    </div>
+                                    <div class="miki-skeleton-bar mb-2" style="width: 95px; height: 34px; border-radius: 6px;"></div>
+                                    <div class="miki-skeleton-bar" style="width: 140px; height: 14px; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-sm-6">
+                                <div class="miki-skeleton-card kpi-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="miki-skeleton-box squircle"></div>
+                                        <div class="miki-skeleton-bar" style="width: 70px; height: 22px; border-radius: 12px;"></div>
+                                    </div>
+                                    <div class="miki-skeleton-bar mb-2" style="width: 95px; height: 34px; border-radius: 6px;"></div>
+                                    <div class="miki-skeleton-bar" style="width: 140px; height: 14px; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Table / Filter Skeleton Card -->
+                        <div class="miki-skeleton-card main-table-card p-4">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 pb-3 border-bottom border-light">
+                                <div class="d-flex gap-2">
+                                    <div class="miki-skeleton-bar miki-skeleton-tab active"></div>
+                                    <div class="miki-skeleton-bar miki-skeleton-tab"></div>
+                                    <div class="miki-skeleton-bar miki-skeleton-tab"></div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <div class="miki-skeleton-bar" style="width: 240px; height: 36px; border-radius: 20px;"></div>
+                                    <div class="miki-skeleton-bar" style="width: 120px; height: 36px; border-radius: 20px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Shimmering Table Headers -->
+                            <div class="d-flex align-items-center py-2 px-3 mb-2 miki-skeleton-table-header">
+                                <div class="miki-skeleton-bar" style="width: 40px; height: 16px;"></div>
+                                <div class="miki-skeleton-bar ms-4" style="width: 25%; height: 16px;"></div>
+                                <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 16px;"></div>
+                                <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 16px;"></div>
+                                <div class="miki-skeleton-bar ms-3" style="width: 12%; height: 16px;"></div>
+                                <div class="miki-skeleton-bar ms-auto" style="width: 70px; height: 16px;"></div>
+                            </div>
+
+                            <!-- 4 Table Rows with Avatar and Actions -->
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-center py-3 px-3 border-bottom border-light">
+                                    <div class="miki-skeleton-bar" style="width: 24px; height: 24px; border-radius: 6px;"></div>
+                                    <div class="d-flex align-items-center gap-2 ms-4" style="width: 25%;">
+                                        <div class="miki-skeleton-box circle-sm" style="width: 34px; height: 34px; flex-shrink: 0;"></div>
+                                        <div class="d-flex flex-column gap-1 w-100">
+                                            <div class="miki-skeleton-bar" style="width: 80%; height: 15px;"></div>
+                                            <div class="miki-skeleton-bar" style="width: 50%; height: 11px;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 14px;"></div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 14px;"></div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 12%; height: 22px; border-radius: 12px;"></div>
+                                    <div class="d-flex gap-2 ms-auto">
+                                        <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                        <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center py-3 px-3 border-bottom border-light">
+                                    <div class="miki-skeleton-bar" style="width: 24px; height: 24px; border-radius: 6px;"></div>
+                                    <div class="d-flex align-items-center gap-2 ms-4" style="width: 25%;">
+                                        <div class="miki-skeleton-box circle-sm" style="width: 34px; height: 34px; flex-shrink: 0;"></div>
+                                        <div class="d-flex flex-column gap-1 w-100">
+                                            <div class="miki-skeleton-bar" style="width: 70%; height: 15px;"></div>
+                                            <div class="miki-skeleton-bar" style="width: 40%; height: 11px;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 14px;"></div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 14px;"></div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 12%; height: 22px; border-radius: 12px;"></div>
+                                    <div class="d-flex gap-2 ms-auto">
+                                        <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                        <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center py-3 px-3 border-bottom border-light">
+                                    <div class="miki-skeleton-bar" style="width: 24px; height: 24px; border-radius: 6px;"></div>
+                                    <div class="d-flex align-items-center gap-2 ms-4" style="width: 25%;">
+                                        <div class="miki-skeleton-box circle-sm" style="width: 34px; height: 34px; flex-shrink: 0;"></div>
+                                        <div class="d-flex flex-column gap-1 w-100">
+                                            <div class="miki-skeleton-bar" style="width: 85%; height: 15px;"></div>
+                                            <div class="miki-skeleton-bar" style="width: 55%; height: 11px;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 14px;"></div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 14px;"></div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 12%; height: 22px; border-radius: 12px;"></div>
+                                    <div class="d-flex gap-2 ms-auto">
+                                        <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                        <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center py-3 px-3">
+                                    <div class="miki-skeleton-bar" style="width: 24px; height: 24px; border-radius: 6px;"></div>
+                                    <div class="d-flex align-items-center gap-2 ms-4" style="width: 25%;">
+                                        <div class="miki-skeleton-box circle-sm" style="width: 34px; height: 34px; flex-shrink: 0;"></div>
+                                        <div class="d-flex flex-column gap-1 w-100">
+                                            <div class="miki-skeleton-bar" style="width: 65%; height: 15px;"></div>
+                                            <div class="miki-skeleton-bar" style="width: 45%; height: 11px;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 14px;"></div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 20%; height: 14px;"></div>
+                                    <div class="miki-skeleton-bar ms-3" style="width: 12%; height: 22px; border-radius: 12px;"></div>
+                                    <div class="d-flex gap-2 ms-auto">
+                                        <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                        <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pagination Skeleton -->
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-light">
+                                <div class="miki-skeleton-bar" style="width: 170px; height: 14px;"></div>
+                                <div class="d-flex gap-1">
+                                    <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                    <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                    <div class="miki-skeleton-bar" style="width: 28px; height: 28px; border-radius: 6px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Reusable MIKI Dashboard Skeleton Loader ends -->
+
+                <div style="flex: 1 0 auto;" id="mikiMainContent">
                     {% block content %}{% endblock %}
                 </div>
 
@@ -1296,6 +1462,9 @@
             });
         });
     </script>
+
+    <!-- MIKI Reusable Skeleton Loader System -->
+    <script src="/assets/js/miki-skeleton.js"></script>
 
 </body>
 

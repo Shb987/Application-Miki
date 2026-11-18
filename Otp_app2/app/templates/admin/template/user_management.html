@@ -760,7 +760,7 @@
                             <span class="kpi-pill-badge bg-purple-badge">STUDENTS</span>
                         </div>
                         <h2 class="kpi-metric-number" id="kpi-students">
-                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span class="miki-skeleton-bar" style="width: 75px; height: 32px; border-radius: 6px; display: inline-block;"></span>
                         </h2>
                         <p class="kpi-metric-label">Total Student Base</p>
                     </div>
@@ -781,7 +781,7 @@
                             <span class="kpi-pill-badge bg-indigo-badge">PARENTS</span>
                         </div>
                         <h2 class="kpi-metric-number" id="kpi-parents">
-                            <div class="spinner-border spinner-border-sm" style="color:#4338ca;" role="status"></div>
+                            <span class="miki-skeleton-bar" style="width: 75px; height: 32px; border-radius: 6px; display: inline-block;"></span>
                         </h2>
                         <p class="kpi-metric-label">Registered Guardians</p>
                     </div>
@@ -802,7 +802,7 @@
                             <span class="kpi-pill-badge bg-rose-badge">ACTIVE</span>
                         </div>
                         <h2 class="kpi-metric-number" id="kpi-active">
-                            <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+                            <span class="miki-skeleton-bar" style="width: 75px; height: 32px; border-radius: 6px; display: inline-block;"></span>
                         </h2>
                         <p class="kpi-metric-label">Sign Ups (Last 30d)</p>
                     </div>
@@ -823,7 +823,7 @@
                             <span class="kpi-pill-badge bg-amber-badge">SCHOOLS</span>
                         </div>
                         <h2 class="kpi-metric-number" id="kpi-schools">
-                            <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+                            <span class="miki-skeleton-bar" style="width: 75px; height: 32px; border-radius: 6px; display: inline-block;"></span>
                         </h2>
                         <p class="kpi-metric-label">School Added</p>
                     </div>
@@ -907,9 +907,15 @@
                     <span class="ms-auto text-muted" id="student-count" style="font-size:0.82rem;"></span>
                 </div>
                 <div class="table-responsive" id="students-table-wrapper">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary"></div>
-                    </div>
+                    <table class="table mb-0 align-middle">
+                        <tbody>
+                            <tr class="miki-skeleton-table-row"><td><div class="miki-skeleton-bar" style="width: 100%; height: 38px;"></div></td></tr>
+                            <tr class="miki-skeleton-table-row"><td><div class="miki-skeleton-bar" style="width: 100%; height: 38px;"></div></td></tr>
+                            <tr class="miki-skeleton-table-row"><td><div class="miki-skeleton-bar" style="width: 100%; height: 38px;"></div></td></tr>
+                            <tr class="miki-skeleton-table-row"><td><div class="miki-skeleton-bar" style="width: 100%; height: 38px;"></div></td></tr>
+                            <tr class="miki-skeleton-table-row"><td><div class="miki-skeleton-bar" style="width: 100%; height: 38px;"></div></td></tr>
+                        </tbody>
+                    </table>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3" id="student-pager">
                     <button id="student-prev-btn" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;"
@@ -953,9 +959,34 @@
                 </div>
 
                 <div id="parents-list-container">
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-                        <p class="mt-3 text-muted">Curating parent directory...</p>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="miki-skeleton-list-item">
+                            <div class="miki-skeleton-box circle-sm" style="width: 42px; height: 42px;"></div>
+                            <div class="d-flex flex-column gap-2 w-100" style="max-width: 280px;">
+                                <div class="miki-skeleton-bar" style="width: 70%; height: 16px;"></div>
+                                <div class="miki-skeleton-bar" style="width: 45%; height: 12px;"></div>
+                            </div>
+                            <div class="miki-skeleton-bar ms-auto" style="width: 140px; height: 26px; border-radius: 12px;"></div>
+                            <div class="miki-skeleton-bar ms-3" style="width: 32px; height: 32px; border-radius: 8px;"></div>
+                        </div>
+                        <div class="miki-skeleton-list-item">
+                            <div class="miki-skeleton-box circle-sm" style="width: 42px; height: 42px;"></div>
+                            <div class="d-flex flex-column gap-2 w-100" style="max-width: 280px;">
+                                <div class="miki-skeleton-bar" style="width: 60%; height: 16px;"></div>
+                                <div class="miki-skeleton-bar" style="width: 40%; height: 12px;"></div>
+                            </div>
+                            <div class="miki-skeleton-bar ms-auto" style="width: 140px; height: 26px; border-radius: 12px;"></div>
+                            <div class="miki-skeleton-bar ms-3" style="width: 32px; height: 32px; border-radius: 8px;"></div>
+                        </div>
+                        <div class="miki-skeleton-list-item">
+                            <div class="miki-skeleton-box circle-sm" style="width: 42px; height: 42px;"></div>
+                            <div class="d-flex flex-column gap-2 w-100" style="max-width: 280px;">
+                                <div class="miki-skeleton-bar" style="width: 75%; height: 16px;"></div>
+                                <div class="miki-skeleton-bar" style="width: 50%; height: 12px;"></div>
+                            </div>
+                            <div class="miki-skeleton-bar ms-auto" style="width: 140px; height: 26px; border-radius: 12px;"></div>
+                            <div class="miki-skeleton-bar ms-3" style="width: 32px; height: 32px; border-radius: 8px;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1254,7 +1285,7 @@
         if (name) url += `&name=${encodeURIComponent(name)}`;
         if (cls) url += `&student_class=${encodeURIComponent(cls)}`;
         if (schoolId) url += `&school_id=${encodeURIComponent(schoolId)}`;
-        document.getElementById("students-table-wrapper").innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
+        document.getElementById("students-table-wrapper").innerHTML = `<table class="table mb-0 align-middle"><tbody>${MikiSkeleton.renderTableRows(5, 9)}</tbody></table>`;
         const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
         const json = await res.json();
         studentTotal = json.total || 0;
@@ -1267,7 +1298,11 @@
         updateStudentPagerControls();
 
         if (!json.data || json.data.length === 0) {
-            document.getElementById("students-table-wrapper").innerHTML = `<div class="text-center text-muted py-4">No students found</div>`;
+            document.getElementById("students-table-wrapper").innerHTML = MikiSkeleton.renderEmptyState({
+                icon: '🎓',
+                title: 'No Students Found',
+                message: 'No student accounts match the selected search or filter criteria.'
+            });
             return;
         }
         let html = `<table class="table table-hover table-bordered">
@@ -1461,7 +1496,7 @@
         if (search) url += `&search=${encodeURIComponent(search)}`;
 
         const container = document.getElementById("parents-list-container");
-        container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
+        container.innerHTML = MikiSkeleton.renderListSkeleton(4);
 
         try {
             const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
@@ -1471,11 +1506,11 @@
             document.getElementById("parent-count").textContent = `${count} Registered Guardians`;
 
             if (!json.data || !json.data.length) {
-                container.innerHTML = `<div class="text-center text-muted py-5">
-                    <i data-feather="user-x" style="width:48px;height:48px;margin-bottom:15px;opacity:0.2;"></i>
-                    <p>No guardians matched your search</p>
-                </div>`;
-                feather.replace();
+                container.innerHTML = MikiSkeleton.renderEmptyState({
+                    icon: '👨‍👩‍👧',
+                    title: 'No Guardians Found',
+                    message: 'No registered guardians match your query.'
+                });
                 return;
             }
 
@@ -1523,7 +1558,11 @@
             container.innerHTML = html;
             feather.replace();
         } catch (err) {
-            container.innerHTML = `<div class="alert alert-danger">Error loading parents directory</div>`;
+            container.innerHTML = MikiSkeleton.renderErrorState({
+                title: "Error Loading Guardians",
+                message: "Could not load the parents directory. Please check your network and try again.",
+                retryCallback: "loadParents()"
+            });
         }
     }
 

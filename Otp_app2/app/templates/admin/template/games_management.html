@@ -311,7 +311,7 @@
 
     <!-- Tabs -->
     <div class="d-flex gap-2 mb-4">
-        <button class="btn game-tab-btn active" id="tab-wordle" onclick="switchTab('wordle')">🔤 Wordle (Miki Words)</button>
+        <button class="btn game-tab-btn active" id="tab-wordle" onclick="switchTab('wordle')">🔤 Wordle (MIKI Words)</button>
         <button class="btn btn-outline-secondary game-tab-btn" id="tab-squares" onclick="switchTab('squares')">🟦 Squares (MIKI match)</button>
         <button class="btn btn-outline-secondary game-tab-btn" id="tab-puzzle" onclick="switchTab('puzzle')">🧩 Puzzle (MIKI puzzly)</button>
     </div>
@@ -429,7 +429,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius:16px;">
             <div class="modal-header text-white" style="border-radius:16px 16px 0 0; background: #C44ECC;">
-                <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word (Miki Words)</h6><button type="button"
+                <h6 class="modal-title" id="wordle-modal-title">Add Wordle Word (MIKI Words)</h6><button type="button"
                     class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -866,7 +866,15 @@
                 </div>
             `).join("");
 
-            let rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `
+            const CLASS_ORDER = ["1-3", "4-5", "6-8", "9-10", "11-12"];
+            const sortedRanges = Object.entries(d.by_class_range || {}).sort((a, b) => {
+                const ia = CLASS_ORDER.indexOf(a[0]);
+                const ib = CLASS_ORDER.indexOf(b[0]);
+                if (ia !== -1 && ib !== -1) return ia - ib;
+                return a[0].localeCompare(b[0]);
+            });
+
+            let rangeHtml = sortedRanges.map(([r, c]) => `
                 <div class="stat-item">
                     <span class="range-badge">Class ${r}</span>
                     <span class="stat-value">${c}</span>
@@ -909,7 +917,7 @@
             input.value = hints[i] || "";
         });
 
-        document.getElementById("wordle-modal-title").innerText = id ? "Edit Word (Miki Words)" : "Add Word (Miki Words)";
+        document.getElementById("wordle-modal-title").innerText = id ? "Edit Word (MIKI Words)" : "Add Word (MIKI Words)";
         const modal = new bootstrap.Modal(document.getElementById("wordleModal"));
         modal.show();
     }
@@ -1029,7 +1037,15 @@
             const json = await res.json(); if (!json.data) return;
             const d = json.data;
 
-            let rangeHtml = Object.entries(d.by_class_range || {}).map(([r, c]) => `
+            const CLASS_ORDER = ["1-3", "4-5", "6-8", "9-10", "11-12"];
+            const sortedRanges = Object.entries(d.by_class_range || {}).sort((a, b) => {
+                const ia = CLASS_ORDER.indexOf(a[0]);
+                const ib = CLASS_ORDER.indexOf(b[0]);
+                if (ia !== -1 && ib !== -1) return ia - ib;
+                return a[0].localeCompare(b[0]);
+            });
+
+            let rangeHtml = sortedRanges.map(([r, c]) => `
                 <div class="stat-item">
                     <span class="range-badge">Class ${r}</span>
                     <span class="stat-value">${c}</span>

@@ -239,12 +239,19 @@ async def get_wordle_stats(
         if diff_name:
             difficulty_map[diff_name] = item.get("count", 0)
 
+    # Sort class ranges according to natural school progression (1-3, 4-5, 6-8, 9-10, 11-12)
+    raw_range_counts = {item["_id"]: item["count"] for item in by_range if item.get("_id")}
+    ordered_ranges = {cr: raw_range_counts[cr] for cr in CLASS_RANGES if cr in raw_range_counts}
+    for k, v in raw_range_counts.items():
+        if k not in ordered_ranges:
+            ordered_ranges[k] = v
+
     return {
         "status": "success",
         "data": {
             "total_words": total_words,
             "total_sessions": total_sessions,
-            "by_class_range": {item["_id"]: item["count"] for item in by_range if item.get("_id")},
+            "by_class_range": ordered_ranges,
             "by_difficulty": difficulty_map
         }
     }
@@ -409,12 +416,19 @@ async def get_squares_stats(current_admin: dict = Depends(require_permission("Ga
     total_levels = await db.squares_questions.count_documents({})
     total_sessions = await db.squares_sessions.count_documents({})
 
+    # Sort class ranges according to natural school progression (1-3, 4-5, 6-8, 9-10, 11-12)
+    raw_range_counts = {item["_id"]: item["count"] for item in by_range if item.get("_id")}
+    ordered_ranges = {cr: raw_range_counts[cr] for cr in CLASS_RANGES if cr in raw_range_counts}
+    for k, v in raw_range_counts.items():
+        if k not in ordered_ranges:
+            ordered_ranges[k] = v
+
     return {
         "status": "success",
         "data": {
             "total_levels": total_levels,
             "total_sessions": total_sessions,
-            "by_class_range": {item["_id"]: item["count"] for item in by_range}
+            "by_class_range": ordered_ranges
         }
     }
 

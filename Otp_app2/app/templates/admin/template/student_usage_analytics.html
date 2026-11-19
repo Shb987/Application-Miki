@@ -698,8 +698,8 @@
             }
         });
 
-        // 4. Populate Leaderboard Table
-        globalLeaderboardData = data.leaderboard || [];
+        // 4. Populate Leaderboard Table (guarantee descending activity score sort)
+        globalLeaderboardData = (data.leaderboard || []).sort((a, b) => (b.activity_score || 0) - (a.activity_score || 0));
         renderLeaderboardTable(globalLeaderboardData);
     }
 
@@ -723,10 +723,17 @@
             'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
         ];
 
+        // Ensure list is strictly ordered by activity_score descending
+        const sortedList = [...list].sort((a, b) => (b.activity_score || 0) - (a.activity_score || 0));
+
         let html = '';
-        list.forEach((item, index) => {
+        sortedList.forEach((item, index) => {
             const rank = index + 1;
-            const rankHtml = `<span class="rank-badge rank-other">${rank}</span>`;
+            let rankClass = "rank-other";
+            if (rank === 1) rankClass = "rank-1";
+            else if (rank === 2) rankClass = "rank-2";
+            else if (rank === 3) rankClass = "rank-3";
+            const rankHtml = `<span class="rank-badge ${rankClass}">${rank}</span>`;
 
             const initial = (item.name || 'S').charAt(0).toUpperCase();
             const gradient = avatarGradients[index % avatarGradients.length];

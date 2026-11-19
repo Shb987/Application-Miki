@@ -799,9 +799,11 @@ async def get_student_usage_analytics(
         quiz_attempts = await db.quiz_history.count_documents({"created_at": {"$gte": start_date}}) if "quiz_history" in cols else 0
         if quiz_attempts == 0 and "quiz_responses" in cols:
             quiz_attempts = await db.quiz_responses.count_documents({})
+        if quiz_attempts == 0 and "quiz_submissions" in cols:
+            quiz_attempts = await db.quiz_submissions.count_documents({})
 
         exams_generated = await db.generated_papers.count_documents({})
-        todos_created = await db.todos.count_documents({}) if "todos" in cols else 0
+        todos_created = await db.user_todos.count_documents({}) if "user_todos" in cols else (await db.todos.count_documents({}) if "todos" in cols else 0)
         ai_events = await db.ai_usage_logs.count_documents({"timestamp": {"$gte": start_date}}) if "ai_usage_logs" in cols else 0
 
         # 5. Class Distribution Pipeline
@@ -859,16 +861,71 @@ async def get_student_usage_analytics(
                 "active_students": real_active
             })
 
-        # Batch lookup mobile numbers for students from usertable if missing
-        missing_mobile_sids = [s["_id"] for s in student_docs[:50] if not (s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile"))]
-        mobile_map = {}
-        if missing_mobile_sids:
-            sid_str_list = [str(x) for x in missing_mobile_sids]
+        # 7. Top Active Students Leaderboard
+        # Pre-aggregate AI and Todo counts for all students to avoid N+1 queries and evaluate every student
+        ai_map = {}
+        if "ai_usage_logs" in cols:
+            ai_pipe = [
+                {"$match": {"student_id": {"$exists": True, "$ne": None}}},
+                {"$group": {"_id": {"$toString": "$student_id"}, "count": {"$sum": 1}}}
+            ]
+            async for doc in db.ai_usage_logs.aggregate(ai_pipe):
+                ai_map[str(doc["_id"])] = doc.get("count", 0)
+
+        todo_col = "user_todos" if "user_todos" in cols else ("todos" if "todos" in cols else None)
+        todo_map = {}
+        if todo_col:
+            todo_pipe = [
+                {"$match": {"student_id": {"$exists": True, "$ne": None}}},
+                {"$group": {"_id": {"$toString": "$student_id"}, "count": {"$sum": 1}}}
+            ]
+            async for doc in db[todo_col].aggregate(todo_pipe):
+                todo_map[str(doc["_id"])] = doc.get("count", 0)
+
+        leaderboard = []
+        for s in student_docs:
+            s_id = str(s["_id"])
+            s_name = s.get("student_name") or s.get("name") or s.get("full_name") or "Student"
+            s_mobile = s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile") or "N/A"
+            s_std = str(s.get("student_class") or s.get("standard") or s.get("class") or s.get("class_name") or s.get("grade") or "N/A")
+            s_board = str(s.get("syllabus") or s.get("board") or "SCERT")
+
+            s_ai_count = ai_map.get(s_id, 0)
+            s_todo_count = todo_map.get(s_id, 0)
+
+            score = (s_ai_count * 3) + (s_todo_count * 2) + 5
+
+            leaderboard.append({
+                "student_id": s_id,
+                "student_oid": s["_id"],
+                "name": s_name,
+                "mobile": s_mobile,
+                "standard": s_std,
+                "board": s_board,
+                "activity_score": score,
+                "ai_chats": s_ai_count,
+                "todos": s_todo_count,
+                "status": "Active" if (s_ai_count > 0 or s_todo_count > 0) else "Inactive"
+            })
+
+        # Sort the entire list strictly by activity_score descending
+        leaderboard.sort(key=lambda x: (x["activity_score"], x["ai_chats"], x["todos"]), reverse=True)
+
+        total_active_30d = max(active_login_count, len([s for s in leaderboard if s["status"] == "Active"]))
+
+        # Take top 50 active students for the leaderboard
+        top_leaderboard = leaderboard[:50]
+
+        # Lookup missing mobile numbers for the top active students from usertable
+        missing_sids = [item["student_oid"] for item in top_leaderboard if item["mobile"] == "N/A"]
+        if missing_sids:
+            sid_str_list = [str(x) for x in missing_sids]
+            mobile_map = {}
             u_cursor = db.usertable.find({
                 "$or": [
-                    {"student_ids": {"$in": missing_mobile_sids}},
+                    {"student_ids": {"$in": missing_sids}},
                     {"student_ids": {"$in": sid_str_list}},
-                    {"student_id": {"$in": missing_mobile_sids}},
+                    {"student_id": {"$in": missing_sids}},
                     {"student_id": {"$in": sid_str_list}}
                 ]
             })
@@ -882,40 +939,20 @@ async def get_student_usage_analytics(
                         st_ids.append(u.get("student_id"))
                     for st_id in st_ids:
                         mobile_map[str(st_id)] = m_num
+            for item in top_leaderboard:
+                if item["mobile"] == "N/A" and item["student_id"] in mobile_map:
+                    item["mobile"] = mobile_map[item["student_id"]]
 
-        # 7. Top Active Students Leaderboard
-        leaderboard = []
-        for s in student_docs[:50]:
-            s_id = str(s["_id"])
-            s_name = s.get("student_name") or s.get("name") or s.get("full_name") or "Student"
-            s_mobile = s.get("mobile_number") or s.get("phone") or s.get("mobile") or s.get("parent_mobile") or mobile_map.get(s_id) or "N/A"
-            s_std = str(s.get("student_class") or s.get("standard") or s.get("class") or s.get("class_name") or s.get("grade") or "N/A")
-            s_board = str(s.get("syllabus") or s.get("board") or "SCERT")
-            
-            s_ai_count = await db.ai_usage_logs.count_documents({"student_id": s_id}) if "ai_usage_logs" in cols else 0
-            s_todo_count = await db.todos.count_documents({"student_id": s_id}) if "todos" in cols else 0
-            
-            score = (s_ai_count * 3) + (s_todo_count * 2) + 5
-            
-            leaderboard.append({
-                "student_id": s_id,
-                "name": s_name,
-                "mobile": s_mobile,
-                "standard": s_std,
-                "board": s_board,
-                "activity_score": score,
-                "ai_chats": s_ai_count,
-                "todos": s_todo_count,
-                "status": "Active" if score >= 5 else "Inactive"
-            })
-            
-        leaderboard.sort(key=lambda x: x["activity_score"], reverse=True)
+        for item in top_leaderboard:
+            item.pop("student_oid", None)
+
+        leaderboard = top_leaderboard
 
         return {
             "status": "success",
             "data": {
                 "total_students": total_students,
-                "active_students_30d": max(active_login_count, len([s for s in leaderboard if s["status"] == "Active"])),
+                "active_students_30d": total_active_30d,
                 "quiz_attempts": quiz_attempts,
                 "exams_generated": exams_generated,
                 "todos_created": todos_created,

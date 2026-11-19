@@ -43,6 +43,7 @@
   <!-- Responsive css-->
   <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
   <link rel="stylesheet" type="text/css" href="/assets/css/miki-skeleton.css">
+  <script src="/assets/js/miki-skeleton.js"></script>
   <style>
     .paper-card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -812,6 +813,9 @@
           }
         } catch (err) {
           alert("Error loading papers: " + err.message);
+        } finally {
+          if (window.MikiSkeleton) window.MikiSkeleton.hidePageLoader();
+          if (window.revealSidebarMenu) window.revealSidebarMenu();
         }
       }
 
@@ -830,16 +834,13 @@
 
       // Initialize
       loadStandardsForFilter();
+      if (window.revealSidebarMenu) window.revealSidebarMenu();
 
       // Expose functions globally
       window.loadGeneratedFiltered = loadGeneratedFiltered;
       window.deletePaper = deletePaper;
     });
   </script>
-
-  <!-- MIKI Reusable Skeleton Loader System -->
-  <script src="/assets/js/miki-skeleton.js"></script>
-
 </body>
 
 </html>

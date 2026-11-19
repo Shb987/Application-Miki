@@ -309,14 +309,14 @@
         hidePageLoader: function () {
             const loaders = document.querySelectorAll('.loader-wrapper');
             loaders.forEach(l => {
-                l.style.transition = 'opacity 0.35s ease, visibility 0.35s ease';
+                l.style.transition = 'opacity 0.15s ease, visibility 0.15s ease';
                 l.style.opacity = '0';
                 setTimeout(() => {
                     if (l && l.parentNode) {
                         l.style.display = 'none';
                         l.parentNode.removeChild(l);
                     }
-                }, 350);
+                }, 150);
             });
             this.hideProgressBar();
             this.revealSidebar();
@@ -483,21 +483,33 @@
     // Attach to global window object
     window.MikiSkeleton = MikiSkeleton;
 
-    // Initialize module transitions on DOM ready
+    function triggerFastReveal() {
+        if (window.MikiSkeleton) {
+            window.MikiSkeleton.hidePageLoader();
+            window.MikiSkeleton.revealSidebar();
+        }
+        if (window.revealSidebarMenu) {
+            window.revealSidebarMenu();
+        }
+    }
+
+    // Initialize module transitions and trigger fast reveal on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
             MikiSkeleton.initModuleTransitions();
+            setTimeout(triggerFastReveal, 40);
         });
     } else {
         MikiSkeleton.initModuleTransitions();
+        setTimeout(triggerFastReveal, 40);
     }
 
-    // Automatically hide page loader & reveal sidebar on full load
+    // Backup on window load
     window.addEventListener('load', function () {
-        setTimeout(function () {
-            MikiSkeleton.hidePageLoader();
-            MikiSkeleton.revealSidebar();
-        }, 80);
+        triggerFastReveal();
     });
+
+    // Failsafe timer: ensure loaders fade out quickly (max 150ms)
+    setTimeout(triggerFastReveal, 150);
 
 })(window, document);

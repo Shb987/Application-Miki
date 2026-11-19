@@ -25,6 +25,17 @@
   </div>
 
   <nav class="sidebar-main">
+    <script>
+      (function() {
+        var token = localStorage.getItem("admin_token");
+        var perms = localStorage.getItem("admin_permissions");
+        var isSuper = localStorage.getItem("admin_is_superadmin") === "true";
+        if (token && (perms || isSuper)) {
+          // Fast-path: reveal sidebar immediately without delay or skeleton flicker
+          document.write('<style>#sidebar-skeleton{display:none !important;}#sidebar-menu{display:block !important;opacity:1 !important;}</style>');
+        }
+      })();
+    </script>
     <!-- Sidebar Skeleton Loader (Visible during initial sidebar/permission load) -->
     <div id="sidebar-skeleton" class="sidebar-skeleton-container" aria-hidden="true">
       <div class="sidebar-skeleton-inner">
@@ -494,15 +505,39 @@
   window.highlightActiveSidebar = highlightActiveSidebar;
   window.loadSidebarCompetitiveCategories = function() {};
 
+  window.revealSidebarMenu = function() {
+    var skeleton = document.getElementById("sidebar-skeleton");
+    var menu = document.getElementById("sidebar-menu");
+    if (skeleton) {
+      skeleton.style.display = "none";
+    }
+    if (menu) {
+      menu.style.display = "block";
+      menu.style.opacity = "1";
+    }
+    if (window.highlightActiveSidebar) {
+      try { window.highlightActiveSidebar(); } catch(e) {}
+    }
+  };
+
+  // Immediate check: if authenticated, reveal sidebar immediately
+  if (localStorage.getItem("admin_token")) {
+    window.revealSidebarMenu();
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
-    highlightActiveSidebar();
     if (window.revealSidebarMenu) window.revealSidebarMenu();
+    highlightActiveSidebar();
   });
 
   window.addEventListener("load", function () {
-    highlightActiveSidebar();
     if (window.revealSidebarMenu) window.revealSidebarMenu();
+    highlightActiveSidebar();
   });
+
+  setTimeout(function() {
+    if (window.revealSidebarMenu) window.revealSidebarMenu();
+  }, 50);
 
   window.addEventListener("popstate", function () {
     highlightActiveSidebar();

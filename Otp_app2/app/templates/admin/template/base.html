@@ -1458,19 +1458,26 @@
                 syncSidebarState();
             }
             window.addEventListener('load', syncSidebarState);
-            // Safety fallback: ensure loader overlay fades out cleanly even if third-party scripts delay
-            window.addEventListener('load', function() {
-                setTimeout(function() {
-                    var l = document.querySelector('.loader-wrapper');
-                    if (l) {
-                        l.style.transition = 'opacity 0.4s ease';
-                        l.style.opacity = '0';
-                        setTimeout(function() {
-                            if (l && l.parentNode) l.parentNode.removeChild(l);
-                        }, 400);
-                    }
-                }, 400);
-            });
+            // Fast fade out for page loader overlay on DOMContentLoaded or fallback
+            function fadeOutPageLoader() {
+                var l = document.querySelector('.loader-wrapper');
+                if (l) {
+                    l.style.transition = 'opacity 0.15s ease';
+                    l.style.opacity = '0';
+                    setTimeout(function() {
+                        if (l && l.parentNode) l.parentNode.removeChild(l);
+                    }, 150);
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(fadeOutPageLoader, 50);
+                });
+            } else {
+                setTimeout(fadeOutPageLoader, 50);
+            }
+            window.addEventListener('load', fadeOutPageLoader);
+            setTimeout(fadeOutPageLoader, 200);
         })();
     </script>
 

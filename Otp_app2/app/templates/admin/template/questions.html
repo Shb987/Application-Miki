@@ -41,6 +41,7 @@
   <!-- Responsive css-->
   <link rel="stylesheet" type="text/css" href="/assets/css/responsive.css">
   <link rel="stylesheet" type="text/css" href="/assets/css/miki-skeleton.css">
+  <script src="/assets/js/miki-skeleton.js"></script>
   <script>
     (function() {
       var savedMode = localStorage.getItem("mode") || localStorage.getItem("dark");
@@ -1441,7 +1442,10 @@
             "menu-social-media": "Social Content & Contributors",
             "menu-roles": "Roles & Permissions"
         };
-        if (data.is_superadmin) return;
+        if (data.is_superadmin) {
+            if (window.revealSidebarMenu) window.revealSidebarMenu();
+            return;
+        }
         
         const perms = data.permissions || {};
         let css = '';
@@ -1460,6 +1464,10 @@
                 document.head.appendChild(style);
             }
             style.innerHTML = css;
+        }
+
+        if (window.revealSidebarMenu) {
+            window.revealSidebarMenu();
         }
     }
 
@@ -2014,10 +2022,11 @@
     updateTypeFilterCounts();
     applyQuestionFilters();
 
-  </script>
+    // Fast reveal page & sidebar: questions are already rendered server-side
+    if (window.MikiSkeleton) window.MikiSkeleton.hidePageLoader();
+    if (window.revealSidebarMenu) window.revealSidebarMenu();
 
-  <!-- MIKI Reusable Skeleton Loader System -->
-  <script src="/assets/js/miki-skeleton.js"></script>
+  </script>
 </body>
 
 </html>

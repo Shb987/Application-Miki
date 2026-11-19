@@ -193,6 +193,35 @@
     ul.sidebar-submenu li.active::before {
       background: rgba(255, 255, 255, 0.9) !important;
     }
+  
+/* Explicit dark-mode continuous trunk safeguard ensuring last child connects seamlessly */
+body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:last-child::after,
+body.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:last-child::after,
+body.dark-only ul.sidebar-submenu li:last-child::after,
+.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:last-child::after,
+.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:last-child::after,
+.dark-only ul.sidebar-submenu li:last-child::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 10px !important;
+  width: 2px !important;
+  top: 0 !important;
+  bottom: auto !important;
+  height: 50% !important;
+  background: rgba(255, 255, 255, 0.45) !important;
+  display: block !important;
+  z-index: 1 !important;
+}
+
+body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:only-child::after,
+body.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:only-child::after,
+body.dark-only ul.sidebar-submenu li:only-child::after,
+.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:only-child::after,
+.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:only-child::after,
+.dark-only ul.sidebar-submenu li:only-child::after {
+  display: none !important;
+}
+
   </style>
   <div class="logo-wrapper">
     <a href="/admin-panel/user-management-page" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">

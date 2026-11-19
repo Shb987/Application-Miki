@@ -940,15 +940,51 @@
             content: none !important;
             display: none !important;
         }
-        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before {
-            border-left-color: rgba(255, 255, 255, 0.4) !important;
-            border-bottom-color: rgba(255, 255, 255, 0.4) !important;
+        /* Solid Connected Branches in Dark Mode - Continuous Trunk to Last Child */
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before,
+        body.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li::before,
+        body.dark-only ul.sidebar-submenu li::before {
+            background: rgba(255, 255, 255, 0.45) !important;
+            border: none !important;
+            display: block !important;
         }
-        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:not(:last-child)::after {
-            background: rgba(255, 255, 255, 0.4) !important;
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::after,
+        body.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li::after,
+        body.dark-only ul.sidebar-submenu li::after {
+            background: rgba(255, 255, 255, 0.45) !important;
+            display: block !important;
         }
-        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:last-child::after {
-            content: none !important;
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:first-child::after,
+        body.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:first-child::after,
+        body.dark-only ul.sidebar-submenu li:first-child::after {
+            top: 50% !important;
+            bottom: 0 !important;
+            height: auto !important;
+        }
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:not(:first-child):not(:last-child)::after,
+        body.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:not(:first-child):not(:last-child)::after,
+        body.dark-only ul.sidebar-submenu li:not(:first-child):not(:last-child)::after {
+            top: 0 !important;
+            bottom: 0 !important;
+            height: auto !important;
+        }
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:last-child::after,
+        body.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:last-child::after,
+        body.dark-only ul.sidebar-submenu li:last-child::after {
+            content: "" !important;
+            position: absolute !important;
+            left: 10px !important;
+            width: 2px !important;
+            top: 0 !important;
+            bottom: auto !important;
+            height: 50% !important;
+            background: rgba(255, 255, 255, 0.45) !important;
+            display: block !important;
+            z-index: 1 !important;
+        }
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:only-child::after,
+        body.dark-only .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:only-child::after,
+        body.dark-only ul.sidebar-submenu li:only-child::after {
             display: none !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a::before {

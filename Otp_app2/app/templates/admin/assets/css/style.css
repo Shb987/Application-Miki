@@ -49842,3 +49842,36 @@ body.dark-only .page-header {
 body.dark-only .page-header .header-wrapper {
   background-color: #16171d !important;
 }
+
+/* ========================================================
+   ADMIN PROFILE AVATAR & CUSTOMIZER FIXES
+   ======================================================== */
+.profile-media img,
+.profile-nav img,
+.admin-avatar-img,
+.media.profile-media img {
+  width: 38px !important;
+  height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 2px solid #C44ECC !important;
+  flex-shrink: 0 !important;
+  display: inline-block !important;
+}
+
+/* Hide floating side template customizer widget (settings, bookmark, cart, like) completely */
+.customizer-links,
+.customizer-contain,
+.theme-customizer {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+

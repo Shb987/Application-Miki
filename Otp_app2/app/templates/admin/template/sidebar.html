@@ -1,11 +1,12 @@
 <div class="sidebar-wrapper" data-layout="stroke-svg">
   <style id="miki-sidebar-branch-style">
     /* ==========================================================================
-       MIKI Sidebar Connected Tree Hierarchy with Curved Branch Connectors
-       - Connects parent menu cleanly into child items
-       - Each item has a smooth curved horizontal branch connector leading to bullet dot
-       - Zero trailing line below the last item (Naturalist, Parents, etc.)
-       - Overrides Cuba template high-specificity rules to prevent text ellipsis
+       MIKI Sidebar Connected Tree Hierarchy with Pixel-Perfect Solid Branches
+       - Continuous 2px vertical trunk with zero stepping/subpixel misalignment
+       - Clean branch connectors (├── and └──) to bullet dots
+       - ZERO line poking above the first item (Verbal-Linguistic) into parent pill
+       - ZERO trailing line extending below the last item (Naturalist)
+       - Zero-flicker stable layout on navigation and dropdown clicks
        ========================================================================== */
     .sidebar-wrapper .sidebar-main .sidebar-links {
       padding-bottom: 120px !important;
@@ -15,10 +16,16 @@
     .sidebar-wrapper .sidebar-main ul.sidebar-submenu,
     ul.sidebar-submenu {
       position: relative !important;
-      padding: 2px 0 6px 0 !important;
+      padding: 4px 0 6px 0 !important;
       margin: 2px 0 6px 14px !important;
       background: transparent !important;
       border: none !important;
+    }
+
+    /* Ensure active submenu stays open with zero layout shift or flicker */
+    .sidebar-list.active > .sidebar-submenu,
+    .sidebar-submenu.menu-open {
+      display: block !important;
     }
 
     /* Completely disable Cuba's disconnected single vertical line */
@@ -36,27 +43,24 @@
     .sidebar-wrapper .sidebar-main ul.sidebar-submenu li,
     ul.sidebar-submenu li {
       position: relative !important;
-      padding: 4px 0 !important;
+      padding: 3px 0 !important;
       margin: 0 !important;
       list-style: none !important;
     }
 
-    /* Smooth Curved branch: vertical stem turning 90deg into horizontal connector leading to bullet dot */
+    /* 1. SOLID HORIZONTAL BRANCH (Connecting trunk at left: 10px to bullet dot at left: 20px) */
     .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before,
     .sidebar-wrapper .sidebar-main ul.sidebar-submenu li::before,
     ul.sidebar-submenu li::before {
       content: "" !important;
       position: absolute !important;
-      left: 8px !important;
-      top: -4px !important;
-      width: 14px !important;
-      height: calc(50% + 4px) !important;
-      border-left: 1.5px solid rgba(255, 255, 255, 0.45) !important;
-      border-bottom: 1.5px solid rgba(255, 255, 255, 0.45) !important;
-      border-bottom-left-radius: 7px !important;
-      border-top: none !important;
-      border-right: none !important;
-      background: transparent !important;
+      left: 10px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 12px !important;
+      height: 2px !important;
+      background: rgba(255, 255, 255, 0.45) !important;
+      border: none !important;
       display: block !important;
       opacity: 1 !important;
       visibility: visible !important;
@@ -64,30 +68,54 @@
       z-index: 2 !important;
     }
 
-    /* Vertical continuation line to next sibling - ONLY for non-last children */
-    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:not(:last-child)::after,
-    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:not(:last-child)::after,
-    ul.sidebar-submenu li:not(:last-child)::after {
+    /* 2. SOLID VERTICAL TRUNK (All vertical lines share left: 10px, width: 2px, background for 100% straight trunk) */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::after,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li::after,
+    ul.sidebar-submenu li::after {
       content: "" !important;
       position: absolute !important;
-      left: 8px !important;
-      top: 50% !important;
-      bottom: -4px !important;
-      width: 1.5px !important;
+      left: 10px !important;
+      width: 2px !important;
       background: rgba(255, 255, 255, 0.45) !important;
       display: block !important;
       z-index: 1 !important;
     }
 
-    /* Ensure last child has ZERO trailing line extending below */
+    /* A) First Child: Trunk starts AT top: 50% and goes down (ZERO line poking above into parent pill!) */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:first-child::after,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:first-child::after,
+    ul.sidebar-submenu li:first-child::after {
+      top: 50% !important;
+      bottom: 0 !important;
+      height: auto !important;
+    }
+
+    /* B) Middle Children: Full-height vertical line from top: 0 to bottom: 0 */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:not(:first-child):not(:last-child)::after,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:not(:first-child):not(:last-child)::after,
+    ul.sidebar-submenu li:not(:first-child):not(:last-child)::after {
+      top: 0 !important;
+      bottom: 0 !important;
+      height: auto !important;
+    }
+
+    /* C) Last Child: Trunk comes from top: 0 and STOPS at top: 50% (ZERO line extending below last child!) */
     .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:last-child::after,
     .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:last-child::after,
     ul.sidebar-submenu li:last-child::after {
-      content: none !important;
+      top: 0 !important;
+      bottom: auto !important;
+      height: 50% !important;
+    }
+
+    /* D) Single child corner case (if a menu only has 1 child) */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:only-child::after,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:only-child::after,
+    ul.sidebar-submenu li:only-child::after {
       display: none !important;
     }
 
-    /* Solid Circular Node Dot positioned right at the tip of the curved branch */
+    /* 3. SOLID CIRCULAR NODE DOT AT THE TIP OF EACH BRANCH */
     .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a::before,
     .sidebar-wrapper .sidebar-main ul.sidebar-submenu li a::before,
     .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu li a::before,
@@ -106,7 +134,7 @@
       transition: all 0.2s ease !important;
     }
 
-    /* Submenu links with sufficient indentation and NO ellipsis truncation */
+    /* 4. SUBMENU LINKS (Sufficient padding, no ellipsis truncation, smooth active highlight) */
     .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a,
     .sidebar-wrapper .sidebar-main ul.sidebar-submenu li a,
     .sidebar-wrapper .sidebar-main .sidebar-links .simplebar-content > li .sidebar-submenu li a,
@@ -125,7 +153,7 @@
       overflow: visible !important;
       line-height: 1.35 !important;
       background: transparent !important;
-      transition: all 0.2s ease !important;
+      transition: color 0.15s ease !important;
     }
 
     .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a:hover,
@@ -134,7 +162,6 @@
     .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu li a:hover,
     ul.sidebar-submenu li a:hover {
       color: #ffffff !important;
-      transform: translateX(2px) !important;
     }
 
     /* Active submenu link highlighting */
@@ -154,16 +181,17 @@
       background: #ffffff !important;
       width: 8px !important;
       height: 8px !important;
+      left: 19px !important;
       box-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 14px rgba(255, 255, 255, 0.6) !important;
     }
 
     .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::before,
-    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::before,
     .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:has(a.active)::before,
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::before,
     .sidebar-wrapper .sidebar-main ul.sidebar-submenu li.active::before,
     ul.sidebar-submenu li:has(a.active)::before,
     ul.sidebar-submenu li.active::before {
-      border-color: rgba(255, 255, 255, 0.9) !important;
+      background: rgba(255, 255, 255, 0.9) !important;
     }
   </style>
   <div class="logo-wrapper">
@@ -197,9 +225,24 @@
         var token = localStorage.getItem("admin_token");
         var perms = localStorage.getItem("admin_permissions");
         var isSuper = localStorage.getItem("admin_is_superadmin") === "true";
+        var path = window.location.pathname;
+        var activeRule = '';
+        if (path.indexOf("/admin-panel/questions") !== -1) {
+          activeRule = '#menu-questions { display: block !important; } #menu-questions > .sidebar-submenu { display: block !important; }';
+        } else if (path.indexOf("/admin-panel/user-management") !== -1) {
+          activeRule = '#menu-user-management { display: block !important; } #menu-user-management > .sidebar-submenu { display: block !important; }';
+        } else if (path.indexOf("/admin-panel/manage-plans") !== -1 || path.indexOf("/admin-panel/transaction-history") !== -1) {
+          activeRule = '#menu-subscriptions { display: block !important; } #menu-subscriptions > .sidebar-submenu { display: block !important; }';
+        } else if (path.indexOf("/admin-panel/manage-schools") !== -1) {
+          activeRule = '#menu-schools { display: block !important; } #menu-schools > .sidebar-submenu { display: block !important; }';
+        } else if (path.indexOf("/admin-panel/games") !== -1) {
+          activeRule = '#menu-games { display: block !important; } #menu-games > .sidebar-submenu { display: block !important; }';
+        }
         if (token && (perms || isSuper)) {
           // Fast-path: reveal sidebar immediately without delay or skeleton flicker
-          document.write('<style>#sidebar-skeleton{display:none !important;}#sidebar-menu{display:block !important;opacity:1 !important;}</style>');
+          document.write('<style>#sidebar-skeleton{display:none !important;}#sidebar-menu{display:block !important;opacity:1 !important;}' + activeRule + '</style>');
+        } else if (activeRule) {
+          document.write('<style>' + activeRule + '</style>');
         }
       })();
     </script>
@@ -618,27 +661,19 @@
   </svg>
 </div>
 
-<!-- Corrected Active Menu Script with Query Param & Popstate Support -->
+<!-- Corrected Active Menu Script with Query Param & Popstate Support (Zero-Flicker) -->
 <script>
   function highlightActiveSidebar() {
     const currentUrl = new URL(window.location.href);
     const currentPath = currentUrl.pathname;
     const currentSearch = currentUrl.search;
 
-    // Reset existing active states
-    document.querySelectorAll(".sidebar-submenu a").forEach(link => link.classList.remove("active"));
-    document.querySelectorAll(".sidebar-list").forEach(item => item.classList.remove("active"));
-    document.querySelectorAll(".sidebar-submenu").forEach(sub => {
-      sub.classList.remove("menu-open");
-      sub.style.display = "none";
-    });
-
     let exactMatch = null;
     let fallbackMatch = null;
 
     document.querySelectorAll(".sidebar-submenu a").forEach(link => {
       try {
-        const linkUrl = new URL(link.href);
+        const linkUrl = new URL(link.href, window.location.origin);
         if (linkUrl.pathname === currentPath) {
           if (linkUrl.search && linkUrl.search === currentSearch) {
             exactMatch = link;
@@ -653,19 +688,41 @@
 
     const targetLink = exactMatch || fallbackMatch;
     if (targetLink) {
+      const activeParentMenu = targetLink.closest(".sidebar-list");
+      const activeSubmenu = activeParentMenu ? activeParentMenu.querySelector(".sidebar-submenu") : null;
+
+      // Mark the target link active
+      document.querySelectorAll(".sidebar-submenu a.active").forEach(l => {
+        if (l !== targetLink) l.classList.remove("active");
+      });
       targetLink.classList.add("active");
+
       if (targetLink.parentElement) {
         targetLink.parentElement.classList.add("active");
       }
-      const parentMenu = targetLink.closest(".sidebar-list");
-      if (parentMenu) {
-        parentMenu.classList.add("active");
-        const submenu = parentMenu.querySelector(".sidebar-submenu");
-        if (submenu) {
-          submenu.classList.add("menu-open");
-          submenu.style.display = "block";
-        }
+
+      // Keep active menu open without collapsing or flickering
+      if (activeParentMenu) {
+        document.querySelectorAll(".sidebar-list.active").forEach(m => {
+          if (m !== activeParentMenu) m.classList.remove("active");
+        });
+        activeParentMenu.classList.add("active");
+        const titleLink = activeParentMenu.querySelector(".sidebar-link.sidebar-title");
+        if (titleLink) titleLink.classList.add("active");
       }
+
+      if (activeSubmenu) {
+        activeSubmenu.classList.add("menu-open");
+        activeSubmenu.style.display = "block";
+      }
+
+      // Close only other submenus
+      document.querySelectorAll(".sidebar-submenu").forEach(sub => {
+        if (sub !== activeSubmenu && !sub.classList.contains("user-opened")) {
+          sub.classList.remove("menu-open");
+          sub.style.display = "none";
+        }
+      });
     }
   }
 
@@ -687,7 +744,7 @@
     }
   };
 
-  // Immediate check: if authenticated, reveal sidebar immediately
+  // Fast-reveal if authenticated
   if (localStorage.getItem("admin_token")) {
     window.revealSidebarMenu();
   }
@@ -696,15 +753,6 @@
     if (window.revealSidebarMenu) window.revealSidebarMenu();
     highlightActiveSidebar();
   });
-
-  window.addEventListener("load", function () {
-    if (window.revealSidebarMenu) window.revealSidebarMenu();
-    highlightActiveSidebar();
-  });
-
-  setTimeout(function() {
-    if (window.revealSidebarMenu) window.revealSidebarMenu();
-  }, 50);
 
   window.addEventListener("popstate", function () {
     highlightActiveSidebar();

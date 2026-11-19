@@ -516,7 +516,18 @@
         <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
           <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
             <div class="d-flex align-items-center gap-2 ">
-              <h4 class="f-w-600">Welcome <span id="admin-name">Loading...</span></h4>
+              <h4 class="f-w-600">Welcome <span id="admin-name">Admin</span></h4>
+              <script>
+                (function() {
+                  try {
+                    var u = localStorage.getItem("admin_username");
+                    if (u) {
+                      var el = document.getElementById("admin-name");
+                      if (el) el.textContent = u;
+                    }
+                  } catch(e) {}
+                })();
+              </script>
               <img class="mt-0" src="/assets/images/hand.gif" alt="hand-gif">
             </div>
           </div>
@@ -835,79 +846,6 @@
 
       <!-- Page Body -->
       <div class="page-body" style="position: relative;">
-        <!-- Reusable MIKI Questions Skeleton Loader starts (Scoped to main content only) -->
-        <div class="loader-wrapper" id="mikiPageLoader">
-          <div class="miki-skeleton-container" style="max-width: 1400px; margin: 0 auto; width: 100%;">
-            <!-- Top Header & Status Pill -->
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-              <div class="d-flex flex-column gap-2">
-                <div class="miki-skeleton-bar" style="width: 280px; height: 28px; border-radius: 8px;"></div>
-                <div class="miki-skeleton-bar" style="width: 380px; height: 14px; border-radius: 6px;"></div>
-              </div>
-              <div class="miki-skeleton-status-pill">
-                <span class="miki-spinner-ring"></span>
-                <span>Loading Questions Data...</span>
-              </div>
-            </div>
-
-            <!-- Add Question Form Skeleton Card -->
-            <div class="miki-skeleton-card p-4 mb-4">
-              <div class="miki-skeleton-bar mb-3" style="width: 180px; height: 22px; border-radius: 6px;"></div>
-              <div class="row g-3">
-                <div class="col-md-4">
-                  <div class="miki-skeleton-bar" style="width: 100%; height: 38px; border-radius: 8px;"></div>
-                </div>
-                <div class="col-md-8">
-                  <div class="miki-skeleton-bar" style="width: 100%; height: 38px; border-radius: 8px;"></div>
-                </div>
-                <div class="col-md-6">
-                  <div class="miki-skeleton-bar" style="width: 100%; height: 38px; border-radius: 8px;"></div>
-                </div>
-                <div class="col-md-6">
-                  <div class="miki-skeleton-bar" style="width: 100%; height: 38px; border-radius: 8px;"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Questions List Skeleton Card -->
-            <div class="miki-skeleton-card p-4">
-              <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-light">
-                <div class="miki-skeleton-bar" style="width: 200px; height: 24px; border-radius: 6px;"></div>
-                <div class="miki-skeleton-bar" style="width: 140px; height: 32px; border-radius: 16px;"></div>
-              </div>
-              <!-- Question Cards Skeletons -->
-              <div class="d-flex flex-column gap-3">
-                <div class="p-3 border rounded-3 bg-light">
-                  <div class="miki-skeleton-bar mb-2" style="width: 75%; height: 18px;"></div>
-                  <div class="row g-2 mb-2">
-                    <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 32px; border-radius: 8px;"></div></div>
-                    <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 32px; border-radius: 8px;"></div></div>
-                    <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 32px; border-radius: 8px;"></div></div>
-                    <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 32px; border-radius: 8px;"></div></div>
-                  </div>
-                  <div class="d-flex gap-2">
-                    <div class="miki-skeleton-bar" style="width: 90px; height: 20px; border-radius: 10px;"></div>
-                    <div class="miki-skeleton-bar" style="width: 70px; height: 20px; border-radius: 10px;"></div>
-                  </div>
-                </div>
-                <div class="p-3 border rounded-3 bg-light">
-                  <div class="miki-skeleton-bar mb-2" style="width: 65%; height: 18px;"></div>
-                  <div class="row g-2 mb-2">
-                    <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 32px; border-radius: 8px;"></div></div>
-                    <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 32px; border-radius: 8px;"></div></div>
-                    <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 32px; border-radius: 8px;"></div></div>
-                    <div class="col-6 col-sm-3"><div class="miki-skeleton-bar" style="width: 100%; height: 32px; border-radius: 8px;"></div></div>
-                  </div>
-                  <div class="d-flex gap-2">
-                    <div class="miki-skeleton-bar" style="width: 90px; height: 20px; border-radius: 10px;"></div>
-                    <div class="miki-skeleton-bar" style="width: 70px; height: 20px; border-radius: 10px;"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Reusable MIKI Questions Skeleton Loader ends -->
         <div class="container-fluid">
 
           <!-- Title & Breadcrumb -->
@@ -1347,21 +1285,6 @@
   <script src="/assets/js/slick/slick.min.js"></script>
   <script src="/assets/js/slick/slick.js"></script>
   <script src="/assets/js/header-slick.js"></script>
-  <script src="/assets/js/chart/apex-chart/apex-chart.js"></script>
-  <script src="/assets/js/chart/apex-chart/stock-prices.js"></script>
-  <script src="/assets/js/chart/apex-chart/moment.min.js"></script>
-  <script src="/assets/js/chart/echart/config.js"></script>
-  <script src="/assets/js/chart/echart/pie-chart/facePrint.js"></script>
-  <script src="/assets/js/chart/echart/pie-chart/testHelper.js"></script>
-  <script src="/assets/js/chart/echart/pie-chart/custom-transition-texture.js"></script>
-  <script src="/assets/js/chart/echart/data/symbols.js"></script>
-
-  <!-- calendar js-->
-  <script src="/assets/js/datepicker/date-picker/datepicker.js"></script>
-  <script src="/assets/js/datepicker/date-picker/datepicker.en.js"></script>
-  <script src="/assets/js/datepicker/date-picker/datepicker.custom.js"></script>
-
-  <script src="/assets/js/dashboard/dashboard_3.js"></script>
   <!-- Plugins JS Ends-->
 
   <!-- Theme js-->

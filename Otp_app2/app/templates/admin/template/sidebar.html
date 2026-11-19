@@ -1,4 +1,171 @@
 <div class="sidebar-wrapper" data-layout="stroke-svg">
+  <style id="miki-sidebar-branch-style">
+    /* ==========================================================================
+       MIKI Sidebar Connected Tree Hierarchy with Curved Branch Connectors
+       - Connects parent menu cleanly into child items
+       - Each item has a smooth curved horizontal branch connector leading to bullet dot
+       - Zero trailing line below the last item (Naturalist, Parents, etc.)
+       - Overrides Cuba template high-specificity rules to prevent text ellipsis
+       ========================================================================== */
+    .sidebar-wrapper .sidebar-main .sidebar-links {
+      padding-bottom: 120px !important;
+    }
+
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu,
+    ul.sidebar-submenu {
+      position: relative !important;
+      padding: 2px 0 6px 0 !important;
+      margin: 2px 0 6px 14px !important;
+      background: transparent !important;
+      border: none !important;
+    }
+
+    /* Completely disable Cuba's disconnected single vertical line */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu::before,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-link.active ~ .sidebar-submenu::before,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu::before,
+    ul.sidebar-submenu::before {
+      content: none !important;
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li,
+    ul.sidebar-submenu li {
+      position: relative !important;
+      padding: 4px 0 !important;
+      margin: 0 !important;
+      list-style: none !important;
+    }
+
+    /* Smooth Curved branch: vertical stem turning 90deg into horizontal connector leading to bullet dot */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li::before,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li::before,
+    ul.sidebar-submenu li::before {
+      content: "" !important;
+      position: absolute !important;
+      left: 8px !important;
+      top: -4px !important;
+      width: 14px !important;
+      height: calc(50% + 4px) !important;
+      border-left: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+      border-bottom: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+      border-bottom-left-radius: 7px !important;
+      border-top: none !important;
+      border-right: none !important;
+      background: transparent !important;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      box-sizing: border-box !important;
+      z-index: 2 !important;
+    }
+
+    /* Vertical continuation line to next sibling - ONLY for non-last children */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:not(:last-child)::after,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:not(:last-child)::after,
+    ul.sidebar-submenu li:not(:last-child)::after {
+      content: "" !important;
+      position: absolute !important;
+      left: 8px !important;
+      top: 50% !important;
+      bottom: -4px !important;
+      width: 1.5px !important;
+      background: rgba(255, 255, 255, 0.45) !important;
+      display: block !important;
+      z-index: 1 !important;
+    }
+
+    /* Ensure last child has ZERO trailing line extending below */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:last-child::after,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:last-child::after,
+    ul.sidebar-submenu li:last-child::after {
+      content: none !important;
+      display: none !important;
+    }
+
+    /* Solid Circular Node Dot positioned right at the tip of the curved branch */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a::before,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li a::before,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu li a::before,
+    ul.sidebar-submenu li a::before {
+      content: "" !important;
+      position: absolute !important;
+      left: 20px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 6px !important;
+      height: 6px !important;
+      border-radius: 50% !important;
+      background: rgba(255, 255, 255, 0.75) !important;
+      display: block !important;
+      z-index: 3 !important;
+      transition: all 0.2s ease !important;
+    }
+
+    /* Submenu links with sufficient indentation and NO ellipsis truncation */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li a,
+    .sidebar-wrapper .sidebar-main .sidebar-links .simplebar-content > li .sidebar-submenu li a,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu li a,
+    ul.sidebar-submenu li a {
+      position: relative !important;
+      padding: 5px 8px 5px 34px !important;
+      font-size: 0.85rem !important;
+      color: rgba(255, 255, 255, 0.8) !important;
+      font-weight: 500 !important;
+      letter-spacing: normal !important;
+      display: block !important;
+      white-space: normal !important;
+      word-break: normal !important;
+      text-overflow: clip !important;
+      overflow: visible !important;
+      line-height: 1.35 !important;
+      background: transparent !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a:hover,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li a:hover,
+    .sidebar-wrapper .sidebar-main .sidebar-links .simplebar-content > li .sidebar-submenu li a:hover,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu li a:hover,
+    ul.sidebar-submenu li a:hover {
+      color: #ffffff !important;
+      transform: translateX(2px) !important;
+    }
+
+    /* Active submenu link highlighting */
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li a.active,
+    .sidebar-wrapper .sidebar-main .sidebar-links .simplebar-content > li .sidebar-submenu li a.active,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu li a.active,
+    ul.sidebar-submenu li a.active {
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li a.active::before,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li a.active::before,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links .simplebar-wrapper .simplebar-mask .simplebar-content-wrapper .simplebar-content > li .sidebar-submenu li a.active::before,
+    ul.sidebar-submenu li a.active::before {
+      background: #ffffff !important;
+      width: 8px !important;
+      height: 8px !important;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.95), 0 0 14px rgba(255, 255, 255, 0.6) !important;
+    }
+
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li:has(a.active)::before,
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu li.active::before,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li:has(a.active)::before,
+    .sidebar-wrapper .sidebar-main ul.sidebar-submenu li.active::before,
+    ul.sidebar-submenu li:has(a.active)::before,
+    ul.sidebar-submenu li.active::before {
+      border-color: rgba(255, 255, 255, 0.9) !important;
+    }
+  </style>
   <div class="logo-wrapper">
     <a href="/admin-panel/user-management-page" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
       <div

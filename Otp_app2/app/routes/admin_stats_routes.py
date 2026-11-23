@@ -623,7 +623,9 @@ async def get_staff_profile(
         # ── 7. Admin Info & Rank ───────────────────────────────────
         async def admin_info():
             user = await db.admins.find_one({"username": username})
-            role = user.get("role_name", "Staff") if user else "Staff"
+            role = "Staff"
+            if user:
+                role = user.get("role_name") or user.get("role") or "Staff"
             
             rank_match = {}
             if date_query:

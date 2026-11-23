@@ -59,11 +59,11 @@
 
 <div class="container-fluid">
   <div class="row">
-    <!-- Left Column: Add / Import Tutorial Form -->
+    <!-- Left Column: Add Tutorial Form -->
     <div class="col-xl-4 col-lg-5 col-md-12">
       <div class="card shadow-sm border-0">
         <div class="card-header bg-primary text-white py-3">
-          <h5 class="mb-0 fw-bold"><i class="fa fa-plus-circle me-2"></i>Add / Import Tutorial</h5>
+          <h5 class="mb-0 fw-bold"><i class="fa fa-plus-circle me-2"></i>Add Tutorial</h5>
           <small class="text-white-50">Save YouTube playlist/video or custom links for competitive exams</small>
         </div>
         <div class="card-body p-4">
@@ -91,17 +91,17 @@
             </div>
 
             <div class="mb-3">
-              <label class="form-label fw-bold">Topic / Module (Optional)</label>
+              <label class="form-label fw-bold">Topic / Module</label>
               <input class="form-control" type="text" id="tutTopic" placeholder="e.g. Modern Indian History, Percentage">
             </div>
 
             <div class="mb-3">
-              <label class="form-label fw-bold">Tutorial Title (Optional)</label>
+              <label class="form-label fw-bold">Tutorial Title</label>
               <input class="form-control" type="text" id="tutTitle" placeholder="e.g. Complete Crash Course 2026">
             </div>
 
             <div class="mb-3">
-              <label class="form-label fw-bold">YouTube URL (Channel, Playlist, or Video) <span class="text-danger">*</span></label>
+              <label class="form-label fw-bold">YouTube URL<span class="text-danger">*</span></label>
               <input class="form-control" type="text" id="tutYoutubeUrl" placeholder="https://www.youtube.com/playlist?list=... or watch?v=..." required>
               <small class="text-muted">Accepts playlist URLs, channel URLs, or single video links.</small>
             </div>
@@ -168,7 +168,7 @@
                   <th>Exam &amp; Category</th>
                   <th>Subject</th>
                   <th class="text-center" style="width: 80px;">Videos</th>
-                  <th class="text-end" style="width: 130px;">Actions</th>
+                  <th class="text-center" style="width: 140px;">Actions</th>
                 </tr>
               </thead>
               <tbody id="tutorialsTbody">
@@ -446,13 +446,15 @@
           <td class="text-center">
             <span class="badge bg-secondary rounded-pill px-3">${vCount}</span>
           </td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary rounded-pill me-1" onclick="viewTutorial('${t._id}')" title="View Videos">
-              <i class="fa fa-play-circle"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="openDeleteModal('${t._id}', '${escapeHtml(t.title || t.exam_name)}')" title="Delete">
-              <i class="fa fa-trash"></i>
-            </button>
+          <td class="text-center align-middle">
+            <div class="d-inline-flex align-items-center justify-content-center gap-2">
+              <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 d-inline-flex align-items-center gap-1 shadow-sm" onclick="viewTutorial('${t._id}')" title="View Videos">
+                <i class="fa fa-play-circle"></i> <span>View</span>
+              </button>
+              <button class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 d-inline-flex align-items-center shadow-sm" onclick="openDeleteModal('${t._id}', '${escapeHtml(t.title || t.exam_name)}')" title="Delete">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `;

@@ -516,14 +516,14 @@
         <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
           <div> <a class="toggle-sidebar" href="#"> <i class="iconly-Category icli"> </i></a>
             <div class="d-flex align-items-center gap-2 ">
-              <h4 class="f-w-600">Welcome <span id="admin-name">Admin</span></h4>
+              <h4 class="f-w-600">Welcome <span id="admin-name" style="text-transform: capitalize;">Admin</span></h4>
               <script>
                 (function() {
                   try {
                     var u = localStorage.getItem("admin_username");
                     if (u) {
                       var el = document.getElementById("admin-name");
-                      if (el) el.textContent = u;
+                      if (el) el.textContent = u.charAt(0).toUpperCase() + u.slice(1);
                     }
                   } catch(e) {}
                 })();

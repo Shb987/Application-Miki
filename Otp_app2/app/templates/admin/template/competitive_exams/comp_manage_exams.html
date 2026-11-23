@@ -699,9 +699,11 @@
         if (textbooks.length === 0) {
             container.innerHTML = `
                 <div class="alert alert-light text-center border p-5 bg-white rounded-3">
-                    <i data-feather="search" class="text-muted mb-3" style="width: 48px; height: 48px;"></i>
-                    <h5 class="text-muted fw-bold">No competitive exam textbooks found</h5>
-                    <p class="text-muted small">Upload textbooks using the competitive exam ingestion pipeline to get started.</p>
+                    <div class="d-flex justify-content-center align-items-center mb-3" style="min-height: 52px;">
+                        <i data-feather="search" class="text-muted" style="width: 48px; height: 48px; display: block;"></i>
+                    </div>
+                    <h5 class="text-muted fw-bold mb-2">No competitive exam textbooks found</h5>
+                    <p class="text-muted small mb-3">Upload textbooks using the competitive exam ingestion pipeline to get started.</p>
                     <div class="d-flex justify-content-center gap-2 mt-3">
                         <button class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="resetFilters()">Clear Filters</button>
                         <a href="/admin-panel/competitive-exams/upload-textbook" class="btn btn-primary btn-sm rounded-pill px-4">

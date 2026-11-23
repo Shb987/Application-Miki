@@ -588,23 +588,23 @@
         .page-header {
             position: fixed !important;
             top: 0 !important;
-            left: 265px !important;
-            width: calc(100% - 265px) !important;
+            left: 280px !important;
+            width: calc(100% - 280px) !important;
             height: 80px !important;
             z-index: 990 !important;
-            background: rgba(247, 246, 252, 0.95) !important;
+            background: rgba(247, 246, 252, 0.98) !important;
             backdrop-filter: blur(14px) !important;
             -webkit-backdrop-filter: blur(14px) !important;
-            border-bottom: 1px solid rgba(196, 78, 204, 0.08) !important;
-            box-shadow: 0 4px 20px rgba(96, 60, 216, 0.04) !important;
+            border-bottom: 1px solid rgba(196, 78, 204, 0.12) !important;
+            box-shadow: 0 4px 20px rgba(96, 60, 216, 0.05) !important;
             margin: 0 !important;
             transition: left 0.3s ease, width 0.3s ease !important;
         }
         body.dark-only .page-header,
         html.dark-only .page-header {
-            background: rgba(17, 19, 30, 0.95) !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+            background: #11131e !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
         }
         .header-wrapper {
             background: transparent !important;
@@ -616,23 +616,44 @@
             align-items: center !important;
             justify-content: space-between !important;
         }
+        .left-header h4 {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+        }
+        body.dark-only .left-header h4,
+        html.dark-only .left-header h4 {
+            color: #ffffff !important;
+        }
+        .welcome-content span {
+            color: #64748b !important;
+            font-size: 0.88rem !important;
+        }
+        body.dark-only .welcome-content span,
+        html.dark-only .welcome-content span {
+            color: #94a3b8 !important;
+        }
         .page-wrapper.compact-wrapper .page-body-wrapper .page-body,
         .page-body {
             background: transparent !important;
-            margin-left: 265px !important;
-            margin-top: 80px !important;
-            min-height: calc(100vh - 80px) !important;
-            padding: 16px 28px 28px 28px !important;
+            margin-left: 280px !important;
+            margin-top: 84px !important;
+            min-height: calc(100vh - 84px) !important;
+            padding: 20px 28px 28px 28px !important;
             transition: margin-left 0.3s ease, width 0.3s ease !important;
         }
         /* Collapsed Sidebar Responsive Adaptations */
-        .page-wrapper.compact-wrapper .page-header.close_icon {
+        .page-header.close_icon,
+        .page-wrapper.compact-wrapper .page-header.close_icon,
+        .page-wrapper:has(.sidebar-wrapper.close_icon) .page-header,
+        .page-wrapper.close_icon .page-header {
             left: 86px !important;
             width: calc(100% - 86px) !important;
         }
-        .page-wrapper.compact-wrapper .page-body-wrapper .page-body.close_icon,
-        .page-wrapper.compact-wrapper.close_icon .page-body,
-        .page-wrapper.compact-wrapper:has(.sidebar-wrapper.close_icon) .page-body {
+        .sidebar-wrapper.close_icon ~ .page-body,
+        .page-body-wrapper:has(.sidebar-wrapper.close_icon) .page-body,
+        .page-wrapper.compact-wrapper .page-body-wrapper .sidebar-wrapper.close_icon ~ .page-body,
+        .page-wrapper.compact-wrapper:has(.sidebar-wrapper.close_icon) .page-body,
+        .page-body.close_icon {
             margin-left: 86px !important;
             width: calc(100% - 86px) !important;
         }
@@ -651,16 +672,18 @@
         .left-header .toggle-sidebar {
             display: none !important;
         }
-        .left-header h4 {
-            color: #0f172a !important;
-            font-weight: 700 !important;
-        }
-        .welcome-content span {
-            color: #64748b !important;
-            font-size: 0.88rem !important;
-        }
 
         /* Sidebar Styling - Light / White Mode */
+        .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
+        .sidebar-wrapper {
+            width: 280px !important;
+            left: 0 !important;
+            top: 0 !important;
+            height: 100vh !important;
+            position: fixed !important;
+            z-index: 1000 !important;
+            transition: width 0.3s ease, left 0.3s ease !important;
+        }
         body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
         body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
             background: radial-gradient(ellipse 130% 60% at 85% 100%, rgba(186, 75, 235, 0.45) 0%, rgba(186, 75, 235, 0) 65%), linear-gradient(180deg, #C44ECC 0%, #A33BBE 18%, #8334B8 38%, #6D2CB1 58%, #5621A2 80%, #6825AB 100%) !important;
@@ -687,21 +710,30 @@
 
         /* Sidebar Menu Items */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list {
-            padding: 2px 16px !important;
+            padding: 2px 10px !important;
             position: relative;
         }
 
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a {
-            padding: 10px 14px !important;
+            padding: 9px 30px 9px 12px !important;
             border-radius: 12px !important;
             margin: 2px 0 !important;
             display: flex !important;
             align-items: center !important;
             color: rgba(255, 255, 255, 0.85) !important;
             font-weight: 500 !important;
-            font-size: 0.92rem !important;
+            font-size: 0.88rem !important;
             transition: all 0.25s ease !important;
             border: 1px solid transparent !important;
+            position: relative !important;
+        }
+
+        .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a span {
+            white-space: nowrap !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            max-width: none !important;
+            flex: 1 1 auto !important;
         }
 
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list:hover > a {
@@ -724,19 +756,26 @@
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a svg {
             width: 18px !important;
             height: 18px !important;
-            margin-right: 12px !important;
+            margin-right: 10px !important;
             fill: none !important;
             stroke: #ffffff !important;
             stroke-width: 2 !important;
+            flex-shrink: 0 !important;
         }
 
         /* Chevrons on sidebar items */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list .according-menu {
             position: absolute !important;
-            right: 14px !important;
+            right: 10px !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
-            display: block !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 16px !important;
+            height: 16px !important;
+            pointer-events: none !important;
+            flex-shrink: 0 !important;
         }
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list .according-menu i {
             color: rgba(255, 255, 255, 0.75) !important;
@@ -759,6 +798,35 @@
             margin: 2px 0 6px 14px !important;
             background: transparent !important;
             border: none !important;
+        }
+
+        /* Completely hide submenus and branch connectors when sidebar is collapsed/minimized */
+        .sidebar-wrapper.close_icon .sidebar-submenu,
+        .sidebar-wrapper.close_icon ul.sidebar-submenu,
+        .sidebar-wrapper.close_icon .sidebar-list.active > .sidebar-submenu,
+        .sidebar-wrapper.close_icon .sidebar-submenu.menu-open,
+        .sidebar-wrapper.close_icon .according-menu,
+        .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:not(:hover) .sidebar-submenu,
+        .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:not(:hover) ul.sidebar-submenu {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        .sidebar-wrapper.close_icon ul.sidebar-submenu *,
+        .sidebar-wrapper.close_icon .sidebar-submenu * {
+            display: none !important;
+        }
+
+        .sidebar-wrapper.close_icon ul.sidebar-submenu li::before,
+        .sidebar-wrapper.close_icon ul.sidebar-submenu li::after,
+        .sidebar-wrapper.close_icon ul.sidebar-submenu li a::before {
+            display: none !important;
+            content: none !important;
         }
         /* Completely eliminate global ul::before */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu::before,
@@ -914,7 +982,7 @@
             border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
             border-radius: 0 24px 24px 0 !important;
             position: fixed !important;
-            z-index: 100 !important;
+            z-index: 1000 !important;
             overflow: hidden !important;
             box-shadow: 0 0 25px rgba(0, 0, 0, 0.4) !important;
         }
@@ -1062,7 +1130,7 @@
                 <div class="left-header col-xxl-5 col-xl-6 col-lg-5 col-md-4 col-sm-3 p-0">
                     <div>
                         <div class="d-flex align-items-center gap-2">
-                            <h4 class="f-w-600" style="margin-bottom:0; font-size:1.45rem;">Welcome <span id="admin-name">admin</span> &#128075;</h4>
+                            <h4 class="f-w-600" style="margin-bottom:0; font-size:1.45rem; line-height:1.2;">Welcome <span id="admin-name" style="text-transform: capitalize;">Admin</span> &#128075;</h4>
                         </div>
                     </div>
                     <div class="welcome-content d-xl-block d-none"><span class="text-truncate col-12">Here’s what’s
@@ -1411,7 +1479,9 @@
                 if (res.ok) {
                     const data = await res.json();
                     const nameEl = document.getElementById("admin-name");
-                    if (nameEl) nameEl.innerText = data.username;
+                    if (nameEl && data.username) {
+                        nameEl.innerText = data.username.charAt(0).toUpperCase() + data.username.slice(1);
+                    }
                     
                     // Update top-right header profile name & role
                     const headerNameEl = document.getElementById("header-profile-name");
@@ -1602,6 +1672,20 @@
                 $('.sidebar-wrapper').toggleClass('close_icon');
                 $('.page-header').toggleClass('close_icon');
                 $('.page-body').toggleClass('close_icon');
+            });
+
+            // Keep navbar and body in perfect sync with sidebar toggle
+            $(document).on('click', '.toggle-sidebar', function() {
+                setTimeout(function() {
+                    var isClosed = $('.sidebar-wrapper').hasClass('close_icon');
+                    if (isClosed) {
+                        $('.page-header').addClass('close_icon');
+                        $('.page-body').addClass('close_icon');
+                    } else {
+                        $('.page-header').removeClass('close_icon');
+                        $('.page-body').removeClass('close_icon');
+                    }
+                }, 10);
             });
         });
     </script>

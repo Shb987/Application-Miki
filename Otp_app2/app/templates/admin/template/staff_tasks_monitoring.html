@@ -13,7 +13,7 @@
   }
 
   .report-wrapper {
-    padding: 10px 0 50px;
+    padding: 24px 0 50px;
     font-family: inherit;
   }
 
@@ -103,33 +103,41 @@
   .hero-pill {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    background: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    color: #603CD8;
-    padding: 5px 14px;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.22) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+    color: #ffffff !important;
+    padding: 6px 16px;
     border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 800;
+    font-size: 0.8rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+  }
+  .hero-pill i, .hero-pill span {
+    color: #ffffff !important;
   }
 
   .hero-pill-status {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #d1fae5;
-    border: 1px solid #a7f3d0;
-    color: #065f46;
-    padding: 5px 14px;
+    background: rgba(16, 185, 129, 0.22) !important;
+    border: 1.5px solid rgba(16, 185, 129, 0.5) !important;
+    color: #ffffff !important;
+    padding: 6px 16px;
     border-radius: 999px;
-    font-size: 0.78rem;
-    font-weight: 800;
+    font-size: 0.8rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+  }
+  .hero-pill-status i, .hero-pill-status span {
+    color: #ffffff !important;
   }
 
   .hero-rank-card {
@@ -363,6 +371,10 @@
     border-radius: 6px;
   }
 
+  .kpi-val-success { color: #059669; }
+  .kpi-val-failed { color: #dc2626; }
+  .kpi-val-rate { color: #4f46e5; }
+
   .kpi-value {
     font-size: 2.2rem;
     font-weight: 900;
@@ -570,6 +582,235 @@
     font-weight: 600;
     margin-top: 4px;
   }
+
+  .task-item-title, .task-stat-count {
+    color: #0f172a;
+    font-weight: 700;
+  }
+  .task-date {
+    font-size: 0.8rem;
+    color: #475569;
+    font-weight: 600;
+  }
+  .last-active-text {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 1px;
+  }
+
+  /* ============================================================ */
+  /* DARK MODE STYLING SUPPORT (body.dark-only / html.dark-only)   */
+  /* ============================================================ */
+  body.dark-only .toolbar-card,
+  html.dark-only .toolbar-card,
+  .dark-only .toolbar-card,
+  body.dark-only .kpi-card,
+  html.dark-only .kpi-card,
+  .dark-only .kpi-card,
+  body.dark-only .last-active-strip,
+  html.dark-only .last-active-strip,
+  .dark-only .last-active-strip,
+  body.dark-only .panel-card,
+  html.dark-only .panel-card,
+  .dark-only .panel-card {
+    background: #1e222d !important;
+    border-color: #2b3040 !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  body.dark-only .kpi-value,
+  html.dark-only .kpi-value,
+  .dark-only .kpi-value,
+  body.dark-only .panel-header h5,
+  html.dark-only .panel-header h5,
+  .dark-only .panel-header h5,
+  body.dark-only .node-title,
+  html.dark-only .node-title,
+  .dark-only .node-title,
+  body.dark-only .task-item-title,
+  html.dark-only .task-item-title,
+  .dark-only .task-item-title,
+  body.dark-only .task-stat-count,
+  html.dark-only .task-stat-count,
+  .dark-only .task-stat-count,
+  body.dark-only .last-active-text,
+  html.dark-only .last-active-text,
+  .dark-only .last-active-text {
+    color: #f1f5f9 !important;
+  }
+
+  body.dark-only .kpi-label,
+  html.dark-only .kpi-label,
+  .dark-only .kpi-label,
+  body.dark-only .date-field,
+  html.dark-only .date-field,
+  .dark-only .date-field,
+  body.dark-only .task-date,
+  html.dark-only .task-date,
+  .dark-only .task-date {
+    color: #94a3b8 !important;
+  }
+
+  body.dark-only .panel-header,
+  html.dark-only .panel-header,
+  .dark-only .panel-header {
+    border-bottom-color: #2b3040 !important;
+  }
+
+  body.dark-only .custom-table th,
+  html.dark-only .custom-table th,
+  .dark-only .custom-table th {
+    background: #252936 !important;
+    color: #cbd5e1 !important;
+    border-bottom: 2px solid #373d52 !important;
+  }
+
+  body.dark-only .custom-table td,
+  html.dark-only .custom-table td,
+  .dark-only .custom-table td {
+    color: #e2e8f0 !important;
+    border-bottom: 1px solid #2b3040 !important;
+  }
+
+  body.dark-only .node-content,
+  html.dark-only .node-content,
+  .dark-only .node-content {
+    background: #252936 !important;
+    border-color: #373d52 !important;
+    color: #e2e8f0 !important;
+  }
+
+  body.dark-only .node-dot,
+  html.dark-only .node-dot,
+  .dark-only .node-dot {
+    border-color: #1e222d !important;
+  }
+
+  body.dark-only .timeline-node::before,
+  html.dark-only .timeline-node::before,
+  .dark-only .timeline-node::before {
+    background: #2b3040 !important;
+  }
+
+  body.dark-only .date-input,
+  html.dark-only .date-input,
+  .dark-only .date-input {
+    background: #252936 !important;
+    border-color: #373d52 !important;
+    color: #f1f5f9 !important;
+  }
+
+  body.dark-only .preset-group,
+  html.dark-only .preset-group,
+  .dark-only .preset-group {
+    background: #252936 !important;
+  }
+
+  body.dark-only .preset-btn,
+  html.dark-only .preset-btn,
+  .dark-only .preset-btn {
+    color: #94a3b8 !important;
+  }
+
+  body.dark-only .preset-btn.active,
+  html.dark-only .preset-btn.active,
+  .dark-only .preset-btn.active {
+    background: #603CD8 !important;
+    color: #ffffff !important;
+  }
+
+  body.dark-only .kpi-badge-total,
+  html.dark-only .kpi-badge-total,
+  .dark-only .kpi-badge-total {
+    background: rgba(148, 163, 184, 0.22) !important;
+    color: #f1f5f9 !important;
+    border: 1px solid rgba(148, 163, 184, 0.45) !important;
+  }
+
+  body.dark-only .kpi-badge-success,
+  html.dark-only .kpi-badge-success,
+  .dark-only .kpi-badge-success {
+    background: rgba(16, 185, 129, 0.28) !important;
+    color: #4ade80 !important;
+    border: 1.5px solid rgba(74, 222, 128, 0.6) !important;
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.2) !important;
+  }
+
+  body.dark-only .kpi-badge-failed,
+  html.dark-only .kpi-badge-failed,
+  .dark-only .kpi-badge-failed {
+    background: rgba(239, 68, 68, 0.28) !important;
+    color: #f87171 !important;
+    border: 1.5px solid rgba(248, 113, 113, 0.6) !important;
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.2) !important;
+  }
+
+  body.dark-only .kpi-badge-rate,
+  html.dark-only .kpi-badge-rate,
+  .dark-only .kpi-badge-rate {
+    background: rgba(139, 92, 246, 0.28) !important;
+    color: #c4b5fd !important;
+    border: 1.5px solid rgba(196, 181, 253, 0.6) !important;
+    box-shadow: 0 0 12px rgba(196, 181, 253, 0.2) !important;
+  }
+
+  body.dark-only .kpi-card .kpi-icon,
+  html.dark-only .kpi-card .kpi-icon,
+  .dark-only .kpi-card .kpi-icon {
+    background: rgba(96, 60, 216, 0.25) !important;
+    color: #a78bfa !important;
+    border: 1px solid rgba(167, 139, 250, 0.3) !important;
+  }
+
+  body.dark-only .kpi-card.success .kpi-icon,
+  html.dark-only .kpi-card.success .kpi-icon,
+  .dark-only .kpi-card.success .kpi-icon {
+    background: rgba(16, 185, 129, 0.25) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(74, 222, 128, 0.4) !important;
+  }
+
+  body.dark-only .kpi-card.failed .kpi-icon,
+  html.dark-only .kpi-card.failed .kpi-icon,
+  .dark-only .kpi-card.failed .kpi-icon {
+    background: rgba(239, 68, 68, 0.25) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(248, 113, 113, 0.4) !important;
+  }
+
+  body.dark-only .kpi-card.rate .kpi-icon,
+  html.dark-only .kpi-card.rate .kpi-icon,
+  .dark-only .kpi-card.rate .kpi-icon {
+    background: rgba(139, 92, 246, 0.25) !important;
+    color: #c4b5fd !important;
+    border: 1px solid rgba(196, 181, 253, 0.4) !important;
+  }
+
+  body.dark-only .kpi-val-success,
+  html.dark-only .kpi-val-success,
+  .dark-only .kpi-val-success {
+    color: #4ade80 !important;
+  }
+
+  body.dark-only .kpi-val-failed,
+  html.dark-only .kpi-val-failed,
+  .dark-only .kpi-val-failed {
+    color: #f87171 !important;
+  }
+
+  body.dark-only .kpi-val-rate,
+  html.dark-only .kpi-val-rate,
+  .dark-only .kpi-val-rate {
+    color: #c4b5fd !important;
+  }
+
+  body.dark-only .progress-wrap,
+  html.dark-only .progress-wrap,
+  .dark-only .progress-wrap {
+    background: #252936 !important;
+  }
 </style>
 
 <div class="report-wrapper container-fluid">
@@ -765,7 +1006,14 @@
     // Update Hero Section
     const usernameStr = data.username || targetUser;
     document.getElementById("hero-username").textContent = `@${usernameStr}`;
-    document.getElementById("hero-role-name").textContent = data.role || "Staff Member";
+    const roleRaw = data.role || "Staff Member";
+    let roleFormatted = "Staff";
+    if (roleRaw.toLowerCase() === "superadmin" || roleRaw.toLowerCase() === "super_admin") {
+      roleFormatted = "Super Admin";
+    } else {
+      roleFormatted = roleRaw.split(/[-_ ]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    }
+    document.getElementById("hero-role-name").textContent = roleFormatted;
     document.getElementById("hero-avatar").textContent = usernameStr.charAt(0).toUpperCase();
     document.getElementById("hero-rank").textContent = data.leaderboard_rank ? `#${data.leaderboard_rank}` : "-";
 
@@ -775,15 +1023,15 @@
       return `
       <tr>
         <td>
-          <div style="font-weight:700; color:#0f172a;"><i class="fa fa-check-square-o text-purple me-2"></i>${escapeHtml(formatActionName(item.action))}</div>
+          <div class="fw-bold task-item-title"><i class="fa fa-check-square-o text-purple me-2"></i>${escapeHtml(formatActionName(item.action))}</div>
           <div class="progress-wrap">
             <div class="progress-fill" style="width:${pct}%"></div>
           </div>
         </td>
-        <td class="fw-bold" style="color:#0f172a;">${item.total}</td>
+        <td class="fw-bold task-stat-count">${item.total}</td>
         <td><span class="kpi-badge-success">${item.success}</span></td>
         <td><span class="kpi-badge-failed">${item.failed}</span></td>
-        <td style="font-size:0.8rem; color:#475569; font-weight:600;">${formatISTTimestamp(item.last_done, { fmtOpts: { year: 'numeric', month: 'numeric', day: 'numeric' }, fallback: '-' })}</td>
+        <td class="task-date">${formatISTTimestamp(item.last_done, { fmtOpts: { year: 'numeric', month: 'numeric', day: 'numeric' }, fallback: '-' })}</td>
       </tr>`;
     }).join('') : `<tr><td colspan="5" class="text-center py-4 text-muted">No activity categorized for this period.</td></tr>`;
 
@@ -820,7 +1068,7 @@
           <div class="kpi-icon"><i class="fa fa-check-circle"></i></div>
           <span class="kpi-badge-success">Success</span>
         </div>
-        <p class="kpi-value" style="color:#059669;">${success}</p>
+        <p class="kpi-value kpi-val-success">${success}</p>
         <div class="kpi-label">Tasks Completed</div>
       </div>
 
@@ -829,7 +1077,7 @@
           <div class="kpi-icon"><i class="fa fa-exclamation-triangle"></i></div>
           <span class="kpi-badge-failed">Failed</span>
         </div>
-        <p class="kpi-value" style="color:#dc2626;">${failed}</p>
+        <p class="kpi-value kpi-val-failed">${failed}</p>
         <div class="kpi-label">Failed Operations</div>
       </div>
 
@@ -838,7 +1086,7 @@
           <div class="kpi-icon"><i class="fa fa-line-chart"></i></div>
           <span class="kpi-badge-rate">Score</span>
         </div>
-        <p class="kpi-value" style="color:#4f46e5;">${rate}%</p>
+        <p class="kpi-value kpi-val-rate">${rate}%</p>
         <div class="kpi-label">Completion Efficiency</div>
       </div>
     </div>
@@ -848,7 +1096,7 @@
       <div class="pulse-dot"></div>
       <div>
         <span style="font-size:0.75rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.06em;">Latest Activity Session</span>
-        <div style="font-size:1.05rem; font-weight:800; color:#0f172a; margin-top:1px;">${lastActive}</div>
+        <div class="last-active-text">${lastActive}</div>
       </div>
     </div>
 

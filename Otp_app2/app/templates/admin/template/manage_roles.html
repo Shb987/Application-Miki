@@ -1101,7 +1101,10 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: #f8fafc;
+    background: #f1f5f9;
+    color: #1e293b;
+    font-weight: 700;
+    border-bottom: 2px solid #cbd5e1;
   }
 
   /* ── Modal ── */
@@ -1549,6 +1552,36 @@
   html.dark-only .activity-kpi-value {
     color: #f8fafc !important;
   }
+
+  /* Activity Feed Table - Dark Mode Support */
+  body.dark-only .activity-table-scroll thead th,
+  html.dark-only .activity-table-scroll thead th,
+  .dark-only .activity-table-scroll thead th,
+  body.dark-only .activity-feed-wrap table thead th,
+  html.dark-only .activity-feed-wrap table thead th,
+  .dark-only .activity-feed-wrap table thead th {
+    background: #252936 !important;
+    color: #f1f5f9 !important;
+    border-bottom: 2px solid #373d52 !important;
+  }
+
+  body.dark-only .activity-table-scroll table td,
+  html.dark-only .activity-table-scroll table td,
+  .dark-only .activity-table-scroll table td,
+  body.dark-only .activity-feed-wrap table td,
+  html.dark-only .activity-feed-wrap table td,
+  .dark-only .activity-feed-wrap table td {
+    color: #cbd5e1 !important;
+    border-bottom: 1px solid #282d3c !important;
+    background: transparent !important;
+  }
+
+  body.dark-only .activity-table-scroll table tr:hover td,
+  html.dark-only .activity-table-scroll table tr:hover td,
+  body.dark-only .activity-feed-wrap table tr:hover td,
+  html.dark-only .activity-feed-wrap table tr:hover td {
+    background: rgba(255, 255, 255, 0.04) !important;
+  }
   body.dark-only .empty-state,
   html.dark-only .empty-state {
     color: #94a3b8 !important;
@@ -1794,9 +1827,9 @@
             </div>
           </div>
           <div class="staff-stat-card">
-            <div class="staff-stat-icon amber"><i class="fa fa-crown"></i></div>
+            <div class="staff-stat-icon amber"><i class="fa fa-star" style="font-size: 20px;"></i></div>
             <div>
-              <p class="staff-stat-label">Superadmins</p>
+              <p class="staff-stat-label">Super Admins</p>
               <p class="staff-stat-value" id="staff-stat-superadmins">0</p>
             </div>
           </div>
@@ -2362,6 +2395,13 @@ function clearRoleSearch() {
   renderRolesList();
 }
 
+function formatRoleName(role) {
+  if (!role) return "Staff";
+  const r = String(role).trim().toLowerCase();
+  if (r === "superadmin" || r === "super_admin" || r === "super admin") return "Super Admin";
+  return role.split(/[-_ ]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
 function renderRolesList() {
   const el = document.getElementById("roles-list");
   const filteredRoles = roles.filter(role => {
@@ -2407,7 +2447,7 @@ function renderRolesList() {
     <div class="role-item ${isSelected ? "active" : ""}"
          onclick="selectRole(${roleNameEscaped})">
       <div>
-        <div class="role-item-name">${escapeHtml(r.role_name)}</div>
+        <div class="role-item-name">${escapeHtml(formatRoleName(r.role_name))}</div>
         <div class="role-item-desc">${escapeHtml(r.description || "No description")}</div>
       </div>
       <div class="role-actions">
@@ -2819,6 +2859,10 @@ function renderStaffStats(admins) {
   document.getElementById("staff-stat-roles").textContent = new Set(admins.map(a => a.role_name || "superadmin")).size;
 }
 
+function openProfileDrawer(username, fullName, role) {
+  window.location.href = '/admin-panel/staff-task-monitoring-page?user=' + encodeURIComponent(username);
+}
+
 function renderAdmins(admins) {
   const el = document.getElementById("admins-list-body");
   if (!admins.length) {
@@ -2833,8 +2877,8 @@ function renderAdmins(admins) {
 
   el.innerHTML = admins.map(admin => {
     const roleName = admin.role_name || "superadmin";
-    const isSuperAdmin = roleName === "superadmin";
-    const displayRole = roleName.charAt(0).toUpperCase() + roleName.slice(1);
+    const isSuperAdmin = roleName.toLowerCase() === "superadmin" || roleName.toLowerCase() === "super_admin";
+    const displayRole = formatRoleName(roleName);
     const initials = (admin.full_name || admin.username || "?")
       .split(" ")
       .map(part => part.charAt(0))
@@ -2848,20 +2892,20 @@ function renderAdmins(admins) {
           <div class="staff-profile">
             <div class="staff-avatar">${initials}</div>
             <div>
-              <h4 class="staff-name">${admin.full_name || admin.username}</h4>
-              <div class="staff-username">@${admin.username}</div>
+              <h4 class="staff-name">${escapeHtml(admin.full_name || admin.username)}</h4>
+              <div class="staff-username">@${escapeHtml(admin.username)}</div>
             </div>
           </div>
           <span class="staff-role-badge ${isSuperAdmin ? "superadmin" : "staff"}">
-            <i class="fa ${isSuperAdmin ? "fa-crown" : "fa-user"}"></i>
-            ${displayRole}
+            <i class="fa ${isSuperAdmin ? "fa-star" : "fa-user"} me-1"></i>
+            ${escapeHtml(displayRole)}
           </span>
         </div>
 
         <div class="staff-details">
-          <div class="staff-detail-row"><span>Email</span><span>${admin.email || "No email"}</span></div>
-          <div class="staff-detail-row"><span>Phone</span><span>${admin.phone_number || "No phone"}</span></div>
-          <div class="staff-detail-row"><span>Address</span><span>${admin.address || "No address"}</span></div>
+          <div class="staff-detail-row"><span>Email</span><span>${escapeHtml(admin.email || "No email")}</span></div>
+          <div class="staff-detail-row"><span>Phone</span><span>${escapeHtml(admin.phone_number || "No phone")}</span></div>
+          <div class="staff-detail-row"><span>Address</span><span>${escapeHtml(admin.address || "No address")}</span></div>
         </div>
 
         <div class="staff-actions">
@@ -3050,6 +3094,12 @@ async function submitAdmin() {
 let pendingAdminToDelete = null;
 
 function deleteAdmin(username) {
+  const admin = getAdminByUsername(username);
+  const role = (admin && admin.role_name ? admin.role_name : "").toLowerCase();
+  if (role === "superadmin" || role === "super_admin" || username === "admin") {
+    showToast("Super Admin accounts are protected and cannot be deleted", "error");
+    return;
+  }
   pendingAdminToDelete = username;
   const nameEl = document.getElementById("deleteAdminUsernameDisplay");
   if (nameEl) nameEl.textContent = username;

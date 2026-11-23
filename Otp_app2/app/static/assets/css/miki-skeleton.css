@@ -170,10 +170,10 @@ body.dark-only .page-body > .loader-wrapper {
 body > .loader-wrapper {
     position: fixed !important;
     top: 80px !important;
-    left: 265px !important;
+    left: 280px !important;
     right: 0 !important;
     bottom: 0 !important;
-    width: calc(100vw - 265px) !important;
+    width: calc(100vw - 280px) !important;
     height: calc(100vh - 80px) !important;
     z-index: 800 !important;
     background-color: var(--miki-page-bg) !important;
@@ -504,6 +504,53 @@ body.dark-only .miki-header-skeleton-line {
   padding-bottom: 120px !important;
 }
 
+/* Sidebar wrapper width & main item link styling preventing text overlap or truncation */
+.page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
+  width: 280px !important;
+}
+
+.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list {
+  padding: 2px 10px !important;
+  position: relative;
+}
+
+.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a {
+  padding: 9px 30px 9px 12px !important;
+  font-size: 0.88rem !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a span {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  max-width: none !important;
+  flex: 1 1 auto !important;
+}
+
+.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a svg {
+  width: 18px !important;
+  height: 18px !important;
+  margin-right: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+.sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list .according-menu {
+  position: absolute !important;
+  right: 10px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 16px !important;
+  height: 16px !important;
+  pointer-events: none !important;
+  flex-shrink: 0 !important;
+}
+
 .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu,
 .sidebar-wrapper .sidebar-main ul.sidebar-submenu,
 ul.sidebar-submenu {
@@ -518,6 +565,35 @@ ul.sidebar-submenu {
 .sidebar-list.active > .sidebar-submenu,
 .sidebar-submenu.menu-open {
   display: block !important;
+}
+
+/* Completely hide submenus and branch connectors when sidebar is collapsed/minimized */
+.sidebar-wrapper.close_icon .sidebar-submenu,
+.sidebar-wrapper.close_icon ul.sidebar-submenu,
+.sidebar-wrapper.close_icon .sidebar-list.active > .sidebar-submenu,
+.sidebar-wrapper.close_icon .sidebar-submenu.menu-open,
+.sidebar-wrapper.close_icon .according-menu,
+.page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:not(:hover) .sidebar-submenu,
+.page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:not(:hover) ul.sidebar-submenu {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+.sidebar-wrapper.close_icon ul.sidebar-submenu *,
+.sidebar-wrapper.close_icon .sidebar-submenu * {
+  display: none !important;
+}
+
+.sidebar-wrapper.close_icon ul.sidebar-submenu li::before,
+.sidebar-wrapper.close_icon ul.sidebar-submenu li::after,
+.sidebar-wrapper.close_icon ul.sidebar-submenu li a::before {
+  display: none !important;
+  content: none !important;
 }
 
 /* Completely disable Cuba's disconnected single vertical line */

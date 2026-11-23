@@ -605,6 +605,40 @@
     color: #ffffff !important;
   }
 
+  /* 📁 Manage Category Images Header Button - Crisp White Contrast in Light & Dark Themes */
+  .btn-manage-categories {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.65) !important;
+    color: #ffffff !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+    transition: all 0.25s ease !important;
+    backdrop-filter: blur(8px) !important;
+  }
+  .btn-manage-categories i {
+    color: #ffffff !important;
+  }
+  .btn-manage-categories:hover,
+  .btn-manage-categories:focus,
+  .btn-manage-categories:active {
+    background: #ffffff !important;
+    color: #78350f !important;
+    border-color: #ffffff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+  }
+  .btn-manage-categories:hover i,
+  .btn-manage-categories:focus i,
+  .btn-manage-categories:active i {
+    color: #78350f !important;
+  }
+  body.dark-only .btn-manage-categories,
+  .dark-only .btn-manage-categories {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+    color: #ffffff !important;
+  }
+
   /* 📁 Manage Category Images Modal Styling (Balanced contrast in light & dark modes) */
   #categoriesModal .modal-content {
     background: #ffffff;
@@ -834,7 +868,7 @@
       </div>
 
       <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-light rounded-pill px-3 py-2 fw-bold" onclick="openCategoriesModal()" style="border: 1.5px solid rgba(255,255,255,0.4); font-size: 0.88rem;">
+        <button class="btn btn-manage-categories rounded-pill px-3 py-2 fw-bold" onclick="openCategoriesModal()">
           <i class="fa fa-folder-open me-1"></i> Manage Category Images
         </button>
         <button class="btn btn-add-animal" onclick="openAddAnimalModal()">

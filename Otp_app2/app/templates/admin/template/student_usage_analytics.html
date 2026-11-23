@@ -353,14 +353,14 @@
 {% block content %}
 <div class="container-fluid">
     <!-- Page Title & Header -->
-    <div class="page-title me-0 ms-0 px-0">
-        <div class="row align-items-center me-0 ms-0">
-            <div class="col-6 px-0">
+    <div class="page-title mb-3">
+        <div class="row align-items-center gy-2">
+            <div class="col-xl-6 col-lg-5 col-12">
                 <h3 class="fw-bold mb-1"><i class="fa fa-line-chart me-2 text-primary"></i>Student Usage Analytics</h3>
                 <p class="text-muted mb-0 small">Real-time student activity trends, feature adoption, class distribution & active leaderboards.</p>
             </div>
-            <div class="col-6 px-0 text-end d-flex align-items-center justify-content-end gap-2">
-                <select id="filterStandard" class="form-select form-select-sm w-auto shadow-sm" onchange="loadStudentAnalytics()">
+            <div class="col-xl-6 col-lg-7 col-12 d-flex align-items-center justify-content-lg-end justify-content-start flex-wrap gap-2 mt-2 mt-lg-0">
+                <select id="filterStandard" class="form-select form-select-sm w-auto shadow-sm" style="min-width: 170px;" onchange="loadStudentAnalytics()">
                     <option value="all">All Standards (Classes)</option>
                     <option value="1">Class 1</option>
                     <option value="2">Class 2</option>

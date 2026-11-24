@@ -229,6 +229,102 @@
         background: #181b24 !important;
         border-color: #2e3243 !important;
     }
+
+    /* ─── Premium Pagination Bar ─── */
+    .pagination-bar-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 24px;
+        border-top: 1px solid #edf2f7;
+        background: #ffffff;
+        border-radius: 0 0 16px 16px;
+    }
+
+    body.dark-only .pagination-bar-container,
+    .dark-only .pagination-bar-container {
+        background: #1e222d !important;
+        border-top-color: #2b3040 !important;
+        color: #f1f5f9 !important;
+    }
+
+    .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .pagination-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        padding: 0 10px;
+        border-radius: 8px;
+        font-size: 0.84rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        border-color: #7366ff;
+        color: #7366ff;
+        background: rgba(115, 102, 255, 0.08);
+    }
+
+    .pagination-btn.active {
+        background: linear-gradient(135deg, #7366ff, #9333ea) !important;
+        border-color: transparent !important;
+        color: #ffffff !important;
+        box-shadow: 0 3px 10px rgba(115, 102, 255, 0.35);
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        background: #f8fafc;
+        border-color: #e2e8f0;
+    }
+
+    .pagination-ellipsis {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 34px;
+        color: #94a3b8;
+        font-weight: bold;
+    }
+
+    body.dark-only .pagination-btn,
+    .dark-only .pagination-btn {
+        background: #252936;
+        border-color: #373d52;
+        color: #cbd5e1;
+    }
+
+    body.dark-only .pagination-btn:hover:not(:disabled),
+    .dark-only .pagination-btn:hover:not(:disabled) {
+        background: #2d3243;
+        border-color: #7366ff;
+        color: #a78bfa;
+    }
+
+    body.dark-only .pagination-btn:disabled,
+    .dark-only .pagination-btn:disabled {
+        background: #1e222d;
+        border-color: #2b3040;
+        color: #64748b;
+    }
 </style>
 {% endblock %}
 
@@ -293,7 +389,7 @@
                 </div>
                 <select id="target-filter" class="form-select form-select-sm" style="border-radius:10px; width:160px; height:38px;" onchange="onFilterChange()">
                     <option value="all_targets">All Targets</option>
-                    <option value="all">All Users Only</option>
+                    <option value="all">All Users</option>
                     <option value="class">Class Specific</option>
                 </select>
             </div>
@@ -335,15 +431,21 @@
         </div>
 
         <!-- Pagination Bar -->
-        <div class="card-footer bg-white border-top d-flex flex-wrap align-items-center justify-content-between py-3 px-4" id="history-pagination" style="display:none;">
-            <span class="text-muted small" id="page-info">Showing 0-0 of 0</span>
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary" id="prev-btn" onclick="prevPage()">
-                    <i class="fa fa-chevron-left me-1"></i> Prev
-                </button>
-                <button type="button" class="btn btn-outline-secondary" id="next-btn" onclick="nextPage()">
-                    Next <i class="fa fa-chevron-right ms-1"></i>
-                </button>
+        <div class="pagination-bar-container" id="history-pagination" style="display:none;">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <span class="text-muted small fw-medium" id="page-info">Showing 0-0 of 0</span>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small mb-0 fw-semibold">Rows per page:</label>
+                    <select id="page-size-select" class="form-select form-select-sm" style="width: 72px; border-radius: 8px; font-weight:600;" onchange="onPageSizeChange(this.value)">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+            <div class="pagination-controls" id="pagination-pages">
+                <!-- Dynamically populated page buttons -->
             </div>
         </div>
     </div>
@@ -399,7 +501,7 @@
     let allBroadcastLogs = [];
     let filteredLogs = [];
     let currentPage = 1;
-    const pageSize = 10;
+    let pageSize = 10;
     let searchDebounceTimeout = null;
 
     async function loadStats() {
@@ -561,23 +663,62 @@
         // Update pagination bar
         paginationEl.style.display = "flex";
         document.getElementById("page-info").textContent = `Showing ${startIndex + 1} to ${Math.min(startIndex + pageItems.length, totalItems)} of ${totalItems} broadcasts`;
-        document.getElementById("prev-btn").disabled = (currentPage <= 1);
-        document.getElementById("next-btn").disabled = (currentPage >= totalPages);
+        renderPaginationControls(totalItems, totalPages);
     }
 
-    function prevPage() {
-        if (currentPage > 1) {
-            currentPage--;
-            renderTable();
-        }
+    function onPageSizeChange(newSize) {
+        pageSize = parseInt(newSize, 10) || 10;
+        currentPage = 1;
+        renderTable();
     }
 
-    function nextPage() {
-        const totalPages = Math.ceil(filteredLogs.length / pageSize);
-        if (currentPage < totalPages) {
-            currentPage++;
-            renderTable();
+    function goToPage(p) {
+        const totalPages = Math.ceil(filteredLogs.length / pageSize) || 1;
+        if (p < 1) p = 1;
+        if (p > totalPages) p = totalPages;
+        currentPage = p;
+        renderTable();
+    }
+
+    function renderPaginationControls(totalItems, totalPages) {
+        const paginationPages = document.getElementById("pagination-pages");
+        if (!paginationPages) return;
+
+        let html = `
+            <button class="pagination-btn" onclick="goToPage(1)" ${currentPage <= 1 ? 'disabled' : ''} title="First Page">
+                <i class="fa fa-angle-double-left"></i>
+            </button>
+            <button class="pagination-btn" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''} title="Previous Page">
+                <i class="fa fa-angle-left"></i>
+            </button>
+        `;
+
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+        } else {
+            html += `<button class="pagination-btn ${1 === currentPage ? 'active' : ''}" onclick="goToPage(1)">1</button>`;
+            if (currentPage > 3) html += `<span class="pagination-ellipsis">…</span>`;
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+            for (let i = start; i <= end; i++) {
+                html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+            if (currentPage < totalPages - 2) html += `<span class="pagination-ellipsis">…</span>`;
+            html += `<button class="pagination-btn ${totalPages === currentPage ? 'active' : ''}" onclick="goToPage(${totalPages})">${totalPages}</button>`;
         }
+
+        html += `
+            <button class="pagination-btn" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''} title="Next Page">
+                <i class="fa fa-angle-right"></i>
+            </button>
+            <button class="pagination-btn" onclick="goToPage(${totalPages})" ${currentPage >= totalPages ? 'disabled' : ''} title="Last Page">
+                <i class="fa fa-angle-double-right"></i>
+            </button>
+        `;
+
+        paginationPages.innerHTML = html;
     }
 
     function reviewBroadcast(logId) {

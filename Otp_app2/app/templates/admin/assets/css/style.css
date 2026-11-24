@@ -44114,12 +44114,12 @@ table.table-bordered thead tr th p {
           order: -1;
 }
 .page-wrapper.compact-wrapper .page-header {
-  margin-left: 265px;
-  width: calc(100% - 265px);
+  margin-left: 285px;
+  width: calc(100% - 285px);
 }
 .page-wrapper.compact-wrapper .page-header.close_icon {
-  margin-left: 90px;
-  width: calc(100% - 90px);
+  margin-left: 86px;
+  width: calc(100% - 86px);
 }
 .page-wrapper.compact-wrapper .page-header .header-wrapper .logo-wrapper {
   display: none;

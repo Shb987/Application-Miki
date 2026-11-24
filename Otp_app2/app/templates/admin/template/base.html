@@ -454,7 +454,13 @@
         body.dark-only .input-group-text,
         html.dark-only .form-control,
         html.dark-only .form-select,
-        html.dark-only .input-group-text {
+        html.dark-only .input-group-text,
+        body.dark-only input:not(.price-input),
+        body.dark-only select,
+        body.dark-only textarea,
+        html.dark-only input:not(.price-input),
+        html.dark-only select,
+        html.dark-only textarea {
             background-color: #252936 !important;
             color: #f1f5f9 !important;
             border-color: #373d52 !important;
@@ -584,10 +590,16 @@
             background: transparent !important;
         }
 
-        /* Fixed Header (Never moves on scroll, no content overlap) */
+        /* Fixed Header (Never moves on scroll, no content overlap or collision with sidebar) */
+        .page-header,
+        .page-wrapper.compact-wrapper .page-header,
+        .page-wrapper .page-header,
+        body.dark-only .page-header,
+        body.dark-only .page-wrapper.compact-wrapper .page-header,
+        html.dark-only .page-header,
+        html.dark-only .page-wrapper.compact-wrapper .page-header,
         body:not(.dark-only) .page-header,
-        body.light .page-header,
-        .page-header {
+        body.light .page-header {
             position: fixed !important;
             top: 0 !important;
             left: 285px !important;
@@ -600,10 +612,14 @@
             border-bottom: 1px solid rgba(196, 78, 204, 0.12) !important;
             box-shadow: 0 4px 20px rgba(96, 60, 216, 0.05) !important;
             margin: 0 !important;
+            margin-left: 0 !important;
+            box-sizing: border-box !important;
             transition: left 0.3s ease, width 0.3s ease !important;
         }
         body.dark-only .page-header,
-        html.dark-only .page-header {
+        html.dark-only .page-header,
+        body.dark-only .page-wrapper.compact-wrapper .page-header,
+        html.dark-only .page-wrapper.compact-wrapper .page-header {
             background: #11131e !important;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
@@ -617,6 +633,9 @@
             display: flex !important;
             align-items: center !important;
             justify-content: space-between !important;
+        }
+        .left-header {
+            padding-left: 8px !important;
         }
         .left-header h4 {
             color: #0f172a !important;
@@ -638,18 +657,25 @@
         .page-body {
             background: transparent !important;
             margin-left: 285px !important;
-            margin-top: 84px !important;
-            min-height: calc(100vh - 84px) !important;
+            margin-top: 80px !important;
+            min-height: calc(100vh - 80px) !important;
             padding: 20px 28px 28px 28px !important;
             transition: margin-left 0.3s ease, width 0.3s ease !important;
         }
         /* Collapsed Sidebar Responsive Adaptations */
         .page-header.close_icon,
         .page-wrapper.compact-wrapper .page-header.close_icon,
+        .page-wrapper.compact-wrapper.close_icon .page-header,
         .page-wrapper:has(.sidebar-wrapper.close_icon) .page-header,
-        .page-wrapper.close_icon .page-header {
+        .page-wrapper.close_icon .page-header,
+        body.dark-only .page-header.close_icon,
+        body.dark-only .page-wrapper.compact-wrapper .page-header.close_icon,
+        html.dark-only .page-header.close_icon,
+        html.dark-only .page-wrapper.compact-wrapper .page-header.close_icon {
             left: 86px !important;
             width: calc(100% - 86px) !important;
+            margin: 0 !important;
+            margin-left: 0 !important;
         }
         .sidebar-wrapper.close_icon ~ .page-body,
         .page-body-wrapper:has(.sidebar-wrapper.close_icon) .page-body,
@@ -685,13 +711,20 @@
             height: 100vh !important;
             position: fixed !important;
             z-index: 1000 !important;
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 24px !important;
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
             transition: width 0.3s ease, left 0.3s ease !important;
         }
         body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
         body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
             background: radial-gradient(ellipse 130% 60% at 85% 100%, rgba(186, 75, 235, 0.45) 0%, rgba(186, 75, 235, 0) 65%), linear-gradient(180deg, #C44ECC 0%, #A33BBE 18%, #8334B8 38%, #6D2CB1 58%, #5621A2 80%, #6825AB 100%) !important;
             box-shadow: 0 0 30px rgba(96, 60, 216, 0.22) !important;
-            border-radius: 0 24px 24px 0 !important;
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 24px !important;
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
             position: fixed !important;
             z-index: 1000 !important;
             width: 285px !important;
@@ -729,12 +762,12 @@
         }
 
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a {
-            padding: 9px 42px 9px 14px !important;
+            padding: 9px 30px 9px 14px !important;
             border-radius: 12px !important;
             margin: 2px 0 !important;
             display: flex !important;
             align-items: center !important;
-            color: rgba(255, 255, 255, 0.85) !important;
+            color: rgba(255, 255, 255, 0.9) !important;
             font-weight: 500 !important;
             font-size: 0.88rem !important;
             transition: all 0.25s ease !important;
@@ -746,8 +779,8 @@
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
-            max-width: calc(100% - 24px) !important;
-            margin-right: 20px !important;
+            max-width: none !important;
+            margin-right: 4px !important;
             display: inline-block !important;
             flex: 1 1 auto !important;
         }
@@ -1013,7 +1046,10 @@
         html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
             background: radial-gradient(ellipse 130% 60% at 85% 100%, rgba(186, 75, 235, 0.45) 0%, rgba(186, 75, 235, 0) 65%), linear-gradient(180deg, #C44ECC 0%, #A33BBE 18%, #8334B8 38%, #6D2CB1 58%, #5621A2 80%, #6825AB 100%) !important;
             border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
-            border-radius: 0 24px 24px 0 !important;
+            border-top-right-radius: 0 !important;
+            border-bottom-right-radius: 24px !important;
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
             position: fixed !important;
             z-index: 1000 !important;
             overflow: hidden !important;
@@ -1021,7 +1057,7 @@
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a,
         html.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a {
-            color: #94a3b8 !important;
+            color: rgba(255, 255, 255, 0.9) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list:hover > a,
         html.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list:hover > a {

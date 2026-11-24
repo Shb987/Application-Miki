@@ -22,9 +22,9 @@
       border: none !important;
     }
 
-    /* Ensure active submenu stays open with zero layout shift or flicker */
-    .sidebar-list.active > .sidebar-submenu,
-    .sidebar-submenu.menu-open {
+    /* Ensure active submenu stays open with zero layout shift only when sidebar is expanded */
+    .sidebar-wrapper:not(.close_icon) .sidebar-list.active > .sidebar-submenu,
+    .sidebar-wrapper:not(.close_icon) .sidebar-submenu.menu-open {
       display: block !important;
     }
 
@@ -44,6 +44,7 @@
     .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:hover .sidebar-submenu,
     .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:hover ul.sidebar-submenu,
     .sidebar-wrapper.close_icon .sidebar-list.active > .sidebar-submenu,
+    .sidebar-wrapper.close_icon .sidebar-list > .sidebar-submenu,
     .sidebar-wrapper.close_icon .sidebar-submenu.menu-open,
     .sidebar-wrapper.close_icon .according-menu,
     .sidebar-wrapper.close_icon:hover .according-menu {

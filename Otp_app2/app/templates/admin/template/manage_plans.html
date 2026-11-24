@@ -226,12 +226,23 @@
     body.dark-only input.price-input,
     .dark-only input.price-input,
     body.dark-only .price-container input,
-    .dark-only .price-container input {
+    .dark-only .price-container input,
+    body.dark-only .price-input:disabled,
+    .dark-only .price-input:disabled,
+    body.dark-only input.price-input:disabled,
+    .dark-only input.price-input:disabled,
+    body.dark-only .price-container input:disabled,
+    .dark-only .price-container input:disabled,
+    .price-input,
+    .price-input:disabled,
+    input.price-input,
+    input.price-input:disabled {
         background: transparent !important;
         background-color: transparent !important;
         border: none !important;
         box-shadow: none !important;
         color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
         outline: none !important;
         padding: 0 !important;
         margin: 0 !important;
@@ -319,7 +330,7 @@
                         <h3 class="mb-0 text-white" style="font-weight: 800; letter-spacing: 0.5px;">${plan.name}</h3>
                         <div class="price-container">
                             <span style="font-size: 1.5rem; font-weight: 700; opacity: 0.9;">₹</span>
-                            <input type="number" id="price-${plan._id}" class="price-input" value="${plan.price_inr}" ${priceDisabled}>
+                            <input type="number" id="price-${plan._id}" class="price-input" value="${plan.price_inr}" ${priceDisabled} style="background: transparent !important; background-color: transparent !important; border: none !important; box-shadow: none !important; color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; outline: none !important;">
                         </div>
                     </div>
                     <div class="plan-body">

@@ -32,9 +32,10 @@ async def get_dashboard_summary(current_admin: dict = Depends(require_permission
             st_count = await db.students.count_documents({})
             try:
                 # Accurately reflect all registered students including EduSoft registrations
+                edusoft_cred_count = await db.edusoft_credentials.count_documents({})
                 edusoft_sids = await db.edusoft_credentials.distinct("student_id")
                 usertable_st_count = await db.usertable.count_documents({"usertype": "student"})
-                return max(st_count, len(edusoft_sids), usertable_st_count)
+                return max(st_count, len(edusoft_sids), edusoft_cred_count, usertable_st_count)
             except Exception:
                 return st_count
 

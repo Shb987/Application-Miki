@@ -49750,7 +49750,7 @@ body.dark-only .form-control,
 body.dark-only .form-select,
 body.dark-only .premium-input,
 body.dark-only select,
-body.dark-only input:not([type="submit"]):not([type="button"]):not([type="reset"]),
+body.dark-only input:not([type="submit"]):not([type="button"]):not([type="reset"]):not(.price-input),
 body.dark-only textarea {
   background-color: #16181f !important;
   border: 1px solid #2e3243 !important;

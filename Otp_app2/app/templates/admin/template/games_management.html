@@ -403,9 +403,9 @@
                     <select id="puzzle-filter-diff" class="form-select"
                         style="max-width:180px;border-radius:8px;font-size:.85rem;" onchange="puzzleCurrentPage = 1; loadPuzzle()">
                         <option value="">All Difficulties</option>
-                        <option value="Beginner">Beginner (3x3 Grid)</option>
-                        <option value="Intermediate">Intermediate (4x4 Grid)</option>
-                        <option value="Advanced">Advanced (5x5 Grid)</option>
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
                     </select>
                     <button id="pz-delete-selected-btn" class="btn btn-sm btn-danger d-none" style="border-radius:8px;" onclick="deleteSelectedPuzzles()">
                         <i data-feather="trash-2" style="width: 14px; height: 14px; margin-bottom: 2px;"></i> Delete Selected
@@ -598,9 +598,9 @@
                     <div class="mb-3">
                         <label class="form-label font-weight-bold text-dark mb-1">Difficulty Category</label>
                         <select id="pz-difficulty" class="form-select form-control-lg" style="border-radius: 10px; font-size: 0.95rem; border: 1.5px solid #cbd5e1;" onchange="updateGridPreviewHint()">
-                            <option value="Beginner">🟢 Beginner (Classes 1–6 • 3x3 Grid)</option>
-                            <option value="Intermediate">🟡 Intermediate (Classes 7–10 • 4x4 Grid)</option>
-                            <option value="Advanced">🔴 Advanced (Classes 11–12 • 5x5 Grid)</option>
+                            <option value="Beginner">🟢 Beginner (Classes 1–6)</option>
+                            <option value="Intermediate">🟡 Intermediate (Classes 7–10)</option>
+                            <option value="Advanced">🔴 Advanced (Classes 11–12)</option>
                         </select>
                     </div>
                     
@@ -610,8 +610,8 @@
                             <input type="number" id="pz-level" class="form-control form-control-lg" style="border-radius: 10px; font-size: 0.95rem; border: 1.5px solid #cbd5e1;" placeholder="1, 2, 3..." min="1" oninput="updateMultiFileLevels()">
                         </div>
                         <div class="col-6">
-                            <label class="form-label font-weight-bold text-dark mb-1">Target Grid</label>
-                            <input type="text" id="pz-grid-hint" class="form-control form-control-lg bg-light text-primary font-weight-bold" style="border-radius: 10px; font-size: 0.9rem;" readonly value="3x3 Grid (Classes 1-6)">
+                            <label class="form-label font-weight-bold text-dark mb-1">Target Class</label>
+                            <input type="text" id="pz-grid-hint" class="form-control form-control-lg bg-light text-primary font-weight-bold" style="border-radius: 10px; font-size: 0.9rem;" readonly value="(Classes 1-6)">
                         </div>
                     </div>
                 </div>
@@ -1186,7 +1186,7 @@
 
     function updateGridPreviewHint() {
         const diff = document.getElementById("pz-difficulty").value;
-        const hintMap = { "Beginner": "3x3 Grid (Classes 1-6)", "Intermediate": "4x4 Grid (Classes 7-10)", "Advanced": "5x5 Grid (Classes 11-12)" };
+        const hintMap = { "Beginner": "(Classes 1-6)", "Intermediate": "(Classes 7-10)", "Advanced": "(Classes 11-12)" };
         document.getElementById("pz-grid-hint").value = hintMap[diff] || "3x3 Grid";
     }
 

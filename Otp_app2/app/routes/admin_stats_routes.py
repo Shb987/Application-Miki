@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 import asyncio
+import re
 
 from app.core.database import db
 from app.utils.admin_auth import require_permission
@@ -459,9 +460,26 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
     try:
         # 1. Leaderboard - Count all staff activity (any status except 'processing')
         leaderboard_pipeline = [
-            {"$match": {"status": {"$nin": ["processing"]}}},
-            {"$group": {"_id": "$username", "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}},
+            {
+                "$match": {
+                    "status": {"$nin": ["processing"]},
+                    "username": {"$exists": True, "$nin": [None, ""]}
+                }
+            },
+            {
+                "$project": {
+                    "clean_username": {"$toLower": {"$trim": {"input": "$username"}}},
+                    "username": 1
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$clean_username",
+                    "count": {"$sum": 1},
+                    "display_username": {"$first": "$username"}
+                }
+            },
+            {"$sort": {"count": -1, "_id": 1}},
             {"$limit": 10}
         ]
         leaderboard_cursor = db.admin_activity_logs.aggregate(leaderboard_pipeline)
@@ -509,7 +527,7 @@ async def get_staff_activity(current_admin: dict = Depends(require_permission("A
         return {
             "status": "success",
             "data": {
-                "leaderboard": [{"username": item["_id"], "count": item["count"]} for item in leaderboard],
+                "leaderboard": [{"username": item.get("display_username") or item["_id"], "count": item["count"]} for item in leaderboard],
                 "daily_trend": [{"date": item["_id"], "count": item["count"]} for item in daily_trend],
                 "recent_logs": [serialize_log(log) for log in recent_logs]
             }
@@ -530,7 +548,8 @@ async def get_staff_profile(
     Includes all-time KPIs, action breakdown by type, and recent logs.
     """
     try:
-        base_match = {"username": username}
+        clean_user = username.strip()
+        base_match = {"username": {"$regex": f"^{re.escape(clean_user)}$", "$options": "i"}}
         
         date_query = {}
         if start_date:
@@ -630,24 +649,40 @@ async def get_staff_profile(
 
         # ── 7. Admin Info & Rank ───────────────────────────────────
         async def admin_info():
-            user = await db.admins.find_one({"username": username})
+            user = await db.admins.find_one({"username": {"$regex": f"^{re.escape(clean_user)}$", "$options": "i"}})
             role = "Staff"
             if user:
                 role = user.get("role_name") or user.get("role") or "Staff"
             
-            rank_match = {}
+            rank_match = {
+                "status": {"$nin": ["processing"]},
+                "username": {"$exists": True, "$nin": [None, ""]}
+            }
             if date_query:
                 rank_match["timestamp"] = date_query
             
             rank_pipeline = [
                 {"$match": rank_match},
-                {"$group": {"_id": "$username", "count": {"$sum": 1}}},
-                {"$sort": {"count": -1}}
+                {
+                    "$project": {
+                        "clean_username": {"$toLower": {"$trim": {"input": "$username"}}},
+                        "username": 1
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$clean_username",
+                        "count": {"$sum": 1},
+                        "display_username": {"$first": "$username"}
+                    }
+                },
+                {"$sort": {"count": -1, "_id": 1}}
             ]
             rank_results = await db.admin_activity_logs.aggregate(rank_pipeline).to_list(None)
+            target_clean = clean_user.lower()
             rank = "-"
             for idx, r in enumerate(rank_results):
-                if r["_id"] == username:
+                if str(r.get("_id", "")).strip().lower() == target_clean:
                     rank = str(idx + 1)
                     break
             return {"role": role, "rank": rank}

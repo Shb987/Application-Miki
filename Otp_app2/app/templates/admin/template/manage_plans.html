@@ -212,6 +212,32 @@
         border-color: #7366ff !important;
         box-shadow: 0 0 0 3px rgba(115, 102, 255, 0.25) !important;
     }
+
+    /* 🏷️ Seamless Price Input on Dark Theme — Eliminate any black/dark padding or container box */
+    body.dark-only .price-container,
+    .dark-only .price-container {
+        background: rgba(255, 255, 255, 0.18) !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    body.dark-only .price-input,
+    .dark-only .price-input,
+    body.dark-only input.price-input,
+    .dark-only input.price-input,
+    body.dark-only .price-container input,
+    .dark-only .price-container input {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: #ffffff !important;
+        outline: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: textfield !important;
+    }
 </style>
 {% endblock %}
 

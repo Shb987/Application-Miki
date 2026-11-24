@@ -7,10 +7,9 @@
   :root {
     --primary-teal: #603CD8;
     --primary-teal-light: #C44ECC;
-  }
-  .text-purple { color: #603CD8 !important; }
     --dark-bg: #0f172a;
   }
+  .text-purple { color: #603CD8 !important; }
 
   .report-wrapper {
     padding: 24px 0 50px;
@@ -336,39 +335,43 @@
   }
 
   .kpi-badge-total {
-    background: #f1f5f9;
-    color: #334155;
+    background: #e2e8f0;
+    color: #1e293b;
     font-size: 0.75rem;
     font-weight: 700;
     padding: 4px 10px;
     border-radius: 6px;
+    border: 1px solid #cbd5e1;
   }
 
   .kpi-badge-success {
-    background: #d1fae5;
-    color: #065f46;
+    background: #dcfce7;
+    color: #15803d;
     font-size: 0.75rem;
     font-weight: 700;
     padding: 4px 10px;
     border-radius: 6px;
+    border: 1px solid #86efac;
   }
 
   .kpi-badge-failed {
     background: #fee2e2;
-    color: #991b1b;
+    color: #b91c1c;
     font-size: 0.75rem;
     font-weight: 700;
     padding: 4px 10px;
     border-radius: 6px;
+    border: 1px solid #fca5a5;
   }
 
   .kpi-badge-rate {
-    background: #e0e7ff;
-    color: #3730a3;
+    background: #ede9fe;
+    color: #6d28d9;
     font-size: 0.75rem;
     font-weight: 700;
     padding: 4px 10px;
     border-radius: 6px;
+    border: 1px solid #c4b5fd;
   }
 
   .kpi-val-success { color: #059669; }
@@ -724,36 +727,41 @@
   body.dark-only .kpi-badge-total,
   html.dark-only .kpi-badge-total,
   .dark-only .kpi-badge-total {
-    background: rgba(148, 163, 184, 0.22) !important;
-    color: #f1f5f9 !important;
-    border: 1px solid rgba(148, 163, 184, 0.45) !important;
+    background: #334155 !important;
+    color: #f8fafc !important;
+    border: 1px solid #475569 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3) !important;
   }
 
   body.dark-only .kpi-badge-success,
   html.dark-only .kpi-badge-success,
   .dark-only .kpi-badge-success {
-    background: rgba(16, 185, 129, 0.28) !important;
+    background: #064e3b !important;
     color: #4ade80 !important;
-    border: 1.5px solid rgba(74, 222, 128, 0.6) !important;
-    box-shadow: 0 0 12px rgba(74, 222, 128, 0.2) !important;
+    border: 1.5px solid #10b981 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.3) !important;
   }
 
   body.dark-only .kpi-badge-failed,
   html.dark-only .kpi-badge-failed,
   .dark-only .kpi-badge-failed {
-    background: rgba(239, 68, 68, 0.28) !important;
-    color: #f87171 !important;
-    border: 1.5px solid rgba(248, 113, 113, 0.6) !important;
-    box-shadow: 0 0 12px rgba(248, 113, 113, 0.2) !important;
+    background: #7f1d1d !important;
+    color: #fca5a5 !important;
+    border: 1.5px solid #ef4444 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.3) !important;
   }
 
   body.dark-only .kpi-badge-rate,
   html.dark-only .kpi-badge-rate,
   .dark-only .kpi-badge-rate {
-    background: rgba(139, 92, 246, 0.28) !important;
-    color: #c4b5fd !important;
-    border: 1.5px solid rgba(196, 181, 253, 0.6) !important;
-    box-shadow: 0 0 12px rgba(196, 181, 253, 0.2) !important;
+    background: #4c1d95 !important;
+    color: #ddd6fe !important;
+    border: 1.5px solid #8b5cf6 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.3) !important;
   }
 
   body.dark-only .kpi-card .kpi-icon,

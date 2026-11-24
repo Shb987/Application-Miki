@@ -164,6 +164,15 @@
     body.dark-only .form-label {
         color: #f8fafc !important;
     }
+
+    body.dark-only .empty-state-card {
+        background-color: #1e222d !important;
+        border-color: #2d3243 !important;
+        color: #f8fafc !important;
+    }
+    body.dark-only .empty-state-card h5 {
+        color: #f8fafc !important;
+    }
 </style>
 {% endblock %}
 
@@ -698,20 +707,19 @@
         const container = document.getElementById("textbooks-container");
         if (textbooks.length === 0) {
             container.innerHTML = `
-                <div class="alert alert-light text-center border p-5 bg-white rounded-3">
-                    <div class="d-flex justify-content-center align-items-center mb-3" style="min-height: 52px;">
-                        <i data-feather="search" class="text-muted" style="width: 48px; height: 48px; display: block;"></i>
+                <div class="empty-state-card text-center border p-5 bg-white rounded-3 shadow-sm">
+                    <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 68px; height: 68px; background: rgba(115, 102, 255, 0.12); color: #7366ff; font-size: 28px;">
+                        <i class="fa fa-book"></i>
                     </div>
-                    <h5 class="text-muted fw-bold mb-2">No competitive exam textbooks found</h5>
+                    <h5 class="fw-bold mb-2" style="color: #1e293b;">No competitive exam textbooks found</h5>
                     <p class="text-muted small mb-3">Upload textbooks using the competitive exam ingestion pipeline to get started.</p>
                     <div class="d-flex justify-content-center gap-2 mt-3">
                         <button class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="resetFilters()">Clear Filters</button>
-                        <a href="/admin-panel/competitive-exams/upload-textbook" class="btn btn-primary btn-sm rounded-pill px-4">
+                        <a href="/admin-panel/competitive-exams/upload-textbook" class="btn btn-primary btn-sm rounded-pill px-4" style="background: linear-gradient(135deg, #7366ff, #9333ea); border: none; color: #fff;">
                             <i class="fa fa-cloud-upload me-1"></i> Upload Textbook
                         </a>
                     </div>
                 </div>`;
-            safeFeatherReplace();
             return;
         }
 

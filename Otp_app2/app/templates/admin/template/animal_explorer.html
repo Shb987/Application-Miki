@@ -606,23 +606,35 @@
   }
 
   /* 📁 Manage Category Images Header Button - Crisp White Contrast in Light & Dark Themes */
-  .btn-manage-categories {
-    background: rgba(255, 255, 255, 0.18) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.65) !important;
+  .btn-manage-categories,
+  .btn.btn-manage-categories,
+  button.btn-manage-categories,
+  body.dark-only .btn-manage-categories,
+  .dark-only .btn-manage-categories {
+    background: rgba(255, 255, 255, 0.22) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.75) !important;
     color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
     font-size: 0.88rem !important;
     font-weight: 700 !important;
     transition: all 0.25s ease !important;
     backdrop-filter: blur(8px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
   }
-  .btn-manage-categories i {
+  .btn-manage-categories i,
+  .btn.btn-manage-categories i,
+  button.btn-manage-categories i,
+  body.dark-only .btn-manage-categories i,
+  .dark-only .btn-manage-categories i {
     color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
   }
   .btn-manage-categories:hover,
   .btn-manage-categories:focus,
   .btn-manage-categories:active {
     background: #ffffff !important;
     color: #78350f !important;
+    -webkit-text-fill-color: #78350f !important;
     border-color: #ffffff !important;
     transform: translateY(-1px) !important;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
@@ -631,12 +643,14 @@
   .btn-manage-categories:focus i,
   .btn-manage-categories:active i {
     color: #78350f !important;
+    -webkit-text-fill-color: #78350f !important;
   }
   body.dark-only .btn-manage-categories,
   .dark-only .btn-manage-categories {
-    background: rgba(255, 255, 255, 0.14) !important;
-    border-color: rgba(255, 255, 255, 0.5) !important;
+    background: rgba(255, 255, 255, 0.18) !important;
+    border-color: rgba(255, 255, 255, 0.7) !important;
     color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
   }
 
   /* 📁 Manage Category Images Modal Styling (Balanced contrast in light & dark modes) */

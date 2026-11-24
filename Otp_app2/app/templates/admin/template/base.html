@@ -590,8 +590,8 @@
         .page-header {
             position: fixed !important;
             top: 0 !important;
-            left: 280px !important;
-            width: calc(100% - 280px) !important;
+            left: 285px !important;
+            width: calc(100% - 285px) !important;
             height: 80px !important;
             z-index: 990 !important;
             background: #f7f6fc !important;
@@ -637,7 +637,7 @@
         .page-wrapper.compact-wrapper .page-body-wrapper .page-body,
         .page-body {
             background: transparent !important;
-            margin-left: 280px !important;
+            margin-left: 285px !important;
             margin-top: 84px !important;
             min-height: calc(100vh - 84px) !important;
             padding: 20px 28px 28px 28px !important;
@@ -661,6 +661,7 @@
         }
         .sidebar-wrapper.close_icon {
             width: 86px !important;
+            overflow: hidden !important;
             transition: all 0.3s ease !important;
         }
         .sidebar-wrapper.close_icon .sidebar-list > a {
@@ -678,7 +679,7 @@
         /* Sidebar Styling - Light / White Mode */
         .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
         .sidebar-wrapper {
-            width: 280px !important;
+            width: 285px !important;
             left: 0 !important;
             top: 0 !important;
             height: 100vh !important;
@@ -693,11 +694,12 @@
             border-radius: 0 24px 24px 0 !important;
             position: fixed !important;
             z-index: 1000 !important;
-            width: 280px !important;
+            width: 285px !important;
         }
         body:not(.dark-only) .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon,
         body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon {
             width: 86px !important;
+            overflow: hidden !important;
             transition: width 0.3s ease, left 0.3s ease !important;
         }
 
@@ -723,7 +725,7 @@
         }
 
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a {
-            padding: 9px 30px 9px 12px !important;
+            padding: 9px 38px 9px 14px !important;
             border-radius: 12px !important;
             margin: 2px 0 !important;
             display: flex !important;
@@ -738,9 +740,10 @@
 
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a span {
             white-space: nowrap !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-            max-width: none !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: calc(100% - 12px) !important;
+            display: inline-block !important;
             flex: 1 1 auto !important;
         }
 
@@ -774,7 +777,7 @@
         /* Chevrons on sidebar items */
         .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list .according-menu {
             position: absolute !important;
-            right: 10px !important;
+            right: 12px !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
             display: flex !important;
@@ -808,31 +811,48 @@
             border: none !important;
         }
 
-        /* Completely hide submenus and branch connectors when sidebar is collapsed/minimized */
+        /* Completely hide submenus, branch lines, and overflow when sidebar is collapsed/minimized */
+        .sidebar-wrapper.close_icon,
+        .sidebar-wrapper.close_icon .sidebar-main,
+        .sidebar-wrapper.close_icon .sidebar-links {
+            overflow: hidden !important;
+        }
+
         .sidebar-wrapper.close_icon .sidebar-submenu,
         .sidebar-wrapper.close_icon ul.sidebar-submenu,
+        .sidebar-wrapper.close_icon:hover .sidebar-submenu,
+        .sidebar-wrapper.close_icon:hover ul.sidebar-submenu,
+        .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon .sidebar-submenu,
+        .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon ul.sidebar-submenu,
+        .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:hover .sidebar-submenu,
+        .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:hover ul.sidebar-submenu,
         .sidebar-wrapper.close_icon .sidebar-list.active > .sidebar-submenu,
         .sidebar-wrapper.close_icon .sidebar-submenu.menu-open,
         .sidebar-wrapper.close_icon .according-menu,
-        .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:not(:hover) .sidebar-submenu,
-        .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:not(:hover) ul.sidebar-submenu {
+        .sidebar-wrapper.close_icon:hover .according-menu {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
             width: 0 !important;
             height: 0 !important;
+            max-height: 0 !important;
             overflow: hidden !important;
         }
 
         .sidebar-wrapper.close_icon ul.sidebar-submenu *,
-        .sidebar-wrapper.close_icon .sidebar-submenu * {
+        .sidebar-wrapper.close_icon .sidebar-submenu *,
+        .sidebar-wrapper.close_icon:hover ul.sidebar-submenu *,
+        .sidebar-wrapper.close_icon:hover .sidebar-submenu * {
             display: none !important;
         }
 
         .sidebar-wrapper.close_icon ul.sidebar-submenu li::before,
         .sidebar-wrapper.close_icon ul.sidebar-submenu li::after,
-        .sidebar-wrapper.close_icon ul.sidebar-submenu li a::before {
+        .sidebar-wrapper.close_icon ul.sidebar-submenu li a::before,
+        .sidebar-wrapper.close_icon:hover ul.sidebar-submenu li::before,
+        .sidebar-wrapper.close_icon:hover ul.sidebar-submenu li::after,
+        .sidebar-wrapper.close_icon:hover ul.sidebar-submenu li a::before {
             display: none !important;
             content: none !important;
         }

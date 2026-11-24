@@ -1109,7 +1109,7 @@
               <label class="form-label-custom">Experience (Years) <span class="req">*</span></label>
               <div class="input-icon-wrap">
                 <i class="fa fa-clock-o"></i>
-                <input type="number" class="form-control" id="form-experience" placeholder="e.g. 8" min="0" step="0.5" required>
+                <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control" id="form-experience" placeholder="e.g. 8" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault();" onpaste="setTimeout(() => { this.value = this.value.replace(/[^0-9]/g, ''); }, 0);">
               </div>
             </div>
 
@@ -1787,8 +1787,8 @@
       document.getElementById('form-other-specialization').focus();
       return;
     }
-    if (experienceStr === '' || isNaN(Number(experienceStr)) || Number(experienceStr) < 0) {
-      showToast('Please enter a valid number of Experience years (0 or more).', 'warning');
+    if (experienceStr === '' || !/^\d+$/.test(experienceStr) || Number(experienceStr) < 0) {
+      showToast('Please enter a valid numeric number of Experience years (digits only, no letters).', 'warning');
       document.getElementById('form-experience').focus();
       return;
     }

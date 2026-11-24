@@ -28,31 +28,48 @@
       display: block !important;
     }
 
-    /* Completely hide submenus and branch connectors when sidebar is collapsed/minimized */
+    /* Completely hide submenus, branch connectors, and overflows when sidebar is collapsed/minimized */
+    .sidebar-wrapper.close_icon,
+    .sidebar-wrapper.close_icon .sidebar-main,
+    .sidebar-wrapper.close_icon .sidebar-links {
+      overflow: hidden !important;
+    }
+
     .sidebar-wrapper.close_icon .sidebar-submenu,
     .sidebar-wrapper.close_icon ul.sidebar-submenu,
+    .sidebar-wrapper.close_icon:hover .sidebar-submenu,
+    .sidebar-wrapper.close_icon:hover ul.sidebar-submenu,
+    .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon .sidebar-submenu,
+    .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon ul.sidebar-submenu,
+    .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:hover .sidebar-submenu,
+    .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:hover ul.sidebar-submenu,
     .sidebar-wrapper.close_icon .sidebar-list.active > .sidebar-submenu,
     .sidebar-wrapper.close_icon .sidebar-submenu.menu-open,
     .sidebar-wrapper.close_icon .according-menu,
-    .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:not(:hover) .sidebar-submenu,
-    .page-wrapper.compact-wrapper div.sidebar-wrapper.close_icon:not(:hover) ul.sidebar-submenu {
+    .sidebar-wrapper.close_icon:hover .according-menu {
       display: none !important;
       visibility: hidden !important;
       opacity: 0 !important;
       pointer-events: none !important;
       width: 0 !important;
       height: 0 !important;
+      max-height: 0 !important;
       overflow: hidden !important;
     }
 
     .sidebar-wrapper.close_icon ul.sidebar-submenu *,
-    .sidebar-wrapper.close_icon .sidebar-submenu * {
+    .sidebar-wrapper.close_icon .sidebar-submenu *,
+    .sidebar-wrapper.close_icon:hover ul.sidebar-submenu *,
+    .sidebar-wrapper.close_icon:hover .sidebar-submenu * {
       display: none !important;
     }
 
     .sidebar-wrapper.close_icon ul.sidebar-submenu li::before,
     .sidebar-wrapper.close_icon ul.sidebar-submenu li::after,
-    .sidebar-wrapper.close_icon ul.sidebar-submenu li a::before {
+    .sidebar-wrapper.close_icon ul.sidebar-submenu li a::before,
+    .sidebar-wrapper.close_icon:hover ul.sidebar-submenu li::before,
+    .sidebar-wrapper.close_icon:hover ul.sidebar-submenu li::after,
+    .sidebar-wrapper.close_icon:hover ul.sidebar-submenu li a::before {
       display: none !important;
       content: none !important;
     }

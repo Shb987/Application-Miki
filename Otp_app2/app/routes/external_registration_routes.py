@@ -13,6 +13,20 @@ router = APIRouter()
 # 📦 Request Schema
 # ─────────────────────────────────────────────
 
+def is_dummy_or_placeholder_phone(phone: Optional[str]) -> bool:
+    """Helper to detect placeholder/dummy phones (e.g. 0000000000, 9999999999, 1234567890)."""
+    if not phone:
+        return True
+    digits = re.sub(r'\D', '', str(phone).strip())
+    if len(digits) < 10:
+        return True
+    if len(set(digits)) <= 1:
+        return True
+    if digits in ["1234567890", "0123456789", "9876543210"]:
+        return True
+    return False
+
+
 def calculate_age_from_dob(dob_str: Optional[str]) -> Optional[int]:
     if not dob_str or str(dob_str).strip().lower() in ["string", "null", "none", ""]:
         return None
@@ -285,40 +299,62 @@ async def external_register_student(
 
     # ── 2. Check duplicate / existing student matching ──────────────────────
     existing_student = None
-    if resolved_st_phone:
+    st_name_clean = payload.name.strip() if payload.name else ""
+    name_filter = {"student_name": {"$regex": f"^{re.escape(st_name_clean)}$", "$options": "i"}} if st_name_clean else None
+
+    # Sanitize dummy/placeholder student phone numbers
+    effective_st_phone = None if is_dummy_or_placeholder_phone(resolved_st_phone) else resolved_st_phone
+    effective_g_phone = None if is_dummy_or_placeholder_phone(resolved_g_phone) else resolved_g_phone
+
+    # CRITICAL: A student is ONLY an existing duplicate if their NAME matches!
+    # Different students (e.g. 62 new students registered through EduSoft) sharing a parent/school/dummy phone
+    # must NEVER match or overwrite each other!
+    if name_filter and effective_st_phone:
         existing_student = await db.students.find_one({
-            "$or": [
-                {"student_phone": resolved_st_phone},
-                {"mobile_number": resolved_st_phone},
-                {"phone": resolved_st_phone},
-                {"phone_number": resolved_st_phone},
-                {"mobileno": resolved_st_phone},
-                {"mobile_no": resolved_st_phone}
+            "$and": [
+                name_filter,
+                {
+                    "$or": [
+                        {"student_phone": effective_st_phone},
+                        {"mobile_number": effective_st_phone},
+                        {"phone": effective_st_phone},
+                        {"phone_number": effective_st_phone},
+                        {"mobileno": effective_st_phone},
+                        {"mobile_no": effective_st_phone}
+                    ]
+                }
             ]
         })
 
-    if not existing_student and payload.name and resolved_g_phone and resolved_g_phone != "0000000000":
+    if not existing_student and name_filter and effective_g_phone:
         g_filter = {
             "$or": [
-                {"guardian_phone": resolved_g_phone},
-                {"parent_mobile": resolved_g_phone}
+                {"guardian_phone": effective_g_phone},
+                {"parent_mobile": effective_g_phone}
             ]
         }
-        if payload.dob:
+        if payload.dob and payload.dob != "2000-01-01":
             existing_student = await db.students.find_one({
-                "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
-                "dob": payload.dob,
-                **g_filter
+                "$and": [
+                    name_filter,
+                    {"dob": payload.dob},
+                    g_filter
+                ]
             })
         if not existing_student:
             existing_student = await db.students.find_one({
-                "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
-                **g_filter
+                "$and": [
+                    name_filter,
+                    g_filter
+                ]
             })
-    elif not existing_student and payload.name and payload.dob and (not resolved_g_phone or resolved_g_phone == "0000000000"):
+    elif not existing_student and name_filter and payload.dob and payload.dob != "2000-01-01":
         existing_student = await db.students.find_one({
-            "student_name": {"$regex": f"^{re.escape(payload.name.strip())}$", "$options": "i"},
-            "dob": payload.dob
+            "$and": [
+                name_filter,
+                {"dob": payload.dob},
+                {"$or": [{"school_id": school_id}, {"school_link": payload.link}]}
+            ]
         })
 
     calculated_age = calculate_age_from_dob(payload.dob)

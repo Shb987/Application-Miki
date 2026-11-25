@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}User Feedback - Miki Assessment Portal{% endblock %}
+
+{% block head %}
+<style>
+    .feedback-kpi-card {
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+    }
+    body.dark-only .feedback-kpi-card,
+    html.dark-only .feedback-kpi-card {
+        background: #1e222d !important;
+        border-color: #2d3243 !important;
+    }
+
+    .feedback-card {
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.04);
+    }
+    body.dark-only .feedback-card,
+    html.dark-only .feedback-card {
+        background: #1e222d !important;
+        border-color: #2d3243 !important;
+        color: #f8fafc !important;
+    }
+
+    body.dark-only .form-control,
+    body.dark-only .form-select {
+        background-color: #252936 !important;
+        color: #f8fafc !important;
+        border-color: #373d52 !important;
+    }
+
+    .feedback-table thead th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        color: #475569;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 12px 14px;
+    }
+    body.dark-only .feedback-table thead th {
+        background: #252936 !important;
+        color: #94a3b8 !important;
+        border-color: #2d3243 !important;
+    }
+    body.dark-only .feedback-table td {
+        border-color: #2d3243 !important;
+        color: #e2e8f0 !important;
+        background: #1e222d !important;
+    }
+
+    .feedback-msg-cell {
+        max-width: 280px;
+        min-width: 180px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+
+    .feedback-action-btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+    }
+
+    .rating-stars {
+        color: #f59e0b;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    body.dark-only .page-main-heading {
+        color: #f8fafc !important;
+    }
+    body.dark-only .kpi-val {
+        color: #f8fafc !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-title" style="padding: 16px 0 12px 0;">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h4 class="page-main-heading fw-bold mb-1 d-flex align-items-center gap-2">
+                    <i data-feather="message-square" style="width: 22px; height: 22px; color: #9333ea;"></i>
+                    User Feedback
+                </h4>
+                <small class="text-muted">View and manage feedback submitted by students and parents</small>
+            </div>
+            <div class="col-md-6">
+                <ol class="breadcrumb justify-content-md-end mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="/admin-panel/user-management-page">
+                            <svg class="stroke-icon"><use href="/assets/svg/icon-sprite.svg#stroke-home"></use></svg>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Feedback</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Stats Overview -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card feedback-kpi-card h-100">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="p-3 rounded-circle me-3 text-primary" style="background: rgba(124, 34, 224, 0.12); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                        <i data-feather="message-circle" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold kpi-val" id="stat-total-feedback">0</h4>
+                        <small class="text-muted">Total Feedbacks</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card feedback-kpi-card h-100">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="p-3 rounded-circle me-3 text-warning" style="background: rgba(245, 158, 11, 0.12); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                        <i data-feather="inbox" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold kpi-val" id="stat-new-feedback">0</h4>
+                        <small class="text-muted">New / Pending Review</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card feedback-kpi-card h-100">
+                <div class="card-body d-flex align-items-center p-3">
+                    <div class="p-3 rounded-circle me-3 text-success" style="background: rgba(16, 185, 129, 0.12); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                        <i data-feather="check-circle" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold kpi-val" id="stat-reviewed-feedback">0</h4>
+                        <small class="text-muted">Reviewed / Resolved</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback List Card -->
+    <div class="card feedback-card">
+        <div class="card-body p-4">
+            <div class="row g-3 align-items-center mb-4">
+                <div class="col-md-6">
+                    <input type="text" id="fb-search" class="form-control form-control-sm" placeholder="Search by user, mobile, or message..." onkeydown="if(event.key==='Enter') loadFeedbacks(true)">
+                </div>
+                <div class="col-md-3">
+                    <select id="fb-status" class="form-select form-select-sm" onchange="loadFeedbacks(true)">
+                        <option value="">All Statuses</option>
+                        <option value="new">New</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2 justify-content-md-end">
+                    <button class="btn btn-primary btn-sm px-3" onclick="loadFeedbacks(true)">
+                        <i data-feather="search" style="width: 14px; height: 14px;"></i> Filter
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="resetFeedbackFilters()" title="Reset">
+                        <i data-feather="refresh-ccw" style="width: 14px; height: 14px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive" id="feedback-table-wrapper">
+                <div class="text-center text-muted py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="mt-2">Loading feedback...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast-fb" class="toast align-items-center text-white border-0" role="alert" style="display:none; position:fixed; bottom:24px; right:24px; z-index:9999; border-radius:12px;">
+    <div class="d-flex">
+        <div class="toast-body" id="toast-fb-msg">Done!</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const token = window.token || localStorage.getItem("admin_token");
+    const API_BASE = window.API_BASE || "";
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function showToast(msg, type = "success") {
+        const el = document.getElementById("toast-fb");
+        el.className = `toast align-items-center text-white border-0 bg-${type}`;
+        document.getElementById("toast-fb-msg").textContent = msg;
+        el.style.display = "block";
+        setTimeout(() => { el.style.display = "none"; }, 3000);
+    }
+
+    function renderStars(rating) {
+        if (!rating) return '<span class="text-muted small">—</span>';
+        const r = Math.max(0, Math.min(5, parseInt(rating, 10) || 0));
+        return `<span class="rating-stars">${"★".repeat(r)}${"☆".repeat(5 - r)}</span>`;
+    }
+
+    function statusBadge(st) {
+        const s = (st || "new").toLowerCase();
+        if (s === "resolved") return '<span class="badge bg-success rounded-pill px-3 py-1">Resolved</span>';
+        if (s === "reviewed") return '<span class="badge bg-info text-white rounded-pill px-3 py-1">Reviewed</span>';
+        return '<span class="badge bg-warning text-dark rounded-pill px-3 py-1">New</span>';
+    }
+
+    async function loadFeedbacks() {
+        const search = document.getElementById("fb-search").value.trim();
+        const status = document.getElementById("fb-status").value;
+
+        let url = `${API_BASE}/admin-panel/feedbacks?limit=100`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
+
+        const wrapper = document.getElementById("feedback-table-wrapper");
+        try {
+            const res = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
+            if (!res.ok) throw new Error("Failed to load feedbacks");
+            const json = await res.json();
+
+            const stats = json.stats || {};
+            document.getElementById("stat-total-feedback").textContent = stats.total || 0;
+            document.getElementById("stat-new-feedback").textContent = stats.new || 0;
+            document.getElementById("stat-reviewed-feedback").textContent = stats.reviewed || 0;
+
+            const items = json.data || [];
+            if (items.length === 0) {
+                wrapper.innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <i data-feather="message-square" class="mb-2" style="width: 40px; height: 40px;"></i>
+                        <h6 class="fw-bold mb-1">No feedback found</h6>
+                        <p class="small mb-0">User-submitted feedback will appear here.</p>
+                    </div>`;
+                feather.replace();
+                return;
+            }
+
+            let html = `
+                <table class="table table-hover align-middle feedback-table mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 44px;">#</th>
+                            <th>User</th>
+                            <th>Feedback Message</th>
+                            <th style="width: 100px;">Rating</th>
+                            <th style="width: 140px;">Date</th>
+                            <th style="width: 95px;">Status</th>
+                            <th class="text-end" style="width: 120px; white-space: nowrap;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            items.forEach((fb, idx) => {
+                const dateStr = fb.created_at
+                    ? new Date(fb.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })
+                    : "—";
+
+                html += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>
+                            <div class="fw-bold">${escapeHtml(fb.user_name || "User")}</div>
+                            <small class="text-muted d-block">${escapeHtml(fb.mobile_number || "—")}</small>
+                            <span class="badge bg-light text-secondary border mt-1" style="font-size: 0.68rem;">${escapeHtml(fb.user_type || "user")}</span>
+                        </td>
+                        <td class="feedback-msg-cell">${escapeHtml(fb.message)}</td>
+                        <td>${renderStars(fb.rating)}</td>
+                        <td class="small text-muted">${dateStr}</td>
+                        <td>${statusBadge(fb.status)}</td>
+                        <td class="text-end" style="white-space: nowrap;">
+                            <div class="d-inline-flex align-items-center gap-1">
+                                ${fb.status !== "reviewed" ? `<button type="button" class="btn btn-sm btn-outline-info feedback-action-btn" onclick="updateStatus('${fb.id}', 'reviewed')" title="Mark Reviewed"><i class="fa fa-eye"></i></button>` : ""}
+                                ${fb.status !== "resolved" ? `<button type="button" class="btn btn-sm btn-outline-success feedback-action-btn" onclick="updateStatus('${fb.id}', 'resolved')" title="Mark Resolved"><i class="fa fa-check"></i></button>` : ""}
+                                <button type="button" class="btn btn-sm btn-outline-danger feedback-action-btn" onclick="deleteFeedback('${fb.id}')" title="Delete"><i class="fa fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+
+            html += `</tbody></table>`;
+            wrapper.innerHTML = html;
+            feather.replace();
+        } catch (err) {
+            wrapper.innerHTML = `<div class="alert alert-danger">${escapeHtml(err.message)}</div>`;
+        }
+    }
+
+    async function updateStatus(id, status) {
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/feedbacks/${id}/status`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({ status })
+            });
+            if (!res.ok) throw new Error("Failed to update status");
+            showToast(`Feedback marked as ${status}`, "success");
+            loadFeedbacks();
+        } catch (err) {
+            showToast(err.message, "danger");
+        }
+    }
+
+    async function deleteFeedback(id) {
+        if (!confirm("Delete this feedback entry?")) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin-panel/feedbacks/${id}`, {
+                method: "DELETE",
+                headers: { "Authorization": "Bearer " + token }
+            });
+            if (!res.ok) throw new Error("Failed to delete feedback");
+            showToast("Feedback deleted", "success");
+            loadFeedbacks();
+        } catch (err) {
+            showToast(err.message, "danger");
+        }
+    }
+
+    function resetFeedbackFilters() {
+        document.getElementById("fb-search").value = "";
+        document.getElementById("fb-status").value = "";
+        loadFeedbacks();
+    }
+
+    document.addEventListener("DOMContentLoaded", loadFeedbacks);
+</script>
+{% endblock %}

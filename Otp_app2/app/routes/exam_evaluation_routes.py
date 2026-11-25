@@ -1344,7 +1344,30 @@ async def evaluate_answersheet(
     current_user: dict = Depends(get_current_user)
 ):
     # 🚨 Check & Use Quota (1 evaluation)
-    await check_and_use_quota(student_id, "exam", cost=1)
+    try:
+        await check_and_use_quota(student_id, "exam", cost=1)
+    except HTTPException as he:
+        if he.status_code == 402:
+            student_doc = None
+            if ObjectId.is_valid(student_id):
+                student_doc = await db.students.find_one({"_id": ObjectId(student_id)}, {"subscription.current_tier": 1})
+            tier = (student_doc or {}).get("subscription", {}).get("current_tier", "basic")
+            limit_msg = (
+                "Your free limit is over. Please upgrade your plan or recharge your account to continue using AI Exam Analysis."
+                if tier == "basic"
+                else "Your exam analysis limit is over. Please upgrade your plan or recharge your account to continue using AI Exam Analysis."
+            )
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "status": False,
+                    "quota_exceeded": True,
+                    "code": "LIMIT_REACHED",
+                    "message": limit_msg,
+                    "detail": limit_msg
+                }
+            )
+        raise he
 
     saved_file_paths = []
     

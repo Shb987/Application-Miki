@@ -80,31 +80,55 @@ async def start_special_day_scheduler(db):
 async def check_and_notify_upcoming_tuition(db):
     """
     Checks for tuition sessions starting within the next 15 minutes and sends targeted notifications.
+    Uses atomic find_one_and_update and a bounded time window to prevent duplicate notifications.
     """
     now_utc = datetime.datetime.now(datetime.timezone.utc)
-    # 15 minutes from now
-    target_time = now_utc + datetime.timedelta(minutes=15)
-    
-    # Query: status is pending, not yet notified, and scheduled_time is in the past OR up to 15 mins from now
+    now_utc_naive = now_utc.replace(tzinfo=None)
+    # Only notify for sessions starting between 5 minutes ago and 15 minutes from now
+    window_start = now_utc_naive - datetime.timedelta(minutes=5)
+    window_end = now_utc_naive + datetime.timedelta(minutes=15)
+
+    # Query: status is pending, not yet notified, and scheduled_time is within the active reminder window
     query = {
         "status": "pending",
         "notification_sent": {"$ne": True},
-        "scheduled_time": {"$lte": target_time}
+        "scheduled_time": {"$gte": window_start, "$lte": window_end}
     }
-    
-    cursor = db.tuition_sessions.find(query)
-    sessions = await cursor.to_list(length=None)
-    
-    for session in sessions:
+
+    while True:
+        # Atomically claim one session at a time so concurrent workers/ticks cannot send duplicates
+        session = await db.tuition_sessions.find_one_and_update(
+            query,
+            {"$set": {"notification_sent": True, "notification_sent_at": now_utc}},
+            sort=[("scheduled_time", 1)]
+        )
+        if not session:
+            break
+
         student_id = str(session["student_id"])
+        session_id_str = str(session["_id"])
         subject = session.get("subject", "Class")
         topic_title = session.get("topic", {}).get("title", "Unknown Topic")
-        
+
+        # Extra safeguard: skip if a reminder notification for this session or subject was already created recently
+        recent_cutoff = now_utc - datetime.timedelta(minutes=20)
+        already_notified = await db.notifications.find_one({
+            "student_id": student_id,
+            "type": "tuition_class_reminder",
+            "$or": [
+                {"session_id": session_id_str},
+                {"subject": subject, "created_at": {"$gte": recent_cutoff}}
+            ]
+        })
+        if already_notified:
+            print(f"[Tuition Scheduler] Skipping duplicate notification for student {student_id}, session {session_id_str}.")
+            continue
+
         title = f"Your {subject} class starts soon!"
         message = f"Get ready! Your session on '{topic_title}' is about to begin. Open the app to join."
-        
+
         print(f"[Tuition Scheduler] Notifying student {student_id} about upcoming {subject} class...")
-        
+
         try:
             await create_notification(
                 db=db,
@@ -113,19 +137,13 @@ async def check_and_notify_upcoming_tuition(db):
                 message=message,
                 notification_type="tuition_class_reminder",
                 extra_data={
-                    "session_id": str(session["_id"]),
+                    "session_id": session_id_str,
                     "subject": subject
                 },
                 priority=10  # High priority push
             )
-            
-            # Mark as notified
-            await db.tuition_sessions.update_one(
-                {"_id": session["_id"]},
-                {"$set": {"notification_sent": True}}
-            )
             print(f"[Tuition Scheduler] Marked session {session['_id']} as notified.")
-            
+
         except Exception as e:
             print(f"[Tuition Scheduler] Failed to notify student {student_id}: {e}")
 

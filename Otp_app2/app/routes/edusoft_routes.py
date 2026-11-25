@@ -122,7 +122,16 @@ async def store_edusoft_credentials(
             detail=f"No student found with student_id '{payload.student_id}'"
         )
 
-    # ── 2. Check: student_id already has credentials? → 409 ──────────────────
+    # ── 2. Check: student_id already has credentials? → update ───────────────
+    raw_adm = payload.admission_no or payload.admission_number
+    resolved_admission_no = str(raw_adm).strip() if raw_adm and str(raw_adm).strip().lower() not in ["string", "null", "none", ""] else student.get("admission_no")
+
+    if resolved_admission_no and not student.get("admission_no"):
+        await db.students.update_one(
+            {"_id": student["_id"]},
+            {"$set": {"admission_no": resolved_admission_no}}
+        )
+
     cred_query = [{"student_id": payload.student_id}]
     if student_oid:
         cred_query.append({"student_id": student_oid})
@@ -131,19 +140,23 @@ async def store_edusoft_credentials(
     if existing_by_student:
         # Update existing credentials if updating
         encrypted_pwd = encrypt_password(payload.password)
+        cred_update = {
+            "username": payload.username,
+            "password_enc": encrypted_pwd,
+            "updated_at": datetime.now(timezone.utc)
+        }
+        if resolved_admission_no:
+            cred_update["admission_no"] = resolved_admission_no
         await db.edusoft_credentials.update_one(
             {"$or": cred_query},
-            {"$set": {
-                "username": payload.username,
-                "password_enc": encrypted_pwd,
-                "updated_at": datetime.now(timezone.utc)
-            }}
+            {"$set": cred_update}
         )
         return {
             "status": "success",
             "message": "Credentials updated successfully",
             "student_id": payload.student_id,
-            "username": payload.username
+            "username": payload.username,
+            "admission_no": resolved_admission_no
         }
 
     # ── 3. Check: username already taken by another student? ─────────────────
@@ -171,6 +184,7 @@ async def store_edusoft_credentials(
         "username":     payload.username,
         "password_enc": encrypted_pwd,          # Fernet-encrypted — never plain-text
         "school_link":  school_link_val,
+        "admission_no": resolved_admission_no,
         "created_at":   datetime.now(timezone.utc),
         "registered_via": "edusoft_api"
     }
@@ -181,7 +195,8 @@ async def store_edusoft_credentials(
         "status":     "success",
         "message":    "Credentials stored successfully",
         "student_id": payload.student_id,
-        "username":   payload.username
+        "username":   payload.username,
+        "admission_no": resolved_admission_no
     }
 
 
@@ -297,7 +312,8 @@ async def get_edusoft_credentials(
         "username":   credential["username"],
         "password":   plain_password,
         "school_link": school_link,
-        "login_url":   login_url
+        "login_url":   login_url,
+        "admission_no": credential.get("admission_no") or (student_doc.get("admission_no") if student_doc else None)
     }
 
 
@@ -329,6 +345,8 @@ class EduSoftUpdateStudent(BaseModel):
     father_phone: Optional[str] = Field(None, description="Father phone alias")
     parent_phone: Optional[str] = Field(None, description="Parent phone alias")
     category: Optional[str] = Field(None, description="Updated curriculum category")
+    admission_no: Optional[str] = Field(None, description="Updated student admission number")
+    admission_number: Optional[str] = Field(None, description="Admission number alias")
 
 
 @router.post(
@@ -421,6 +439,10 @@ async def edusoft_update_student(
         update_doc["phone_number"] = resolved_phone
         update_doc["mobileno"] = resolved_phone
         update_doc["mobile_no"] = resolved_phone
+
+    raw_adm = payload.admission_no or payload.admission_number
+    if raw_adm and str(raw_adm).strip().lower() not in ["string", "null", "none", ""]:
+        update_doc["admission_no"] = str(raw_adm).strip()
 
     await db.students.update_one({"_id": student["_id"]}, {"$set": update_doc})
 

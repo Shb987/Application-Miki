@@ -313,6 +313,8 @@ body.dark-only ul.sidebar-submenu li:only-child::after,
           activeRule = '#menu-schools { display: block !important; } #menu-schools > .sidebar-submenu { display: block !important; }';
         } else if (path.indexOf("/admin-panel/games") !== -1) {
           activeRule = '#menu-games { display: block !important; } #menu-games > .sidebar-submenu { display: block !important; }';
+        } else if (path.indexOf("/admin-panel/feedback-page") !== -1) {
+          activeRule = '#menu-feedback { display: block !important; } #menu-feedback > .sidebar-submenu { display: block !important; }';
         }
         if (token && (perms || isSuper)) {
           // Fast-path: reveal sidebar immediately without delay or skeleton flicker
@@ -725,6 +727,22 @@ body.dark-only ul.sidebar-submenu li:only-child::after,
           <ul class="sidebar-submenu">
             <li><a href="/admin-panel/manage-social-content-page">Manage Content</a></li>
             <li><a href="/admin-panel/manage-contributors-page">Manage Contributors</a></li>
+          </ul>
+        </li>
+
+        <!-- User Feedback Module -->
+        <li class="sidebar-list" id="menu-feedback">
+          <a class="sidebar-link sidebar-title" href="javascript:void(0);">
+            <svg class="stroke-icon">
+              <use href="/assets/svg/icon-sprite.svg#stroke-chat"></use>
+            </svg>
+            <svg class="fill-icon">
+              <use href="/assets/svg/icon-sprite.svg#fill-chat"></use>
+            </svg>
+            <span>Feedback</span>
+          </a>
+          <ul class="sidebar-submenu">
+            <li><a href="/admin-panel/feedback-page">User Feedback</a></li>
           </ul>
         </li>
 

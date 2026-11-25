@@ -312,11 +312,12 @@
         border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 16px;
         box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
-        transition: transform 0.3s ease;
     }
-
-    .glass-card:hover {
-        transform: translateY(-2px);
+    body.dark-only .glass-card,
+    html.dark-only .glass-card {
+        background: #1b1e2c !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
     }
 
     /* Parents Table Headings */
@@ -343,18 +344,29 @@
         background: #fff;
         border-radius: 12px;
         margin-bottom: 12px;
-        padding: 16px;
-        border: 1px solid #f0f0f0;
-        transition: all 0.2s ease;
+        padding: 14px 16px;
+        border: 1px solid #e2e8f0;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
         display: flex;
         align-items: center;
         gap: 15px;
     }
 
     .parent-row:hover {
-        border-color: #C44ECC44;
+        border-color: #C44ECC66;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
         background: #fafaff;
+    }
+    body.dark-only .parent-row,
+    html.dark-only .parent-row {
+        background: #222638 !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    body.dark-only .parent-row:hover,
+    html.dark-only .parent-row:hover {
+        background: #272c40 !important;
+        border-color: rgba(196, 78, 204, 0.45) !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25) !important;
     }
 
     .parent-id-circle {
@@ -373,39 +385,61 @@
 
     .parent-info-main {
         flex: 2;
+        min-width: 0;
     }
 
     .parent-mobile-text {
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 700;
-        color: #2b2b2b;
-        margin-bottom: 2px;
+        color: #1e293b;
+        margin-bottom: 3px;
         display: block;
+        word-break: break-word;
+    }
+    body.dark-only .parent-mobile-text,
+    html.dark-only .parent-mobile-text {
+        color: #f1f5f9 !important;
     }
 
     .parent-date-text {
-        font-size: 0.75rem;
-        color: #999;
+        font-size: 0.78rem;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    body.dark-only .parent-date-text,
+    html.dark-only .parent-date-text {
+        color: #94a3b8 !important;
     }
 
     .parent-students-area {
         flex: 3;
+        min-width: 0;
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
+        align-items: center;
     }
 
     .student-pill {
         background: rgba(196, 78, 204, 0.08);
-        color: #C44ECC;
+        color: #a21caf;
         padding: 4px 12px;
         border-radius: 20px;
         font-size: 0.78rem;
         font-weight: 600;
-        border: 1px solid rgba(196, 78, 204, 0.12);
+        border: 1px solid rgba(196, 78, 204, 0.18);
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 5px;
+    }
+    body.dark-only .student-pill,
+    html.dark-only .student-pill {
+        background: rgba(196, 78, 204, 0.16) !important;
+        color: #f0abfc !important;
+        border-color: rgba(196, 78, 204, 0.32) !important;
     }
 
     .student-pill i {
@@ -414,8 +448,31 @@
     }
 
     .parent-actions {
-        flex: 0.5;
-        text-align: right;
+        width: 90px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    @media (max-width: 767.98px) {
+        .parent-row {
+            flex-wrap: wrap;
+        }
+        .parent-info-main {
+            flex: 1 1 calc(100% - 160px);
+        }
+        .parent-students-area {
+            flex: 1 1 100%;
+            order: 4;
+            padding-top: 8px;
+            border-top: 1px dashed #e2e8f0;
+        }
+        body.dark-only .parent-students-area,
+        html.dark-only .parent-students-area {
+            border-top-color: rgba(255, 255, 255, 0.08);
+        }
     }
 
     /* Search Bar Design */
@@ -425,7 +482,7 @@
     }
 
     .search-input-premium {
-        border: 2px solid #eee;
+        border: 2px solid #e2e8f0;
         border-radius: 30px;
         padding: 10px 20px 10px 45px;
         font-size: 0.9rem;
@@ -437,6 +494,21 @@
         border-color: #C44ECC;
         box-shadow: 0 0 15px rgba(196, 78, 204, 0.15);
         background: #fff;
+    }
+    body.dark-only .search-input-premium,
+    html.dark-only .search-input-premium {
+        background: #252936 !important;
+        border-color: #373d52 !important;
+        color: #f8fafc !important;
+    }
+    body.dark-only .search-input-premium::placeholder,
+    html.dark-only .search-input-premium::placeholder {
+        color: #94a3b8 !important;
+    }
+    body.dark-only .search-input-premium:focus,
+    html.dark-only .search-input-premium:focus {
+        border-color: #C44ECC !important;
+        background: #2b3040 !important;
     }
 
     .search-icon-pos {
@@ -953,9 +1025,9 @@
                 <!-- Parents Table Headings / Labels -->
                 <div class="parents-table-header d-none d-md-flex align-items-center mb-2 px-3 py-2">
                     <div style="width: 40px; flex-shrink: 0; text-align: center;">#</div>
-                    <div style="flex: 2;">Guardian Details</div>
-                    <div style="flex: 3;">Linked Students</div>
-                    <div style="width: 80px; flex-shrink: 0; text-align: center;">Actions</div>
+                    <div style="flex: 2; min-width: 0;">Guardian Details</div>
+                    <div style="flex: 3; min-width: 0;">Linked Students</div>
+                    <div style="width: 90px; flex-shrink: 0; text-align: center;">Actions</div>
                 </div>
 
                 <div id="parents-list-container">
@@ -1693,6 +1765,7 @@
         loadSchoolsFilter();
         loadStudents();
         document.getElementById("search-name").addEventListener("keydown", e => { if (e.key === "Enter") loadStudents(true); });
+        document.getElementById("search-parent").addEventListener("keydown", e => { if (e.key === "Enter") loadParents(true); });
     });
 
     window.addEventListener("popstate", () => {

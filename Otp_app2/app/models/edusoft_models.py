@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -5,6 +6,8 @@ class EduSoftStoreCredentials(BaseModel):
     student_id: str = Field(..., description="Student ObjectId returned from /api/v1/register-student")
     username: str   = Field(..., description="Auto-generated EduSoft username")
     password: str   = Field(..., description="Auto-generated EduSoft password (will be encrypted and stored)")
+    admission_no: Optional[str] = Field(None, description="Student admission number")
+    admission_number: Optional[str] = Field(None, description="Admission number alias")
 
     @field_validator("student_id")
     @classmethod

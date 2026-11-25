@@ -312,6 +312,11 @@ async def miki_care_page(request: Request):
     """Render the Miki Care Doctor Management admin page."""
     return templates.TemplateResponse("miki_care.html", {"request": request})
 
+@router.get("/feedback-page", response_class=HTMLResponse)
+async def feedback_page(request: Request):
+    """Render the User Feedback Management admin page."""
+    return templates.TemplateResponse("feedbacks.html", {"request": request})
+
 
 
 

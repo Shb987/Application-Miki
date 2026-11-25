@@ -25,7 +25,7 @@ from app.routes import (
     admin_plant_explorer_routes, user_plant_explorer_routes,
     admin_animal_explorer_routes, user_animal_explorer_routes,
     admin_indian_explorer_routes, user_indian_explorer_routes,
-    miki_care_routes
+    miki_care_routes, feedback_routes
 ) 
 
 from fastapi.responses import JSONResponse, Response
@@ -373,6 +373,10 @@ app.include_router(admin_indian_explorer_routes.router, prefix="/admin-panel", t
 # Miki Care Module
 app.include_router(miki_care_routes.admin_router, prefix="/admin-panel", tags=["Miki Care - Admin"])
 app.include_router(miki_care_routes.public_router, prefix="/api/v1", tags=["Miki Care - Public"])
+
+# User Feedback Module
+app.include_router(feedback_routes.user_router, prefix="/user", tags=["Feedback - User"])
+app.include_router(feedback_routes.admin_router, prefix="/admin-panel", tags=["Feedback - Admin"])
 
 
 

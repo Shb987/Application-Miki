@@ -65,6 +65,14 @@ class ExternalStudentRegistration(BaseModel):
     parent_mobile: Optional[str] = Field(None, description="Parent mobile alias")
     link: str = Field(..., description="Unique school identifier link (used to look up the school)")
     category: Optional[str] = Field("SCERT", description="Curriculum category (e.g. NCERT, SCERT). Defaults to SCERT.")
+    admission_no: Optional[str] = Field(None, description="Student's admission number")
+    admission_number: Optional[str] = Field(None, description="Admission number alias")
+
+    def get_resolved_admission_no(self) -> Optional[str]:
+        for candidate in [self.admission_no, self.admission_number]:
+            if candidate and str(candidate).strip().lower() not in ["string", "null", "none", ""]:
+                return str(candidate).strip()
+        return None
 
     def get_resolved_student_phone(self) -> Optional[str]:
         # Resolve dedicated student phone candidates in priority order
@@ -358,6 +366,7 @@ async def external_register_student(
         })
 
     calculated_age = calculate_age_from_dob(payload.dob)
+    resolved_admission_no = payload.get_resolved_admission_no()
 
     if existing_student:
         student_id_str = str(existing_student["_id"])
@@ -380,6 +389,8 @@ async def external_register_student(
             "school_link": payload.link,
             "updated_at": datetime.now(timezone.utc)
         }
+        if resolved_admission_no:
+            update_data["admission_no"] = resolved_admission_no
         if resolved_st_phone:
             update_data["student_phone"] = resolved_st_phone
             update_data["mobile_number"] = resolved_st_phone
@@ -455,7 +466,8 @@ async def external_register_student(
             "school_name": school_name,
             "school_link": payload.link,
             "guardian_phone": resolved_g_phone,
-            "student_phone": resolved_st_phone or existing_student.get("student_phone")
+            "student_phone": resolved_st_phone or existing_student.get("student_phone"),
+            "admission_no": resolved_admission_no or existing_student.get("admission_no")
         }
 
     # ── 3. Fetch default subscription plan ────────────────────────────────
@@ -498,7 +510,8 @@ async def external_register_student(
         "usage_buckets": initial_buckets,
         "is_user": False,
         "is_new_user": True,
-        "category": payload.category
+        "category": payload.category,
+        "admission_no": resolved_admission_no
     }
 
     student_result = await db.students.insert_one(student_doc)
@@ -516,6 +529,7 @@ async def external_register_student(
             "username": auto_username,
             "password_enc": encrypted_pwd,
             "school_link": payload.link,
+            "admission_no": resolved_admission_no,
             "created_at": datetime.now(timezone.utc),
             "registered_via": "external_api_registration"
         })
@@ -543,7 +557,8 @@ async def external_register_student(
             "username": auto_username,
             "password": auto_password,
             "category": payload.category,
-            "school_link": payload.link
+            "school_link": payload.link,
+            "admission_no": resolved_admission_no
         }
 
         async with httpx.AsyncClient(timeout=4.0) as client:
@@ -603,7 +618,8 @@ async def external_register_student(
         "school_name": school_name,
         "student_class": payload.student_class,
         "guardian_phone": resolved_g_phone,
-        "student_phone": resolved_st_phone
+        "student_phone": resolved_st_phone,
+        "admission_no": resolved_admission_no
     }
 
 

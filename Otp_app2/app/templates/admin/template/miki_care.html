@@ -1514,15 +1514,9 @@
           <td>${locationText}</td>
           <td>${daysHtml}</td>
           <td style="text-align: center;">
-            <div class="d-inline-flex align-items-center justify-content-center gap-2">
-              <label class="custom-switch-toggle mb-0" title="Toggle Active / Inactive status">
-                <input type="checkbox" id="switch-${rawId}" ${isActive ? 'checked' : ''} onchange="toggleStatus('${rawId}', this.checked, this)">
-                <span class="custom-switch-slider"></span>
-              </label>
-              <span class="status-pill ${statusClass}" style="min-width: 60px; text-align: center;">
-                ${statusText}
-              </span>
-            </div>
+            <span class="status-pill ${statusClass}" style="min-width: 60px; text-align: center;">
+              ${statusText}
+            </span>
           </td>
           <td style="text-align: center;">
             <div class="action-group justify-content-center">
@@ -1976,13 +1970,7 @@
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
               <span class="doctor-id-badge">${docId}</span>
               <span class="spec-badge ${getSpecBadgeClass(d.specialization)}">${specDisplay}</span>
-              <div class="d-inline-flex align-items-center gap-2 ms-2">
-                <label class="custom-switch-toggle mb-0" title="Toggle active/inactive status">
-                  <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleStatusFromView('${d.doctor_id || doctorId}', this.checked, this)">
-                  <span class="custom-switch-slider"></span>
-                </label>
-                <span class="status-pill ${isActive ? 'active' : 'inactive'}" id="view-status-pill">${isActive ? 'Active' : 'Inactive'}</span>
-              </div>
+              <span class="status-pill ${isActive ? 'active' : 'inactive'}" id="view-status-pill">${isActive ? 'Active' : 'Inactive'}</span>
             </div>
             <div class="text-muted small"><i class="fa fa-graduation-cap me-1"></i>${escapeHtml(d.qualification || 'N/A')} &bull; <i class="fa fa-briefcase ms-2 me-1"></i>${d.experience || 0} Years Experience</div>
           </div>

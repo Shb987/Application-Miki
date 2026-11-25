@@ -303,6 +303,14 @@ async def get_student_profile(
         from app.routes.external_registration_routes import calculate_age_from_dob
         student["age"] = calculate_age_from_dob(student.get("dob"))
 
+    if not student.get("admission_no"):
+        cred_doc = await db.edusoft_credentials.find_one(
+            {"$or": [{"student_id": student_id}, {"student_id": s_oid}]},
+            {"admission_no": 1}
+        )
+        if cred_doc and cred_doc.get("admission_no"):
+            student["admission_no"] = cred_doc["admission_no"]
+
     g_phone = student.get("guardian_phone")
     if not g_phone:
         parent = await db.usertable.find_one({

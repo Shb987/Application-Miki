@@ -212,7 +212,7 @@
 <div class="container-fluid">
     <!-- Stats Overview -->
     <div id="stats-overview" class="row g-3 mb-4" style="display: none;">
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card shadow-sm border-0 h-100 bg-white">
                 <div class="card-body d-flex align-items-center p-3">
                     <div class="bg-light-primary p-3 rounded-circle me-3 text-primary" style="background-color: rgba(69, 43, 144, 0.1); display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0;">
@@ -225,7 +225,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card shadow-sm border-0 h-100 bg-white">
                 <div class="card-body d-flex align-items-center p-3">
                     <div class="bg-light-success p-3 rounded-circle me-3 text-success" style="background-color: rgba(40, 167, 69, 0.1); display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0;">
@@ -234,19 +234,6 @@
                     <div>
                         <h4 class="mb-0 fw-bold text-dark" id="stat-total-chapters">0</h4>
                         <small class="text-muted">Total Chapters</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 h-100 bg-white">
-                <div class="card-body d-flex align-items-center p-3">
-                    <div class="p-3 rounded-circle me-3 text-info" style="background-color: rgba(23, 162, 184, 0.1); display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex-shrink: 0;">
-                        <i data-feather="database" style="width: 24px; height: 24px;"></i>
-                    </div>
-                    <div>
-                        <h4 class="mb-0 fw-bold text-dark" id="stat-total-chunks">0</h4>
-                        <small class="text-muted">Vectorized Chunks</small>
                     </div>
                 </div>
             </div>
@@ -679,11 +666,9 @@
     function renderTextbooks(textbooks) {
         const totalTbs = textbooks.length;
         const totalChs = textbooks.reduce((acc, tb) => acc + (tb.chapters || []).length, 0);
-        const totalChunks = textbooks.reduce((acc, tb) => acc + (tb.stored_chunk_count || 0), 0);
         
         document.getElementById("stat-total-textbooks").innerText = totalTbs;
         document.getElementById("stat-total-chapters").innerText = totalChs;
-        document.getElementById("stat-total-chunks").innerText = totalChunks;
         
         const examCounts = {};
         textbooks.forEach(tb => {

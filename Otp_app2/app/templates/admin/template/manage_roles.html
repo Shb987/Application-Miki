@@ -2227,7 +2227,8 @@ const MODULES = [
   { key: "AI Usage",                          icon: "fa-microchip" },
   { key: "Roles & Permissions",               icon: "fa-shield" },
   { key: "Miki Care",                         icon: "fa-heartbeat" },
-  { key: "Competitive Exams",                 icon: "fa-graduation-cap" }
+  { key: "Competitive Exams",                 icon: "fa-graduation-cap" },
+  { key: "Feedback",                          icon: "fa-comments" }
 ];
 
 const ACTIONS = ["read", "create", "update", "delete"];
@@ -2344,7 +2345,8 @@ function getModuleSummary(moduleName) {
     "AI Usage": "Inspect AI usage and cost impact.",
     "Roles & Permissions": "Manage access rules for roles.",
     "Miki Care": "Manage doctor profiles, specializations, and healthcare services.",
-    "Competitive Exams": "Manage competitive exam categories, full textbooks, chapters, and RAG question generation."
+    "Competitive Exams": "Manage competitive exam categories, full textbooks, chapters, and RAG question generation.",
+    "Feedback": "View and manage user-submitted feedback."
   };
   return map[moduleName] || "Module access and settings.";
 }

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.core.database import db
 from app.utils.user_auth import get_current_user
-from app.utils.admin_auth import get_current_admin
+from app.utils.admin_auth import require_permission
 
 user_router = APIRouter(tags=["Feedback - User"])
 admin_router = APIRouter(tags=["Feedback - Admin"])
@@ -125,26 +125,21 @@ async def submit_user_feedback(
 @admin_router.get("/feedbacks")
 async def list_feedbacks(
     search: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
+    rating: Optional[int] = Query(None, ge=1, le=5),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Feedback", "read"))
 ):
     """List user-submitted feedbacks for the admin panel."""
     query = {}
-    if category and category.strip():
-        query["category"] = category.strip().lower()
-    if status and status.strip():
-        query["status"] = status.strip().lower()
+    if rating is not None:
+        query["rating"] = rating
     if search and search.strip():
         regex = {"$regex": search.strip(), "$options": "i"}
         query["$or"] = [
             {"user_name": regex},
             {"mobile_number": regex},
-            {"subject": regex},
             {"message": regex},
-            {"category": regex},
         ]
 
     total = await db.feedbacks.count_documents(query)
@@ -152,16 +147,20 @@ async def list_feedbacks(
     docs = await cursor.to_list(length=limit)
 
     total_all = await db.feedbacks.count_documents({})
-    new_count = await db.feedbacks.count_documents({"status": "new"})
-    reviewed_count = await db.feedbacks.count_documents({"status": {"$in": ["reviewed", "resolved"]}})
+    five_star_count = await db.feedbacks.count_documents({"rating": 5})
+    avg_agg = await db.feedbacks.aggregate([
+        {"$match": {"rating": {"$ne": None}}},
+        {"$group": {"_id": None, "avg": {"$avg": "$rating"}}}
+    ]).to_list(length=1)
+    avg_rating = round(avg_agg[0]["avg"], 1) if avg_agg and avg_agg[0].get("avg") is not None else 0
 
     return {
         "status": True,
         "total": total,
         "stats": {
             "total": total_all,
-            "new": new_count,
-            "reviewed": reviewed_count,
+            "avg_rating": avg_rating,
+            "five_star": five_star_count,
         },
         "data": [_serialize_feedback(d) for d in docs],
     }
@@ -171,7 +170,7 @@ async def list_feedbacks(
 async def update_feedback_status(
     feedback_id: str,
     payload: FeedbackStatusUpdate,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Feedback", "update"))
 ):
     """Update feedback status (new, reviewed, resolved)."""
     if not ObjectId.is_valid(feedback_id):
@@ -194,7 +193,7 @@ async def update_feedback_status(
 @admin_router.delete("/feedbacks/{feedback_id}")
 async def delete_feedback(
     feedback_id: str,
-    current_admin: dict = Depends(get_current_admin)
+    current_admin: dict = Depends(require_permission("Feedback", "delete"))
 ):
     """Delete a feedback entry."""
     if not ObjectId.is_valid(feedback_id):

@@ -8,6 +8,62 @@
        - ZERO trailing line extending below the last item (Naturalist)
        - Zero-flicker stable layout on navigation and dropdown clicks
        ========================================================================== */
+    .sidebar-wrapper .logo-wrapper {
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      margin: 0 !important;
+      padding: 20px 22px 10px 22px !important;
+    }
+
+    .sidebar-wrapper .logo-wrapper .toggle-sidebar {
+      position: static !important;
+      top: auto !important;
+      right: auto !important;
+      transform: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a,
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a span,
+    body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a,
+    body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a span {
+      color: rgba(255, 255, 255, 0.92) !important;
+    }
+
+    .sidebar-wrapper:not(.close_icon) .logo-icon-wrapper {
+      display: none !important;
+    }
+
+    .sidebar-wrapper .sidebar-main-title {
+      display: none !important;
+    }
+
+    .sidebar-wrapper .sidebar-main,
+    .sidebar-wrapper .sidebar-main #sidebar-menu,
+    .sidebar-wrapper .sidebar-main .sidebar-links,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper .sidebar-main .sidebar-links,
+    .sidebar-wrapper .sidebar-main .simplebar-wrapper,
+    .sidebar-wrapper .sidebar-main .simplebar-mask,
+    .sidebar-wrapper .sidebar-main .simplebar-offset,
+    .sidebar-wrapper .sidebar-main .simplebar-content-wrapper,
+    .sidebar-wrapper .sidebar-main .simplebar-content {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+
+    .sidebar-wrapper .sidebar-main .simplebar-mask {
+      top: 10px !important;
+    }
+
+    .sidebar-wrapper .sidebar-main #sidebar-menu {
+      height: 100% !important;
+    }
+
     .sidebar-wrapper .sidebar-main .sidebar-links {
       padding-bottom: 120px !important;
     }
@@ -270,18 +326,22 @@ body.dark-only ul.sidebar-submenu li:only-child::after,
 }
 
   </style>
-  <div class="logo-wrapper">
-    <a href="/admin-panel/user-management-page" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
+  <svg class="sidebar-top-wave" viewBox="0 0 265 110" preserveAspectRatio="none">
+    <path d="M0,0 L265,0 L265,25 C200,40 145,15 80,55 C50,75 20,85 0,90 Z" fill="rgba(255,255,255,0.14)"></path>
+    <path d="M0,0 L265,0 L265,15 C190,25 120,5 65,35 C35,55 15,65 0,70 Z" fill="rgba(255,255,255,0.09)"></path>
+  </svg>
+  <div class="logo-wrapper" style="height: auto !important; min-height: 0 !important; max-height: none !important; margin: 0 !important; padding: 20px 22px 10px 22px !important; display: flex !important; align-items: center !important; justify-content: space-between !important;">
+    <a href="/admin-panel/user-management-page" style="text-decoration: none; display: inline-flex; align-items: center; gap: 10px; line-height: 1;">
       <div
-        style="background: white; padding: 4px 6px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+        style="background: white; width: 34px; height: 34px; padding: 5px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
         <img class="img-fluid" src="/assets/images/logo/miki_logo.png" alt="Miki Logo"
-          style="height: 24px; object-fit: contain;">
+          style="height: 24px; width: 24px; object-fit: contain; display: block;">
       </div>
-      <span style="font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.45rem; color: #ffffff; letter-spacing: 0.5px; text-transform: uppercase;">MIKI</span>
+      <span style="font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 1.45rem; line-height: 1; display: inline-flex; align-items: center; color: #ffffff; letter-spacing: 0.5px; text-transform: uppercase;">MIKI</span>
     </a>
     <div class="back-btn"><i class="fa fa-angle-left"></i></div>
-    <div class="toggle-sidebar">
-      <i class="status_toggle middle sidebar-toggle" data-feather="grid" style="color: #ffffff; stroke: #ffffff;"></i>
+    <div class="toggle-sidebar" style="display: inline-flex; align-items: center; justify-content: center;">
+      <i class="status_toggle middle sidebar-toggle" data-feather="grid" style="color: #ffffff; stroke: #ffffff; display: block;"></i>
     </div>
   </div>
 
@@ -295,7 +355,7 @@ body.dark-only ul.sidebar-submenu li:only-child::after,
     </a>
   </div>
 
-  <nav class="sidebar-main">
+  <nav class="sidebar-main" style="margin-top: 0 !important; padding-top: 0 !important;">
     <script>
       (function() {
         var token = localStorage.getItem("admin_token");
@@ -405,8 +465,8 @@ body.dark-only ul.sidebar-submenu li:only-child::after,
       </div>
     </div>
 
-    <div id="sidebar-menu" style="display: none; opacity: 0; transition: opacity 0.28s ease;">
-      <ul class="sidebar-links" id="simple-bar">
+    <div id="sidebar-menu" style="display: none; opacity: 0; transition: opacity 0.28s ease; margin-top: 0 !important; padding-top: 0 !important; height: 100% !important;">
+      <ul class="sidebar-links" id="simple-bar" style="margin-top: 0 !important; padding-top: 0 !important;">
 
         <li class="sidebar-main-title">
           <div>

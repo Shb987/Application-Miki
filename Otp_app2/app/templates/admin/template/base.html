@@ -711,7 +711,7 @@
             height: 100vh !important;
             position: fixed !important;
             z-index: 1000 !important;
-            border-top-right-radius: 0 !important;
+            border-top-right-radius: 24px !important;
             border-bottom-right-radius: 24px !important;
             border-top-left-radius: 0 !important;
             border-bottom-left-radius: 0 !important;
@@ -721,7 +721,7 @@
         body.light .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
             background: radial-gradient(ellipse 130% 60% at 85% 100%, rgba(186, 75, 235, 0.45) 0%, rgba(186, 75, 235, 0) 65%), linear-gradient(180deg, #C44ECC 0%, #A33BBE 18%, #8334B8 38%, #6D2CB1 58%, #5621A2 80%, #6825AB 100%) !important;
             box-shadow: 0 0 30px rgba(96, 60, 216, 0.22) !important;
-            border-top-right-radius: 0 !important;
+            border-top-right-radius: 24px !important;
             border-bottom-right-radius: 24px !important;
             border-top-left-radius: 0 !important;
             border-bottom-left-radius: 0 !important;
@@ -740,6 +740,16 @@
             transition: width 0.3s ease, left 0.3s ease !important;
         }
 
+        .sidebar-top-wave {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 110px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
         .sidebar-bottom-wave {
             position: absolute;
             bottom: 0;
@@ -748,6 +758,42 @@
             height: 110px;
             pointer-events: none;
             z-index: 1;
+        }
+
+        /* Keep logo pinned at top and clip scrolled menu items inside sidebar-main */
+        .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
+        .sidebar-wrapper {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        .sidebar-wrapper .logo-wrapper,
+        .sidebar-wrapper .logo-icon-wrapper {
+            position: relative !important;
+            z-index: 5 !important;
+            flex-shrink: 0 !important;
+        }
+        .sidebar-wrapper .logo-wrapper {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 20px 22px !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+        .sidebar-wrapper.close_icon .logo-wrapper {
+            display: none !important;
+        }
+        .sidebar-wrapper .sidebar-main {
+            position: relative !important;
+            z-index: 3 !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+        .sidebar-wrapper .sidebar-main #simple-bar,
+        .sidebar-wrapper .sidebar-main .sidebar-links {
+            height: 100% !important;
+            max-height: 100% !important;
         }
 
         /* Hide General Title */
@@ -1046,7 +1092,7 @@
         html.dark-only .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper {
             background: radial-gradient(ellipse 130% 60% at 85% 100%, rgba(186, 75, 235, 0.45) 0%, rgba(186, 75, 235, 0) 65%), linear-gradient(180deg, #C44ECC 0%, #A33BBE 18%, #8334B8 38%, #6D2CB1 58%, #5621A2 80%, #6825AB 100%) !important;
             border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
-            border-top-right-radius: 0 !important;
+            border-top-right-radius: 24px !important;
             border-bottom-right-radius: 24px !important;
             border-top-left-radius: 0 !important;
             border-bottom-left-radius: 0 !important;
@@ -1065,13 +1111,17 @@
             color: #f1f5f9 !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.active > a,
+        body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.open > a,
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active,
         html.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.active > a,
+        html.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.open > a,
         html.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active {
-            background: linear-gradient(90deg, rgba(124, 58, 237, 0.28) 0%, rgba(96, 60, 216, 0.28) 100%) !important;
-            border: 1px solid rgba(124, 58, 237, 0.4) !important;
-            border-left: 4px solid #7c3aed !important;
+            background: rgba(255, 255, 255, 0.18) !important;
+            border: 1px solid rgba(255, 255, 255, 0.24) !important;
+            border-radius: 14px !important;
             color: #ffffff !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
         }
         body.dark-only .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list ul.sidebar-submenu::before {
             content: none !important;

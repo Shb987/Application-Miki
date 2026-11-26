@@ -390,24 +390,12 @@
       color: #e2e8f0 !important;
     }
 
-    /* Page-specific fix for logo container */
+    /* Hide redundant header logo wrapper (logo lives in sidebar) */
     .header-logo-wrapper {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: flex-start !important;
-      position: relative !important;
-      height: auto !important;
+      display: none !important;
     }
-
-    .header-logo-wrapper .logo-wrapper {
-      display: block !important;
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .header-logo-wrapper .logo-wrapper a img {
-      display: block !important;
-      max-height: 60px;
+    .left-header .toggle-sidebar {
+      display: none !important;
     }
 
     /* Profile Dropdown & Hover Persistence (Slow Pointer Support) */
@@ -491,6 +479,155 @@
     html.dark-only .page-body > .loader-wrapper,
     body.dark-only .page-body > .loader-wrapper {
       background-color: #161925 !important;
+    }
+
+    /* Fixed Header & Page Body Layout (matching base.html) */
+    .page-header,
+    .page-wrapper.compact-wrapper .page-header,
+    .page-wrapper .page-header,
+    body.dark-only .page-header,
+    html.dark-only .page-header,
+    body:not(.dark-only) .page-header {
+      position: fixed !important;
+      top: 0 !important;
+      left: 285px !important;
+      width: calc(100% - 285px) !important;
+      height: 80px !important;
+      z-index: 990 !important;
+      background: #f7f6fc !important;
+      backdrop-filter: blur(14px) !important;
+      -webkit-backdrop-filter: blur(14px) !important;
+      border-bottom: 1px solid rgba(196, 78, 204, 0.12) !important;
+      box-shadow: 0 4px 20px rgba(96, 60, 216, 0.05) !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+      transition: left 0.3s ease, width 0.3s ease !important;
+    }
+    body.dark-only .page-header,
+    html.dark-only .page-header {
+      background: #11131e !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+    }
+    .header-wrapper {
+      background: transparent !important;
+      border-bottom: none !important;
+      box-shadow: none !important;
+      padding: 14px 28px !important;
+      height: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+    .page-wrapper.compact-wrapper .page-body-wrapper .page-body,
+    .page-body {
+      margin-left: 285px !important;
+      margin-top: 80px !important;
+      width: calc(100% - 285px) !important;
+      min-height: calc(100vh - 80px) !important;
+      padding: 20px 28px 28px 28px !important;
+      transition: margin-left 0.3s ease, width 0.3s ease !important;
+      box-sizing: border-box !important;
+    }
+    .page-wrapper:has(.sidebar-wrapper.close_icon) .page-header {
+      left: 86px !important;
+      width: calc(100% - 86px) !important;
+    }
+    .sidebar-wrapper.close_icon ~ .page-body,
+    .page-body-wrapper:has(.sidebar-wrapper.close_icon) .page-body {
+      margin-left: 86px !important;
+      width: calc(100% - 86px) !important;
+    }
+
+    /* Sidebar Styling & Logo Pinning (matching base.html) */
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper,
+    .sidebar-wrapper {
+      width: 285px !important;
+      left: 0 !important;
+      top: 0 !important;
+      height: 100vh !important;
+      position: fixed !important;
+      z-index: 1000 !important;
+      border-top-right-radius: 24px !important;
+      border-bottom-right-radius: 24px !important;
+      border-top-left-radius: 0 !important;
+      border-bottom-left-radius: 0 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+      background: radial-gradient(ellipse 130% 60% at 85% 100%, rgba(186, 75, 235, 0.45) 0%, rgba(186, 75, 235, 0) 65%), linear-gradient(180deg, #C44ECC 0%, #A33BBE 18%, #8334B8 38%, #6D2CB1 58%, #5621A2 80%, #6825AB 100%) !important;
+      box-shadow: 0 0 30px rgba(96, 60, 216, 0.22) !important;
+      transition: width 0.3s ease, left 0.3s ease !important;
+    }
+    .sidebar-wrapper.close_icon,
+    .page-wrapper.compact-wrapper .page-body-wrapper div.sidebar-wrapper.close_icon {
+      width: 86px !important;
+    }
+    .sidebar-top-wave {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 110px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .sidebar-bottom-wave {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 110px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .sidebar-wrapper .logo-wrapper,
+    .sidebar-wrapper .logo-icon-wrapper {
+      position: relative !important;
+      z-index: 5 !important;
+      flex-shrink: 0 !important;
+    }
+    .sidebar-wrapper .logo-wrapper {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 20px 22px !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    .sidebar-wrapper.close_icon .logo-wrapper {
+      display: none !important;
+    }
+    .sidebar-wrapper .sidebar-main {
+      position: relative !important;
+      z-index: 3 !important;
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+    }
+    .sidebar-wrapper .sidebar-main #simple-bar,
+    .sidebar-wrapper .sidebar-main .sidebar-links {
+      height: 100% !important;
+      max-height: 100% !important;
+    }
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list {
+      padding: 2px 10px !important;
+      position: relative;
+    }
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list > a {
+      padding: 9px 30px 9px 14px !important;
+      border-radius: 12px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      color: rgba(255, 255, 255, 0.88) !important;
+    }
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.active > a,
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-list.open > a,
+    .sidebar-wrapper .sidebar-main .sidebar-links .sidebar-link.active {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.14) 100%) !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
     }
   </style>
 

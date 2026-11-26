@@ -756,6 +756,52 @@
         box-shadow: 0 6px 20px rgba(124, 34, 224, 0.5);
         color: #ffffff !important;
     }
+    .um-pagination .page-link {
+        border-radius: 8px !important;
+        margin: 0 2px;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 5px 11px;
+        background: #ffffff;
+        transition: all 0.2s ease;
+    }
+    .um-pagination .page-link:hover {
+        background: #f3e8ff;
+        border-color: #c084fc;
+        color: #7c22e0;
+    }
+    .um-pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #7c22e0 0%, #5816b8 100%) !important;
+        border-color: transparent !important;
+        color: #ffffff !important;
+        box-shadow: 0 3px 10px rgba(124, 34, 224, 0.28);
+    }
+    .um-pagination .page-item.disabled .page-link {
+        opacity: 0.45;
+        pointer-events: none;
+    }
+    body.dark-only .um-pagination .page-link,
+    html.dark-only .um-pagination .page-link {
+        background: #252936 !important;
+        border-color: #373d52 !important;
+        color: #cbd5e1 !important;
+    }
+    body.dark-only .um-pagination .page-link:hover,
+    html.dark-only .um-pagination .page-link:hover {
+        background: #2f3547 !important;
+        border-color: #7c22e0 !important;
+        color: #e9d5ff !important;
+    }
+    body.dark-only #student-limit-select,
+    html.dark-only #student-limit-select,
+    body.dark-only #parent-limit-select,
+    html.dark-only #parent-limit-select {
+        background-color: #252936 !important;
+        border-color: #373d52 !important;
+        color: #f8fafc !important;
+    }
 </style>
 {% endblock %}
 
@@ -971,7 +1017,7 @@
                         style="max-width:200px;border-radius:8px;font-size:0.85rem;">
                         <option value="">All Schools</option>
                     </select>
-                    <button class="btn btn-primary btn-sm" style="border-radius:8px;" onclick="loadStudents()">
+                    <button class="btn btn-primary btn-sm" style="border-radius:8px;" onclick="loadStudents(true)">
                         <i data-feather="search" style="width:13px;height:13px;"></i> Search
                     </button>
                     <button class="btn btn-outline-secondary btn-sm" style="border-radius:8px;"
@@ -989,12 +1035,19 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mt-3" id="student-pager">
-                    <button id="student-prev-btn" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;"
-                        onclick="studentPage(-1)">← Prev</button>
-                    <span id="student-page-info" class="text-muted" style="font-size:0.82rem;"></span>
-                    <button id="student-next-btn" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;"
-                        onclick="studentPage(1)">Next →</button>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3 pt-3 border-top" id="student-pager">
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="student-page-info" class="text-muted" style="font-size:0.82rem;"></span>
+                        <select id="student-limit-select" class="form-select form-select-sm" style="width: auto; border-radius: 8px; font-size: 0.8rem;" onchange="changeStudentLimit(this.value)">
+                            <option value="10">10 / page</option>
+                            <option value="20" selected>20 / page</option>
+                            <option value="50">50 / page</option>
+                            <option value="100">100 / page</option>
+                        </select>
+                    </div>
+                    <nav aria-label="Students pagination">
+                        <ul class="pagination pagination-sm um-pagination mb-0" id="student-pagination-list"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -1078,6 +1131,20 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3 pt-3 border-top" id="parent-pager" style="display: none;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="parent-page-info" class="text-muted" style="font-size:0.82rem;"></span>
+                        <select id="parent-limit-select" class="form-select form-select-sm" style="width: auto; border-radius: 8px; font-size: 0.8rem;" onchange="changeParentLimit(this.value)">
+                            <option value="10">10 / page</option>
+                            <option value="20" selected>20 / page</option>
+                            <option value="50">50 / page</option>
+                            <option value="100">100 / page</option>
+                        </select>
+                    </div>
+                    <nav aria-label="Parents pagination">
+                        <ul class="pagination pagination-sm um-pagination mb-0" id="parent-pagination-list"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -1243,8 +1310,11 @@
     const API_BASE = window.API_BASE;
     let currentTab = 'overview';
     let studentSkip = 0;
-    const studentLimit = 20;
+    let studentLimit = 20;
     let studentTotal = 0;
+    let parentSkip = 0;
+    let parentLimit = 20;
+    let parentTotal = 0;
     let currentParentsList = [];
 
     function showCustomConfirm(msg, onConfirm) {
@@ -1352,20 +1422,76 @@
         });
     }
 
-    async function updateStudentPagerControls() {
-        const prevBtn = document.getElementById("student-prev-btn");
-        const nextBtn = document.getElementById("student-next-btn");
+    function buildPaginationHtml(total, limit, skip, onPageFn) {
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        const currentPage = Math.floor(skip / limit) + 1;
 
-        const isFirstPage = (studentSkip === 0);
-        const isLastPage = (studentSkip + studentLimit >= studentTotal);
+        let html = `
+            <li class="page-item ${currentPage <= 1 ? "disabled" : ""}">
+                <button type="button" class="page-link" onclick="${onPageFn}(${currentPage - 1})" aria-label="Previous">&laquo; Prev</button>
+            </li>`;
 
-        if (prevBtn) {
-            prevBtn.style.visibility = isFirstPage ? "hidden" : "visible";
-            prevBtn.disabled = isFirstPage;
+        const pages = [];
+        if (totalPages <= 7) {
+            for (let p = 1; p <= totalPages; p++) pages.push(p);
+        } else {
+            pages.push(1);
+            if (currentPage > 3) pages.push("...");
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+            for (let p = start; p <= end; p++) pages.push(p);
+            if (currentPage < totalPages - 2) pages.push("...");
+            pages.push(totalPages);
         }
-        if (nextBtn) {
-            nextBtn.style.visibility = isLastPage ? "hidden" : "visible";
-            nextBtn.disabled = isLastPage;
+
+        pages.forEach(p => {
+            if (p === "...") {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            } else {
+                html += `
+                    <li class="page-item ${p === currentPage ? "active" : ""}">
+                        <button type="button" class="page-link" onclick="${onPageFn}(${p})">${p}</button>
+                    </li>`;
+            }
+        });
+
+        html += `
+            <li class="page-item ${currentPage >= totalPages ? "disabled" : ""}">
+                <button type="button" class="page-link" onclick="${onPageFn}(${currentPage + 1})" aria-label="Next">Next &raquo;</button>
+            </li>`;
+
+        return html;
+    }
+
+    function updateStudentPagerControls() {
+        const listEl = document.getElementById("student-pagination-list");
+        const pagerEl = document.getElementById("student-pager");
+        if (!listEl) return;
+
+        if (pagerEl) {
+            pagerEl.style.display = studentTotal === 0 ? "none" : "flex";
+        }
+        if (studentTotal === 0) {
+            listEl.innerHTML = "";
+            return;
+        }
+        listEl.innerHTML = buildPaginationHtml(studentTotal, studentLimit, studentSkip, "goToStudentPage");
+    }
+
+    function goToStudentPage(page) {
+        const totalPages = Math.max(1, Math.ceil(studentTotal / studentLimit));
+        const target = Math.max(1, Math.min(totalPages, page));
+        const newSkip = (target - 1) * studentLimit;
+        if (newSkip === studentSkip) return;
+        studentSkip = newSkip;
+        loadStudents();
+    }
+
+    function changeStudentLimit(val) {
+        const parsed = parseInt(val, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+            studentLimit = parsed;
+            loadStudents(true);
         }
     }
 
@@ -1449,10 +1575,8 @@
     }
 
     function studentPage(dir) {
-        const newSkip = studentSkip + dir * studentLimit;
-        if (newSkip < 0 || newSkip >= studentTotal) return;
-        studentSkip = newSkip;
-        loadStudents();
+        const currentPage = Math.floor(studentSkip / studentLimit) + 1;
+        goToStudentPage(currentPage + dir);
     }
 
     function promptDelete(id, name) {
@@ -1583,9 +1707,42 @@
         }
     }
 
+    function updateParentPagerControls() {
+        const listEl = document.getElementById("parent-pagination-list");
+        const pagerEl = document.getElementById("parent-pager");
+        if (!listEl) return;
+
+        if (pagerEl) {
+            pagerEl.style.display = parentTotal === 0 ? "none" : "flex";
+        }
+        if (parentTotal === 0) {
+            listEl.innerHTML = "";
+            return;
+        }
+        listEl.innerHTML = buildPaginationHtml(parentTotal, parentLimit, parentSkip, "goToParentPage");
+    }
+
+    function goToParentPage(page) {
+        const totalPages = Math.max(1, Math.ceil(parentTotal / parentLimit));
+        const target = Math.max(1, Math.min(totalPages, page));
+        const newSkip = (target - 1) * parentLimit;
+        if (newSkip === parentSkip) return;
+        parentSkip = newSkip;
+        loadParents();
+    }
+
+    function changeParentLimit(val) {
+        const parsed = parseInt(val, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+            parentLimit = parsed;
+            loadParents(true);
+        }
+    }
+
     async function loadParents(reset = false) {
+        if (reset) parentSkip = 0;
         const search = document.getElementById("search-parent").value.trim();
-        let url = `${API_BASE}/admin-panel/users/parents?limit=100`;
+        let url = `${API_BASE}/admin-panel/users/parents?skip=${parentSkip}&limit=${parentLimit}`;
         if (search) url += `&search=${encodeURIComponent(search)}`;
 
         const container = document.getElementById("parents-list-container");
@@ -1596,8 +1753,16 @@
             const json = await res.json();
             parentsLoaded = true;
             currentParentsList = json.data || [];
-            const count = json.total || 0;
-            document.getElementById("parent-count").textContent = `${count} Registered Guardians`;
+            parentTotal = json.total || 0;
+            document.getElementById("parent-count").textContent = `${parentTotal} Registered Guardians`;
+
+            const pageStart = parentTotal > 0 ? parentSkip + 1 : 0;
+            const pageEnd = Math.min(parentSkip + parentLimit, parentTotal);
+            const pageInfoEl = document.getElementById("parent-page-info");
+            if (pageInfoEl) {
+                pageInfoEl.textContent = `Showing ${pageStart}–${pageEnd} of ${parentTotal}`;
+            }
+            updateParentPagerControls();
 
             if (!json.data || !json.data.length) {
                 container.innerHTML = MikiSkeleton.renderEmptyState({
@@ -1625,7 +1790,7 @@
 
                 html += `
                 <div class="parent-row">
-                    <div class="parent-id-circle">${i + 1}</div>
+                    <div class="parent-id-circle">${parentSkip + i + 1}</div>
                     <div class="parent-info-main">
                         <span class="parent-mobile-text">${p.guardian_name || "Unknown Guardian"}</span>
                         <span class="parent-date-text">

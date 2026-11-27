@@ -495,6 +495,41 @@ def serialize_mongo_doc(doc):
     return doc
 
 # --------------------- Fetch Parent Details -------------------------
+async def enrich_edusoft_flag(students: list) -> list:
+    """Attach `is_edusoft_registered` boolean to each serialized student dict."""
+    if not students:
+        return students
+
+    sid_candidates = []
+    for s in students:
+        sid = str(s.get("_id") or "").strip()
+        if sid:
+            sid_candidates.append(sid)
+            if ObjectId.is_valid(sid):
+                sid_candidates.append(ObjectId(sid))
+
+    edusoft_sids = set()
+    if sid_candidates:
+        cursor = db.edusoft_credentials.find(
+            {
+                "student_id": {"$in": sid_candidates},
+                "registered_via": {"$ne": "auto_provisioned"}
+            },
+            {"student_id": 1}
+        )
+        async for doc in cursor:
+            if doc.get("student_id") is not None:
+                edusoft_sids.add(str(doc["student_id"]))
+
+    for s in students:
+        sid = str(s.get("_id") or "").strip()
+        reg_via = str(s.get("registered_via") or "").strip().lower()
+        s["is_edusoft_registered"] = bool(
+            reg_via in ("external_api", "edusoft_api") or sid in edusoft_sids
+        )
+    return students
+
+
 @router.get("/parent")
 async def get_parent_details(
     current_user: dict = Depends(get_current_user)
@@ -566,6 +601,7 @@ async def get_parent_details(
             pass
 
     students = [serialize_mongo_doc(doc) for doc in raw_students]
+    await enrich_edusoft_flag(students)
     return {"status_code": 200, "parent_number": mobile_number, "students": students}
 
 
@@ -624,6 +660,7 @@ async def get_current_student_profile(
                 pass
 
     serialized = serialize_mongo_doc(student)
+    await enrich_edusoft_flag([serialized])
     return {
         "status_code": 200,
         "student": serialized,
@@ -1130,6 +1167,7 @@ async def get_student_detail(student_id: str, current=Depends(admin_or_user)):
             pass
 
     serialized_student = serialize_mongo_doc(student)
+    await enrich_edusoft_flag([serialized_student])
     return {
         "status_code": 200,
         "student": serialized_student
